@@ -1,0 +1,210 @@
+/* Glass changes appearance only. Menus and reading surfaces stay readable. */
+html[data-style="glass"] {
+  --type-heading:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --background: #eaf0ed;
+  --foreground: #172e2c;
+  --card: rgb(248 251 249 / 46%);
+  --card-solid: #f8fbf9;
+  --card-foreground: #172e2c;
+  --popover: #f8fbf9;
+  --popover-foreground: #172e2c;
+  --primary: #173f33;
+  --primary-foreground: #ffffff;
+  --secondary: #dae9e3;
+  --secondary-foreground: #172e2c;
+  --muted: #e3ebe7;
+  --muted-foreground: #234037;
+  --accent: #d7e5df;
+  --accent-foreground: #172e2c;
+  --border: rgb(32 66 55 / 18%);
+  --input: #3d594b;
+  --ring: #173f33;
+  --destructive: #7a1812;
+  --sidebar: rgb(248 251 249 / 58%);
+  --sidebar-solid: #f8fbf9;
+  --sidebar-foreground: #172e2c;
+  --sidebar-accent: #dae9e3;
+  --sidebar-accent-foreground: #172e2c;
+  --sidebar-border: rgb(32 66 55 / 18%);
+  --sidebar-ring: #173f33;
+  --radius: 1.15rem;
+  --surface-blur: 24px;
+  --surface-shadow:
+    0 16px 40px rgb(14 38 32 / 16%), 0 3px 10px rgb(14 38 32 / 8%);
+  --surface-edge: rgb(255 255 255 / 90%);
+  --surface-sheen: linear-gradient(
+    135deg,
+    rgb(255 255 255 / 24%),
+    transparent 45%,
+    rgb(255 255 255 / 8%)
+  );
+  --reading-surface: rgb(248 251 249 / 68%);
+  --form-surface: rgb(248 251 249 / 84%);
+  --cover-wash: linear-gradient(rgb(234 240 237 / 42%), rgb(234 240 237 / 42%));
+  --canvas-art:
+    radial-gradient(ellipse at 8% 12%, #b7d6ca 0%, transparent 52%),
+    radial-gradient(ellipse at 92% 10%, #f5ddb2 0%, transparent 48%),
+    radial-gradient(ellipse at 80% 85%, #c4cfee 0%, transparent 50%);
+}
+
+html[data-style="glass"].dark {
+  --background: #142622;
+  --foreground: #f0f8f4;
+  --card: rgb(28 48 43 / 64%);
+  --card-solid: #1c302b;
+  --card-foreground: #f0f8f4;
+  --popover: #1c302b;
+  --popover-foreground: #f0f8f4;
+  --primary: #d0f4e1;
+  --primary-foreground: #142622;
+  --secondary: #294139;
+  --secondary-foreground: #f0f8f4;
+  --muted: #294139;
+  --muted-foreground: #e3eee8;
+  --accent: #334f45;
+  --accent-foreground: #f0f8f4;
+  --border: rgb(212 237 223 / 22%);
+  --input: #b2d2c2;
+  --ring: #d0f4e1;
+  --destructive: #ffe0db;
+  --sidebar: rgb(28 48 43 / 70%);
+  --sidebar-solid: #1c302b;
+  --sidebar-foreground: #f0f8f4;
+  --sidebar-accent: #334f45;
+  --sidebar-accent-foreground: #f0f8f4;
+  --sidebar-border: rgb(212 237 223 / 22%);
+  --sidebar-ring: #d0f4e1;
+  --surface-shadow: 0 16px 40px rgb(0 0 0 / 32%), 0 3px 10px rgb(0 0 0 / 18%);
+  --surface-edge: rgb(220 245 231 / 48%);
+  --surface-sheen: linear-gradient(
+    135deg,
+    rgb(220 245 231 / 10%),
+    transparent 45%,
+    rgb(220 245 231 / 3%)
+  );
+  --reading-surface: rgb(28 48 43 / 80%);
+  --form-surface: rgb(28 48 43 / 90%);
+  --cover-wash: linear-gradient(rgb(20 38 34 / 42%), rgb(20 38 34 / 42%));
+  --canvas-art:
+    radial-gradient(ellipse at 8% 12%, #315e50 0%, transparent 52%),
+    radial-gradient(ellipse at 92% 10%, #554730 0%, transparent 48%),
+    radial-gradient(ellipse at 80% 85%, #303b59 0%, transparent 50%);
+}
+
+html[data-style="glass"] body {
+  background-image: var(--canvas-art);
+  background-attachment: fixed;
+}
+
+/* Let cover colors show through; protect text locally instead of bleaching the
+   whole canvas. Without a loaded cover the original gradients remain intact. */
+html[data-style="glass"][data-page-cover="loaded"] body {
+  background-image: var(--cover-wash), var(--page-cover), var(--canvas-art);
+  background-size: cover;
+  background-position: center;
+}
+
+/* Style existing shadcn slots, rather than introducing another component set.
+   Blur is limited to panels/chrome; portalled controls use solid popovers. */
+html[data-style="glass"] [data-slot="card"] {
+  background-color: var(--card);
+}
+
+html[data-style="glass"] [data-slot="card"],
+html[data-style="glass"] .shell-surface,
+html[data-style="glass"] .reading-surface,
+html[data-style="glass"] .page-header {
+  background-image: var(--surface-sheen);
+  -webkit-backdrop-filter: blur(var(--surface-blur)) saturate(145%);
+  backdrop-filter: blur(var(--surface-blur)) saturate(145%);
+  box-shadow:
+    inset 0 1px 0 var(--surface-edge),
+    inset 1px 0 0 var(--surface-edge),
+    inset 0 -1px 0 rgb(255 255 255 / 12%),
+    var(--surface-shadow);
+}
+
+/* Stronger local scrims for text, data and mutations. Forms inside cards need
+   only one scrim; avoid stacking another translucent surface around every field. */
+html[data-style="glass"] :is(.reading-surface, .page-header),
+html[data-style="glass"] .page-stack > p,
+html[data-style="glass"] .shell-footer {
+  background-color: var(--reading-surface);
+  border-radius: var(--radius-xl);
+}
+
+html[data-style="glass"] [data-slot="card"]:has(form),
+html[data-style="glass"] [data-slot="table-container"],
+html[data-style="glass"] form:not([data-slot="card"] form) {
+  background-color: var(--form-surface);
+  border-radius: var(--radius-xl);
+}
+
+html[data-style="glass"] :is(.glass-inset, .page-header),
+html[data-style="glass"] form:not([data-slot="card"] form),
+html[data-style="glass"] .page-stack > p {
+  padding: 1.25rem;
+}
+
+html[data-style="glass"] .shell-footer {
+  padding-top: 1rem;
+}
+
+/* Nested appearance options already sit on a panel; keep them clear. */
+html[data-style="glass"] [data-slot="card"] [data-slot="radio-group"] > label {
+  background-color: transparent;
+}
+
+html[data-style="glass"]
+  :is(
+    [data-slot="input"],
+    [data-slot="textarea"],
+    [data-slot="select-trigger"]
+  ) {
+  background-color: var(--card-solid);
+}
+
+html[data-style="glass"] [data-slot="alert"] {
+  /* Error notices use bg-card; make that semantic pair independent of artwork. */
+  --card: var(--card-solid);
+}
+
+html[data-style="glass"] .shell-surface {
+  background-color: var(--sidebar);
+}
+
+html[data-style="glass"] [data-slot="sheet-content"] {
+  background-color: var(--sidebar-solid);
+}
+
+/* Readable opaque fallbacks also serve people requesting less transparency. */
+@supports not (backdrop-filter: blur(1px)) {
+  html[data-style="glass"],
+  html[data-style="glass"].dark {
+    --card: var(--card-solid);
+    --sidebar: var(--sidebar-solid);
+    --reading-surface: var(--card-solid);
+    --form-surface: var(--card-solid);
+    --surface-sheen: none;
+    --surface-blur: 0px;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  html[data-style="glass"],
+  html[data-style="glass"].dark {
+    --card: var(--card-solid);
+    --sidebar: var(--sidebar-solid);
+    --reading-surface: var(--card-solid);
+    --form-surface: var(--card-solid);
+    --surface-sheen: none;
+    --surface-blur: 0px;
+  }
+  html[data-style="glass"] [data-slot="card"],
+  html[data-style="glass"] .shell-surface,
+  html[data-style="glass"] .reading-surface,
+  html[data-style="glass"] .page-header {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

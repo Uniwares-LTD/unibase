@@ -1,0 +1,18 @@
+name: Check Unitale deployment
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [staging, production]
+        required: true
+permissions:
+  contents: read
+jobs:
+  check:
+    uses: ./.github/workflows/vps-operation.yml
+    with:
+      action: check
+      environment: ${{ inputs.environment }}
+      apply: true
+    secrets: inherit

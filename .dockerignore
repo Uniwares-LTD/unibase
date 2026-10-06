@@ -1,0 +1,14 @@
+# Allowlist the build context. Local env, credentials, tooling and Git never enter it.
+*
+!package.json
+!package-lock.json
+!next.config.ts
+!tsconfig.json
+!postcss.config.mjs
+!src/
+!src/**
+!public/
+!public/**
+!scripts/
+!scripts/payment-worker.ts
+!scripts/build-worker.mjs

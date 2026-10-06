@@ -1,0 +1,85 @@
+name: Android release
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the signed artifact to Google Play
+        type: boolean
+        default: false
+      track:
+        description: Play track (used only when publishing)
+        type: choice
+        options: [internal, alpha, beta, production]
+        default: internal
+permissions:
+  contents: read
+concurrency:
+  group: unitale-android-release
+  cancel-in-progress: false
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    environment: android-release
+    env:
+      ANDROID_HOST: ${{ vars.ANDROID_HOST }}
+      ANDROID_PACKAGE_NAME: ${{ vars.ANDROID_PACKAGE_NAME }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: npm install --global npm@12.0.1
+      - run: npm ci
+      - name: Validate target and regenerate wrapper
+        run: npm run android:generate -- --release
+      - name: Read package identity
+        id: android
+        run: node -e "const c=require('./android/project/twa-manifest.json'); require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'package='+c.packageId+'\n')"
+      - name: Install Android build platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - name: Build signed bundle
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${ANDROID_KEYSTORE_BASE64:?Missing Android upload keystore}"
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/unitale-upload.keystore"
+          trap 'rm -f "$ANDROID_KEYSTORE_PATH"' EXIT
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+          cd android/project
+          chmod +x gradlew
+          ./gradlew --no-daemon bundleRelease
+          jarsigner -verify app/build/outputs/bundle/release/app-release.aab
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unitale-android-${{ github.sha }}
+          path: android/project/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish explicitly selected Play release
+        if: ${{ inputs.publish }}
+        uses: r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6 # v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ steps.android.outputs.package }}
+          releaseFiles: android/project/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ inputs.track }}
+          status: completed
+      - name: Release summary
+        env:
+          COMMIT: ${{ github.sha }}
+          PUBLISHED: ${{ inputs.publish }}
+          TRACK: ${{ inputs.track }}
+        run: |
+          printf '### Android release\nCommit: `%s`\n\nSigned AAB uploaded. Play publishing selected: %s. Track: %s.\n' "$COMMIT" "$PUBLISHED" "$TRACK" >> "$GITHUB_STEP_SUMMARY"

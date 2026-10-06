@@ -1,0 +1,22 @@
+name: Prepare Unitale host directories
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [staging, production]
+        required: true
+      apply:
+        description: Explicitly create Unitale host directories (otherwise preview)
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  setup:
+    uses: ./.github/workflows/vps-operation.yml
+    with:
+      action: setup
+      environment: ${{ inputs.environment }}
+      apply: ${{ inputs.apply }}
+    secrets: inherit

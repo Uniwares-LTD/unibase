@@ -1,0 +1,41 @@
+name: Release Unitale
+on:
+  push:
+    branches: [_staging, _prod]
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [staging, production]
+        required: true
+permissions:
+  contents: read
+  packages: write
+  actions: read
+concurrency:
+  group: unitale-vps-operation
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || (github.ref_name == '_prod' && 'production' || 'staging') }}
+    env:
+      TARGET: ${{ inputs.environment || (github.ref_name == '_prod' && 'production' || 'staging') }}
+      GH_TOKEN: ${{ github.token }}
+      VPS_HOST: ${{ vars.VPS_HOST }}
+      VPS_USER: ${{ vars.VPS_USER }}
+      CLOUDFLARED_VERSION: ${{ vars.CLOUDFLARED_VERSION }}
+      CLOUDFLARED_SHA256: ${{ vars.CLOUDFLARED_SHA256 }}
+      DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+      DEPLOY_SSH_HOST_KEY: ${{ secrets.DEPLOY_SSH_HOST_KEY }}
+      CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+      CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Guard, build, release and verify
+        run: bash scripts/deploy/release.sh "$TARGET"
+      - name: Remove runner credentials
+        if: always()
+        run: |
+          rm -rf "$RUNNER_TEMP/unitale-access"
+          docker logout ghcr.io || true

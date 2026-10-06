@@ -1,0 +1,39 @@
+name: Advisory quality reports
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install advisory tools
+        continue-on-error: true
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
+          curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_checksums.txt -o "$RUNNER_TEMP/checksums.txt"
+          (cd "$RUNNER_TEMP" && grep ' actionlint_1.7.12_linux_amd64.tar.gz$' checksums.txt | sha256sum -c -)
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - run: npm ci
+        continue-on-error: true
+      - run: npm run validate
+        continue-on-error: true
+      - name: Summarize real outcomes
+        if: always()
+        run: |
+          node -e 'const fs=require("fs"); const p="output/validation/results.json"; const rows=fs.existsSync(p)?JSON.parse(fs.readFileSync(p)):[]; fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, rows.length?rows.map(x=>`${x.name}: ${x.outcome} (exit ${x.exitCode})`).join("\n"):"Validation did not finish; results unavailable."); if(!rows.length || rows.some(x=>x.exitCode)) console.log("::warning::Advisory quality checks have warnings; inspect the artifact.");'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: quality-${{ github.sha }}
+          path: output/validation/
+          if-no-files-found: warn

@@ -1,0 +1,76 @@
+name: unitale-${DEPLOY_ENV:?required}
+services:
+  app:
+    image: ${IMAGE_DIGEST:?required}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    env_file:
+      - path: ./runtime.env
+        format: raw
+    environment:
+      RELEASE_COMMIT: ${RELEASE_COMMIT:?required}
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase.json
+    volumes:
+      - ./firebase.json:/run/secrets/firebase.json:ro
+    tmpfs:
+      - /tmp:uid=1001,gid=1001,mode=1777
+      - /app/.next/cache:uid=1001,gid=1001,mode=0700
+    ports:
+      - "127.0.0.1:${APP_PORT:?required}:3000"
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    mem_limit: 1g
+    cpus: 1
+  worker:
+    image: ${IMAGE_DIGEST:?required}
+    command: [node, payment-worker.cjs]
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    env_file:
+      - path: ./runtime.env
+        format: raw
+    tmpfs:
+      - /tmp:uid=1001,gid=1001,mode=1777
+    mem_limit: 256m
+    cpus: 0.5
+  ai-worker:
+    image: ${IMAGE_DIGEST:?required}
+    command: [node, ai-worker.cjs]
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 180s
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    env_file:
+      - path: ./runtime.env
+        format: raw
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase.json
+    volumes:
+      - ./firebase.json:/run/secrets/firebase.json:ro
+    tmpfs:
+      - /tmp:uid=1001,gid=1001,mode=1777
+    mem_limit: 512m
+    cpus: 0.5
+  tunnel:
+    image: ${TUNNEL_IMAGE:?required}
+    command: [tunnel, --no-autoupdate, run, --token-file, /run/secrets/tunnel-token]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    user: "1001:1001"
+    volumes:
+      - ./tunnel-token:/run/secrets/tunnel-token:ro
+    depends_on: [app]
+    mem_limit: 256m

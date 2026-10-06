@@ -1,0 +1,80 @@
+import "server-only";
+import { AppError } from "../auth-policy";
+import type { PublicOrder, PublicPack } from "../contracts/credits";
+import { creditConfig } from "./credit-config";
+import { database } from "./mongo";
+import { requireSession } from "./session";
+import {
+  createSimulationOrder,
+  simulatePurchase,
+  type SimulationEvent,
+  type SimulationOrder,
+} from "./store/simulation";
+
+function requireSimulation() {
+  const config = creditConfig();
+  if (config.mode !== "simulation")
+    throw new AppError(
+      "SIMULATION_DISABLED",
+      "Purchase simulation is available only with local emulators.",
+      403,
+    );
+  return config;
+}
+export function publicCatalog(): {
+  mode: "disabled" | "simulation" | "stripe";
+  packs: PublicPack[];
+} {
+  const config = creditConfig();
+  return {
+    mode: config.mode,
+    packs: config.packs.map(({ id, label, credits }) => ({
+      id,
+      label,
+      credits,
+    })),
+  };
+}
+export async function startSimulatedPurchase(packId: string, key: string) {
+  const config = requireSimulation();
+  const session = await requireSession();
+  const pack = config.packs.find((item) => item.id === packId);
+  if (!pack)
+    throw new AppError("PACK_NOT_FOUND", "Credit pack was not found.", 404);
+  return createSimulationOrder(
+    database(),
+    { uid: session.uid, authTime: session.auth_time },
+    key,
+    pack,
+  );
+}
+export async function changeSimulatedPurchase(
+  id: string,
+  event: SimulationEvent,
+) {
+  requireSimulation();
+  const session = await requireSession();
+  return simulatePurchase(
+    database(),
+    { uid: session.uid, authTime: session.auth_time },
+    id,
+    event,
+  );
+}
+export async function currentSimulatedPurchases(): Promise<PublicOrder[]> {
+  requireSimulation();
+  const session = await requireSession();
+  const orders = await database()
+    .collection<SimulationOrder>("purchaseOrders")
+    .find({ uid: session.uid, provider: "simulation" })
+    .sort({ createdAt: -1, _id: -1 })
+    .limit(25)
+    .toArray();
+  return orders.map((item) => ({
+    id: item._id,
+    label: item.label,
+    credits: item.credits,
+    status: item.status,
+    createdAt: item.createdAt.toISOString(),
+  }));
+}

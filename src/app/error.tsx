@@ -1,0 +1,37 @@
+"use client";
+import { useEffect } from "react";
+import { diagnostics } from "@/lib/client/diagnostics";
+import Link from "next/link";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+export default function ErrorPage({
+  retry,
+}: {
+  error: Error & { digest?: string };
+  retry: () => void;
+}) {
+  useEffect(() => {
+    diagnostics.record("route-error");
+  }, []);
+  return (
+    <section className="reading-surface mx-auto max-w-lg py-12">
+      <h1 className="mb-6 font-heading text-3xl">Let’s try that again.</h1>
+      <Alert>
+        <AlertCircle aria-hidden="true" />
+        <AlertTitle>This page couldn’t load</AlertTitle>
+        <AlertDescription>
+          Try again in a moment, or return to your home page.
+        </AlertDescription>
+      </Alert>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Button onClick={retry} className="h-11">
+          Try again
+        </Button>
+        <Button variant="outline" asChild className="h-11">
+          <Link href="/">Back to home</Link>
+        </Button>
+      </div>
+    </section>
+  );
+}

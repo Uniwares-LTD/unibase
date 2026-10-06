@@ -1,0 +1,60 @@
+name: Unitale host operation
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      action:
+        type: string
+        required: true
+      apply:
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: unitale-vps-operation
+  cancel-in-progress: false
+jobs:
+  operate:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      TARGET: ${{ inputs.environment }}
+      ACTION: ${{ inputs.action }}
+      APPLY: ${{ inputs.apply }}
+      GH_TOKEN: ${{ github.token }}
+      VPS_HOST: ${{ vars.VPS_HOST }}
+      VPS_USER: ${{ vars.VPS_USER }}
+      CLOUDFLARED_VERSION: ${{ vars.CLOUDFLARED_VERSION }}
+      CLOUDFLARED_SHA256: ${{ vars.CLOUDFLARED_SHA256 }}
+      DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+      DEPLOY_SSH_HOST_KEY: ${{ secrets.DEPLOY_SSH_HOST_KEY }}
+      CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+      CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Guard target and action
+        run: |
+          bash scripts/deploy/guard.sh "$TARGET"
+          case "$ACTION" in setup|check|rollback) ;; *) exit 1 ;; esac
+          bash scripts/deploy/vps.sh "$ACTION" "$TARGET"
+      - name: Configure pinned Access SSH
+        if: inputs.apply
+        run: bash scripts/deploy/access.sh
+      - name: Apply requested operation
+        if: inputs.apply
+        run: |
+          bash scripts/deploy/guard.sh "$TARGET"
+          bash scripts/deploy/host-operation.sh "$ACTION" "$TARGET"
+          printf 'Operation succeeded: action=%s environment=%s workflow-commit=%s\n' "$ACTION" "$TARGET" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove runner credentials
+        if: always()
+        env:
+          OPERATION_STATUS: ${{ job.status }}
+        run: |
+          rm -rf "$RUNNER_TEMP/unitale-access"
+          case "$ACTION" in setup|check|rollback) action=$ACTION ;; *) action=unknown ;; esac
+          case "$TARGET" in staging|production) target=$TARGET ;; *) target=unknown ;; esac
+          printf 'Operation result=%s action=%s environment=%s workflow-commit=%s apply=%s\n' "$OPERATION_STATUS" "$action" "$target" "$GITHUB_SHA" "$APPLY" >> "$GITHUB_STEP_SUMMARY"
