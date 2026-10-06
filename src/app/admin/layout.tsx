@@ -16,6 +16,9 @@ export default async function AdminLayout({
         className="flex flex-wrap gap-2"
       >
         <Button variant="outline" asChild>
+          <Link href="/admin/operations">Operations</Link>
+        </Button>
+        <Button variant="outline" asChild>
           <Link href="/admin">Overview</Link>
         </Button>
         <Button variant="outline" asChild>

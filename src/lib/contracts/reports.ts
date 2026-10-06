@@ -7,6 +7,8 @@ export const auditEvents = [
   "admin-profile-edit",
   "credit-adjustment",
   "ai-resolution",
+  "ai-cleanup",
+  "payment-review",
 ] as const;
 export const reportFilterSchema = z
   .object({

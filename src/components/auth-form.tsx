@@ -16,6 +16,7 @@ import type { FirebaseBrowserConfig } from "@/lib/config/auth";
 import { browserAuth, redirectCredential } from "@/lib/client/firebase";
 import { GOOGLE_REDIRECT_KEY, redirectUser } from "@/lib/client/redirect-state";
 import { api, ApiError } from "@/lib/client/api";
+import { announceSessionChange } from "@/lib/client/session-lifecycle";
 import { sessionResultSchema } from "@/lib/contracts/profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,8 +53,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
     });
     await signOut(auth);
     sessionStorage.removeItem(GOOGLE_REDIRECT_KEY);
-    localStorage.setItem("unitale-session-event", String(Date.now()));
-    window.location.replace("/account");
+    announceSessionChange();
   }
 
   useEffect(() => {

@@ -429,3 +429,30 @@ corrected stale scope and setup statements. Runtime tests were not rerun for thi
 documentation-only pass; earlier dated evidence remains historical. M5 and live
 provider/deployment/Android checks keep their existing incomplete status until
 those acceptance steps are performed.
+
+## Review fixes and administrator operations
+
+Accepted 2026-10-06: shared session invalidation across protected pages; managed
+hold maintenance isolation; all supported APP_STYLE deployment presets; worker
+heartbeats and release probes; paginated AI history, queue age and unresolved
+counts; administrator-led AI/payment recovery; manual local-only cleanup with
+preview, confirmation, bounded options and durable reports. Provider deletion,
+automatic retention schedules and user-controlled deletion are outside this scope.
+
+Implemented in the existing application, workers and admin pages. Cleanup preserves
+billing, usage, audit and idempotency evidence, excludes uncertain work and rechecks
+each preview target under an administrator transaction. Manual payment review uses
+the existing verified Stripe reconciliation path. Current setup and procedures are
+in [administrator operations](ai-testing.md#administrator-operations).
+
+Verification on 2026-10-06: production build and worker bundles, TypeScript, lint,
+formatting, 44 unit tests, 70 account/provider tests and 25 deployment tests passed.
+Production HTTP checks passed for AI operations/legacy flows, variable pricing and
+Stripe fixtures. Browser checks passed for a two-record preview/confirmed cleanup,
+25+3 history pagination, cross-tab logout, switching between two emulator users,
+browser Back after logout, simulated persisted-page restoration and no horizontal
+overflow at 1440px/390px. Fixtures used disposable MongoDB and local Auth emulator;
+no live provider or deployment was exercised. Separate read-only review covered
+access fences, retry evidence, terminal cleanup eligibility, worker rollout and
+current documentation. The selected scope and implemented surfaces match. Existing
+live Dify/Stripe, VPS and Android acceptance remain separate pending checkpoints.

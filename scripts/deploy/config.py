@@ -38,7 +38,7 @@ def validate(root, target):
     item = config[target]
     directory = root / target
     env = {}
-    allowed = {"APP_NAME", "APP_ENV", "APP_ORIGIN", "AUTH_MODE", "FIREBASE_PROJECT_ID",
+    allowed = {"APP_NAME", "APP_STYLE", "APP_ENV", "APP_ORIGIN", "AUTH_MODE", "FIREBASE_PROJECT_ID",
                "FIREBASE_API_KEY", "FIREBASE_APP_ID", "MONGODB_URI", "MONGODB_DATABASE",
                "ANDROID_PACKAGE_NAME", "ANDROID_SHA256_FINGERPRINTS",
                "PAYMENTS_MODE", "CREDIT_PACKS_JSON", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
@@ -50,6 +50,8 @@ def validate(root, target):
         if (key not in allowed and not re.fullmatch(r"DIFY_KEY_[A-Z0-9_]+", key)) or key in env:
             raise ValueError("Unknown or duplicate runtime setting")
         env[key] = value
+    if env.get("APP_STYLE", "classic") not in ("classic", "glass", "soft-blue"):
+        raise ValueError("Invalid APP_STYLE")
     if env.get("AI_PRICING_JSON"):
         # Detailed pricing terms are validated by the shared application parser
         # at web/worker startup. Bound the transport here without a second schema.

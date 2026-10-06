@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { csrfSchema, errorSchema } from "../contracts/profile";
 import { diagnostics } from "./diagnostics";
+import {
+  sessionRequestSignal,
+  announceSessionChange,
+} from "./session-lifecycle";
 
 export class ApiError extends Error {
   constructor(
@@ -28,6 +32,7 @@ export async function api<T>(
   )
     throw new Error("API requests must remain same-origin.");
   const signal = AbortSignal.any([
+    sessionRequestSignal(),
     AbortSignal.timeout(
       Math.min(120000, Math.max(1000, options.timeoutMs ?? 15000)),
     ),
@@ -74,14 +79,20 @@ export async function api<T>(
       "The server returned an unexpected response.",
     );
   }
+  signal.throwIfAborted();
   if (!response.ok) {
     const error = errorSchema.safeParse(body);
-    if (error.success)
+    if (error.success) {
+      if (
+        ["UNAUTHENTICATED", "ACCOUNT_CHANGED"].includes(error.data.error.code)
+      )
+        announceSessionChange();
       throw new ApiError(
         error.data.error.code,
         error.data.error.message,
         error.data.error.requestId,
       );
+    }
     throw new ApiError("REQUEST_FAILED", "The request could not be completed.");
   }
   const result = schema.safeParse(body);

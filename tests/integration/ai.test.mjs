@@ -35,6 +35,126 @@ after(async () => {
   await mongo.close();
 });
 
+test("admin operations require authorization, CSRF and confirmation; cleanup preserves billing", async () => {
+  const admin = await browser();
+  const member = await browser();
+  await db.collection("accountAccess").updateOne(
+    { _id: admin.uid },
+    {
+      $set: {
+        role: "admin",
+        status: "active",
+        notBefore: 0,
+        revision: 0,
+        updatedAt: new Date(),
+      },
+    },
+    { upsert: true },
+  );
+  const { createAiJob, aiJobs } =
+    await import("../../src/lib/server/ai/jobs.ts");
+  const old = new Date(Date.now() - 90 * 86400000);
+  const job = await createAiJob(
+    db,
+    { uid: member.uid, authTime: 1 },
+    randomUUID(),
+    {
+      capability: "assistant-text",
+      capabilityVersion: "1",
+      binding: {
+        name: "assistant-text",
+        kind: "workflow",
+        mode: "fake",
+        revision: "1",
+        fingerprint: "cleanup-fixture",
+      },
+      inputs: { prompt: "cleanup private fixture" },
+      source: null,
+      credits: 0,
+    },
+    old,
+  );
+  await aiJobs(db).updateOne({ _id: job._id }, { $set: { status: "failed" } });
+  const previewPath = "/api/admin/operations/cleanup/preview";
+  const body = JSON.stringify({ olderThanDays: 30, scope: "jobs", limit: 100 });
+  assert.equal(
+    (await member.request(previewPath, { method: "POST", body })).status,
+    403,
+  );
+  assert.equal(
+    (
+      await admin.request(previewPath, {
+        method: "POST",
+        body,
+        headers: { "x-csrf-token": "invalid" },
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await admin.request(previewPath, {
+        method: "POST",
+        body,
+        headers: { origin: "https://foreign.test" },
+      })
+    ).status,
+    403,
+  );
+  const previewResponse = await admin.request(previewPath, {
+    method: "POST",
+    body,
+  });
+  assert.equal(previewResponse.status, 200);
+  const preview = await previewResponse.json();
+  assert.ok(preview.ids.includes(`job:${job._id}`));
+  assert.equal(
+    (await aiJobs(db).findOne({ _id: job._id })).inputs.prompt,
+    "cleanup private fixture",
+  );
+  const execution = {
+    reportId: preview.id,
+    reason: "HTTP cleanup verification",
+  };
+  assert.equal(
+    (
+      await admin.request("/api/admin/operations/cleanup/execute", {
+        method: "POST",
+        body: JSON.stringify(execution),
+      })
+    ).status,
+    400,
+  );
+  const result = await admin.request("/api/admin/operations/cleanup/execute", {
+    method: "POST",
+    body: JSON.stringify({ ...execution, confirm: true }),
+  });
+  assert.equal(result.status, 200);
+  assert.ok((await result.json()).changed >= 1);
+  const retained = await aiJobs(db).findOne({ _id: job._id });
+  assert.deepEqual(retained.inputs, {});
+  assert.equal(retained.fingerprint, job.fingerprint);
+  assert.equal((await admin.request("/admin/operations")).status, 200);
+  assert.equal((await member.request("/ai/history")).status, 200);
+  const payment = {
+    key: randomUUID(),
+    orderId: "a".repeat(64),
+    reason: "Permission boundary fixture",
+  };
+  assert.equal(
+    (
+      await member.request("/api/admin/operations/payments", {
+        method: "POST",
+        body: JSON.stringify(payment),
+      })
+    ).status,
+    403,
+  );
+  await db
+    .collection("accountAccess")
+    .updateOne({ _id: admin.uid }, { $set: { role: "member" } });
+});
+
 async function browser() {
   const email = `${randomUUID()}@example.test`;
   const user = await auth.createUser({

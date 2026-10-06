@@ -38,6 +38,12 @@ export default async function AiDetail({
         }
       />
       <p className="break-all text-sm">{job.id}</p>
+      {job.cleanedAt && (
+        <p>
+          Prompt and result content were removed by administrator cleanup.
+          Billing and usage records remain available.
+        </p>
+      )}
       <p>
         {job.chargedCredits === null
           ? `${job.credits} credits reserved`

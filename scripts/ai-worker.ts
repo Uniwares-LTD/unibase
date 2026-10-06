@@ -15,6 +15,7 @@ import { processOneAiJob } from "../src/lib/server/ai/worker";
 import { adminAuth } from "../src/lib/server/firebase";
 import { runtimeRecord } from "../src/lib/log-policy";
 import { writeRuntimeRecord } from "../src/lib/server/store/runtime";
+import { workerHeartbeat } from "../src/lib/server/worker-heartbeat";
 
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 let stopping = false;
@@ -39,8 +40,12 @@ async function main() {
     connectTimeoutMS: 5000,
   });
   const db = client.db(databaseConfig.database);
+  const heartbeat = workerHeartbeat(db, "ai");
   try {
+    await heartbeat(config.mode === "disabled" ? "disabled" : "ok");
     do {
+      let cycleState: "ok" | "error" | "disabled" =
+        config.mode === "disabled" ? "disabled" : "ok";
       if (config.mode !== "disabled") {
         const started = performance.now();
         let status = 200;
@@ -81,6 +86,7 @@ async function main() {
           });
         } catch {
           status = 503;
+          cycleState = "error";
           if (process.argv.includes("--once")) process.exitCode = 1;
         }
         if (worked || status !== 200) {
@@ -93,6 +99,7 @@ async function main() {
           await writeRuntimeRecord(db, record, 500).catch(() => undefined);
         }
       }
+      await heartbeat(cycleState).catch(() => undefined);
       if (process.argv.includes("--once")) break;
       await delay(2000, undefined, { signal: idle.signal }).catch(
         () => undefined,

@@ -44,6 +44,7 @@ export type AiFile = {
   providerFileId: string | null;
   createdAt: Date;
   updatedAt: Date;
+  cleanedAt?: Date;
 };
 export const aiFiles = (db: Db) => db.collection<AiFile>("aiFiles");
 export function validateAiFile(file: {
@@ -159,7 +160,10 @@ export async function uploadOwnedAiFile(
         return;
       }
       const owned = await aiFiles(db)
-        .find({ uid: actor.uid }, { session, projection: { bytes: 1 } })
+        .find(
+          { uid: actor.uid, cleanedAt: { $exists: false } },
+          { session, projection: { bytes: 1 } },
+        )
         .limit(101)
         .toArray();
       if (

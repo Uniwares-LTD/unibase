@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { BrowserRuntime } from "@/components/browser-runtime";
+import { SessionBoundary } from "@/components/session-boundary";
 import { connection } from "next/server";
 import { cookies } from "next/headers";
 import { StyleProvider } from "@/components/style-provider";
@@ -56,7 +57,9 @@ export default async function RootLayout({
             defaultStyle={publicConfig.defaultStyle}
           >
             <BrowserRuntime />
-            <AppShell appName={publicConfig.appName}>{children}</AppShell>
+            <SessionBoundary>
+              <AppShell appName={publicConfig.appName}>{children}</AppShell>
+            </SessionBoundary>
           </StyleProvider>
         </ThemeProvider>
       </body>

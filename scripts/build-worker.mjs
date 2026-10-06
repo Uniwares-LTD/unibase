@@ -1,6 +1,10 @@
 import { build } from "esbuild";
 await build({
-  entryPoints: ["scripts/payment-worker.ts", "scripts/ai-worker.ts"],
+  entryPoints: [
+    "scripts/payment-worker.ts",
+    "scripts/ai-worker.ts",
+    "scripts/worker-healthcheck.ts",
+  ],
   outdir: "dist",
   outExtension: { ".js": ".cjs" },
   bundle: true,

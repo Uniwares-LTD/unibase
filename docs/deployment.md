@@ -117,15 +117,20 @@ of actual individual outcomes.
 
 ## Local verification and staging acceptance
 
-The image contains `payment-worker.cjs` and `ai-worker.cjs`. Compose starts
+The image contains `payment-worker.cjs`, `ai-worker.cjs` and `worker-healthcheck.cjs`. Compose starts
 `worker` and `ai-worker` with the same immutable image and runtime env file as
 the web app, without public worker ports. The AI worker also receives the Firebase
 credential mount for access checks. The runtime allowlist accepts payment settings,
 `DIFY_MODE`, `DIFY_BASE_URL`, `DIFY_BINDINGS_JSON`, named `DIFY_KEY_*` secrets and
-`AI_PRICING_JSON`; startup validates configuration. Releases and rollback replace
+`AI_PRICING_JSON` and `APP_STYLE` (`classic`, `glass`, `soft-blue`); startup validates configuration. Releases and rollback replace
 the app and both workers together. Install all indexes using `npm run db:indexes`
-and verify both workers separately in staging. Web readiness does not certify
-worker progress or live Dify compatibility. Keep Dify disabled until configured;
+and verify both workers separately in staging. Each worker emits progress to MongoDB
+and a local health file. Compose probes every 15 seconds; release/check/rollback
+requires fresh, non-error worker progress separately from web readiness. Disabled
+AI reports disabled and passes the process probe. Five-minute stale progress fails.
+Retained releases predating this probe remain rollback-compatible and explicitly
+report worker health as unverified. These probes do not certify live provider
+compatibility. Keep Dify disabled until configured;
 see [AI setup and pricing](ai-testing.md). See
 [payments](payments.md); no provider or live deployment has been activated.
 

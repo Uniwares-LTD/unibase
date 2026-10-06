@@ -44,6 +44,22 @@ report() {
 }
 check_release() {
   local release=$1 origin port expected
+  local worker worker_ok attempt
+  # Retained pre-heartbeat releases must remain rollback-compatible.
+  if grep -q 'worker-healthcheck.cjs' "$release/compose.yml"; then
+  for worker in worker ai-worker; do
+    worker_ok=false
+    for ((attempt=0; attempt<24; attempt++)); do
+      if compose "$release" exec -T "$worker" node worker-healthcheck.cjs "$([[ "$worker" == worker ]] && echo payment || echo ai)"; then
+        worker_ok=true; break
+      fi
+      sleep 3
+    done
+    [[ "$worker_ok" == true ]] || return 1
+  done
+  else
+    echo 'Legacy release has no worker probe; worker health is unverified' >&2
+  fi
   origin=$(sed -n 's/^APP_ORIGIN=//p' "$release/runtime.env")
   port=$(sed -n 's/^APP_PORT=//p' "$release/compose.env")
   expected=$(sed -n 's/^RELEASE_COMMIT=//p' "$release/compose.env")

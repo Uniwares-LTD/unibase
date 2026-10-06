@@ -16,6 +16,7 @@ COPY --from=build --chown=1001:1001 /app/.next/static ./.next/static
 COPY --from=build --chown=1001:1001 /app/public ./public
 COPY --from=build --chown=1001:1001 /app/dist/payment-worker.cjs ./payment-worker.cjs
 COPY --from=build --chown=1001:1001 /app/dist/ai-worker.cjs ./ai-worker.cjs
+COPY --from=build --chown=1001:1001 /app/dist/worker-healthcheck.cjs ./worker-healthcheck.cjs
 USER 1001:1001
 EXPOSE 3000
 CMD ["node", "server.js"]

@@ -38,6 +38,14 @@ services:
     env_file:
       - path: ./runtime.env
         format: raw
+    environment:
+      RELEASE_COMMIT: ${RELEASE_COMMIT:?required}
+    healthcheck:
+      test: [CMD, node, worker-healthcheck.cjs, payment]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     tmpfs:
       - /tmp:uid=1001,gid=1001,mode=1777
     mem_limit: 256m
@@ -56,6 +64,13 @@ services:
         format: raw
     environment:
       GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase.json
+      RELEASE_COMMIT: ${RELEASE_COMMIT:?required}
+    healthcheck:
+      test: [CMD, node, worker-healthcheck.cjs, ai]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     volumes:
       - ./firebase.json:/run/secrets/firebase.json:ro
     tmpfs:

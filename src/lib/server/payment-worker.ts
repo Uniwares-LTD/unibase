@@ -110,7 +110,11 @@ export async function maintainCredits(db: Db) {
   const dueHold = await db
     .collection<Reservation>("creditReservations")
     .findOne(
-      { status: "active", expiresAt: { $lte: now } },
+      {
+        status: "active",
+        expiresAt: { $lte: now },
+        managedJobId: { $exists: false },
+      },
       { sort: { expiresAt: 1 } },
     );
   const dueLot = await db.collection<CreditLot>("creditLots").findOne(

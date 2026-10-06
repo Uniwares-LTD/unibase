@@ -14,6 +14,7 @@ import {
 import { paymentOrders } from "../src/lib/server/store/payments";
 import { runtimeRecord } from "../src/lib/log-policy";
 import { writeRuntimeRecord } from "../src/lib/server/store/runtime";
+import { workerHeartbeat } from "../src/lib/server/worker-heartbeat";
 
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 let stopping = false;
@@ -49,6 +50,7 @@ async function main() {
     connectTimeoutMS: 5000,
   });
   const db = client.db(databaseConfig.database);
+  const heartbeat = workerHeartbeat(db, "payment");
   const observe = async (status: number, started: number) => {
     const record = runtimeRecord("payment-maintenance", {
       status,
@@ -63,16 +65,19 @@ async function main() {
     }
   };
   try {
+    await heartbeat("ok");
     while (!stopping) {
       const started = performance.now();
       let worked = false;
+      let cycleState: "ok" | "error" = "ok";
       try {
         if (stripe) {
-          for (let n = 0; n < 10 && !stopping; n++) {
+          for (let n = 0; n < 1 && !stopping; n++) {
             try {
               if (!(await processOnePaymentNotice(db, stripe))) break;
               worked = true;
             } catch {
+              cycleState = "error";
               await observe(503, started);
               if (process.argv.includes("--once")) process.exitCode = 1;
             }
@@ -102,9 +107,11 @@ async function main() {
         worked = (await maintainCredits(db)) || worked;
         if (worked) await observe(200, started);
       } catch {
+        cycleState = "error";
         await observe(503, started);
         if (process.argv.includes("--once")) process.exitCode = 1;
       }
+      await heartbeat(cycleState).catch(() => undefined);
       if (process.argv.includes("--once")) break;
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }

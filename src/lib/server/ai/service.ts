@@ -11,6 +11,7 @@ import {
 import { database } from "../mongo";
 import { requireSession } from "../session";
 import { requireAdmin } from "../admin";
+import { aiHistory } from "./history";
 import {
   aiConfig,
   bindingSnapshot,
@@ -58,6 +59,7 @@ function jobView(job: AiJob) {
     failure: job.failure,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
+    cleanedAt: job.cleanedAt?.toISOString() ?? null,
   };
 }
 function checkedId(value: string) {
@@ -132,6 +134,11 @@ export async function listMyAiJobs() {
     .limit(25)
     .toArray();
   return jobs.map(jobView);
+}
+export async function myAiHistory(cursor?: string) {
+  const session = await requireSession();
+  const page = await aiHistory(database(), { uid: session.uid }, cursor);
+  return { jobs: page.rows.map(jobView), next: page.next };
 }
 export async function getMyAiJob(id: string) {
   const session = await requireSession();
@@ -223,41 +230,45 @@ export async function listAdminAiUsage() {
   );
 }
 
-export async function listAdminAiJobs() {
+export async function listAdminAiJobs(cursor?: string) {
   await requireAdmin();
-  const jobs = await aiJobs(database())
-    .find({ status: { $in: ["needs-review", "settlement-blocked"] } })
-    .sort({ createdAt: 1 })
-    .limit(50)
-    .toArray();
-  return jobs.map((job) => {
-    let canAccept = false;
-    try {
-      canAccept =
-        job.status !== "settlement-blocked" &&
-        job.execution?.status === "succeeded" &&
-        calculateAiCharge(
-          job.pricing ?? { mode: "fixed", credits: job.credits },
-          job.execution.usage,
-        ) !== null &&
-        capability(job.capability, job.capabilityVersion).validOutput(
-          job.execution.outputs,
-        );
-    } catch {
-      /* A missing contract cannot authorize a charge. */
-    }
-    return {
-      id: job._id,
-      uid: job.uid,
-      capability: job.capability,
-      status: job.status,
-      credits: job.credits,
-      failure: job.failure,
-      runId: job.runId,
-      canAccept,
-      createdAt: job.createdAt.toISOString(),
-    };
-  });
+  const page = await aiHistory(
+    database(),
+    { status: { $in: ["needs-review", "settlement-blocked"] } },
+    cursor,
+    true,
+  );
+  return {
+    next: page.next,
+    jobs: page.rows.map((job) => {
+      let canAccept = false;
+      try {
+        canAccept =
+          job.status !== "settlement-blocked" &&
+          job.execution?.status === "succeeded" &&
+          calculateAiCharge(
+            job.pricing ?? { mode: "fixed", credits: job.credits },
+            job.execution.usage,
+          ) !== null &&
+          capability(job.capability, job.capabilityVersion).validOutput(
+            job.execution.outputs,
+          );
+      } catch {
+        /* A missing contract cannot authorize a charge. */
+      }
+      return {
+        id: job._id,
+        uid: job.uid,
+        capability: job.capability,
+        status: job.status,
+        credits: job.credits,
+        failure: job.failure,
+        runId: job.runId,
+        canAccept,
+        createdAt: job.createdAt.toISOString(),
+      };
+    }),
+  };
 }
 
 export async function resolveManagedAiJob(id: string, input: unknown) {
@@ -338,7 +349,7 @@ export async function listMyAiFiles() {
   const session = await requireSession();
   return (
     await aiFiles(database())
-      .find({ uid: session.uid })
+      .find({ uid: session.uid, cleanedAt: { $exists: false } })
       .sort({ createdAt: -1 })
       .limit(100)
       .toArray()

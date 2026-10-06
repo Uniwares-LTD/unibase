@@ -60,7 +60,7 @@ when running outside Docker.
 | `npm run test:ai`          | Production HTTP tests with fake Dify and the Auth Emulator. Build first.                                                                                                                                          |
 | `npm run test:ai-pricing`  | Production HTTP pricing-consent and partial-settlement tests. Build first.                                                                                                                                        |
 | `npm run test:payments`    | Production HTTP payment fixtures; no Stripe calls. Build first.                                                                                                                                                   |
-| `npm run worker:build`     | Build both payment and AI worker bundles without rebuilding Next.js.                                                                                                                                              |
+| `npm run worker:build`     | Build payment, AI and worker-healthcheck bundles without rebuilding Next.js.                                                                                                                                              |
 | `npm run worker`           | Start payment reconciliation and credit maintenance using configured resources.                                                                                                                                   |
 | `npm run worker:ai`        | Start AI dispatch and recovery using configured resources.                                                                                                                                                        |
 | `npm run test:integration` | Test the production build against isolated local auth/database services.                                                                                                                                          |
@@ -78,7 +78,9 @@ Individual checks retain their real exit codes. The aggregate `validate` command
 - `/preferences`: appearance/profile preferences and opt-in, memory-only browser diagnostics with redacted JSON export.
 - `/credits`: owned wallet, held credits, debt, upcoming expiry, paginated ledger, local-only purchase simulation and opt-in Stripe Checkout.
 - `/ai`, `/ai/[id]`: owned workflow/chat/file tasks, saved results and usage, with configurable credit pricing. Dify is disabled by default.
-- `/admin/ai`: AI usage and audited resolution of uncertain executions.
+- `/admin/ai`: AI usage and paginated, audited resolution of uncertain executions.
+- `/admin/operations`: worker/queue health, manual payment reconciliation and preview-confirm local AI cleanup.
+- `/ai/history`: paginated owned execution history.
 - `/admin/reports`: filtered runtime and permanent audit reports.
 - `/admin`, `/admin/users`: authorized user management, access/profile controls and confirmed credit adjustments.
 - `/manifest.webmanifest`, `/sw.js`, `/offline.html`: install metadata and a public-only offline fallback. No account/API data is persisted offline.
@@ -206,3 +208,9 @@ for local setup, live binding contracts, recovery and retention limits. Live Dif
 acceptance is environment-specific; the existing payment worker has its own setup.
 
 AI credit pricing supports fixed, token, provider-cost and hybrid policies via `AI_PRICING_JSON`. See [pricing configuration and local tests](docs/ai-testing.md#configurable-credit-pricing). Empty configuration preserves fixed prices.
+
+Administrator recovery and cleanup options are documented in the
+[operations workflow](docs/ai-testing.md#administrator-operations). Run
+`npm run db:indexes` against the intended environment when installing this update;
+this adds operations indexes and worker-heartbeat TTL without deleting application
+content. Cleanup is manual, bounded and local-only; provider files are retained.

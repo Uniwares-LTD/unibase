@@ -64,7 +64,7 @@ records. Prefer additive indexes/fields and explicit, versioned migrations when
 stored data actually changes. Review existing-data compatibility and rollback
 before dropping indexes or rewriting records. `db:indexes` is idempotent index
 setup, not a migration/reset framework; never import the source project's destructive reset.
-New Dify/content schemas and generation execution remain future feature work.
+Reusable Dify execution is implemented; product-specific content schemas and workflows remain downstream feature work.
 The existing payment worker stays focused on payment reconciliation and credit
 maintenance. Quality warnings remain advisory; required behavior must still work.
 
@@ -76,7 +76,7 @@ Firebase persistence is selected during SDK initialization, before redirect proc
 
 `src/lib/server/profiles.ts` owns profile access through a reused official MongoDB driver pool. `scripts/db-indexes.ts` provisions the unique UID index. Profiles contain only UID, email, display name, color mode, style preference and update timestamp. Strict mutation schemas reject supplied ownership fields. The profile form uses a Server Action with fresh authorization and an expected-account guard; explicit HTTP clients use `/api/profile`. Server reads call the profile module directly.
 
-Session creation/logout and HTTP profile mutations require the exact configured Origin plus a double-submit CSRF token obtained from `/api/auth/csrf`. The CSRF cookie is HttpOnly and returned as JSON for an explicit request header. Session logout revokes Firebase refresh tokens (and therefore the user's existing sessions), clears the current cookie, broadcasts a non-secret account-change timestamp, and performs a full document navigation. Protected screens reload on cross-tab account changes and back-forward cache restoration. There is no shared client profile cache that can repopulate an old account after switching.
+Session creation/logout and HTTP profile mutations require the exact configured Origin plus a double-submit CSRF token obtained from `/api/auth/csrf`. The CSRF cookie is HttpOnly and returned as JSON for an explicit request header. Session logout revokes Firebase refresh tokens (and therefore the user's existing sessions), clears the current cookie, broadcasts a non-secret account-change marker, and performs a full document navigation. A shared root session boundary unmounts private state, aborts pending browser API requests and rejects late responses on account changes. It covers AI, history and administrative pages as well as account/credits, and reloads on cross-tab changes and back-forward cache restoration. There is no shared client profile cache that can repopulate an old account after switching.
 
 The fetch helper is same-origin, validates response schemas, carries request cancellation and a timeout, and never retries mutations. API failures expose a stable code, safe message and generated request ID; provider errors and credentials are not returned. The Firebase helper proxy is limited to `/__/auth/` helper filenames on the configured Firebase project host and never forwards application cookies. Its source folder is `%5F%5F` because Next.js treats literal underscore-prefixed folders as private.
 
@@ -178,8 +178,7 @@ remains unimplemented, even if a catalog is supplied.
 Simulated orders snapshot their server-selected pack quantity and owner. Success,
 failure, cancellation and refund state changes commit with credit accounting using
 an internal transaction callback. Replays retain the original grant key and never
-restore refunded funds. Order lookup is scoped to UID and provider. Wallet/admin
-screens reuse session controls to clear stale content on cross-tab account changes
+restore refunded funds. Order lookup is scoped to UID and provider. All screens use the shared session boundary to clear stale content on cross-tab account changes
 and back-forward-cache restoration.
 
 ## Stripe delivery and maintenance
@@ -270,3 +269,29 @@ Live provider compatibility and VPS deployment have not been exercised.
 ### AI credit pricing
 
 Capabilities resolve optional `AI_PRICING_JSON` policies. Jobs snapshot these terms and reserve the maximum charge; successful settlement uses exact decimal arithmetic, rounds once, consumes the calculated credits and releases the remainder atomically. `credits` on a job is the reserved maximum; `charge.credits` is the actual consumption. Provider expense observations remain separate. Missing required completed-summary usage requires review. See [pricing contract and tests](ai-testing.md#configurable-credit-pricing).
+
+## Operations and local retention
+
+`/ai/history` provides owned execution history in 25-row keyset pages; `/admin/ai`
+paginates uncertain executions oldest first and exposes audited manual resolution.
+`/admin/operations` reports active queue counts/age, unresolved AI jobs and worker
+progress for the current release. Workers persist MongoDB heartbeats and atomic
+local health files. Five minutes without progress or a failed cycle is unhealthy;
+Compose and release checking probe the local files independently of web readiness.
+Worker heartbeat documents expire after one day; `db:indexes` installs their TTL
+and the operations query indexes.
+
+Administrators manually reconcile payments using canonical Stripe evidence and
+the existing fenced ledger. `paymentReviews` records each attempt before provider
+access; interrupted attempts remain visible for review. A replayed request key
+returns its existing report. This operation neither issues provider refunds nor
+authorizes arbitrary payment outcomes.
+
+Cleanup uses administrator-owned previews in `cleanupReports`, a 15-minute expiry,
+a bounded target snapshot and explicit confirmation. Execution rechecks access and
+eligibility, skips changed targets and writes its report plus audit atomically.
+Only old terminal job inputs/results/source references and failed-upload names are
+cleared; upload tombstones reclaim local quota. Active or uncertain records,
+provider files, billing, usage and retry fingerprints remain. Financial and audit
+records have no cleanup expiry. There is no scheduled deletion or user deletion UI.
+See [operator workflow](ai-testing.md#administrator-operations) for options and limits.

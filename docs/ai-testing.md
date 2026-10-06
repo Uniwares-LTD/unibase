@@ -127,13 +127,56 @@ summaries to their node totals, mix currencies, or substitute credit price for
 provider spend. Private job inputs/results live in `aiJobs`; diagnostic logs contain
 safe categories and identifiers rather than prompts or provider response bodies.
 
-Uploads allow at most 20 MiB per file and currently retain at most 100 references /
-100 MiB per user across their lifetime. No automatic reclamation or deletion UI is
-implemented. File bytes remain with the provider; these references are not a
-permanent asset store. Configure provider retention separately and implement owned
-private storage when a feature requires durable artifacts. Jobs, usage and file
-references currently have no automatic expiry; define a reviewed retention policy
-before broad production use, preserving billing and duplicate-execution evidence.
+Uploads allow at most 20 MiB per file and retain at most 100 non-cleaned references /
+100 MiB per user. Admin cleanup can reclaim quota from failed uploads; ready and
+uncertain uploads remain counted. File bytes stay with the provider. Configure
+provider retention separately; references are not a permanent asset store. There
+is no automatic content expiry. Billing, usage, audit and retry evidence survive
+local content cleanup.
+
+## Administrator operations
+
+Open `/admin/operations` to inspect payment/AI worker progress, active AI count and
+oldest submission age, unresolved jobs, and pending payment notification age.
+Refresh for current readings. A failed cycle or five minutes without progress is
+unhealthy. Check the worker process/configuration and logs before restarting;
+web readiness alone does not establish worker progress or provider compatibility.
+
+Use `/admin/ai` for manual uncertain-job review, 25 records per page. Check saved
+execution identity and provider evidence. Accept only a verified successful result
+with sufficient billing evidence; release is an audited credit waiver, not proof
+that provider work stopped. Do not resubmit an uncertain generation to recover it.
+Users can browse their own saved executions at `/ai/history`, 25 per page.
+
+For payments, inspect the order in Stripe, enter its application order ID and a
+review explanation, then choose **Verify payment and reconcile credits**. An
+optional known Checkout session ID supports lost-session recovery; its ownership
+and terms are verified. Only canonical provider state changes the ledger. Review
+`started` or `needs-review` attempts against provider/order evidence before a new
+attempt. Repeating an unchanged request after an uncertain response retrieves its
+report. This tool does not issue refunds; perform refunds in Stripe and reconcile.
+The page lists the oldest 25 pending/disputed orders and latest 20 review attempts.
+
+Cleanup is manual and local only:
+
+1. Choose completed AI content, failed upload references, or both. Set age from
+   1?3650 days and batch size from 1?100 records (defaults: 30 days, 50 jobs).
+2. **Preview cleanup** saves the exact candidate IDs and cutoff without deleting
+   content. Download the JSON report if needed. The preview expires in 15 minutes;
+   changing options requires a new preview. Combined scope fills jobs before files.
+3. Supply an explanation and confirm **Execute previewed cleanup** in the dialog.
+   Recent administrator authentication is required; sign out/in if asked.
+4. Review changed/skipped counts and the latest 20 saved reports. Changed or no
+   longer eligible targets are skipped; retries of a completed preview return the
+   same report. Generate another preview for remaining eligible content.
+
+Cleanup clears job prompts/results and source references for successful/failed
+jobs without active leases, and cancelled jobs only with verified stopped execution.
+It excludes active/uncertain jobs, including uncertain work released by an operator.
+Failed upload names are cleared and their quota reclaimed; identifiers/fingerprints
+remain to prevent retries from repeating work. Provider-hosted files and provider
+conversation history are untouched. Ledger, pricing, usage, audit and duplicate
+suppression records remain. Cleanup cannot be undone in the application.
 
 ## Configurable credit pricing
 

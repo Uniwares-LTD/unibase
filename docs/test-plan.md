@@ -426,7 +426,7 @@ and product orchestration remain downstream features. They need not enter Base.
 - [ ] Retain architecture/setup/testing docs and record optional product migration
       plans as downstream-product reference rather than Base's implementation backlog.
 
-This task updates documentation only; it does not create, publish or rename Base.
+This guide does not authorize creating, publishing or renaming Base.
 Do not copy emulator data, `.env.local`, provider credentials, `.cache`, `output`,
 local browser state, signing keys or deployment secret snapshots into it.
 
@@ -461,3 +461,23 @@ Worker bundles built from same source: yes/no
 Unresolved failures / warnings:
 Base extraction decision and explicit unverified integrations:
 ```
+
+## Operations regression
+
+- On `/ai`, detail/history and admin pages, sign out or switch accounts in another
+  tab. Verify private content clears and browser Back cannot restore the old data.
+  The API unit regression also checks a late response after session invalidation.
+- With more than 25 executions, browse history and unresolved admin pages; verify
+  stable pagination even with equal timestamps and isolation between owners.
+- On `/admin/operations`, preview a small batch of old local fixture content.
+  Preview must not change content; execution needs explanation/confirmation and
+  recent admin access. Verify the report, retained ledger/usage/retry evidence and
+  exclusions for active/unknown work. Automated tests cover expiry, demotion,
+  changed-target skipping, replay and failed-upload cleanup.
+- Exercise manual payment review with isolated Stripe fixtures, including provider
+  uncertainty and repeated request keys. No direct grant or refund is offered.
+- Stop a test worker; verify missing/stale progress and increasing queue age.
+  `test:accounts` checks heartbeat boundaries; `test:deployment` checks restoration
+  when a candidate worker probe fails. Live provider/VPS acceptance stays separate.
+- Verify the cleanup dialog's keyboard focus/Escape and operations layout at
+  desktop/mobile widths. Run the full acceptance sequence for broader accessibility.

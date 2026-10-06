@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { z } from "zod";
@@ -357,6 +358,9 @@ export function AiWorkspace({
         Showing the latest 25 executions. Provider cost and application credits
         are separate.
       </p>
+      <Button asChild variant="outline">
+        <Link href="/ai/history">Browse all executions</Link>
+      </Button>
     </div>
   );
 }

@@ -77,6 +77,7 @@ export type AiJob = {
   failure: string | null;
   createdAt: Date;
   updatedAt: Date;
+  cleanedAt?: Date;
 };
 export type AiUsage = UsageObservation & {
   _id: string;

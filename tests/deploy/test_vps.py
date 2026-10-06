@@ -41,6 +41,10 @@ if args==['compose','version']: print('Docker Compose version v2.35.0'); sys.exi
 project=args[args.index('--project-name')+1]
 if project not in ('unitale-staging','unitale-production'): sys.exit(99)
 env=Path(args[args.index('--env-file')+1])
+if 'exec' in args:
+    if 'worker-healthcheck.cjs' not in args: sys.exit(99)
+    values=dict(line.split('=',1) for line in env.read_text().splitlines())
+    if os.environ.get('FAIL_WORKER_COMMIT')==values['RELEASE_COMMIT']: sys.exit(1)
 if 'pull' in args and os.environ.get('FAIL_PULL')=='1': sys.exit(1)
 if 'pull' in args:
     values=dict(line.split('=',1) for line in env.read_text().splitlines())
@@ -182,7 +186,9 @@ runpy.run_path(filename,run_name='__main__')
         self.assertEqual((ROOT / "staging/current").resolve(), previous)
         self.assertEqual((previous / "tunnel-token").read_bytes(), original)
         operations = Path("/tmp/docker-operations").read_text()
-        self.assertNotIn('"exec"', operations)
+        for row in map(json.loads, operations.splitlines()):
+            if "exec" in row:
+                self.assertIn("worker-healthcheck.cjs", row)
         self.assertNotIn('"run"', operations)
 
     def test_pull_failure_never_replaces_existing_application(self):
@@ -192,6 +198,13 @@ runpy.run_path(filename,run_name='__main__')
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual((ROOT / "staging/current").resolve(), previous)
         self.assertNotIn('"up"', Path("/tmp/docker-operations").read_text())
+
+    def test_failed_worker_restores_previous_release(self):
+        previous = self.release("a" * 40)
+        result = self.run_host("deploy", commit="b" * 40, FAIL_WORKER_COMMIT="b" * 40)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((ROOT / "staging/current").resolve(), previous)
+        self.assertIn("result=restored", result.stdout)
 
     def test_first_failure_stops_failed_project(self):
         result = self.run_host("deploy", commit="b" * 40, FAIL_COMMIT="b" * 40)

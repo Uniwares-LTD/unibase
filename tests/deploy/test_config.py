@@ -48,6 +48,17 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(values[0], self.config[target]["origin"])
             self.assertNotIn("test-password", "".join(values))
 
+    def test_appearance_presets(self):
+        env = self.root / "staging/runtime.env"
+        original = env.read_text()
+        for style in ("classic", "glass", "soft-blue"):
+            env.write_text(original + f"APP_STYLE={style}\n")
+            config_module.validate(self.root, "staging")
+        for style in ("", "unknown", "Glass"):
+            env.write_text(original + f"APP_STYLE={style}\n")
+            with self.assertRaises(ValueError):
+                config_module.validate(self.root, "staging")
+
     def test_dify_bindings_are_private_and_validated(self):
         env = self.root / "staging/runtime.env"
         original = env.read_text()
