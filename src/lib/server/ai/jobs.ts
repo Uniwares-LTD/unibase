@@ -545,7 +545,7 @@ export async function resolveAiJob(
   id: string,
   decision: "accept" | "release",
   reason: string,
-  validOutput: (job: AiJob) => boolean,
+  validOutput: (job: AiJob) => boolean | Promise<boolean>,
   now = new Date(),
   onAccept?: (job: AiJob, session: ClientSession) => Promise<void>,
 ) {
@@ -573,7 +573,7 @@ export async function resolveAiJob(
   try {
     if (
       decision === "accept" &&
-      (job.execution?.status !== "succeeded" || !validOutput(job))
+      (job.execution?.status !== "succeeded" || !(await validOutput(job)))
     )
       throw new AppError(
         "AI_RESULT_UNVERIFIED",

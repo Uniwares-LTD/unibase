@@ -27,7 +27,9 @@ export default async function AiPage() {
         key={session.uid}
         uid={session.uid}
         initialKey={randomUUID()}
-        capabilities={availableCapabilities()}
+        capabilities={availableCapabilities().filter(
+          (item) => !item.name.startsWith("workspace-"),
+        )}
         initialJobs={await listMyAiJobs()}
       />
     </div>

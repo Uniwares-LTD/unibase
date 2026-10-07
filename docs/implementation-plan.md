@@ -456,3 +456,36 @@ no live provider or deployment was exercised. Separate read-only review covered
 access fences, retry evidence, terminal cleanup eligibility, worker rollout and
 current documentation. The selected scope and implemented surfaces match. Existing
 live Dify/Stripe, VPS and Android acceptance remain separate pending checkpoints.
+
+## Reusable creation workspaces
+
+Accepted 2026-10-07: extract the ideas from the Unitale POC into product-neutral
+services: typed generated cards and saved decisions; immutable artifacts,
+dependencies and human approval; owned private assets; durable batch manifests,
+candidate selection and version-pinned quality reviews; optional Dify image and
+document export adapters. Use the existing AI worker, credit accounting and access
+boundaries. Product graphs, prompts, provider resources and booklet models are not
+part of this migration. Implemented at `/workspaces`; [creation workspaces](creation-workspaces.md)
+owns setup, provider contracts, recovery semantics, retention and extension limits.
+
+Verification on 2026-10-07: production build and worker bundles, typecheck, lint,
+formatting, environment and skill integrity checks passed. All 44 unit tests and
+83 account/provider tests passed, including 13 workspace contract/store checks.
+Production HTTP acceptance passed for workspace CSRF/ownership, generated decisions,
+private downloads, image generation through the bundled worker, existing AI flows
+and variable pricing. Tests used disposable MongoDB and the local Auth emulator.
+
+Browser acceptance passed for question/answer persistence after reload, comparing
+two candidates, selection, review/reapproval, JSON download, private image upload
+and generation, pause/resume, keyboard focus, mobile navigation and saved dark mode
+after reload. No horizontal overflow at 1440px/390px or browser runtime errors were
+observed. Final navigation/pricing disclosure changes were rechecked on both sizes.
+
+The separate read-only review found and corrected dependency loss during AI revision,
+decision-change approval invalidation and explicit APNG rejection; affected tests
+passed afterward. Final comparison: accepted feature surfaces, access/credit/worker
+reuse, local documentation and validation matched the plan. The asset adapter uses
+bounded MongoDB storage; exports are JSON/text. Product PDF layout, reference-image
+editing and object-storage implementations are extension points, not bundled features.
+Live Dify/provider acceptance and deployment remain unverified; no external writes
+or publication were performed.

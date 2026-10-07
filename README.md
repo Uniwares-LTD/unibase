@@ -214,3 +214,12 @@ Administrator recovery and cleanup options are documented in the
 `npm run db:indexes` against the intended environment when installing this update;
 this adds operations indexes and worker-heartbeat TTL without deleting application
 content. Cleanup is manual, bounded and local-only; provider files are retained.
+
+## Creation workspaces
+
+`/workspaces` provides generated question cards, saved decisions, versioned drafts,
+human approvals, private images, candidate batches and quality reviews. It uses the
+existing AI worker and credits; manual authoring also works with AI disabled.
+Run `npm run db:indexes` for the additional owned-workspace indexes. No separate
+storage credentials are needed: bounded private assets live in MongoDB. See
+[setup, Dify contracts, extension points and recovery](docs/creation-workspaces.md).

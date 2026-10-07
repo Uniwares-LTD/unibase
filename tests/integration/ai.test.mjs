@@ -220,6 +220,121 @@ async function runWorker() {
   assert.equal(code, 0);
 }
 
+test("creation workspace HTTP: CSRF, ownership, generated decisions, export and private download", async () => {
+  const { fingerprint } = await import("../../src/lib/server/ai/jobs.ts");
+  const owner = await browser();
+  const other = await browser();
+  await grantCredits(db, owner.uid, "workspace-http", {
+    amount: 10,
+    source: "purchase",
+    reference: owner.uid,
+  });
+  const creation = {
+    key: randomUUID(),
+    title: "HTTP creation workspace",
+    expectedUid: owner.uid,
+  };
+  assert.equal(
+    (
+      await owner.request("/api/workspaces", {
+        method: "POST",
+        body: JSON.stringify(creation),
+        headers: { "x-csrf-token": "invalid" },
+      })
+    ).status,
+    403,
+  );
+  const response = await owner.request("/api/workspaces", {
+    method: "POST",
+    body: JSON.stringify(creation),
+  });
+  assert.equal(response.status, 201);
+  let workspace = await response.json();
+  const path = `/api/workspaces/${workspace.id}`;
+  assert.equal((await other.request(path)).status, 404);
+  assert.equal(
+    (await owner.request(`/workspaces/${workspace.id}`)).status,
+    200,
+  );
+  async function change(action) {
+    const result = await owner.request(path, {
+      method: "POST",
+      body: JSON.stringify({
+        ...action,
+        key: randomUUID(),
+        expectedUid: owner.uid,
+        revision: workspace.revision,
+      }),
+    });
+    const data = await result.json();
+    assert.equal(result.status, 200, JSON.stringify(data));
+    workspace = data;
+  }
+  await change({
+    action: "batch",
+    capability: "workspace-compose",
+    prompt: "Ask a question",
+    count: 1,
+    targetId: null,
+    dependencies: [],
+    pricingKey: fingerprint({ mode: "fixed", credits: 1 }),
+  });
+  assert.equal("requests" in workspace.batches[0], false);
+  await runWorker();
+  await change({
+    action: "select",
+    batchId: workspace.batches[0].id,
+    index: 0,
+  });
+  assert.equal(workspace.cards[0].question.kind, "single");
+  await change({
+    action: "answer",
+    cardId: workspace.cards[0].id,
+    value: "concise",
+  });
+  await change({
+    action: "save",
+    artifactId: null,
+    title: "Owned draft",
+    body: "Private contents",
+    dependencies: [],
+  });
+  await change({
+    action: "export",
+    artifactId: workspace.artifacts[0].id,
+    version: 1,
+    format: "json",
+  });
+  const download = `/api/workspace-assets/${workspace.assets[0].id}?download`;
+  assert.equal((await other.request(download)).status, 404);
+  const file = await owner.request(download);
+  assert.equal(file.status, 200);
+  assert.equal(file.headers.get("cache-control"), "private, no-store");
+  assert.match(file.headers.get("content-disposition"), /^attachment/);
+  assert.equal((await file.json()).version.body, "Private contents");
+  await change({
+    action: "batch",
+    capability: "workspace-image",
+    prompt: "A small image",
+    count: 1,
+    targetId: null,
+    dependencies: [],
+    pricingKey: fingerprint({ mode: "fixed", credits: 1 }),
+  });
+  await runWorker();
+  await change({
+    action: "select",
+    batchId: workspace.batches[1].id,
+    index: 0,
+  });
+  assert.equal(workspace.assets[1].mime, "image/png");
+  const image = await owner.request(
+    `/api/workspace-assets/${workspace.assets[1].id}`,
+  );
+  assert.equal(image.status, 200);
+  assert.equal(image.headers.get("content-type"), "image/png");
+});
+
 test(
   "AI HTTP accepts full-length multibyte prompts and retains body/schema limits",
   { skip: pricingMode },

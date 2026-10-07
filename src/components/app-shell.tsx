@@ -38,8 +38,13 @@ const routes = [
   { href: "/account", label: "Account", Icon: UserRound },
   { href: "/credits", label: "Credits", Icon: Wallet },
   { href: "/ai", label: "AI workspace", Icon: Sparkles },
+  { href: "/workspaces", label: "Creation workspaces", Icon: BookOpen },
   { href: "/preferences", label: "Preferences", Icon: Settings2 },
 ];
+
+function matchesRoute(pathname: string, href: string) {
+  return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+}
 
 function Brand({ name }: { name: string }) {
   return (
@@ -75,13 +80,13 @@ function Navigation({
           asChild
           className={cn(
             "h-11 w-full justify-start gap-3 px-3 text-sm",
-            pathname === href &&
+            matchesRoute(pathname, href) &&
               "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
           )}
         >
           <Link
             href={href}
-            aria-current={pathname === href ? "page" : undefined}
+            aria-current={matchesRoute(pathname, href) ? "page" : undefined}
             onClick={onNavigate}
           >
             <Icon aria-hidden="true" className="size-[18px]" />
@@ -103,7 +108,7 @@ export function AppShell({
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const title =
-    routes.find((route) => route.href === pathname)?.label ??
+    routes.find((route) => matchesRoute(pathname, route.href))?.label ??
     (pathname.startsWith("/admin")
       ? "Administration"
       : pathname === "/design-system"

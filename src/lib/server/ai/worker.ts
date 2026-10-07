@@ -22,7 +22,10 @@ import type {
 export type AiWorkerDependencies = {
   provider: (job: AiJob) => WorkflowProvider;
   authorize: (uid: string, authTime: number) => Promise<boolean>;
-  validateOutput: (job: AiJob, execution: ProviderExecution) => boolean;
+  validateOutput: (
+    job: AiJob,
+    execution: ProviderExecution,
+  ) => boolean | Promise<boolean>;
   prepareInput?: (
     job: AiJob,
   ) => Promise<Record<string, import("./types").Json>>;
@@ -89,7 +92,7 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       return;
     }
     if (execution.status === "succeeded") {
-      if (!deps.validateOutput(job!, execution)) {
+      if (!(await deps.validateOutput(job!, execution))) {
         await defer("invalid-output", true);
         return;
       }

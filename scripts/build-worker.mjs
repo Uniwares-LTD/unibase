@@ -8,6 +8,7 @@ await build({
   outdir: "dist",
   outExtension: { ".js": ".cjs" },
   bundle: true,
+  external: ["sharp"],
   platform: "node",
   target: "node24",
   format: "cjs",

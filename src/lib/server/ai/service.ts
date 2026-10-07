@@ -240,34 +240,37 @@ export async function listAdminAiJobs(cursor?: string) {
   );
   return {
     next: page.next,
-    jobs: page.rows.map((job) => {
-      let canAccept = false;
-      try {
-        canAccept =
-          job.status !== "settlement-blocked" &&
-          job.execution?.status === "succeeded" &&
-          calculateAiCharge(
-            job.pricing ?? { mode: "fixed", credits: job.credits },
-            job.execution.usage,
-          ) !== null &&
-          capability(job.capability, job.capabilityVersion).validOutput(
-            job.execution.outputs,
-          );
-      } catch {
-        /* A missing contract cannot authorize a charge. */
-      }
-      return {
-        id: job._id,
-        uid: job.uid,
-        capability: job.capability,
-        status: job.status,
-        credits: job.credits,
-        failure: job.failure,
-        runId: job.runId,
-        canAccept,
-        createdAt: job.createdAt.toISOString(),
-      };
-    }),
+    jobs: await Promise.all(
+      page.rows.map(async (job) => {
+        let canAccept = false;
+        try {
+          canAccept =
+            job.status !== "settlement-blocked" &&
+            job.execution?.status === "succeeded" &&
+            calculateAiCharge(
+              job.pricing ?? { mode: "fixed", credits: job.credits },
+              job.execution.usage,
+            ) !== null &&
+            (await capability(
+              job.capability,
+              job.capabilityVersion,
+            ).validOutput(job.execution.outputs));
+        } catch {
+          /* A missing contract cannot authorize a charge. */
+        }
+        return {
+          id: job._id,
+          uid: job.uid,
+          capability: job.capability,
+          status: job.status,
+          credits: job.credits,
+          failure: job.failure,
+          runId: job.runId,
+          canAccept,
+          createdAt: job.createdAt.toISOString(),
+        };
+      }),
+    ),
   };
 }
 

@@ -295,3 +295,29 @@ cleared; upload tombstones reclaim local quota. Active or uncertain records,
 provider files, billing, usage and retry fingerprints remain. Financial and audit
 records have no cleanup expiry. There is no scheduled deletion or user deletion UI.
 See [operator workflow](ai-testing.md#administrator-operations) for options and limits.
+
+## Creation workspaces
+
+`/workspaces` is a product-neutral creation surface over the AI foundation.
+`workspaces` stores bounded owned aggregates with typed questions/decisions,
+immutable artifact versions, dependency snapshots, approval history, quality
+reviews and durable candidate manifests. `workspaceOperations` provides request
+idempotency. Every mutation checks the workspace revision and writes the account
+access fence in a MongoDB transaction. Generated UI is validated data rendered
+through shadcn primitives; no executable model-generated UI is accepted.
+
+Batch manifests freeze input, binding, price and source/decision versions. Admission
+uses deterministic keys in the existing job queue and managed credit ledger;
+partial admission is visible and resumable. Settled results are explicitly selected
+and imported once. Source changes prevent stale replacement; artifact revisions
+invalidate dependent approvals. Review findings are version-pinned and only the
+human owner approves content. Uncertain jobs retain the existing administrator
+recovery path. The worker supports asynchronous image validation before settlement.
+
+`workspaceAssets` stores immutable, owned metadata and bounded image/export bytes.
+The storage adapter and export command boundary can be extended without changing
+the ownership contract. Downloads require the owner session and prohibit caching;
+images are fully decoded and normalized. Default exports are JSON/text snapshots,
+not product-specific PDF layouts. Workspace content has separate retention from
+the terminal-job cleanup tool. [Creation workspaces](creation-workspaces.md) records
+provider contracts, recovery semantics, extension points and enforced limits.

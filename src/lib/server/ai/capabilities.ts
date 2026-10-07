@@ -1,6 +1,13 @@
 import "server-only";
 
 import { z } from "zod";
+import {
+  studioInputSchema,
+  studioOutputSchema,
+  reviewSchema,
+  imageOutputSchema,
+} from "@/lib/contracts/workspace";
+import { validatedImage } from "../workspaces/assets";
 import { AppError } from "@/lib/auth-policy";
 import { parseDifyConfig, type DifyConfig } from "@/lib/config/dify";
 import {
@@ -27,7 +34,7 @@ export type AiCapability = {
     types: readonly AiFileType[];
   }[];
   parseInput: (value: unknown) => Record<string, Json>;
-  validOutput: (value: unknown) => boolean;
+  validOutput: (value: unknown) => boolean | Promise<boolean>;
   prepare?: (
     db: Db,
     job: AiJob,
@@ -44,6 +51,41 @@ export type AiCapability = {
 // Feature modules register their own validated contracts here. The transport and
 // execution store do not import product schemas or infer prices from the client.
 const capabilities: readonly AiCapability[] = [
+  ...[
+    {
+      name: "workspace-compose",
+      title: "Generate questions or a draft",
+      output: studioOutputSchema,
+    },
+    {
+      name: "workspace-review",
+      title: "Review an artifact",
+      output: reviewSchema,
+    },
+    {
+      name: "workspace-image",
+      title: "Generate an image",
+      output: imageOutputSchema,
+    },
+  ].map(({ name, title, output }): AiCapability => ({
+    name,
+    title,
+    version: "1",
+    credits: 1,
+    kind: "workflow",
+    parseInput: (value) => studioInputSchema.parse(value),
+    validOutput: async (value) => {
+      if (!output.safeParse(value).success) return false;
+      if (name === "workspace-image") {
+        try {
+          await validatedImage(imageOutputSchema.parse(value).png);
+        } catch {
+          return false;
+        }
+      }
+      return true;
+    },
+  })),
   {
     name: "document-summary",
     version: "1",
@@ -227,7 +269,7 @@ function fakeWorkflow(job: AiJob): WorkflowProvider {
     runId,
     workflowId: job.binding.kind === "chat" ? null : fakeId(job._id, "03"),
     status: "succeeded",
-    outputs: { text: `Simulated response: ${String(job.inputs.prompt ?? "")}` },
+    outputs: fakeOutputs(job),
     usage: {
       scope: job.binding.kind === "chat" ? "message" : "execution",
       id: runId,
@@ -271,6 +313,48 @@ function fakeWorkflow(job: AiJob): WorkflowProvider {
       return { kind: "ok", value: undefined };
     },
   };
+}
+function fakeOutputs(job: AiJob): Record<string, Json> {
+  const prompt = String(job.inputs.prompt ?? "");
+  if (job.capability === "workspace-compose") {
+    if (/question/i.test(prompt))
+      return {
+        type: "question",
+        question: {
+          kind: "single",
+          title: "Which direction should the draft take?",
+          explanation:
+            "Simulated question. Your decision is saved in this workspace.",
+          options: [
+            { id: "concise", label: "Concise" },
+            { id: "detailed", label: "Detailed" },
+          ],
+        },
+      };
+    return {
+      type: "draft",
+      draft: {
+        title: "Simulated draft",
+        body: `${prompt}\n\nCandidate ${job._id.slice(0, 8)}. This is a simulated result.`,
+      },
+    };
+  }
+  if (job.capability === "workspace-review")
+    return {
+      summary: "Simulated review; evaluate the content before approving.",
+      issues: [
+        {
+          severity: "suggestion",
+          message: "Check the draft against your intended audience.",
+        },
+      ],
+    };
+  if (job.capability === "workspace-image")
+    return {
+      title: "Simulated image",
+      png: "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEklEQVQYlWNIKen+jw8zjAwFAGqamIFJPsH4AAAAAElFTkSuQmCC",
+    };
+  return { text: `Simulated response: ${prompt}` };
 }
 export function providerForJob(
   job: AiJob,
