@@ -66,6 +66,11 @@ preview may be replaced by the saved account style when revisiting these pages.
 Older profiles inherit Application default. Older API updates omitting `style`
 preserve an existing saved style; no database rewrite is needed.
 
+Account color-mode selection also previews immediately; Save profile persists the
+choice to the account. Restore the saved theme only on profile mount or a changed
+saved value. Do not depend on the identity of `next-themes`' `setTheme` callback:
+it changes with the browser theme and would overwrite previews and cross-tab changes.
+
 Set `APP_STYLE=classic`, `APP_STYLE=glass` or `APP_STYLE=soft-blue` in `.env.local` to change the
 application default, then restart the server. Choose Application default in the
 selector to follow it; explicit style choices take precedence. Only this
@@ -195,6 +200,9 @@ After changing a token or pattern:
 7. With local test accounts, inspect Account, Preferences, Credits, Admin, Users
    and Reports. Exercise empty/search/filter errors and the existing confirmation
    dialogs. For mutations, use disposable local fixtures, never live services.
+   Keep signed-in Preferences open beside a design-system tab. Selecting Dark in
+   either tab must update both without reverting to the saved account mode. Verify
+   immediate profile preview, Save profile/reload, and System following the device.
 8. Enable reduced motion and check menus/dialogs remain usable. Request reduced
    transparency and check Glass cards/sidebar become opaque in both color modes. Check the browser
    console for runtime/hydration errors. Automated checks supplement this manual

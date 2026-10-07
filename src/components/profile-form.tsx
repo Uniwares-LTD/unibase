@@ -2,7 +2,7 @@
 import { Notice } from "./page-patterns";
 import { StylePreference } from "./style-preference";
 import { useStyle } from "./style-provider";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useEffectEvent } from "react";
 import { useTheme } from "next-themes";
 import { saveProfile } from "@/app/account/actions";
 import type { Profile } from "@/lib/contracts/profile";
@@ -18,9 +18,13 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   );
   const { setTheme } = useTheme();
   const { setPreference } = useStyle();
+  const applySavedTheme = useEffectEvent((theme: Profile["theme"]) => {
+    setTheme(theme);
+  });
   useEffect(() => {
-    setTheme(profile.theme);
-  }, [profile.theme, setTheme]);
+    // A browser/cross-tab theme change must not reapply the saved account value.
+    applySavedTheme(profile.theme);
+  }, [profile.theme]);
   useEffect(() => {
     setPreference(profile.style);
   }, [profile.style, setPreference]);
@@ -48,6 +52,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <RadioGroup
           name="theme"
           defaultValue={profile.theme}
+          onValueChange={setTheme}
           disabled={pending}
         >
           {["light", "dark", "system"].map((theme) => (
@@ -59,6 +64,10 @@ export function ProfileForm({ profile }: { profile: Profile }) {
             </div>
           ))}
         </RadioGroup>
+        <p className="text-sm text-muted-foreground">
+          Changes apply immediately in this browser. Save your profile to
+          remember this color mode on your account too.
+        </p>
       </fieldset>
       <StylePreference account disabled={pending} />
       <Button type="submit" disabled={pending}>
