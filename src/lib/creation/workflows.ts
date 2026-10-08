@@ -1,0 +1,157 @@
+import { createRegistry } from "./registry";
+import {
+  workflowDefinitionSchema,
+  type WorkflowDefinition,
+} from "@/lib/contracts/workflow";
+const definition = (value: WorkflowDefinition) =>
+  workflowDefinitionSchema.parse(value);
+export const workflowTemplates = createRegistry([
+  {
+    type: "draft-review",
+    version: 1,
+    definition: definition({
+      type: "draft-review",
+      version: 1,
+      title: "Draft, review and approve",
+      steps: [
+        {
+          id: "draft",
+          title: "Create a draft",
+          kind: "task",
+          dependsOn: [],
+          capability: "workspace-compose",
+          prompt: "Create a document draft using these instructions.",
+          count: 1,
+          selection: "automatic",
+          profile: null,
+          target: { kind: "new" },
+        },
+        {
+          id: "review",
+          title: "Review the draft",
+          kind: "task",
+          dependsOn: ["draft"],
+          capability: "workspace-review",
+          prompt:
+            "Review the source draft for correctness, clarity and completeness.",
+          count: 1,
+          selection: "automatic",
+          profile: null,
+          target: { kind: "step", stepId: "draft" },
+        },
+        {
+          id: "approval",
+          title: "Approve reviewed content",
+          kind: "checkpoint",
+          dependsOn: ["review"],
+          requireApproval: true,
+        },
+      ],
+    }),
+  },
+  {
+    type: "compare-review",
+    version: 1,
+    definition: definition({
+      type: "compare-review",
+      version: 1,
+      title: "Compare candidates, review and approve",
+      steps: [
+        {
+          id: "compare",
+          title: "Compare three candidates",
+          kind: "task",
+          dependsOn: [],
+          capability: "workspace-compose",
+          prompt: "Create a document draft using these instructions.",
+          count: 3,
+          selection: "human",
+          profile: null,
+          target: { kind: "new" },
+        },
+        {
+          id: "review",
+          title: "Review the selected candidate",
+          kind: "task",
+          dependsOn: ["compare"],
+          capability: "workspace-review",
+          prompt:
+            "Review the selected draft for correctness, clarity and completeness.",
+          count: 1,
+          selection: "automatic",
+          profile: null,
+          target: { kind: "step", stepId: "compare" },
+        },
+        {
+          id: "approval",
+          title: "Approve reviewed content",
+          kind: "checkpoint",
+          dependsOn: ["review"],
+          requireApproval: true,
+        },
+      ],
+    }),
+  },
+  {
+    type: "parallel-synthesis",
+    version: 1,
+    definition: definition({
+      type: "parallel-synthesis",
+      version: 1,
+      title: "Parallel drafts and synthesis",
+      steps: [
+        {
+          id: "overview",
+          title: "Draft an overview",
+          kind: "task",
+          dependsOn: [],
+          capability: "workspace-compose",
+          prompt: "Create a concise overview document.",
+          count: 1,
+          selection: "automatic",
+          profile: null,
+          target: { kind: "new" },
+        },
+        {
+          id: "details",
+          title: "Draft practical details",
+          kind: "task",
+          dependsOn: [],
+          capability: "workspace-compose",
+          prompt: "Create a document with practical details and examples.",
+          count: 1,
+          selection: "automatic",
+          profile: null,
+          target: { kind: "new" },
+        },
+        {
+          id: "sources",
+          title: "Approve source drafts",
+          kind: "checkpoint",
+          dependsOn: ["overview", "details"],
+          requireApproval: true,
+        },
+        {
+          id: "synthesis",
+          title: "Synthesize approved sources",
+          kind: "task",
+          dependsOn: ["sources"],
+          capability: "workspace-compose",
+          prompt:
+            "Combine the approved source documents into one coherent document.",
+          count: 1,
+          selection: "automatic",
+          profile: null,
+          target: { kind: "new" },
+        },
+        {
+          id: "approval",
+          title: "Approve the synthesis",
+          kind: "checkpoint",
+          dependsOn: ["synthesis"],
+          requireApproval: true,
+        },
+      ],
+    }),
+  },
+]);

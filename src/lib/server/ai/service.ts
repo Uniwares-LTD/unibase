@@ -99,6 +99,18 @@ export async function submitAiJob(input: unknown) {
     );
   }
   const binding = bindingSnapshot(selected.name, aiConfig());
+  if (
+    selected.name === "workspace-image" &&
+    (inputs.editAssetId ||
+      inputs.referenceUploadScope ||
+      (Array.isArray(inputs.referenceAssetIds) &&
+        inputs.referenceAssetIds.length))
+  )
+    throw new AppError(
+      "AI_REFERENCE_INVALID",
+      "Submit private image references through their owned workspace.",
+      409,
+    );
   for (const file of selected.files ?? [])
     await resolveOwnedAiFile(
       database(),

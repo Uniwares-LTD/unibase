@@ -6,8 +6,14 @@ import {
   studioOutputSchema,
   reviewSchema,
   imageOutputSchema,
+  workspaceImageInputSchema,
 } from "@/lib/contracts/workspace";
 import { validatedImage } from "../workspaces/assets";
+import { materializeWorkspaceExecution } from "../workspaces/materialize";
+import {
+  prepareReferenceImages,
+  referenceUploader,
+} from "../workspaces/reference-images";
 import { AppError } from "@/lib/auth-policy";
 import { parseDifyConfig, type DifyConfig } from "@/lib/config/dify";
 import {
@@ -73,7 +79,23 @@ const capabilities: readonly AiCapability[] = [
     version: "1",
     credits: 1,
     kind: "workflow",
-    parseInput: (value) => studioInputSchema.parse(value),
+    materialize: materializeWorkspaceExecution,
+    parseInput: (value) =>
+      (name === "workspace-image"
+        ? workspaceImageInputSchema
+        : studioInputSchema
+      ).parse(value),
+    ...(name === "workspace-image"
+      ? {
+          prepare: (db: Db, job: AiJob, inputs: Record<string, Json>) =>
+            prepareReferenceImages(
+              db,
+              job,
+              inputs,
+              referenceUploader(aiConfig(), job),
+            ),
+        }
+      : {}),
     validOutput: async (value) => {
       if (!output.safeParse(value).success) return false;
       if (name === "workspace-image") {
@@ -141,6 +163,22 @@ export async function prepareAiInputs(
   db: Db,
   job: AiJob,
 ): Promise<Record<string, Json>> {
+  if (job.source?.workflowRunId) {
+    const run = await db
+      .collection<{
+        _id: string;
+        uid: string;
+        workspaceId: string;
+        status: string;
+      }>("workspaceWorkflows")
+      .findOne({
+        _id: job.source.workflowRunId,
+        uid: job.uid,
+        workspaceId: job.source.id,
+      });
+    if (!run || run.status === "cancelled")
+      throw new AppError("AI_CANCELLED", "This workflow was cancelled.", 409);
+  }
   const selected = capability(job.capability, job.capabilityVersion);
   const inputs = { ...selected.parseInput(job.inputs) };
   for (const file of selected.files ?? []) {
@@ -224,19 +262,20 @@ export function availableCapabilities(config = aiConfig()) {
 export function bindingSnapshot(
   name: string,
   config: DifyConfig,
+  bindingName = name,
 ): BindingSnapshot {
   if (config.mode === "fake")
     return {
-      name,
+      name: bindingName,
       revision: "fake-1",
       mode: "fake",
       kind: capability(name).kind,
-      fingerprint: fingerprint(["fake", name, "1"]),
+      fingerprint: fingerprint(["fake", bindingName, "1"]),
     };
   if (config.mode !== "live")
     throw new AppError("AI_DISABLED", "AI execution is disabled.", 503);
   const binding = config.bindings.find(
-    (item) => item.name === name && item.kind === capability(name).kind,
+    (item) => item.name === bindingName && item.kind === capability(name).kind,
   );
   if (!binding)
     throw new AppError(
@@ -245,7 +284,7 @@ export function bindingSnapshot(
       503,
     );
   return {
-    name,
+    name: bindingName,
     revision: binding.revision,
     kind: binding.kind,
     mode: "live",
@@ -317,6 +356,66 @@ function fakeWorkflow(job: AiJob): WorkflowProvider {
 function fakeOutputs(job: AiJob): Record<string, Json> {
   const prompt = String(job.inputs.prompt ?? "");
   if (job.capability === "workspace-compose") {
+    if (/\bform\b/i.test(prompt))
+      return {
+        type: "card",
+        card: {
+          type: "form",
+          version: 1,
+          data: {
+            title: "Project preferences",
+            explanation:
+              "Simulated structured form; responses are saved as decisions.",
+            fields: [
+              {
+                id: "audience",
+                label: "Audience",
+                kind: "text",
+                multiline: false,
+                required: true,
+                maxLength: 500,
+              },
+              {
+                id: "length",
+                label: "Target length",
+                kind: "number",
+                required: true,
+                min: 100,
+                max: 10000,
+              },
+              {
+                id: "examples",
+                label: "Include examples",
+                kind: "toggle",
+                required: false,
+              },
+            ],
+          },
+        },
+      };
+    if (/\bchecklist\b/i.test(prompt))
+      return {
+        type: "artifact",
+        artifact: {
+          type: "checklist",
+          version: 1,
+          data: {
+            title: "Simulated checklist",
+            items: [
+              {
+                id: fakeId(job._id, "11"),
+                text: "Review the intended outcome",
+                done: false,
+              },
+              {
+                id: fakeId(job._id, "12"),
+                text: "Verify the result before approval",
+                done: false,
+              },
+            ],
+          },
+        },
+      };
     if (/question/i.test(prompt))
       return {
         type: "question",
@@ -351,7 +450,12 @@ function fakeOutputs(job: AiJob): Record<string, Json> {
     };
   if (job.capability === "workspace-image")
     return {
-      title: "Simulated image",
+      title: job.inputs.editAssetId
+        ? "Simulated image edit"
+        : Array.isArray(job.inputs.referenceAssetIds) &&
+            job.inputs.referenceAssetIds.length
+          ? "Simulated reference-guided image"
+          : "Simulated image",
       png: "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEklEQVQYlWNIKen+jw8zjAwFAGqamIFJPsH4AAAAAElFTkSuQmCC",
     };
   return { text: `Simulated response: ${prompt}` };
@@ -360,7 +464,7 @@ export function providerForJob(
   job: AiJob,
   config = aiConfig(),
 ): WorkflowProvider {
-  const current = bindingSnapshot(job.binding.name, config);
+  const current = bindingSnapshot(job.capability, config, job.binding.name);
   if (
     current.fingerprint !== job.binding.fingerprint ||
     current.mode !== job.binding.mode

@@ -58,7 +58,7 @@ export function AdminCleanup() {
       router.refresh();
       setMessage(
         execute
-          ? `Cleanup completed: ${saved.changed} changed, ${saved.skipped} skipped after rechecking eligibility.`
+          ? `Cleanup approved: ${saved.changed} changed or queued, ${saved.skipped} skipped after rechecking eligibility. ${saved.storagePending} storage removals pending. Refresh reports for completion.`
           : "Preview ready. Nothing has been removed. Preview expires in 15 minutes.",
       );
     } catch (error) {
@@ -75,9 +75,16 @@ export function AdminCleanup() {
     <div className="space-y-4">
       <p>
         Remove local prompts/results from old terminal executions, or reclaim
-        the local quota of failed uploads. Active and uncertain executions are
-        excluded. Provider files, billing, usage, audit and retry records
-        remain.
+        the local quota of failed uploads, or remove abandoned application-owned
+        private uploads. Active and uncertain executions are excluded. Provider
+        files, billing, usage, audit and retry records remain.
+      </p>
+      <p>
+        Archived workspace cleanup permanently removes saved content,
+        conversations and private assets. Finish or cancel workflow runs before
+        archiving. Active or unresolved jobs and uploads prevent deletion. This
+        scope previews at most 10 eligible workspaces from the oldest 100
+        archived candidates.
       </p>
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
@@ -129,6 +136,12 @@ export function AdminCleanup() {
                 Failed upload references
               </SelectItem>
               <SelectItem value="both">Both</SelectItem>
+              <SelectItem value="archived-workspaces">
+                Archived workspaces and content
+              </SelectItem>
+              <SelectItem value="abandoned-uploads">
+                Abandoned private uploads
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -150,9 +163,18 @@ export function AdminCleanup() {
       {report && (
         <div className="space-y-3">
           <p>
-            {report.jobs} executions · {report.files} failed uploads · cutoff{" "}
+            {report.jobs} executions · {report.files} failed uploads ·{" "}
+            {report.abandonedUploads} abandoned private uploads · cutoff{" "}
             {report.cutoff.slice(0, 10)} UTC
           </p>
+          {report.workspaces > 0 && (
+            <p>
+              {report.workspaces} archived workspaces · {report.workspaceAssets}{" "}
+              saved assets · {report.workspaceEvents} conversation events. All
+              versions, decisions, reviews and workflow content in these
+              workspaces will be removed.
+            </p>
+          )}
           <p className="text-sm">
             This is one bounded batch. Generate another preview for remaining
             eligible content. Changed records are skipped rather than replaced
@@ -192,7 +214,11 @@ export function AdminCleanup() {
                     disabled={
                       busy ||
                       reason.trim().length < 10 ||
-                      report.jobs + report.files === 0
+                      report.jobs +
+                        report.files +
+                        report.abandonedUploads +
+                        report.workspaces ===
+                        0
                     }
                   >
                     Execute previewed cleanup
@@ -206,7 +232,11 @@ export function AdminCleanup() {
                     <AlertDialogDescription>
                       This cannot be undone here. Only the IDs in this preview
                       are considered. Billing and audit records remain, and
-                      provider-hosted files are not deleted.
+                      AI-provider files are not deleted. Approved abandoned
+                      private uploads are removed from application storage by
+                      the maintenance worker. Archived workspace cleanup removes
+                      all saved workspace content and queues its private objects
+                      for removal.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

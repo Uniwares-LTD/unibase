@@ -1,7 +1,13 @@
 import { z } from "zod";
 export const cleanupOptionsSchema = z.strictObject({
   olderThanDays: z.number().int().min(1).max(3650),
-  scope: z.enum(["jobs", "failed-files", "both"]),
+  scope: z.enum([
+    "jobs",
+    "failed-files",
+    "both",
+    "abandoned-uploads",
+    "archived-workspaces",
+  ]),
   limit: z.number().int().min(1).max(100),
 });
 export const cleanupExecuteSchema = z.strictObject({
@@ -27,6 +33,13 @@ export const cleanupReportSchema = z.object({
   cutoff: z.string(),
   jobs: z.number(),
   files: z.number(),
+  abandonedUploads: z.number(),
+  workspaces: z.number(),
+  workspaceAssets: z.number(),
+  workspaceEvents: z.number(),
+  storagePending: z.number(),
+  storageFailed: z.number(),
+  storageDeleted: z.number(),
   changed: z.number(),
   skipped: z.number(),
   ids: z.array(z.string()),

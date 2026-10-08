@@ -481,3 +481,30 @@ Base extraction decision and explicit unverified integrations:
   when a candidate worker probe fails. Live provider/VPS acceptance stays separate.
 - Verify the cleanup dialog's keyboard focus/Escape and operations layout at
   desktop/mobile widths. Run the full acceptance sequence for broader accessibility.
+
+## Reusable creation platform regression
+
+Use disposable owned workspaces and fake AI. Keep the AI worker running for generation
+and workflows, and the maintenance worker for exports and approved object deletion.
+See [creation workspaces](creation-workspaces.md) for contracts, limits and recovery.
+
+| ID | Flow | Expected evidence |
+| --- | --- | --- |
+| CREATE-01 | In development, exercise `/design-system` card examples; in `/workspaces`, generate a `form`, select it, answer and reload. | Typed values persist in the real workspace; sample responses remain local. Reopening preserves prior decisions; unknown types/actions are rejected. |
+| CREATE-02 | Save messages, page through more than 25 events, and preview an image candidate before selecting it. | Stable owned history; preview creates no asset; another member cannot read history or image bytes. |
+| CREATE-03 | Publish two execution-profile revisions as admin; generate mixed-profile candidates and retry a confirmed failure. | Revisions and accepted inputs remain frozen. Demoted/ineligible users cannot publish/select profiles; uncertain jobs require admin recovery. |
+| CREATE-04 | Run draft/review/approval and parallel-synthesis workflows; pause, restart the worker, resume and cancel. | Saved commands resume without duplicate jobs/holds; downstream steps wait for decisions/approvals; changed sources block stale work. |
+| CREATE-05 | Track a blocking finding, request targeted repair, inspect the new version/review, then resolve or explicitly accept. | Approval is invalidated by revisions; resolution needs a newer reviewed version; repair/history limits and reasons are enforced. |
+| CREATE-06 | Upload a private image, use references, edit an image and reload old versions. | Ownership and exact upload retries hold; reference preparation reuses confirmed uploads and never repeats uncertain provider uploads automatically. |
+| CREATE-07 | With a controlled S3 fixture, stage/read an asset, interrupt attachment/deletion and run preview-confirm cleanup. | Digest/size checks, immutable keys, staged recovery and exact-version deletion work; old inline assets remain readable. |
+| CREATE-08 | Archive, preview cleanup, restore to invalidate the preview, then archive and confirm a fresh preview. | Read-only archive remains reversible. Confirmed cleanup removes content and queues object deletion while preserving financial/audit/retry evidence; unfinished work is excluded. |
+| CREATE-09 | Queue selected versions as PDF and ZIP, edit the source, reload and download. Cancel a rendering job and restart a worker. | Frozen content, private downloads, progress, cancellation and lease recovery; no AI calls/credits. Decode ZIP and inspect rendered PDF, including long text, Persian/English punctuation and images. |
+| CREATE-10 | Repeat the interactive flows with keyboard input, Dark mode, and 1440px/390px viewports; switch accounts in another tab. | Usable focus, persistent theme, no horizontal overflow and no restored private state after account changes. |
+
+Automated coverage lives in `tests/creation-registry.test.ts`,
+`tests/workflow-contract.test.ts`, `tests/accounts/workspaces.test.ts`, the
+workflow/reference-image/storage/lifecycle/export account suites, and
+`tests/integration/ai.test.mjs`. Run the unit/account suites, both AI HTTP modes,
+account/session and Stripe fixture HTTP suites, build/type/lint checks and deployment
+configuration tests. Record actual counts and mode skips; do not infer live provider,
+S3 service, VPS or Android acceptance from local fixtures.

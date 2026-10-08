@@ -71,6 +71,24 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 config_module.validate(self.root, "staging")
 
+    def test_private_object_storage_settings_are_explicit_and_secret(self):
+        env = self.root / "staging/runtime.env"
+        original = env.read_text()
+        settings = {"ASSET_STORE": "s3", "ASSET_S3_ENDPOINT": "https://objects.example.test",
+                    "ASSET_S3_REGION": "us-east-1", "ASSET_S3_BUCKET": "private-assets",
+                    "ASSET_S3_PREFIX": "workspace-assets", "ASSET_S3_ACCESS_KEY_ID": "fixture",
+                    "ASSET_S3_SECRET_ACCESS_KEY": "fixture-secret", "ASSET_S3_FORCE_PATH_STYLE": "true"}
+        def write(values):
+            env.write_text(original + "".join(f"{key}={value}\n" for key, value in values.items()))
+        write(settings)
+        values = config_module.validate(self.root, "staging")
+        self.assertNotIn("fixture-secret", "".join(values))
+        for override in ({"ASSET_STORE": "unknown"}, {"ASSET_S3_ENDPOINT": "http://objects.example.test"},
+                         {"ASSET_S3_ENDPOINT": "https://objects.example.test/path"}, {"ASSET_S3_SECRET_ACCESS_KEY": ""}):
+            write({**settings, **override})
+            with self.assertRaises(ValueError):
+                config_module.validate(self.root, "staging")
+
     def test_ai_pricing_environment_is_allowed_and_bounded(self):
         env = self.root / "staging/runtime.env"
         original = env.read_text()

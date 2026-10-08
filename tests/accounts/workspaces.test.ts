@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { test } from "node:test";
-import { MongoClient } from "mongodb";
+import { MongoClient, type Db } from "mongodb";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import sharp from "sharp";
 import {
@@ -27,7 +27,20 @@ import {
 import {
   capability,
   providerForJob,
+  materializeAiResult,
+  bindingSnapshot,
 } from "../../src/lib/server/ai/capabilities";
+import {
+  workspaceHistory,
+  workspaceEvents,
+} from "../../src/lib/server/workspaces/history";
+import { candidateImage } from "../../src/lib/server/workspaces/preview";
+import {
+  saveExecutionProfile,
+  profileHistory,
+  availableProfiles,
+} from "../../src/lib/server/workspaces/profiles";
+import { profileDefinitionSchema } from "../../src/lib/contracts/execution-profile";
 import { processOneAiJob } from "../../src/lib/server/ai/worker";
 import {
   currentVersion,
@@ -130,6 +143,8 @@ test("creation workspaces: durable decisions, artifacts, owned assets and batch 
         await processOneAiJob(db, {
           provider: (job) => providerForJob(job, { mode: "fake" }),
           authorize: async () => true,
+          materialize: (job, result, session) =>
+            materializeAiResult(db, job, result, session),
           validateOutput: (job, result) =>
             capability(job.capability).validOutput(result.outputs),
         })
@@ -140,6 +155,530 @@ test("creation workspaces: durable decisions, artifacts, owned assets and batch 
     return { db, initial, command, batch, run };
   }
   try {
+    async function profileFixture(
+      db: Db,
+      patch: Partial<
+        import("../../src/lib/contracts/execution-profile").ExecutionProfile
+      > = {},
+    ) {
+      const admin = { uid: "profile-admin", authTime: actor.authTime };
+      await db
+        .collection<import("../../src/lib/server/store/access").AccountAccess>(
+          "accountAccess",
+        )
+        .updateOne(
+          { _id: admin.uid },
+          {
+            $set: {
+              role: "admin",
+              status: "active",
+              notBefore: 0,
+              revision: 0,
+            },
+          },
+          { upsert: true },
+        );
+      const definition = profileDefinitionSchema.parse({
+        name: "Reusable writer",
+        description: "Fixture instructions",
+        capability: "workspace-compose",
+        binding: null,
+        instructions: "Write for a general audience.",
+        includeConversation: true,
+        includeDecisions: true,
+        requiresSource: false,
+        audience: "everyone",
+        enabled: true,
+        ...patch,
+      });
+      const request = {
+        key: randomUUID(),
+        id: randomUUID(),
+        expectedUid: admin.uid,
+        revision: 0,
+        definition,
+        reason: "Publish fixture profile",
+      };
+      return {
+        admin,
+        request,
+        profile: await saveExecutionProfile(db, admin, request),
+      };
+    }
+    await t.test(
+      "execution profiles are immutable, audited, admin-only and idempotent",
+      async () => {
+        const { db } = await fixture();
+        const { admin, request, profile } = await profileFixture(db);
+        assert.deepEqual(
+          await saveExecutionProfile(db, admin, request),
+          profile,
+        );
+        assert.equal(
+          await db.collection("executionProfileVersions").countDocuments(),
+          1,
+        );
+        assert.equal(
+          await db
+            .collection("auditEvents")
+            .countDocuments({ event: "execution-profile" }),
+          1,
+        );
+        await assert.rejects(
+          saveExecutionProfile(db, actor, {
+            ...request,
+            expectedUid: actor.uid,
+          }),
+        );
+        await assert.rejects(
+          saveExecutionProfile(db, admin, {
+            ...request,
+            reason: "Different content same key",
+          }),
+        );
+        const next = {
+          ...request,
+          key: randomUUID(),
+          revision: 1,
+          definition: {
+            ...request.definition,
+            instructions: "Changed instructions",
+            enabled: false,
+          },
+        };
+        const published = await saveExecutionProfile(db, admin, next);
+        assert.equal(published.revision, 2);
+        assert.equal(
+          (await profileHistory(db, profile.id)).versions[1].instructions,
+          request.definition.instructions,
+        );
+        assert.equal(
+          (await profileHistory(db, profile.id, 2)).versions.length,
+          1,
+        );
+        assert.equal((await availableProfiles(db, actor.uid)).length, 0);
+        await assert.rejects(
+          saveExecutionProfile(db, admin, { ...next, key: randomUUID() }),
+        );
+      },
+    );
+    await t.test(
+      "mixed-profile batches freeze instructions and binding revisions, enforce eligibility",
+      async () => {
+        const { db, initial, command, run } = await fixture();
+        await command({
+          action: "message",
+          text: "Private conversation context",
+        });
+        const one = await profileFixture(db, {
+          name: "Concise",
+          instructions: "CONCISE instructions",
+          binding: "compose-fast",
+          includeConversation: false,
+        });
+        const two = await profileFixture(db, {
+          name: "Detailed",
+          instructions: "DETAILED instructions",
+          binding: "compose-detailed",
+        });
+        const action = {
+          action: "batch" as const,
+          capability: "workspace-compose" as const,
+          prompt: "Draft the guide",
+          count: 2,
+          profiles: [one.profile, two.profile].map(({ id, revision }) => ({
+            id,
+            revision,
+          })),
+          targetId: null,
+          dependencies: [],
+          pricingKey: fingerprint({ mode: "fixed", credits: 1 }),
+        };
+        const result = await command(action);
+        const jobs = await aiJobs(db)
+          .find()
+          .sort({ "binding.name": 1 })
+          .toArray();
+        assert.equal(jobs.length, 2);
+        const liveConfig = {
+          mode: "live" as const,
+          baseUrl: "https://provider.invalid/v1",
+          bindings: [
+            {
+              name: "compose-fast",
+              revision: "fixture-1",
+              kind: "workflow" as const,
+              apiKeyEnv: "DIFY_KEY_FIXTURE",
+              apiKey: "fixture-only",
+            },
+          ],
+        };
+        assert.throws(() => bindingSnapshot("workspace-compose", liveConfig));
+        const alias = bindingSnapshot(
+          "workspace-compose",
+          liveConfig,
+          "compose-fast",
+        );
+        assert.equal(alias.name, "compose-fast");
+        assert.ok(providerForJob({ ...jobs[0], binding: alias }, liveConfig));
+        assert.throws(() =>
+          providerForJob(
+            { ...jobs[0], binding: alias },
+            {
+              ...liveConfig,
+              bindings: [{ ...liveConfig.bindings[0], revision: "fixture-2" }],
+            },
+          ),
+        );
+        assert.ok(
+          jobs.some(
+            (j) =>
+              j.binding.name === "compose-fast" &&
+              String(j.inputs.prompt).startsWith("CONCISE"),
+          ),
+        );
+        assert.equal(
+          JSON.parse(
+            String(
+              jobs.find((j) => j.binding.name === "compose-fast")!.inputs
+                .context,
+            ),
+          ).conversation,
+          "",
+        );
+        assert.match(
+          String(
+            jobs.find((j) => j.binding.name === "compose-detailed")!.inputs
+              .context,
+          ),
+          /Private conversation context/,
+        );
+        await saveExecutionProfile(db, one.admin, {
+          ...one.request,
+          key: randomUUID(),
+          revision: 1,
+          definition: { ...one.request.definition, enabled: false },
+        });
+        await assert.rejects(command(action));
+        await run();
+        assert.ok(
+          (
+            await workspaceView(
+              db,
+              await ownedWorkspace(db, actor.uid, initial.id),
+            )
+          ).batches[0].items.every((i) => i.status === "succeeded"),
+        );
+        assert.equal(result.batches[0].items[0].profile?.revision, 1);
+        const restricted = await profileFixture(db, { audience: "admins" });
+        await assert.rejects(
+          command({
+            ...action,
+            count: 1,
+            profiles: [{ id: restricted.profile.id, revision: 1 }],
+          }),
+        );
+        const source = await profileFixture(db, { requiresSource: true });
+        await assert.rejects(
+          command({
+            ...action,
+            count: 1,
+            profiles: [{ id: source.profile.id, revision: 1 }],
+          }),
+        );
+        await assert.rejects(command({ ...action, count: 1 }));
+      },
+    );
+    await t.test(
+      "new attempts preserve prior evidence, reject uncertain work and replay without extra holds",
+      async () => {
+        const { db, initial, batch, command, run } = await fixture();
+        let workspace = await batch();
+        const prior = workspace.batches[0];
+        const jobId = prior.items[0].jobId;
+        const retry = {
+          action: "retry-candidate" as const,
+          batchId: prior.id,
+          index: 0,
+          pricingKey: fingerprint({ mode: "fixed", credits: 1 }),
+        };
+        await assert.rejects(command(retry));
+        await aiJobs(db).updateOne(
+          { _id: jobId },
+          { $set: { cancelRequested: true } },
+        );
+        await run();
+        assert.equal(
+          (await aiJobs(db).findOne({ _id: jobId }))?.terminationEvidence,
+          "not-dispatched",
+        );
+        workspace = await ownedWorkspace(db, actor.uid, initial.id);
+        const request = workspaceCommandSchema.parse({
+          ...retry,
+          key: randomUUID(),
+          expectedUid: actor.uid,
+          revision: workspace.revision,
+        });
+        const attempt = await commandWorkspace(db, actor, initial.id, request);
+        await commandWorkspace(db, actor, initial.id, request);
+        assert.equal(attempt.batches[1].retryOf, jobId);
+        assert.equal(await aiJobs(db).countDocuments(), 2);
+        assert.equal(
+          await db.collection("creditReservations").countDocuments(),
+          2,
+        );
+        await assert.rejects(command(retry));
+        await run();
+        assert.equal(
+          (await aiJobs(db).findOne({ _id: jobId }))?.status,
+          "cancelled",
+        );
+        await command({
+          action: "select",
+          batchId: attempt.batches[1].id,
+          index: 0,
+        });
+        assert.equal(
+          (await ownedWorkspace(db, actor.uid, initial.id)).artifacts.length,
+          1,
+        );
+        const uncertain = await batch();
+        const last = uncertain.batches.at(-1)!;
+        await aiJobs(db).updateOne(
+          { _id: last.items[0].jobId },
+          { $set: { status: "cancelled", terminationEvidence: "unverified" } },
+        );
+        await assert.rejects(command({ ...retry, batchId: last.id }));
+      },
+    );
+    await t.test(
+      "conversation pagination is stable, private and idempotent",
+      async () => {
+        const { db, initial, command, batch, run } = await fixture();
+        for (let i = 0; i < 28; i++)
+          await command({ action: "message", text: `Message ${i}` });
+        const latest = await workspaceHistory(db, actor.uid, initial.id);
+        assert.equal(latest.entries.length, 25);
+        assert.ok(latest.next);
+        const earlier = await workspaceHistory(
+          db,
+          actor.uid,
+          initial.id,
+          latest.next,
+        );
+        assert.equal(earlier.entries.length, 3);
+        assert.equal(earlier.next, null);
+        assert.equal(
+          new Set([...latest.entries, ...earlier.entries].map((e) => e.id))
+            .size,
+          28,
+        );
+        assert.equal(
+          (await workspaceHistory(db, "another-user", initial.id)).entries
+            .length,
+          0,
+        );
+        await assert.rejects(
+          workspaceHistory(db, actor.uid, initial.id, "invalid"),
+        );
+        const current = await ownedWorkspace(db, actor.uid, initial.id);
+        const request = workspaceCommandSchema.parse({
+          action: "message",
+          text: "Once",
+          expectedUid: actor.uid,
+          key: randomUUID(),
+          revision: current.revision,
+        });
+        await commandWorkspace(db, actor, initial.id, request);
+        await commandWorkspace(db, actor, initial.id, request);
+        assert.equal(
+          await workspaceEvents(db).countDocuments({ kind: "message" }),
+          29,
+        );
+        const generated = await batch();
+        const job = await aiJobs(db).findOne({
+          _id: generated.batches[0].items[0].jobId,
+        });
+        assert.ok(JSON.stringify(job?.inputs).includes("Once"));
+        await run();
+        assert.equal(
+          await workspaceEvents(db).countDocuments({ kind: "execution" }),
+          1,
+        );
+      },
+    );
+    await t.test(
+      "image candidate previews require owned settled retained workspace jobs",
+      async () => {
+        const { db, initial, batch, run } = await fixture();
+        const created = await batch("Generate an image", 1, {
+          capability: "workspace-image",
+        });
+        const jobId = created.batches[0].items[0].jobId;
+        await assert.rejects(candidateImage(db, actor.uid, initial.id, jobId));
+        await run();
+        const preview = await candidateImage(db, actor.uid, initial.id, jobId);
+        assert.equal(preview.mime, "image/png");
+        assert.equal((await sharp(preview.bytes).metadata()).format, "png");
+        assert.equal(
+          await db.collection("workspaceAssets").countDocuments(),
+          0,
+        );
+        await assert.rejects(
+          candidateImage(db, "another-user", initial.id, jobId),
+        );
+        const other = await createWorkspace(db, actor, randomUUID(), "Other");
+        await assert.rejects(candidateImage(db, actor.uid, other.id, jobId));
+        await aiJobs(db).updateOne(
+          { _id: jobId },
+          { $set: { cleanedAt: new Date() } },
+        );
+        await assert.rejects(candidateImage(db, actor.uid, initial.id, jobId));
+      },
+    );
+    await t.test(
+      "registered form responses persist, reject forged actions and replay once",
+      async () => {
+        const { db, initial, command, batch, run } = await fixture();
+        let workspace = await batch("Generate a form");
+        await run();
+        workspace = await command({
+          action: "select",
+          batchId: workspace.batches[0].id,
+          index: 0,
+        });
+        const card = workspace.uiCards[0];
+        assert.equal(card.content.type, "form");
+        await assert.rejects(
+          command({
+            action: "respond-card",
+            cardId: card.id,
+            cardAction: "approve",
+            value: null,
+          }),
+          /offered action/,
+        );
+        await assert.rejects(
+          command({
+            action: "respond-card",
+            cardId: card.id,
+            cardAction: "submit",
+            value: { audience: "Readers", length: 1 },
+          }),
+          /Check the card/,
+        );
+        const request = workspaceCommandSchema.parse({
+          key: randomUUID(),
+          revision: workspace.revision,
+          expectedUid: actor.uid,
+          action: "respond-card",
+          cardId: card.id,
+          cardAction: "submit",
+          value: { audience: "Readers", length: 500, examples: false },
+        });
+        workspace = await commandWorkspace(db, actor, initial.id, request);
+        const replayed = await commandWorkspace(db, actor, initial.id, request);
+        assert.equal(replayed.revision, workspace.revision);
+        assert.deepEqual(replayed.uiCards[0].response, {
+          audience: "Readers",
+          length: 500,
+          examples: false,
+        });
+        workspace = await command({ action: "reopen-card", cardId: card.id });
+        assert.equal(workspace.uiCards[0].status, "superseded");
+        assert.equal(workspace.uiCards[1].status, "active");
+        assert.ok(
+          workspaceSchema.safeParse(await workspaceView(db, workspace)).success,
+        );
+      },
+    );
+    await t.test(
+      "registered artifacts share versioning, ownership and stale-review protection",
+      async () => {
+        const { db, initial, command, batch, run } = await fixture();
+        let workspace = await batch("Create a checklist");
+        await run();
+        workspace = await command({
+          action: "select",
+          batchId: workspace.batches[0].id,
+          index: 0,
+        });
+        const artifact = workspace.artifacts[0];
+        assert.equal(currentVersion(artifact).content?.type, "checklist");
+        const oldReview = workspace.uiCards.find(
+          (c) => c.content.type === "review",
+        )!;
+        workspace = await command({
+          action: "respond-card",
+          cardId: oldReview.id,
+          cardAction: "approve",
+          value: "Reviewed checklist",
+        });
+        assert.equal(workspace.artifacts[0].approval?.version, 1);
+        workspace = await command({
+          action: "save-content",
+          artifactId: artifact.id,
+          dependencies: [],
+          content: {
+            type: "checklist",
+            version: 1,
+            data: {
+              title: "Updated",
+              items: [
+                { id: randomUUID(), text: "Verify new result", done: true },
+              ],
+            },
+          },
+        });
+        assert.equal(workspace.artifacts[0].versions.length, 2);
+        assert.equal(workspace.artifacts[0].approval, null);
+        await assert.rejects(
+          command({
+            action: "respond-card",
+            cardId: oldReview.id,
+            cardAction: "approve",
+            value: "again",
+          }),
+          /active card/,
+        );
+        await assert.rejects(
+          command({
+            action: "save-content",
+            artifactId: null,
+            dependencies: [],
+            content: {
+              type: "image",
+              version: 1,
+              data: { title: "Foreign", assetId: randomUUID(), caption: "" },
+            },
+          }),
+          /belong to this workspace/,
+        );
+        // Pre-registry documents have no registered envelope or generated-card array.
+        workspace = await command({
+          action: "save",
+          artifactId: null,
+          title: "Legacy",
+          body: "Original",
+          dependencies: [],
+        });
+        await db
+          .collection("workspaces")
+          .updateOne({ _id: initial.id } as never, {
+            $unset: { uiCards: "", "artifacts.1.versions.0.content": "" },
+          });
+        const compatible = await workspaceView(
+          db,
+          await ownedWorkspace(db, actor.uid, initial.id),
+        );
+        assert.deepEqual(compatible.uiCards, []);
+        assert.deepEqual(compatible.artifacts[1].versions[0].content, {
+          type: "document",
+          version: 1,
+          data: { title: "Legacy", body: "Original" },
+        });
+      },
+    );
     await t.test(
       "owner isolation, access fencing, stale edits and exact replay",
       async () => {
@@ -505,6 +1044,37 @@ test("creation workspaces: durable decisions, artifacts, owned assets and batch 
           reason: "I verified the cited claim against the source.",
         });
         assert.equal(workspace.artifacts[0].approval?.version, 1);
+        const tracked = workspace.qualityIssues[0];
+        assert.equal(tracked.status, "accepted");
+        assert.equal(
+          tracked.history[0].reason,
+          "I verified the cited claim against the source.",
+        );
+        workspace = await command({
+          action: "quality-issue",
+          issueId: tracked.id,
+          resolution: "reopen",
+          reason: "The cited source needs another check.",
+        });
+        assert.equal(workspace.artifacts[0].approval, null);
+        await assert.rejects(
+          command({ action: "approve", artifactId, version: 1, reason: "" }),
+          /blocking review/,
+        );
+        workspace = await command({
+          action: "quality-issue",
+          issueId: tracked.id,
+          resolution: "accept",
+          reason: "Confirmed independently with the source.",
+        });
+        workspace = await command({
+          action: "approve",
+          artifactId,
+          version: 1,
+          reason: "",
+        });
+        assert.equal(workspace.artifacts[0].approval?.version, 1);
+
         workspace = await command({
           action: "save",
           artifactId,

@@ -290,10 +290,20 @@ authorizes arbitrary payment outcomes.
 Cleanup uses administrator-owned previews in `cleanupReports`, a 15-minute expiry,
 a bounded target snapshot and explicit confirmation. Execution rechecks access and
 eligibility, skips changed targets and writes its report plus audit atomically.
-Only old terminal job inputs/results/source references and failed-upload names are
-cleared; upload tombstones reclaim local quota. Active or uncertain records,
+Old terminal job inputs/results/source references and failed-upload names are
+cleared; upload tombstones reclaim local quota. A separate abandoned-private-upload
+scope fences old unattached stages and queues physical removal on the maintenance
+worker. Reports distinguish database confirmation from pending/failed/deleted bytes.
+Active or uncertain AI records,
 provider files, billing, usage and retry fingerprints remain. Financial and audit
 records have no cleanup expiry. There is no scheduled deletion or user deletion UI.
+Owners can archive/restore workspaces. A separate administrator scope deletes old
+archived workspace content after rechecking revision and terminal execution/upload
+evidence. An owner access write serializes deletion with uploads/admissions; snapshot
+deletion, event/run/inline-byte erasure, object-removal intents and the workspace
+tombstone commit together. Job and command fingerprints, ledger and global audit
+survive. Restored/changed targets are skipped, and tombstones prevent creation retries
+from resurrecting deleted workspace IDs.
 See [operator workflow](ai-testing.md#administrator-operations) for options and limits.
 
 ## Creation workspaces
@@ -302,9 +312,33 @@ See [operator workflow](ai-testing.md#administrator-operations) for options and 
 `workspaces` stores bounded owned aggregates with typed questions/decisions,
 immutable artifact versions, dependency snapshots, approval history, quality
 reviews and durable candidate manifests. `workspaceOperations` provides request
-idempotency. Every mutation checks the workspace revision and writes the account
+idempotency. Human workspace mutations check the workspace revision and write the account
 access fence in a MongoDB transaction. Generated UI is validated data rendered
 through shadcn primitives; no executable model-generated UI is accepted.
+
+Versioned card and artifact registries pair strict shared schemas with explicit
+renderers/editors. Model-controlled forms, galleries and summaries use validated,
+allowlisted response actions; application-owned review cards use the existing
+approval boundary. Legacy records remain readable. `workspaceEvents` records
+messages and command/successful-execution evidence atomically with mutations and
+settlement. Owned history reads use bounded keyset pagination. Recent messages
+become frozen context for future jobs. Candidate image previews require owned,
+settled, retained jobs and normalize bytes without creating a saved asset.
+
+The development-only design system exercises these same card renderers using
+deterministic examples from `creation/examples.ts`. Sample responses remain local
+and pass through the shared response validators; galleries cannot fetch unowned
+assets and sample review actions do not reach the approval store.
+
+`executionProfiles` holds current administrator-managed definitions;
+`executionProfileVersions` retains immutable revisions and
+`executionProfileOperations` deduplicates publications. New selections write the
+profile head inside the owned workspace transaction, serializing selection with
+publication/disable changes. Per-candidate frozen requests can select different
+configured bindings for the same capability contract. Public choices omit reusable
+instruction bodies and configuration details. All bindings keep credentials in
+server configuration. AI settlement records termination evidence; explicit new
+attempts require verified failure/cancellation and retain their predecessor job.
 
 Batch manifests freeze input, binding, price and source/decision versions. Admission
 uses deterministic keys in the existing job queue and managed credit ledger;
@@ -314,10 +348,61 @@ invalidate dependent approvals. Review findings are version-pinned and only the
 human owner approves content. Uncertain jobs retain the existing administrator
 recovery path. The worker supports asynchronous image validation before settlement.
 
-`workspaceAssets` stores immutable, owned metadata and bounded image/export bytes.
-The storage adapter and export command boundary can be extended without changing
-the ownership contract. Downloads require the owner session and prohibit caching;
-images are fully decoded and normalized. Default exports are JSON/text snapshots,
+`workspaceWorkflows` persists versioned step definitions, dependency graphs, pinned
+sources, accepted pricing/binding fingerprints, human checkpoints and saved command
+intents. The existing AI worker leases a run and saves each command before applying
+it through the workspace store. Replaying a command uses the original idempotency
+key. Workflow commands tolerate unrelated aggregate revisions while still checking
+source versions, decisions, access and the run lease. Required predecessor answers
+and checkpoint approvals are checked again transactionally at batch creation;
+reopened cards retain replacement links. Human run controls use independent run
+revisions and `workspaceWorkflowOperations`. Pause/cancel ends the scheduling lease;
+late jobs from a cancelled run cannot dispatch. Admitted jobs still use existing
+provider cancellation and settlement rules. Scheduling uses the AI worker's existing
+heartbeat and requires AI execution to be enabled.
+
+Reviews materialize deterministic, individually tracked quality findings, including
+legacy reviews without destructive migration. Acceptance/reopening/resolution keeps
+actor, reason, version and review evidence and invalidates current approval. Targeted
+repair atomically records a bounded attempt with a new run; it produces a new version,
+re-reviews it and waits for human approval. Resolution is explicit and requires a
+newer version with a fresh review and no open blocking findings. There is no automatic
+unbounded repair loop or additional credit ledger.
+
+`workspaceAssets` stores immutable, owned metadata and either bounded inline bytes
+or private S3-compatible object references. `workspaceAssetStages` records random
+immutable keys before external writes; successful stages attach transactionally.
+Unknown uploads remain cleanup candidates. Approved abandoned-object removals use
+durable leases and retries on the existing payment/maintenance worker, with exact
+version deletion and digest/size checks. Remote I/O stays outside MongoDB transactions.
+Downloads require the owner session, verify object integrity and prohibit caching;
+images are fully decoded and normalized. Immediate exports are JSON/text snapshots,
 not product-specific PDF layouts. Workspace content has separate retention from
 the terminal-job cleanup tool. [Creation workspaces](creation-workspaces.md) records
 provider contracts, recovery semantics, extension points and enforced limits.
+
+`workspaceExports` stores immutable export snapshots separately from workspace
+aggregates. Admission and request fingerprints commit under the same account access
+fence as other workspace mutations. The existing maintenance worker claims bounded
+leases, renders outside transactions and stages results through private storage;
+publication rechecks ownership, account access, cancellation and lease validity before
+atomically attaching an asset. Local work can retry after crashes without AI dispatch
+or credit charges. Archive and deletion exclude active/leased exports; deletion erases
+their snapshots while retaining `workspaceExportOperations` fingerprints. The current
+registered renderers produce ZIP archives and readable A4 PDF documents. PDFKit stays
+external to the worker/Next bundles because it resolves module-relative resources;
+standalone tracing includes that runtime dependency. Bundled OFL fonts avoid host-font
+and network dependencies. Bidirectional ordering precedes shaping, and unsupported
+glyphs fail explicitly instead of silently losing content. Product renderers can use
+the same snapshot, owned image reader and publication pipeline.
+
+Reference-image requests freeze up to four owned workspace asset IDs and, for an
+edit, the target image asset and artifact version. The worker resolves these private
+bytes into provider-local file descriptors through the existing owned upload store.
+Successful uploads are reused only for the same owner, binding and content digest;
+uncertain uploads require administrator recovery and are never automatically resent.
+Preparation renews the unexpired worker lease before generation dispatch. Confirmed
+file rejection or quota exhaustion releases the undispatched generation hold. The
+generic public AI endpoint cannot submit workspace reference IDs, and stale edit
+candidates cannot replace newer artifact versions. Provider-hosted copies retain
+their separate provider lifecycle.

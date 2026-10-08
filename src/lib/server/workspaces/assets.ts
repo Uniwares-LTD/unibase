@@ -30,16 +30,16 @@ export function mongoAssetStore(db: Db): PrivateAssetStore {
     get: (uid, id) => collection.findOne({ _id: id, uid }),
   };
 }
-export async function validatedImage(base64: string) {
+export async function validatedImage(base64: string, limit = 1024 * 1024) {
   const input = Buffer.from(base64, "base64");
   if (
     !input.length ||
-    input.length > 1024 * 1024 ||
+    input.length > limit ||
     input.toString("base64") !== base64
   )
     throw new AppError(
       "INVALID_IMAGE",
-      "Use a PNG, JPEG or WebP image no larger than 1 MiB.",
+      `Use a PNG, JPEG or WebP image no larger than ${limit / 1024 / 1024} MiB.`,
     );
   try {
     // libvips can decode only the default image of APNG. Reject its animation
@@ -75,13 +75,12 @@ export async function validatedImage(base64: string) {
       throw new Error("Unsupported image");
     // Full decode, strip metadata, normalize format; never serve the uploaded bytes.
     const bytes = await source.rotate().png().toBuffer();
-    if (bytes.length > 1024 * 1024)
-      throw new Error("Normalized image too large");
+    if (bytes.length > limit) throw new Error("Normalized image too large");
     return { bytes, mime: "image/png" };
   } catch {
     throw new AppError(
       "INVALID_IMAGE",
-      "Use a valid, single-frame PNG, JPEG or WebP that normalizes to at most 1 MiB.",
+      `Use a valid, single-frame PNG, JPEG or WebP that normalizes to at most ${limit / 1024 / 1024} MiB.`,
     );
   }
 }

@@ -114,6 +114,12 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       );
   }
   try {
+    // A confirmed rejection may have persisted just before settlement failed.
+    // Recover that evidence locally; never send a second POST to discover it.
+    if (job.terminationEvidence === "provider-rejected" && !job.runId) {
+      await settleAiJob(db, job, "failed", now());
+      return true;
+    }
     // Recover saved terminal evidence before contacting the provider again.
     if (
       job.execution &&
@@ -174,7 +180,10 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
           job = await patchAiJob(
             db,
             claimed,
-            { status: "dispatching" },
+            {
+              status: "dispatching",
+              leaseUntil: new Date(now().getTime() + 180000),
+            },
             now(),
             session,
           );
@@ -205,7 +214,12 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       );
       await finish(outcome.value);
     } else if (starting && outcome.kind === "rejected" && !job.runId) {
-      await patchAiJob(db, job, { failure: outcome.failure }, now());
+      await patchAiJob(
+        db,
+        job,
+        { failure: outcome.failure, terminationEvidence: "provider-rejected" },
+        now(),
+      );
       await settleAiJob(db, job, "failed", now());
     } else {
       if (outcome.evidence)
@@ -218,7 +232,42 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       await defer(outcome.failure, !job.runId, outcome.retryAfterMs);
     }
   } catch (error) {
-    if (error instanceof AppError && error.code === "AI_USAGE_MISSING")
+    if (
+      error instanceof AppError &&
+      job.status === "queued" &&
+      error.code === "AI_REFERENCE_UNCERTAIN"
+    ) {
+      job = await patchAiJob(
+        db,
+        job,
+        { terminationEvidence: "not-dispatched" },
+        now(),
+      );
+      await defer("reference-upload-uncertain", true);
+    } else if (
+      error instanceof AppError &&
+      job.status === "queued" &&
+      [
+        "AI_REFERENCE_REJECTED",
+        "AI_REFERENCE_INVALID",
+        "AI_FILE_QUOTA",
+      ].includes(error.code)
+    ) {
+      job = await patchAiJob(
+        db,
+        job,
+        {
+          failure:
+            error.code === "AI_FILE_QUOTA"
+              ? "reference-upload-quota"
+              : error.code === "AI_REFERENCE_REJECTED"
+                ? "reference-upload-rejected"
+                : "reference-unavailable",
+        },
+        now(),
+      );
+      await settleAiJob(db, job, "failed", now());
+    } else if (error instanceof AppError && error.code === "AI_USAGE_MISSING")
       await defer("usage-unavailable", true);
     else if (
       error instanceof AppError &&

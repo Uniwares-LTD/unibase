@@ -36,6 +36,7 @@ const env = {
   MONGODB_URI: mongo.getUri(),
   MONGODB_DATABASE: database,
   PAYMENTS_MODE: process.argv.includes("--stripe") ? "stripe" : "simulation",
+  ASSET_STORE: "mongo",
   DIFY_MODE: process.argv.includes("--ai") ? "fake" : "disabled",
   DIFY_BASE_URL: "",
   DIFY_BINDINGS_JSON: "",

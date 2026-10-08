@@ -42,7 +42,10 @@ def validate(root, target):
                "FIREBASE_API_KEY", "FIREBASE_APP_ID", "MONGODB_URI", "MONGODB_DATABASE",
                "ANDROID_PACKAGE_NAME", "ANDROID_SHA256_FINGERPRINTS",
                "PAYMENTS_MODE", "CREDIT_PACKS_JSON", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
-               "DIFY_MODE", "DIFY_BASE_URL", "DIFY_BINDINGS_JSON", "AI_PRICING_JSON"}
+               "DIFY_MODE", "DIFY_BASE_URL", "DIFY_BINDINGS_JSON", "AI_PRICING_JSON",
+               "ASSET_STORE", "ASSET_S3_ENDPOINT", "ASSET_S3_REGION", "ASSET_S3_BUCKET",
+               "ASSET_S3_PREFIX", "ASSET_S3_ACCESS_KEY_ID", "ASSET_S3_SECRET_ACCESS_KEY",
+               "ASSET_S3_FORCE_PATH_STYLE"}
     for line in (directory / "runtime.env").read_text().splitlines():
         if not line or line.startswith("#"):
             continue
@@ -52,6 +55,16 @@ def validate(root, target):
         env[key] = value
     if env.get("APP_STYLE", "classic") not in ("classic", "glass", "soft-blue"):
         raise ValueError("Invalid APP_STYLE")
+    if env.get("ASSET_STORE", "mongo") not in ("mongo", "s3"):
+        raise ValueError("Invalid ASSET_STORE")
+    if env.get("ASSET_STORE") == "s3":
+        asset_url = urlsplit(env.get("ASSET_S3_ENDPOINT", ""))
+        if (asset_url.scheme != "https" or not asset_url.hostname or asset_url.username or
+                asset_url.password or asset_url.query or asset_url.fragment or asset_url.path not in ("", "/")):
+            raise ValueError("Invalid asset storage endpoint")
+        for required in ("ASSET_S3_REGION", "ASSET_S3_BUCKET", "ASSET_S3_ACCESS_KEY_ID", "ASSET_S3_SECRET_ACCESS_KEY"):
+            if not env.get(required):
+                raise ValueError("Incomplete private asset storage configuration")
     if env.get("AI_PRICING_JSON"):
         # Detailed pricing terms are validated by the shared application parser
         # at web/worker startup. Bound the transport here without a second schema.

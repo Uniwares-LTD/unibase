@@ -12,7 +12,8 @@ import {
   materializeAiResult,
 } from "../src/lib/server/ai/capabilities";
 import { processOneAiJob } from "../src/lib/server/ai/worker";
-import { adminAuth } from "../src/lib/server/firebase";
+import { processOneWorkflow } from "../src/lib/server/workspaces/workflows";
+import { authorizeWorkerAccount as authorizeAccount } from "../src/lib/server/worker-authorization";
 import { runtimeRecord } from "../src/lib/log-policy";
 import { writeRuntimeRecord } from "../src/lib/server/store/runtime";
 import { workerHeartbeat } from "../src/lib/server/worker-heartbeat";
@@ -51,39 +52,21 @@ async function main() {
         let status = 200;
         let worked = false;
         try {
-          worked = await processOneAiJob(db, {
+          const scheduled = await processOneWorkflow(db, {
+            authorize: authorizeAccount,
+          });
+          const executed = await processOneAiJob(db, {
             provider: (job) => providerForJob(job, config),
             prepareInput: (job) => prepareAiInputs(db, job),
             materialize: (job, result, session) =>
               materializeAiResult(db, job, result, session),
-            authorize: async (uid, authTime) => {
-              try {
-                const user = await adminAuth().getUser(uid);
-                return (
-                  !user.disabled &&
-                  user.emailVerified &&
-                  authTime >=
-                    Math.floor(
-                      Date.parse(user.tokensValidAfterTime ?? "1970-01-01") /
-                        1000,
-                    )
-                );
-              } catch (error) {
-                if (
-                  typeof error === "object" &&
-                  error !== null &&
-                  "code" in error &&
-                  error.code === "auth/user-not-found"
-                )
-                  return false;
-                throw error;
-              }
-            },
+            authorize: authorizeAccount,
             validateOutput: (job, result) =>
               capability(job.capability, job.capabilityVersion).validOutput(
                 result.outputs,
               ),
           });
+          worked = scheduled || executed;
         } catch {
           status = 503;
           cycleState = "error";

@@ -20,7 +20,8 @@ export type AuditEntry = {
     | "credit-adjustment"
     | "ai-resolution"
     | "ai-cleanup"
-    | "payment-review";
+    | "payment-review"
+    | "execution-profile";
   actorUid: string;
   targetUid: string;
   reason: string;

@@ -87,10 +87,21 @@ export default async function OperationsPage() {
           <h3 className="font-semibold">Latest 20 cleanup reports</h3>
           {reports.map((r) => (
             <p className="break-all text-sm" key={r.id}>
-              {r.id} · {r.state} · {r.jobs} executions / {r.files} uploads ·{" "}
-              {r.changed} changed / {r.skipped} skipped · {r.createdAt}
+              {r.id} · {r.state} · {r.jobs} executions / {r.files} uploads /{" "}
+              {r.abandonedUploads} abandoned uploads · {r.workspaces} archived
+              workspaces ({r.workspaceAssets} assets / {r.workspaceEvents}{" "}
+              events) · {r.changed} changed or queued / {r.skipped} skipped ·{" "}
+              {r.storageDeleted} storage removals complete / {r.storagePending}{" "}
+              pending ({r.storageFailed} failed, retry scheduled) ·{" "}
+              {r.createdAt}
             </p>
           ))}
+          <p className="text-sm">
+            Refresh this page to update storage removal reports. If a removal
+            keeps failing, check the payment/maintenance worker and private
+            storage configuration and permissions. It retries approved removals
+            automatically.
+          </p>
         </CardContent>
       </Card>
     </div>

@@ -15,6 +15,9 @@ import { paymentOrders } from "../src/lib/server/store/payments";
 import { runtimeRecord } from "../src/lib/log-policy";
 import { writeRuntimeRecord } from "../src/lib/server/store/runtime";
 import { workerHeartbeat } from "../src/lib/server/worker-heartbeat";
+import { processOneAssetDeletion } from "../src/lib/server/workspaces/asset-storage";
+import { processOneExport } from "../src/lib/server/workspaces/export-jobs";
+import { authorizeWorkerAccount } from "../src/lib/server/worker-authorization";
 
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 let stopping = false;
@@ -105,6 +108,10 @@ async function main() {
           }
         }
         worked = (await maintainCredits(db)) || worked;
+        worked = (await processOneAssetDeletion(db)) || worked;
+        worked =
+          (await processOneExport(db, { authorize: authorizeWorkerAccount })) ||
+          worked;
         if (worked) await observe(200, started);
       } catch {
         cycleState = "error";

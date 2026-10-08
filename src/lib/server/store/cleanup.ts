@@ -1,12 +1,18 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import type { Db, Filter } from "mongodb";
+import type { Db, Filter, ClientSession } from "mongodb";
 import { AppError } from "@/lib/auth-policy";
 import { cleanupOptionsSchema } from "@/lib/contracts/operations";
 import type { CreditActor } from "./credit-types";
 import { accessTransaction, type AuditEntry } from "./access";
 import { aiJobs, type AiJob } from "../ai/jobs";
 import { aiFiles } from "../ai/files";
+import { assetStages } from "../workspaces/asset-storage";
+import {
+  deletableWorkspace,
+  deleteArchivedWorkspace,
+} from "../workspaces/lifecycle";
+import type { Workspace } from "../workspaces/store";
 
 type CleanupReport = {
   _id: string;
@@ -15,12 +21,35 @@ type CleanupReport = {
   createdAt: Date;
   expiresAt: Date;
   cutoff: Date;
-  targets: { kind: "job" | "file"; id: string; updatedAt: Date }[];
+  targets: {
+    kind: "job" | "file" | "stage" | "workspace";
+    id: string;
+    updatedAt: Date;
+    revision?: number;
+    assets?: number;
+    events?: number;
+  }[];
+  approvedStages?: string[];
   changed: number;
   skipped: number;
 };
 const reports = (db: Db) => db.collection<CleanupReport>("cleanupReports");
-export function cleanupReportView(report: CleanupReport) {
+async function cleanupReportView(
+  db: Db,
+  report: CleanupReport,
+  session?: ClientSession,
+) {
+  const stages = report.approvedStages?.length
+    ? await assetStages(db)
+        .find(
+          { _id: { $in: report.approvedStages } },
+          {
+            session,
+            projection: { state: 1, deleteFailed: 1 },
+          },
+        )
+        .toArray()
+    : [];
   return {
     id: report._id,
     state: report.state,
@@ -29,6 +58,21 @@ export function cleanupReportView(report: CleanupReport) {
     cutoff: report.cutoff.toISOString(),
     jobs: report.targets.filter((t) => t.kind === "job").length,
     files: report.targets.filter((t) => t.kind === "file").length,
+    abandonedUploads: report.targets.filter((t) => t.kind === "stage").length,
+    workspaces: report.targets.filter((t) => t.kind === "workspace").length,
+    workspaceAssets: report.targets.reduce(
+      (sum, t) => sum + (t.assets ?? 0),
+      0,
+    ),
+    workspaceEvents: report.targets.reduce(
+      (sum, t) => sum + (t.events ?? 0),
+      0,
+    ),
+    storagePending: stages.filter((s) => s.state === "deleting").length,
+    storageFailed: stages.filter(
+      (s) => s.state === "deleting" && s.deleteFailed,
+    ).length,
+    storageDeleted: stages.filter((s) => s.state === "deleted").length,
     changed: report.changed,
     skipped: report.skipped,
     ids: report.targets.map((t) => `${t.kind}:${t.id}`),
@@ -58,7 +102,7 @@ export async function previewCleanup(
     async (session) => {
       const cutoff = new Date(now.getTime() - options.olderThanDays * 86400000);
       const targets: CleanupReport["targets"] = [];
-      if (options.scope !== "failed-files") {
+      if (options.scope === "jobs" || options.scope === "both") {
         const jobs = await aiJobs(db)
           .find(eligibleJobs(cutoff, now), {
             session,
@@ -75,7 +119,10 @@ export async function previewCleanup(
           })),
         );
       }
-      if (options.scope !== "jobs" && targets.length < options.limit) {
+      if (
+        (options.scope === "failed-files" || options.scope === "both") &&
+        targets.length < options.limit
+      ) {
         const files = await aiFiles(db)
           .find(
             {
@@ -96,6 +143,58 @@ export async function previewCleanup(
           })),
         );
       }
+      if (options.scope === "abandoned-uploads") {
+        const stages = await assetStages(db)
+          .find(
+            {
+              state: { $in: ["uploading", "ready"] },
+              createdAt: { $lt: cutoff },
+            },
+            { session, projection: { _id: 1, createdAt: 1 } },
+          )
+          .sort({ createdAt: 1, _id: 1 })
+          .limit(options.limit)
+          .toArray();
+        targets.push(
+          ...stages.map((stage) => ({
+            kind: "stage" as const,
+            id: stage._id,
+            updatedAt: stage.createdAt,
+          })),
+        );
+      }
+      if (options.scope === "archived-workspaces") {
+        const candidates = await db
+          .collection<Workspace>("workspaces")
+          .find(
+            {
+              archivedAt: { $type: "string", $lt: cutoff.toISOString() },
+              paused: true,
+            },
+            { session },
+          )
+          .sort({ archivedAt: 1, _id: 1 })
+          .limit(100)
+          .toArray();
+        for (const workspace of candidates) {
+          if (targets.length >= Math.min(10, options.limit)) break;
+          if (!(await deletableWorkspace(db, workspace, session, now)))
+            continue;
+          const owner = { uid: workspace.uid, workspaceId: workspace.id };
+          targets.push({
+            kind: "workspace",
+            id: workspace.id,
+            updatedAt: new Date(workspace.updatedAt),
+            revision: workspace.revision,
+            assets: await db
+              .collection("workspaceAssets")
+              .countDocuments(owner, { session }),
+            events: await db
+              .collection("workspaceEvents")
+              .countDocuments(owner, { session }),
+          });
+        }
+      }
       const report: CleanupReport = {
         _id: randomUUID(),
         actorUid: actor.uid,
@@ -108,7 +207,7 @@ export async function previewCleanup(
         skipped: 0,
       };
       await reports(db).insertOne(report, { session });
-      return cleanupReportView(report);
+      return cleanupReportView(db, report, session);
     },
     actor.authTime,
   );
@@ -132,7 +231,8 @@ export async function executeCleanup(
       );
       if (!report)
         throw new AppError("NOT_FOUND", "Cleanup preview not found.", 404);
-      if (report.state === "completed") return cleanupReportView(report);
+      if (report.state === "completed")
+        return cleanupReportView(db, report, session);
       if (report.expiresAt <= now)
         throw new AppError(
           "PREVIEW_EXPIRED",
@@ -140,6 +240,7 @@ export async function executeCleanup(
           409,
         );
       let changed = 0;
+      report.approvedStages = [];
       for (const target of report.targets) {
         if (target.kind === "job") {
           const result = await aiJobs(db).updateOne(
@@ -156,7 +257,7 @@ export async function executeCleanup(
             { session },
           );
           changed += result.modifiedCount;
-        } else {
+        } else if (target.kind === "file") {
           const result = await aiFiles(db).updateOne(
             {
               _id: target.id,
@@ -168,6 +269,31 @@ export async function executeCleanup(
             { session },
           );
           changed += result.modifiedCount;
+        } else if (target.kind === "stage") {
+          const result = await assetStages(db).updateOne(
+            {
+              _id: target.id,
+              createdAt: target.updatedAt,
+              state: { $in: ["uploading", "ready"] },
+            },
+            { $set: { state: "deleting", nextDeleteAt: now } },
+            { session },
+          );
+          changed += result.modifiedCount;
+          if (result.modifiedCount) report.approvedStages.push(target.id);
+        } else if (target.revision !== undefined) {
+          const stages = await deleteArchivedWorkspace(
+            db,
+            target.id,
+            target.revision,
+            report.cutoff,
+            session,
+            now,
+          );
+          if (stages) {
+            changed++;
+            report.approvedStages.push(...stages);
+          }
         }
       }
       report.state = "completed";
@@ -185,13 +311,16 @@ export async function executeCleanup(
         },
         { session },
       );
-      return cleanupReportView(report);
+      return cleanupReportView(db, report, session);
     },
     actor.authTime,
   );
 }
 export async function recentCleanupReports(db: Db) {
-  return (
-    await reports(db).find({}).sort({ createdAt: -1 }).limit(20).toArray()
-  ).map(cleanupReportView);
+  const recent = await reports(db)
+    .find({})
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .toArray();
+  return Promise.all(recent.map((report) => cleanupReportView(db, report)));
 }

@@ -29,7 +29,17 @@ export function ProfileForm({ profile }: { profile: Profile }) {
     setPreference(profile.style);
   }, [profile.style, setPreference]);
   return (
-    <form action={action} className="space-y-6">
+    <form
+      action={action}
+      className="space-y-6"
+      onResetCapture={(event) => {
+        // React resets forms after successful actions. Radix radio groups also
+        // reset to their mount-time value and call onValueChange, which would
+        // overwrite the just-saved browser theme/style. Keep profile edits.
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
       <div className="space-y-2">
         <Label htmlFor="displayName">Display name</Label>
         <Input

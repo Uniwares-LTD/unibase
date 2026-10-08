@@ -1,9 +1,27 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { Conversation } from "./conversation";
+import { SourcePicker } from "./source-picker";
+import { WorkflowPanel } from "./workflow-panel";
+import { QualityPanel } from "./quality-panel";
+import { PrivateUpload } from "./private-upload";
+import { ImageReferencePicker } from "./image-reference-picker";
+import { ExportPanel } from "./export-panel";
+import type { ExportJobView, ExportOption } from "@/lib/contracts/export";
+import { MONGO_ASSET_LIMIT } from "@/lib/config/assets";
+import type { WorkflowRunView } from "@/lib/contracts/workflow";
+import { RegisteredCard } from "./registered-card";
+import {
+  RegisteredArtifactView,
+  RegisteredArtifactEditor,
+} from "./registered-artifact";
+import { legacyArtifactContent } from "@/lib/creation/artifacts";
 import { api, ApiError } from "@/lib/client/api";
 import { pricingDescription } from "@/lib/ai-pricing";
 import type { AiPricing } from "@/lib/config/ai-pricing";
+import type { ProfileSummary } from "@/lib/contracts/execution-profile";
 import {
   currentVersion,
   dependenciesCurrent,
@@ -14,7 +32,6 @@ import {
   type WorkspaceView,
 } from "@/lib/contracts/workspace";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -38,22 +55,35 @@ type Payload<T> = T extends unknown
   : never;
 type Action = Payload<WorkspaceCommand>;
 type Send = (action: Action) => Promise<boolean>;
-type Capability = {
+export type Capability = {
   name: string;
   title: string;
   credits: number;
   pricingKey: string;
   pricing: AiPricing;
   simulated: boolean;
+  defaultAvailable?: boolean;
 };
 export function WorkspaceEditor({
   uid,
   initial,
   capabilities,
+  profiles = [],
+  initialWorkflows = [],
+  maxImageBytes = MONGO_ASSET_LIMIT,
+  initialExports = [],
+  exportRenderers = [],
+  maxExportBytes = MONGO_ASSET_LIMIT,
 }: {
   uid: string;
   initial: WorkspaceView;
   capabilities: Capability[];
+  profiles?: ProfileSummary[];
+  initialWorkflows?: WorkflowRunView[];
+  maxImageBytes?: number;
+  initialExports?: ExportJobView[];
+  exportRenderers?: ExportOption[];
+  maxExportBytes?: number;
 }) {
   const [workspace, setWorkspace] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -63,7 +93,7 @@ export function WorkspaceEditor({
     null,
   );
   const path = `/api/workspaces/${initial.id}`;
-  async function refresh() {
+  const refresh = useCallback(async () => {
     try {
       const next = await api(path, workspaceSchema);
       setWorkspace((old) => (next.revision >= old.revision ? next : old));
@@ -71,7 +101,7 @@ export function WorkspaceEditor({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not refresh workspace.");
     }
-  }
+  }, [path]);
   const running = workspace.batches.some((b) =>
     b.items.some((i) =>
       ["queued", "dispatching", "running"].includes(i.status),
@@ -146,15 +176,28 @@ export function WorkspaceEditor({
         </Button>
         <Button
           variant="outline"
-          disabled={busy}
+          disabled={busy || Boolean(workspace.archivedAt)}
           onClick={() =>
             void send({ action: "pause", paused: !workspace.paused })
           }
         >
-          {workspace.paused ? "Resume workflow" : "Pause workflow"}
+          {workspace.paused ? "Resume workspace" : "Pause workspace"}
+        </Button>
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={() =>
+            void send({ action: "archive", archived: !workspace.archivedAt })
+          }
+        >
+          {workspace.archivedAt ? "Restore workspace" : "Archive workspace"}
         </Button>
         <Badge variant="secondary">
-          {workspace.paused ? "Paused" : "Active"}
+          {workspace.archivedAt
+            ? "Archived"
+            : workspace.paused
+              ? "Paused"
+              : "Active"}
         </Badge>
       </div>
       <p className="text-sm text-muted-foreground">
@@ -165,6 +208,13 @@ export function WorkspaceEditor({
         </Link>
         .
       </p>
+      {workspace.archivedAt && (
+        <p role="status">
+          Archived workspaces are read-only and eligible for administrator
+          cleanup after the selected retention period. Restore to edit; then
+          resume when ready to admit new work.
+        </p>
+      )}
       {error && (
         <div
           role="alert"
@@ -180,189 +230,342 @@ export function WorkspaceEditor({
       <p role="status" className="text-sm text-muted-foreground">
         {busy ? "Saving…" : notice}
       </p>
-      <Composer
-        workspace={workspace}
-        capabilities={capabilities}
-        send={send}
-        busy={busy}
-      />
-      <section aria-labelledby="decisions-heading" className="space-y-3">
-        <h2 id="decisions-heading" className="text-xl font-semibold">
-          Decisions
-        </h2>
-        {!workspace.cards.length && (
-          <p className="text-muted-foreground">
-            Ask the assistant to generate a question, then select the result to
-            answer it here.
-          </p>
-        )}
-        {workspace.cards.map((card) => (
-          <QuestionCard key={card.id} card={card} send={send} busy={busy} />
-        ))}
-      </section>
-      <section aria-labelledby="batches-heading" className="space-y-3">
-        <h2 id="batches-heading" className="text-xl font-semibold">
-          Candidate batches
-        </h2>
-        {!workspace.batches.length && (
-          <p className="text-muted-foreground">
-            Generated candidates and their execution status appear here.
-          </p>
-        )}
-        {[...workspace.batches].reverse().map((batch) => (
-          <Card key={batch.id}>
-            <CardHeader>
-              <CardTitle>
-                {batch.capability.replace("workspace-", "")} ·{" "}
-                {batch.items.length} candidate
-                {batch.items.length === 1 ? "" : "s"}
-              </CardTitle>
-              <CardDescription className="break-words">
-                {batch.prompt}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm">
-                Maximum reserved: {batch.maximumCredits} credits. Each
-                successful candidate is charged, including candidates you do not
-                select.
-              </p>
-              {!dependenciesCurrent(workspace, batch.dependencies) && (
-                <p className="text-destructive">
-                  A source changed. These candidates remain available for
-                  inspection but cannot replace current work.
-                </p>
-              )}
-              <div className="grid gap-3 lg:grid-cols-3">
-                {batch.items.map((item, index) => (
-                  <div
-                    key={item.jobId}
-                    className="min-w-0 space-y-3 rounded-lg border p-3"
-                  >
-                    <h3 className="font-medium">
-                      Candidate {index + 1}{" "}
-                      <Badge variant="secondary">{item.status}</Badge>
-                    </h3>
-                    {item.error && (
-                      <p className="text-sm text-destructive">{item.error}</p>
-                    )}
-                    <CandidateOutput value={item.output} />
-                    {batch.selected === index ? (
-                      <p className="font-medium">Selected and saved</p>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        disabled={
-                          busy ||
-                          batch.selected !== null ||
-                          item.status !== "succeeded" ||
-                          !dependenciesCurrent(workspace, batch.dependencies)
-                        }
-                        onClick={() =>
-                          void send({
-                            action: "select",
-                            batchId: batch.id,
-                            index,
-                          })
-                        }
-                      >
-                        Select candidate {index + 1}
-                      </Button>
-                    )}
-                    <p className="break-all text-xs text-muted-foreground">
-                      Execution: {item.jobId}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              {batch.selected === null &&
-                batch.items.some((i) => i.status === "pending") && (
-                  <Button
-                    disabled={busy || workspace.paused}
-                    variant="outline"
-                    onClick={() =>
-                      void send({ action: "admit", batchId: batch.id })
-                    }
-                  >
-                    Retry pending admission
-                  </Button>
-                )}
-            </CardContent>
-          </Card>
-        ))}
-      </section>
-      <section aria-labelledby="artifacts-heading" className="space-y-4">
-        <h2 id="artifacts-heading" className="text-xl font-semibold">
-          Artifacts and approvals
-        </h2>
-        <ArtifactForm send={send} busy={busy} workspace={workspace} />
-        {workspace.artifacts.map((artifact) => (
-          <ArtifactPanel
-            key={`${artifact.id}:${currentVersion(artifact).number}`}
-            artifact={artifact}
-            workspace={workspace}
-            send={send}
-            busy={busy}
-          />
-        ))}
-      </section>
-      <section aria-labelledby="assets-heading" className="space-y-3">
-        <h2 id="assets-heading" className="text-xl font-semibold">
-          Private assets and exports
-        </h2>
-        <Label htmlFor="asset-upload">
-          Upload an image (PNG, JPEG or WebP, at most 1 MiB)
-        </Label>
-        <Input
-          id="asset-upload"
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          disabled={busy}
-          onChange={async (event) => {
-            const file = event.target.files?.[0];
-            if (!file) return;
-            event.target.value = "";
-            if (file.size > 1024 * 1024) {
-              setError("Use an image no larger than 1 MiB.");
-              return;
-            }
-            const bytes = new Uint8Array(await file.arrayBuffer());
-            let binary = "";
-            for (const byte of bytes) binary += String.fromCharCode(byte);
-            await send({
-              action: "upload",
-              name: file.name.slice(0, 500),
-              base64: btoa(binary),
-            });
-          }}
+      <fieldset
+        disabled={Boolean(workspace.archivedAt)}
+        className="min-w-0 space-y-6"
+      >
+        <legend className="sr-only">Workspace content</legend>
+        <Conversation
+          workspace={workspace}
+          busy={busy}
+          onMessage={(text) => send({ action: "message", text })}
         />
-        {workspace.assets.map((asset) => (
-          <div
-            key={asset.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
-          >
-            <div className="min-w-0">
-              <p className="break-words font-medium">{asset.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {asset.mime} · {Math.ceil(asset.bytes / 1024)} KiB
-              </p>
+        <Composer
+          workspace={workspace}
+          capabilities={capabilities}
+          profiles={profiles}
+          send={send}
+          busy={busy}
+        />
+        <WorkflowPanel
+          uid={uid}
+          workspace={workspace}
+          initial={initialWorkflows}
+          capabilities={capabilities}
+          profiles={profiles}
+          onChange={refresh}
+          disabled={busy}
+        />
+        <section aria-labelledby="decisions-heading" className="space-y-3">
+          <h2 id="decisions-heading" className="text-xl font-semibold">
+            Decisions
+          </h2>
+          {!workspace.cards.length && !workspace.uiCards.length && (
+            <p className="text-muted-foreground">
+              Ask the assistant to generate a question, then select the result
+              to answer it here.
+            </p>
+          )}
+          {workspace.cards.map((card) => (
+            <QuestionCard key={card.id} card={card} send={send} busy={busy} />
+          ))}
+          {workspace.uiCards.map((card) => (
+            <RegisteredCard
+              key={card.id}
+              card={card}
+              disabled={busy}
+              allowedAssetIds={workspace.assets
+                .filter((a) => a.mime.startsWith("image/"))
+                .map((a) => a.id)}
+              onRespond={(cardAction, value) =>
+                void send({
+                  action: "respond-card",
+                  cardId: card.id,
+                  cardAction,
+                  value,
+                })
+              }
+              onReopen={() =>
+                void send({ action: "reopen-card", cardId: card.id })
+              }
+            />
+          ))}
+        </section>
+        <section aria-labelledby="batches-heading" className="space-y-3">
+          <h2 id="batches-heading" className="text-xl font-semibold">
+            Candidate batches
+          </h2>
+          {!workspace.batches.length && (
+            <p className="text-muted-foreground">
+              Generated candidates and their execution status appear here.
+            </p>
+          )}
+          {[...workspace.batches].reverse().map((batch) => (
+            <Card key={batch.id}>
+              <CardHeader>
+                <CardTitle>
+                  {batch.capability.replace("workspace-", "")} ·{" "}
+                  {batch.items.length} candidate
+                  {batch.items.length === 1 ? "" : "s"}
+                </CardTitle>
+                <CardDescription className="break-words">
+                  {batch.prompt}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm">
+                  Maximum reserved: {batch.maximumCredits} credits. Each
+                  successful candidate is charged, including candidates you do
+                  not select.
+                </p>
+                {batch.capability === "workspace-image" && (
+                  <p className="text-sm">
+                    {batch.editAssetId ? "Image edit" : "Image generation"} ·{" "}
+                    {batch.referenceAssetIds?.length ?? 0} reference images
+                  </p>
+                )}
+                {!dependenciesCurrent(workspace, batch.dependencies) && (
+                  <p className="text-destructive">
+                    A source changed. These candidates remain available for
+                    inspection but cannot replace current work.
+                  </p>
+                )}
+                <div className="grid gap-3 lg:grid-cols-3">
+                  {batch.items.map((item, index) => (
+                    <div
+                      key={item.jobId}
+                      className="min-w-0 space-y-3 rounded-lg border p-3"
+                    >
+                      <h3 className="font-medium">
+                        Candidate {index + 1}{" "}
+                        <Badge variant="secondary">{item.status}</Badge>
+                      </h3>
+                      {item.profile && (
+                        <p className="text-sm text-muted-foreground">
+                          {item.profile.name} · revision {item.profile.revision}
+                        </p>
+                      )}
+                      {item.error && (
+                        <p className="text-sm text-destructive">{item.error}</p>
+                      )}
+                      <CandidateOutput
+                        value={item.output}
+                        allowedAssetIds={workspace.assets
+                          .filter((asset) => asset.mime.startsWith("image/"))
+                          .map((asset) => asset.id)}
+                      />
+                      {batch.capability === "workspace-image" &&
+                        item.status === "succeeded" &&
+                        Boolean(item.output) && (
+                          <Image
+                            unoptimized
+                            src={`/api/workspaces/${workspace.id}/candidates/${item.jobId}/image`}
+                            alt={`Candidate ${index + 1} preview`}
+                            width={512}
+                            height={512}
+                            className="h-auto max-h-80 w-full rounded-md object-contain"
+                          />
+                        )}
+                      {batch.selected === index ? (
+                        <p className="font-medium">Selected and saved</p>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          disabled={
+                            busy ||
+                            batch.selected !== null ||
+                            item.status !== "succeeded" ||
+                            !item.output ||
+                            !dependenciesCurrent(workspace, batch.dependencies)
+                          }
+                          onClick={() =>
+                            void send({
+                              action: "select",
+                              batchId: batch.id,
+                              index,
+                            })
+                          }
+                        >
+                          Select candidate {index + 1}
+                        </Button>
+                      )}
+                      {item.retrySafe &&
+                        batch.selected === null &&
+                        !workspace.batches.some(
+                          (b) => b.retryOf === item.jobId,
+                        ) && (
+                          <NewAttempt
+                            capability={capabilities.find(
+                              (c) => c.name === batch.capability,
+                            )}
+                            batchId={batch.id}
+                            index={index}
+                            disabled={busy || workspace.paused}
+                            send={send}
+                          />
+                        )}
+                      <p className="break-all text-xs text-muted-foreground">
+                        Execution: {item.jobId}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                {batch.selected === null &&
+                  batch.items.some((i) => i.status === "pending") && (
+                    <Button
+                      disabled={busy || workspace.paused}
+                      variant="outline"
+                      onClick={() =>
+                        void send({ action: "admit", batchId: batch.id })
+                      }
+                    >
+                      Retry pending admission
+                    </Button>
+                  )}
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+        <section aria-labelledby="artifacts-heading" className="space-y-4">
+          <h2 id="artifacts-heading" className="text-xl font-semibold">
+            Artifacts and approvals
+          </h2>
+          <ArtifactForm send={send} busy={busy} workspace={workspace} />
+          {workspace.artifacts.map((artifact) => (
+            <ArtifactPanel
+              key={`${artifact.id}:${currentVersion(artifact).number}`}
+              artifact={artifact}
+              workspace={workspace}
+              send={send}
+              busy={busy}
+              uid={uid}
+              capabilities={capabilities}
+              profiles={profiles}
+              onChange={refresh}
+            />
+          ))}
+        </section>
+        <section aria-labelledby="assets-heading" className="space-y-3">
+          <h2 id="assets-heading" className="text-xl font-semibold">
+            Private assets and exports
+          </h2>
+          <PrivateUpload
+            uid={uid}
+            workspaceId={workspace.id}
+            revision={workspace.revision}
+            limit={maxImageBytes}
+            disabled={busy}
+            onBusy={setBusy}
+            onSaved={(next) =>
+              setWorkspace((old) =>
+                next.revision >= old.revision ? next : old,
+              )
+            }
+            onConflict={refresh}
+          />
+          {workspace.assets.map((asset) => (
+            <div
+              key={asset.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
+            >
+              <div className="min-w-0">
+                <p className="break-words font-medium">{asset.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {asset.mime} · {Math.ceil(asset.bytes / 1024)} KiB
+                </p>
+              </div>
+              <Button asChild variant="outline">
+                <a href={`/api/workspace-assets/${asset.id}?download`}>
+                  Download <span className="sr-only">{asset.name}</span>
+                </a>
+              </Button>
             </div>
-            <Button asChild variant="outline">
-              <a href={`/api/workspace-assets/${asset.id}?download`}>
-                Download <span className="sr-only">{asset.name}</span>
-              </a>
-            </Button>
-          </div>
-        ))}
-      </section>
+          ))}
+        </section>
+        <ExportPanel
+          uid={uid}
+          workspace={workspace}
+          initial={initialExports}
+          options={exportRenderers}
+          maxBytes={maxExportBytes}
+          disabled={busy}
+          onChange={refresh}
+        />
+      </fieldset>
     </div>
   );
 }
 
-function CandidateOutput({ value }: { value: unknown }) {
+function NewAttempt({
+  capability,
+  batchId,
+  index,
+  disabled,
+  send,
+}: {
+  capability?: Capability;
+  batchId: string;
+  index: number;
+  disabled: boolean;
+  send: Send;
+}) {
+  if (!capability) return null;
+  return (
+    <Button
+      variant="outline"
+      disabled={disabled}
+      onClick={() =>
+        void send({
+          action: "retry-candidate",
+          batchId,
+          index,
+          pricingKey: capability.pricingKey,
+        })
+      }
+    >
+      New attempt · reserve up to {capability.credits} credits
+    </Button>
+  );
+}
+
+function CandidateOutput({
+  value,
+  allowedAssetIds = [],
+}: {
+  value: unknown;
+  allowedAssetIds?: string[];
+}) {
   if (!value) return null;
   const composition = studioOutputSchema.safeParse(value);
-  if (composition.success)
+  if (composition.success && composition.data.type === "card")
+    return (
+      <RegisteredCard
+        card={{
+          id: "candidate",
+          content: composition.data.card,
+          status: "active",
+          response: null,
+          responseAction: null,
+          createdAt: "",
+          answeredAt: null,
+          sourceJobId: null,
+        }}
+        disabled
+        allowedAssetIds={allowedAssetIds}
+        onRespond={() => undefined}
+      />
+    );
+  if (composition.success && composition.data.type === "artifact")
+    return (
+      <RegisteredArtifactView
+        content={composition.data.artifact}
+        allowedAssetIds={allowedAssetIds}
+      />
+    );
+  if (
+    composition.success &&
+    (composition.data.type === "draft" || composition.data.type === "question")
+  )
     return composition.data.type === "draft" ? (
       <div>
         <h4 className="font-medium">{composition.data.draft.title}</h4>
@@ -398,11 +601,13 @@ function CandidateOutput({ value }: { value: unknown }) {
 function Composer({
   workspace,
   capabilities,
+  profiles,
   send,
   busy,
 }: {
   workspace: WorkspaceView;
   capabilities: Capability[];
+  profiles: ProfileSummary[];
   send: Send;
   busy: boolean;
 }) {
@@ -411,7 +616,13 @@ function Composer({
   const [count, setCount] = useState("1");
   const [target, setTarget] = useState("new");
   const [sources, setSources] = useState<string[]>([]);
+  const [imageReferences, setImageReferences] = useState<string[]>([]);
+  const [profileIds, setProfileIds] = useState<string[]>([]);
   const selected = capabilities.find((c) => c.name === name);
+  const eligible = profiles.filter((p) => p.capability === name);
+  const profileAt = (index: number) =>
+    eligible.find((p) => p.id === profileIds[index]) ??
+    (selected?.defaultAvailable === false ? eligible[0] : undefined);
   return (
     <Card>
       <CardHeader>
@@ -434,10 +645,19 @@ function Composer({
               event.preventDefault();
               await send({
                 action: "batch",
+                ...(name === "workspace-image"
+                  ? { referenceAssetIds: imageReferences }
+                  : {}),
                 capability: name as
                   "workspace-compose" | "workspace-review" | "workspace-image",
                 prompt,
                 count: Number(count),
+                profiles: Array.from({ length: Number(count) }, (_, index) => {
+                  const profile = profileAt(index);
+                  return profile
+                    ? { id: profile.id, revision: profile.revision }
+                    : null;
+                }),
                 targetId: target === "new" ? null : target,
                 dependencies: sources.map((id) => ({
                   artifactId: id,
@@ -452,7 +672,16 @@ function Composer({
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="capability">Task</Label>
-                <Select value={name} onValueChange={setName} disabled={busy}>
+                <Select
+                  value={name}
+                  onValueChange={(value) => {
+                    setName(value);
+                    setProfileIds([]);
+                    setTarget("new");
+                    setImageReferences([]);
+                  }}
+                  disabled={busy}
+                >
                   <SelectTrigger id="capability">
                     <SelectValue />
                   </SelectTrigger>
@@ -477,11 +706,17 @@ function Composer({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="new">New artifact / question</SelectItem>
-                    {workspace.artifacts.map((a) => (
-                      <SelectItem value={a.id} key={a.id}>
-                        {currentVersion(a).title}
-                      </SelectItem>
-                    ))}
+                    {workspace.artifacts
+                      .filter(
+                        (a) =>
+                          name !== "workspace-image" ||
+                          currentVersion(a).assetId,
+                      )
+                      .map((a) => (
+                        <SelectItem value={a.id} key={a.id}>
+                          {currentVersion(a).title}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -501,6 +736,79 @@ function Composer({
                 </Select>
               </div>
             </div>
+            {name === "workspace-image" && (
+              <>
+                <p className="text-sm">
+                  {target === "new"
+                    ? "Generate a new image using your prompt and optional references."
+                    : "Edit the selected image. Selecting a result saves a new version; the original remains in history."}
+                </p>
+                <ImageReferencePicker
+                  assets={workspace.assets}
+                  value={imageReferences}
+                  onChange={setImageReferences}
+                  disabled={busy}
+                />
+              </>
+            )}
+            {eligible.length > 0 && (
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-medium">
+                  Execution profiles
+                </legend>
+                <p className="text-sm text-muted-foreground">
+                  Compare different reusable instructions or provider
+                  configurations in one batch.
+                </p>
+                {Array.from({ length: Number(count) }, (_, index) => {
+                  const profile = profileAt(index);
+                  return (
+                    <div key={index} className="space-y-2">
+                      <Label htmlFor={`candidate-profile-${index}`}>
+                        Candidate {index + 1} profile
+                      </Label>
+                      <Select
+                        value={profile?.id ?? "default"}
+                        onValueChange={(value) =>
+                          setProfileIds((old) =>
+                            Array.from({ length: Number(count) }, (_, i) =>
+                              i === index ? value : (old[i] ?? "default"),
+                            ),
+                          )
+                        }
+                        disabled={busy}
+                      >
+                        <SelectTrigger id={`candidate-profile-${index}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selected.defaultAvailable !== false && (
+                            <SelectItem value="default">
+                              Task default
+                            </SelectItem>
+                          )}
+                          {eligible.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name} · revision {p.revision}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {profile && (
+                        <p className="text-sm text-muted-foreground">
+                          {profile.description}
+                          {profile.requiresSource
+                            ? name === "workspace-image"
+                              ? " Requires a source artifact or image reference."
+                              : " Requires a source artifact."
+                            : ""}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </fieldset>
+            )}
             <SourcePicker
               workspace={workspace}
               value={sources}
@@ -531,7 +839,13 @@ function Composer({
               disabled={
                 busy ||
                 workspace.paused ||
-                (name === "workspace-review" && target === "new")
+                (name === "workspace-review" && target === "new") ||
+                (sources.length === 0 &&
+                  imageReferences.length === 0 &&
+                  target === "new" &&
+                  Array.from({ length: Number(count) }, (_, index) =>
+                    profileAt(index),
+                  ).some((p) => p?.requiresSource))
               }
             >
               Generate candidates
@@ -540,52 +854,6 @@ function Composer({
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function SourcePicker({
-  workspace,
-  value,
-  onChange,
-  disabled,
-  exclude,
-}: {
-  workspace: WorkspaceView;
-  value: string[];
-  onChange: (value: string[]) => void;
-  disabled: boolean;
-  exclude?: string;
-}) {
-  if (!workspace.artifacts.some((a) => a.id !== exclude)) return null;
-  return (
-    <fieldset className="space-y-2">
-      <legend className="text-sm font-medium">
-        Source artifacts (optional)
-      </legend>
-      <div className="flex flex-wrap gap-2">
-        {workspace.artifacts
-          .filter((a) => a.id !== exclude)
-          .map((a) => (
-            <Button
-              type="button"
-              key={a.id}
-              variant={value.includes(a.id) ? "secondary" : "outline"}
-              aria-pressed={value.includes(a.id)}
-              disabled={disabled}
-              className="h-auto max-w-full whitespace-normal"
-              onClick={() =>
-                onChange(
-                  value.includes(a.id)
-                    ? value.filter((id) => id !== a.id)
-                    : [...value, a.id],
-                )
-              }
-            >
-              {currentVersion(a).title} · v{currentVersion(a).number}
-            </Button>
-          ))}
-      </div>
-    </fieldset>
   );
 }
 
@@ -722,60 +990,14 @@ function ArtifactForm({
   busy: boolean;
 }) {
   const version = artifact ? currentVersion(artifact) : null;
-  const [title, setTitle] = useState(version?.title ?? "");
-  const [body, setBody] = useState(version?.body ?? "");
   const [sources, setSources] = useState(
     version?.dependencies.map((d) => d.artifactId) ?? [],
   );
-  const prefix = artifact?.id ?? "new-artifact";
   return (
-    <form
-      className="space-y-3 rounded-lg border p-4"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        if (
-          await send({
-            action: "save",
-            artifactId: artifact?.id ?? null,
-            title,
-            body,
-            dependencies: sources.map((id) => ({
-              artifactId: id,
-              version: currentVersion(
-                workspace.artifacts.find((a) => a.id === id)!,
-              ).number,
-            })),
-          })
-        ) {
-          if (!artifact) {
-            setTitle("");
-            setBody("");
-            setSources([]);
-          }
-        }
-      }}
-    >
+    <div className="space-y-3 rounded-lg border p-4">
       <h3 className="font-medium">
-        {artifact ? "Revise this artifact" : "Write a draft"}
+        {artifact ? "Revise this artifact" : "Create an artifact"}
       </h3>
-      <Label htmlFor={`${prefix}-title`}>Title</Label>
-      <Input
-        id={`${prefix}-title`}
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        required
-        maxLength={500}
-        disabled={busy}
-      />
-      <Label htmlFor={`${prefix}-body`}>Content</Label>
-      <Textarea
-        id={`${prefix}-body`}
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        required
-        maxLength={30000}
-        disabled={busy}
-      />
       <SourcePicker
         workspace={workspace}
         value={sources}
@@ -783,10 +1005,27 @@ function ArtifactForm({
         exclude={artifact?.id}
         disabled={busy}
       />
-      <Button disabled={busy}>
-        {artifact ? "Save new version" : "Save draft"}
-      </Button>
-    </form>
+      <RegisteredArtifactEditor
+        initial={version ? legacyArtifactContent(version) : undefined}
+        assets={workspace.assets}
+        disabled={busy}
+        onSave={async (content) => {
+          const saved = await send({
+            action: "save-content",
+            artifactId: artifact?.id ?? null,
+            content,
+            dependencies: sources.map((id) => ({
+              artifactId: id,
+              version: currentVersion(
+                workspace.artifacts.find((a) => a.id === id)!,
+              ).number,
+            })),
+          });
+          if (saved && !artifact) setSources([]);
+          return saved;
+        }}
+      />
+    </div>
   );
 }
 
@@ -795,11 +1034,19 @@ function ArtifactPanel({
   artifact,
   send,
   busy,
+  uid,
+  capabilities,
+  profiles,
+  onChange,
 }: {
   workspace: WorkspaceView;
   artifact: WorkspaceView["artifacts"][number];
   send: Send;
   busy: boolean;
+  uid: string;
+  capabilities: Capability[];
+  profiles: ProfileSummary[];
+  onChange: () => Promise<void>;
 }) {
   const current = currentVersion(artifact);
   const [number, setNumber] = useState(String(current.number));
@@ -835,11 +1082,10 @@ function ArtifactPanel({
             </SelectContent>
           </Select>
         </div>
-        {version.body && (
-          <p className="max-h-96 overflow-auto whitespace-pre-wrap break-words">
-            {version.body}
-          </p>
-        )}
+        <RegisteredArtifactView
+          content={legacyArtifactContent(version)}
+          allowedAssetIds={workspace.assets.map((a) => a.id)}
+        />
         {version.assetId && (
           <a
             className="block underline"
@@ -862,6 +1108,18 @@ function ArtifactPanel({
             <CandidateOutput value={review.result} />
           </div>
         ))}
+        <QualityPanel
+          uid={uid}
+          workspace={workspace}
+          artifact={artifact}
+          capabilities={capabilities}
+          profiles={profiles}
+          disabled={busy}
+          onChange={onChange}
+          onIssue={(issueId, resolution, reason) =>
+            send({ action: "quality-issue", issueId, resolution, reason })
+          }
+        />
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
@@ -919,7 +1177,7 @@ function ArtifactPanel({
                 Approve version {current.number}
               </Button>
             </div>
-            {!current.assetId && (
+            {
               <details>
                 <summary className="cursor-pointer rounded-md py-2 font-medium focus-visible:outline-2">
                   Edit and save a new version
@@ -931,7 +1189,7 @@ function ArtifactPanel({
                   busy={busy}
                 />
               </details>
-            )}
+            }
           </>
         )}
       </CardContent>

@@ -98,6 +98,13 @@ or other irreversible side effects inside it. Saved provider results permit a
 failed database transaction to recover without generating again. Administrator
 acceptance uses the same hook. Preserve old capability versions while jobs remain.
 
+Workspace image-reference regressions in `tests/accounts/reference-images.test.ts`
+cover ownership before admission, frozen edit versions, successful file reuse,
+uncertain-upload recovery without resend, explicit new attempts, rejected uploads,
+quota exhaustion and renewal of the worker lease after preparation. The production
+AI HTTP suite also exercises image editing through the bundled worker and rejects
+private reference inputs submitted through the generic AI endpoint.
+
 Workflows, chat and uploaded-file references are implemented. Knowledge management,
 audio-specific endpoints, human-input continuation and permanent generated-asset
 storage can add feature/provider adapters through these boundaries. They are not
@@ -159,7 +166,8 @@ The page lists the oldest 25 pending/disputed orders and latest 20 review attemp
 
 Cleanup is manual and local only:
 
-1. Choose completed AI content, failed upload references, or both. Set age from
+1. Choose completed AI content, failed upload references, both, or abandoned
+   application-owned private uploads, or archived workspaces and their content. Set age from
    1?3650 days and batch size from 1?100 records (defaults: 30 days, 50 jobs).
 2. **Preview cleanup** saves the exact candidate IDs and cutoff without deleting
    content. Download the JSON report if needed. The preview expires in 15 minutes;
@@ -168,7 +176,25 @@ Cleanup is manual and local only:
    Recent administrator authentication is required; sign out/in if asked.
 4. Review changed/skipped counts and the latest 20 saved reports. Changed or no
    longer eligible targets are skipped; retries of a completed preview return the
-   same report. Generate another preview for remaining eligible content.
+   same approved targets. Storage-removal counts update as the maintenance worker
+   completes them. Generate another preview for remaining eligible content.
+
+Abandoned private uploads are a separate scope from AI-provider file references.
+Confirmation queues exact unattached objects for removal; the payment/maintenance
+worker performs and retries removal even with AI disabled. Refresh the reports to
+see completed/pending/failed counts. Repeated failures require checking worker health
+and private storage configuration/permissions. Attached assets are excluded. See
+[private storage setup and limits](creation-workspaces.md#private-object-storage).
+
+Archived-workspace cleanup previews up to 10 eligible workspaces from the oldest
+100 archived candidates; age applies to when the owner archived them. The report
+includes saved-asset and event counts. Confirmation removes saved versions, decisions,
+reviews, workflow content, events and inline bytes, clears related terminal job
+payloads, and queues attached/private object removal. Active or uncertain work,
+unfinished workflow runs, uploads in progress and incomplete admission evidence
+prevent deletion. Restoring/editing a workspace invalidates its preview target.
+The workspace ID remains tombstoned, while finance, global audit and retry hashes
+remain. See [archive and deletion recovery](creation-workspaces.md#archive-and-confirmed-workspace-deletion).
 
 Cleanup clears job prompts/results and source references for successful/failed
 jobs without active leases, and cancelled jobs only with verified stopped execution.

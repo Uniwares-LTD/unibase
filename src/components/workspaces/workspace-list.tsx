@@ -13,7 +13,12 @@ export function WorkspaceList({
   initial,
 }: {
   uid: string;
-  initial: { id: string; title: string; updatedAt: string }[];
+  initial: {
+    id: string;
+    title: string;
+    updatedAt: string;
+    archivedAt?: string | null;
+  }[];
 }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -87,6 +92,7 @@ export function WorkspaceList({
               </Link>
               <p className="mt-2 text-sm text-muted-foreground">
                 Updated {item.updatedAt.slice(0, 10)}
+                {item.archivedAt ? " · Archived" : ""}
               </p>
             </CardContent>
           </Card>

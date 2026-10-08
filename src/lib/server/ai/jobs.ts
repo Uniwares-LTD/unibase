@@ -46,7 +46,12 @@ export type AiJob = {
   binding: BindingSnapshot;
   fingerprint: string;
   inputs: Record<string, Json>;
-  source: { type: string; id: string; version: string } | null;
+  source: {
+    type: string;
+    id: string;
+    version: string;
+    workflowRunId?: string;
+  } | null;
   credits: number;
   pricing?: AiPricing;
   charge?: AiCharge & { usage: UsageObservation | null };
@@ -78,7 +83,25 @@ export type AiJob = {
   createdAt: Date;
   updatedAt: Date;
   cleanedAt?: Date;
+  terminationEvidence?:
+    | "not-dispatched"
+    | "provider-rejected"
+    | "provider-failed"
+    | "provider-stopped"
+    | "unverified";
 };
+export function canStartNewAttempt(
+  job: Pick<AiJob, "status" | "terminationEvidence"> &
+    Partial<Pick<AiJob, "execution">>,
+) {
+  return (
+    ["failed", "cancelled"].includes(job.status) &&
+    Boolean(
+      (job.terminationEvidence && job.terminationEvidence !== "unverified") ||
+      ["failed", "stopped"].includes(job.execution?.status ?? ""),
+    )
+  );
+}
 export type AiUsage = UsageObservation & {
   _id: string;
   uid: string;
@@ -313,6 +336,7 @@ export async function patchAiJob(
       AiJob,
       | "status"
       | "failure"
+      | "terminationEvidence"
       | "runId"
       | "taskId"
       | "providerConversationId"
@@ -515,7 +539,20 @@ export async function settleAiJob(
     await patchAiJob(
       db,
       job,
-      { status, charge, lease: null, leaseUntil: new Date(0) },
+      {
+        status,
+        charge,
+        lease: null,
+        leaseUntil: new Date(0),
+        terminationEvidence:
+          prior.status === "queued"
+            ? "not-dispatched"
+            : prior.execution?.status === "failed"
+              ? "provider-failed"
+              : prior.execution?.status === "stopped"
+                ? "provider-stopped"
+                : (prior.terminationEvidence ?? "unverified"),
+      },
       now,
       session,
     );

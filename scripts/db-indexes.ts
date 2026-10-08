@@ -10,6 +10,8 @@ import { createAiIndexes } from "../src/lib/server/ai/jobs";
 import { createAiFileIndexes } from "../src/lib/server/ai/files";
 import { createOperationsIndexes } from "../src/lib/server/worker-heartbeat";
 import { createWorkspaceIndexes } from "../src/lib/server/workspaces/store";
+import { createWorkflowIndexes } from "../src/lib/server/workspaces/workflows";
+import { createExportIndexes } from "../src/lib/server/workspaces/export-jobs";
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 const base = parseConfig(process.env);
 const config = parseDatabaseConfig(process.env, base.server.environment);
@@ -38,6 +40,8 @@ async function main() {
     await createAiFileIndexes(client.db(config.database));
     await createOperationsIndexes(client.db(config.database));
     await createWorkspaceIndexes(client.db(config.database));
+    await createWorkflowIndexes(client.db(config.database));
+    await createExportIndexes(client.db(config.database));
     console.log(
       "Profile, access, audit, credit, payment and runtime indexes are ready.",
     );

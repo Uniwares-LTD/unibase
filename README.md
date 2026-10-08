@@ -60,7 +60,7 @@ when running outside Docker.
 | `npm run test:ai`          | Production HTTP tests with fake Dify and the Auth Emulator. Build first.                                                                                                                                          |
 | `npm run test:ai-pricing`  | Production HTTP pricing-consent and partial-settlement tests. Build first.                                                                                                                                        |
 | `npm run test:payments`    | Production HTTP payment fixtures; no Stripe calls. Build first.                                                                                                                                                   |
-| `npm run worker:build`     | Build payment, AI and worker-healthcheck bundles without rebuilding Next.js.                                                                                                                                              |
+| `npm run worker:build`     | Build payment, AI and worker-healthcheck bundles without rebuilding Next.js.                                                                                                                                      |
 | `npm run worker`           | Start payment reconciliation and credit maintenance using configured resources.                                                                                                                                   |
 | `npm run worker:ai`        | Start AI dispatch and recovery using configured resources.                                                                                                                                                        |
 | `npm run test:integration` | Test the production build against isolated local auth/database services.                                                                                                                                          |
@@ -217,9 +217,48 @@ content. Cleanup is manual, bounded and local-only; provider files are retained.
 
 ## Creation workspaces
 
-`/workspaces` provides generated question cards, saved decisions, versioned drafts,
-human approvals, private images, candidate batches and quality reviews. It uses the
+`/workspaces` provides registered generated cards/forms, saved decisions, a conversation
+timeline, versioned artifacts, human approvals, private image previews, candidate
+batches and quality reviews. It uses the
 existing AI worker and credits; manual authoring also works with AI disabled.
 Run `npm run db:indexes` for the additional owned-workspace indexes. No separate
-storage credentials are needed: bounded private assets live in MongoDB. See
+storage credentials are needed by default: bounded private assets live in MongoDB.
+Optional `ASSET_STORE=s3` enables private S3-compatible image storage; configure the
+server-only `ASSET_S3_*` settings in `.env.example` for web and workers. Uploads
+support 8 MiB with MongoDB or 20 MiB with S3, before and after normalization.
+Image generation can use up to four owned reference images. Selecting an existing
+image as the target requests an edit and preserves its previous version. Configure
+the Dify image workflow's file inputs as described in the creation-workspace guide;
+provider upload limits apply separately from private storage limits.
+The admin cleanup tool can preview and approve abandoned private uploads; keep
+`npm run worker` running to perform and retry approved storage removals. See
 [setup, Dify contracts, extension points and recovery](docs/creation-workspaces.md).
+
+Administrators can publish versioned prompt/execution profiles at
+`/admin/execution-profiles`. Users can compare profiles within a candidate batch;
+configured provider bindings and the existing capability pricing remain server-owned.
+
+The workflow panel runs reusable draft/review, candidate-comparison and parallel-
+synthesis templates through the same worker. It shows the maximum planned credits,
+saved progress and human checkpoints. Quality findings have explicit acceptance/
+resolution history and bounded targeted repair with re-review. Keep the AI worker
+running for workflow progress; closing the browser does not stop an accepted run.
+
+Archive finished workspaces to make them read-only; restore them to edit again.
+Administrators can preview and confirm deletion of old archived workspaces, including
+saved content, conversation history and private assets. Unresolved work prevents
+deletion, and financial/audit/retry records remain. The maintenance worker completes
+queued object removals; reports show their status. See the
+[lifecycle and recovery rules](docs/creation-workspaces.md#archive-and-confirmed-workspace-deletion).
+
+The export panel queues private PDF documents and ZIP archives of selected artifact
+versions. ZIP includes JSON/text content and normalized images; PDF provides a readable
+text, checklist and image layout. Keep `npm run worker` running for
+progress and downloads; this works with AI/payments disabled and costs no AI credits.
+See [export limits and recovery](docs/creation-workspaces.md#durable-pdf-and-zip-exports).
+PDF fonts support Latin, Greek, Cyrillic and Arabic/Persian. Unsupported characters
+produce a clear failure; use ZIP or register a renderer with additional fonts.
+
+For credential-free card examples, run `npm run dev` and open `/design-system`.
+The [generative UI showcase](docs/creation-workspaces.md#generative-ui-examples)
+uses the workspace renderers with local sample responses and reset controls.

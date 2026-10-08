@@ -12,6 +12,7 @@ import {
   persistAiEvent,
   settleAiJob,
   resolveAiJob,
+  canStartNewAttempt,
 } from "../../src/lib/server/ai/jobs";
 import { appointFirstAdmin } from "../../src/lib/server/store/access";
 import {
@@ -386,6 +387,10 @@ test("durable AI jobs, credit boundaries and recovery", async (t) => {
           start,
         );
         assert.equal(
+          canStartNewAttempt((await aiJobs(db).findOne({ _id: saved._id }))!),
+          false,
+        );
+        assert.equal(
           (await readWallet(db, actor.uid, { now: start })).reserved,
           0,
         );
@@ -560,6 +565,49 @@ test("durable AI jobs, credit boundaries and recovery", async (t) => {
       },
     );
     await t.test(
+      "confirmed rejection survives a crash before credit release without dispatching again",
+      async () => {
+        const db = await fixture();
+        const saved = await createAiJob(
+          db,
+          actor,
+          "rejected-recovery",
+          request,
+          start,
+        );
+        const claimed = (await claimAiJob(db, start))!;
+        await patchAiJob(
+          db,
+          claimed,
+          {
+            status: "dispatching",
+            terminationEvidence: "provider-rejected",
+            failure: "invalid-request",
+            lease: null,
+            leaseUntil: new Date(0),
+          },
+          start,
+        );
+        await processOneAiJob(db, {
+          provider: () => {
+            throw new Error(
+              "Must not contact provider after confirmed rejection",
+            );
+          },
+          authorize: async () => true,
+          validateOutput: () => true,
+          now: () => at(1),
+        });
+        const finished = (await aiJobs(db).findOne({ _id: saved._id }))!;
+        assert.equal(finished.status, "failed");
+        assert.equal(canStartNewAttempt(finished), true);
+        assert.equal(
+          (await readWallet(db, actor.uid, { now: at(1) })).reserved,
+          0,
+        );
+      },
+    );
+    await t.test(
       "worker preserves paused and partial outcomes and releases only verified failures or queued cancellation",
       async () => {
         for (const status of [
@@ -568,6 +616,7 @@ test("durable AI jobs, credit boundaries and recovery", async (t) => {
           "partial-succeeded",
           "failed",
           "stopped",
+          "rejected",
         ] as const) {
           const db = await fixture();
           const saved = await createAiJob(db, actor, status, request, start);
@@ -585,6 +634,8 @@ test("durable AI jobs, credit boundaries and recovery", async (t) => {
               async start(_input, observe) {
                 starts++;
                 assert.notEqual(status, "queued-cancel");
+                if (status === "rejected")
+                  return { kind: "rejected", failure: "invalid-request" };
                 await observe({ type: "identity", runId, taskId });
                 return {
                   kind: "ok",
@@ -604,14 +655,20 @@ test("durable AI jobs, credit boundaries and recovery", async (t) => {
           });
           const unresolved =
             status === "paused" || status === "partial-succeeded";
+          assert.equal(
+            canStartNewAttempt((await aiJobs(db).findOne({ _id: saved._id }))!),
+            !unresolved,
+          );
           assert.equal(starts, status === "queued-cancel" ? 0 : 1);
           assert.equal(
             (await aiJobs(db).findOne({ _id: saved._id }))?.status,
             status === "queued-cancel" || status === "stopped"
               ? "cancelled"
-              : status === "partial-succeeded"
-                ? "needs-review"
-                : status,
+              : status === "rejected"
+                ? "failed"
+                : status === "partial-succeeded"
+                  ? "needs-review"
+                  : status,
           );
           const wallet = await readWallet(db, actor.uid, { now: start });
           assert.equal(wallet.balance, 100);
