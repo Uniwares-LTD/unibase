@@ -41,6 +41,19 @@ The Next.js instrumentation hook checks application, database, authentication an
 
 ## Extension conventions
 
+### MCP tools
+
+`/api/mcp` is an opt-in Node Route Handler using the official MCP SDK's stateless
+Streamable HTTP transport with JSON responses. Each request authenticates a
+private service credential, receives a permission-filtered catalog, and uses an
+isolated server/transport. The typed server-only registry calls application
+services directly. Initial tools return only public app metadata and synthetic
+reference data. No user identity is inferred from a service token; private reads,
+writes, OAuth and persistent sessions are outside v1. Request/result bounds,
+execution cancellation and allowlisted runtime logs apply at the shared boundary.
+See [MCP implementation and maintenance](mcp.md) for configuration, lifecycle and
+future extension requirements.
+
 Keep one application and extend the current directories:
 
 | Location               | Responsibility                                                        |

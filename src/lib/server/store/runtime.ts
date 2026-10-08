@@ -17,6 +17,9 @@ export async function writeRuntimeRecord(
       timestamp: new Date(record.timestamp),
       event: record.event,
       severity: record.severity,
+      ...(record.clientId ? { clientId: record.clientId } : {}),
+      ...(record.toolName ? { toolName: record.toolName } : {}),
+      ...(record.outcome ? { outcome: record.outcome } : {}),
       ...(record.status === undefined ? {} : { status: record.status }),
       ...(record.durationMs === undefined
         ? {}

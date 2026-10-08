@@ -6,6 +6,10 @@ Read [the implementation plan](docs/implementation-plan.md) and the relevant cod
 
 ## Architecture
 
+- Before changing MCP tools or transport, read [MCP implementation and maintenance](docs/mcp.md).
+  Keep tool handlers server-only, permission-checked, bounded, and independent of
+  transport. Service credentials never imply end-user ownership.
+
 - One Next.js App Router application serves web and, later, an Android TWA. Do not add Expo or a separate backend.
 - Prefer Server Components. Use Client Components only for interaction or browser APIs; keep providers narrowly scoped. Server reads call server modules directly, not our own HTTP endpoints.
 - Place server-only access in `src/lib/server` with `server-only` imports. Explicitly allowlist public configuration. Never serialize process.env, credentials, or private configuration to the browser.

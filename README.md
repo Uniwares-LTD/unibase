@@ -262,3 +262,9 @@ produce a clear failure; use ZIP or register a renderer with additional fonts.
 For credential-free card examples, run `npm run dev` and open `/design-system`.
 The [generative UI showcase](docs/creation-workspaces.md#generative-ui-examples)
 uses the workspace renderers with local sample responses and reset controls.
+
+## MCP integration
+
+Optional read-only MCP tools let Dify and trusted services fetch server data.
+See [MCP setup, Dify testing and maintenance](docs/mcp.md). The endpoint is disabled
+by default; its credential is separate from your Dify app API key.

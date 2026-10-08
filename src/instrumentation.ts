@@ -2,6 +2,8 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { getConfig } = await import("./lib/server/config");
     getConfig();
+    const { parseMcpConfig } = await import("./lib/config/mcp");
+    parseMcpConfig(process.env, getConfig().server.origin);
     const { parseDifyConfig } = await import("./lib/config/dify");
     parseDifyConfig(process.env);
     const { parseAiPricing } = await import("./lib/config/ai-pricing");

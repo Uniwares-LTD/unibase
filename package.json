@@ -7,6 +7,7 @@
   },
   "packageManager": "npm@12.0.1",
   "scripts": {
+    "test:mcp": "node --conditions=react-server --import tsx --test tests/accounts/mcp.test.ts",
     "dev": "next dev",
     "build": "next build && node scripts/build-worker.mjs",
     "worker:build": "node scripts/build-worker.mjs",
@@ -39,6 +40,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1147.0",
+    "@modelcontextprotocol/server": "2.3.1",
     "@next/env": "16.3.8",
     "@pdf-lib/fontkit": "1.1.1",
     "bidi-js": "1.1.0",
@@ -63,6 +65,7 @@
   },
   "devDependencies": {
     "@bubblewrap/core": "1.25.0",
+    "@modelcontextprotocol/client": "2.3.1",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "24.19.1",
     "@types/pdfkit": "0.17.6",

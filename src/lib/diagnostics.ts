@@ -11,6 +11,8 @@ export const events = [
   "stripe-checkout",
   "payment-maintenance",
   "ai-maintenance",
+  "mcp-request",
+  "mcp-tool",
   "server-error",
   "browser-error",
   "unhandled-rejection",

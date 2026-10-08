@@ -1,0 +1,188 @@
+# MCP implementation and maintenance
+
+Unibase exposes optional, authenticated, read-only tools at `/api/mcp` inside the
+existing Next.js Node application. No separate server or AI worker is required
+to call MCP. A Dify workflow invoking it still uses the normal AI job/credit flow.
+
+## Setup
+
+Generate a separate random credential for each trusted client:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+```
+
+Store the generated value privately in `.env.local` or deployment secrets:
+
+```dotenv
+MCP_ENABLED=true
+MCP_CLIENTS_JSON='[{"id":"dify","tokenEnv":"MCP_TOKEN_DIFY","permissions":["server:read","reference:read"]}]'
+MCP_TOKEN_DIFY=replace-with-generated-token
+# Only when using an additional externally reachable hostname:
+MCP_ALLOWED_HOSTS_JSON='["your-tunnel.example.com"]'
+```
+
+The placeholder is not a valid credential. Tokens must be 43–256 base64url
+characters; generate at least 32 random bytes. Never reuse a Dify app key, Firebase
+credential, or browser session. Run `npm run check:env`, then restart the web
+process. MCP is disabled by default and returns 404 without requiring credentials.
+
+`APP_ORIGIN` is the primary allowed host/origin. Additional hosts are exact
+hostnames with optional ports, not URLs or wildcards. Their permitted Origin is
+HTTPS. Clients without an Origin header are supported. Headers claiming an
+unapproved Host or Origin are rejected; forwarded host headers are not trusted.
+There is no browser CORS integration. Configure the reverse proxy to preserve the
+public Host, forward Authorization, disable caching on this endpoint, and apply
+appropriate per-client/IP rate limits. Do not expose your whole local development
+server unnecessarily when creating a tunnel; route only the intended endpoint.
+
+## Protocol and security boundary
+
+The implementation pins official `@modelcontextprotocol/server` and test client
+`@modelcontextprotocol/client` to 2.3.1. It uses SDK protocol negotiation and
+stateless Streamable HTTP with JSON responses. Local compatibility tests cover
+the SDK client and explicit `2025-03-26` negotiation. Initialization, tool discovery and
+tool invocation use POST. GET streaming and DELETE sessions are unsupported (405);
+there are no persistent MCP sessions, subscriptions, resources or prompts.
+
+Every request requires `Authorization: Bearer <token>`. Discovery is filtered by
+the authenticated client's permissions, and execution rechecks permission. Each
+request has a separate server/transport and actor context. This is a trusted-service
+token integration, **not** an OAuth authorization server or an end-user consent
+flow. Clients must support custom authorization headers. A service credential
+does not establish an application's end-user identity.
+
+Request bodies and serialized MCP responses are bounded to 64 KiB. Tool output is
+limited to just under 32 KiB because the response includes structured content and
+a JSON text fallback. Execution times out after 10 seconds. Handlers must honor
+the supplied AbortSignal: the timeout ends the response but cannot preempt
+synchronous CPU loops or undo side effects in an uncooperative handler.
+
+Configuration is private and validated at startup and by `check:env`. There is no
+anonymous tool catalog, arbitrary filesystem access, arbitrary URL fetch, or raw
+database query tool. HTTP credentials never reach tool arguments or LLM prompts.
+
+## Included tools
+
+| Tool                        | Permission       | Input and result                                                                 |
+| --------------------------- | ---------------- | -------------------------------------------------------------------------------- |
+| `get_server_info_v1`        | `server:read`    | Empty object → public app name and catalog version.                              |
+| `get_reference_document_v1` | `reference:read` | `documentId: "unibase-demo"` → synthetic visitor guide, revision and request ID. |
+
+The example document is bundled server data, not a real venue or user record.
+It intentionally contains information a workflow should fetch rather than infer.
+Neither tool changes data or charges credits. MCP results include
+`structuredContent` and a text block containing the same JSON object.
+
+## Connect Dify and extend the test workflow
+
+1. Make `/api/mcp` reachable from the Dify server over HTTPS, using staging or a
+   tunnel. Dify's localhost is not your development computer. Verify ingress and
+   Dify's outbound network policy allow this destination; do not disable SSRF
+   protections globally.
+2. In Dify **Integrations → Tools → MCP**, add the full endpoint URL, name, and a
+   stable server identifier such as `unibase_test`. Set the custom header
+   `Authorization: Bearer <your MCP token>`. This server does not offer OAuth;
+   do not configure it as an OAuth client. Connect and refresh the tools.
+3. In the existing Unibase Test workflow, insert a Tool node selecting
+   `get_reference_document_v1` before the LLM. Set `documentId` to the constant
+   `unibase-demo`, not a value chosen by the model.
+4. Connect **Start → Tool → LLM → End**. Keep the required Start input `prompt`.
+   In the LLM user message, insert Start's `prompt` and the Tool node's structured
+   `title`, `body`, `revision` and `requestId` outputs using Dify's variable picker.
+   Dify converts JSON text blocks into its `json` output, so the tool's `text`
+   output can be empty even after a successful call. Tell the LLM to answer using
+   the reference document as data and include its revision and request ID. Keep End's `text` output
+   mapped to the LLM's text output.
+5. Test: “When does the observatory open and what is the visitor password?” Expect
+   Friday at 19:30 and silver-lantern, with revision/request ID from the tool.
+   Inspect the Tool node's result as well as the answer; model text alone is not
+   proof of a callback. Publish the updated workflow in the same Dify app.
+6. Submit the same question through Unibase `/ai`. Confirm successful completion,
+   saved result after reload, and normal credit settlement. Correlate the tool's
+   returned request ID with server logs.
+7. For update acceptance, change the synthetic document and increment its revision
+   in code, deploy/restart, and run again. Confirm the new revision and content.
+
+Dify output labels can vary by version; inspect the Tool node's output and prefer
+the structured fields from its output schema. If a version only exposes `json`,
+serialize that output through a Template node before passing it to the LLM; do
+not assume `text` contains the JSON. Once connected, export the working DSL from that instance.
+Preserve its MCP server identifier; when importing into another Dify workspace,
+create a server with that same identifier and configure credentials there. Inspect
+exports for secrets before sharing. A portable DSL is not supplied before the
+target server identifier/tool binding has been established.
+
+## Add and update tools
+
+The registry is in `src/lib/server/mcp/tools.ts`; transport and execution boundaries
+are in `handler.ts` alongside it. Keep all handlers under server-only modules.
+
+To add a read-only `get_catalog_item_v1` tool:
+
+1. Implement a server service accepting a validated item ID and authorized actor
+   context. Return an explicit DTO, never a database document or environment map.
+2. Add a registry entry with a unique stable name, precise description, strict Zod
+   object input/output schemas, required permission, and async handler. Call the
+   service directly and propagate `context.signal`. The current registry is only
+   for bounded, read-only tools; annotations describe behavior, not authorization.
+3. Add the permission to the configuration allowlist. Grant it explicitly to
+   intended client entries; never give new tools implicit access through wildcards.
+4. Test valid results, invalid arguments, denied discovery/direct invocation,
+   result validation/size, cancellation, and safe failures. Increment catalog
+   version. Do not add the example above without a real feature requirement.
+5. Deploy, refresh Dify's catalog, then add/update affected workflow nodes and
+   publish. Discovery refresh does not rewrite workflows or enable agent tools.
+
+Keep compatible additions under the same tool name. For required parameter
+changes, renamed fields, or incompatible result/behavior changes, add a `_v2`
+tool and retain `_v1` until consumers migrate. Roll back by restoring the earlier
+deployment while preserving old contracts. Remove tools only after confirming
+their consumers have migrated. Stateless v1 does not push catalog-change events;
+refresh is an explicit operator step.
+
+For future private data, add verified user/job authorization and ownership checks
+in the service; never trust a model-supplied UID. For future writes, design
+idempotency, operation-specific permissions, confirmation and audit behavior first.
+Do not register writes in this read-only adapter and merely change an annotation.
+OAuth, arbitrary remote plugins, and an admin catalog are outside this version.
+
+## Operations, verification and troubleshooting
+
+`npm run test:mcp` uses the official client over a local HTTP fixture, synthetic
+credentials, and no paid providers. The tests also run with `test:accounts`.
+Run affected tests, `typecheck`, lint and build after SDK or tool changes. Review
+official SDK release notes and verify negotiation against your installed Dify
+version before updating the pinned dependency. Test across deployment replicas;
+no in-memory session affinity should be required.
+
+Runtime events `mcp-request` and `mcp-tool` use the existing logging infrastructure
+and 30-day retention. Metadata is limited to safe identifiers, outcome, status,
+duration and generated request ID. Headers, arguments, returned content and raw
+exceptions are excluded. Tool failures can have HTTP 200 with MCP `isError`;
+inspect `mcp-tool` outcome as well as HTTP status. Logging failures remain advisory.
+
+| Symptom                      | Check                                                                              |
+| ---------------------------- | ---------------------------------------------------------------------------------- |
+| 404                          | MCP_ENABLED and whether the web process restarted.                                 |
+| 401                          | Separate MCP credential, exact Bearer header, rotation and current process config. |
+| 403                          | Host/Origin allowlist and reverse-proxy Host preservation.                         |
+| Missing tool / unknown tool  | Client permissions, deployed registry, Dify catalog refresh.                       |
+| 405 on GET                   | Use Streamable HTTP POST; legacy SSE is unsupported.                               |
+| Protocol error               | Client protocol compatibility and JSON/Accept headers; use the official client.    |
+| 413 / bounded-output failure | Request/result size; return a smaller DTO.                                         |
+| Timeout                      | Handler cancellation, dependency timeout, network path and correlated logs.        |
+| Queued AI job                | Check AI worker independently; MCP does not dispatch the original job.             |
+
+Rotate by adding a new client ID/token with the same permissions, restart all web
+replicas, update Dify's credential, verify it, then remove the old entry and restart
+again. Removal revokes subsequent requests; an already executing read may finish.
+Emergency disable uses `MCP_ENABLED=false` and restarts all replicas. Tokens and
+deployment URLs must not be copied into downstream template repositories.
+
+Live Dify callback acceptance is pending until exercised against a reachable URL;
+local SDK tests do not establish external networking or Dify compatibility.
+
+References: [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk),
+[Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http),
+[Dify tool configuration](https://docs.dify.ai/en/cloud/use-dify/workspace/tools).

@@ -815,3 +815,18 @@ S3-compatible service, real Firebase/Atlas, Stripe sandbox, deployment and Andro
 not proved by these fixtures. Product-specific Unitale/booklet schemas, prompts and
 layouts remain downstream. PDF's bundled fonts exclude CJK/emoji; ZIP preserves that
 text and downstream renderers can add licensed fonts. Publication is not authorized.
+
+## Accepted extension: reusable MCP tools
+
+2026-10-08: Implemented optional `/api/mcp` for trusted service clients, using
+stateless Streamable HTTP, per-client credentials/permissions, and code-registered
+read-only examples. Includes tests and [maintenance/Dify guidance](mcp.md).
+Private-user tools, writes, OAuth consent, catalog administration and deployment
+remain outside this extension. Local verification passed: five MCP test groups
+(official-client HTTP discovery/calls, permission isolation, rotation, protocol
+compatibility, bounds, cancellation and log redaction), unit/account regressions,
+typecheck, lint, formatting, configuration/skill checks and production build.
+A built Next server also passed authenticated discovery/calls and safe logging
+against isolated MongoDB. Separate read-only review corrected MCP error-outcome
+logging and rechecked the affected surface. Live Dify callback acceptance remains
+pending a reachable URL and external client setup; no deployment was performed.

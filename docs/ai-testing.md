@@ -1,5 +1,9 @@
 # AI setup, testing and extension guide
 
+For workflows that call back into Unibase, use the optional
+[MCP tools and Dify round-trip test](mcp.md). MCP service credentials authenticate
+Dify → Unibase and are distinct from the Dify app keys used by the AI worker.
+
 For the complete account/admin/payment/design regression and Base handoff, use
 [the full test plan](test-plan.md). This page owns AI-specific configuration and limits.
 

@@ -508,3 +508,21 @@ workflow/reference-image/storage/lifecycle/export account suites, and
 account/session and Stripe fixture HTTP suites, build/type/lint checks and deployment
 configuration tests. Record actual counts and mode skips; do not infer live provider,
 S3 service, VPS or Android acceptance from local fixtures.
+
+## MCP regression
+
+- MCP-01: disabled endpoint returns 404; malformed enabled configuration fails
+  validation without reflecting credential values.
+- MCP-02: authenticate discovery and calls; deny missing/revoked credentials,
+  unapproved Host/Origin, cookie-only access and unauthorized direct invocation.
+- MCP-03: official client initializes, discovers and calls both examples over
+  HTTP; simultaneous clients cannot inherit each other's permissions.
+- MCP-04: malformed/oversized requests, invalid inputs/results and slow tools fail
+  safely; cancellation reaches handlers; logs omit tokens and document content.
+- MCP-05: Dify fetches the reference before generation, returns its revision/request
+  ID, and Unibase persists the successful answer with normal credit settlement.
+- MCP-06: update the document/revision and re-run; refresh the catalog after tool
+  additions; retain old names until workflows migrate.
+
+Automated MCP checks: `npm run test:mcp` (also included in `test:accounts`). Live
+MCP-05/06 acceptance remains environment-specific; follow [the runbook](mcp.md).

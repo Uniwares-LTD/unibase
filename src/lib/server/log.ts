@@ -31,8 +31,10 @@ export function logOperation(
   started: number | undefined,
   status: number,
   requestId = crypto.randomUUID(),
+  metadata: { clientId?: string; toolName?: string; outcome?: string } = {},
 ) {
   const record = runtimeRecord(event, {
+    ...metadata,
     status,
     requestId,
     durationMs: started === undefined ? undefined : performance.now() - started,

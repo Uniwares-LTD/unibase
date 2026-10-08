@@ -8,11 +8,13 @@ import { parseStripeConfig } from "../src/lib/config/payments";
 import { parseDifyConfig } from "../src/lib/config/dify";
 import { parseAiPricing } from "../src/lib/config/ai-pricing";
 import { parseAssetConfig } from "../src/lib/config/assets";
+import { parseMcpConfig } from "../src/lib/config/mcp";
 
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 
 try {
   const config = parseConfig(process.env);
+  parseMcpConfig(process.env, config.server.origin);
   parseDatabaseConfig(process.env, config.server.environment);
   const auth = parseAuthConfig(
     process.env,
