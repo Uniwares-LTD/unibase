@@ -21,7 +21,7 @@ Open http://localhost:3000. Local development needs no cloud credentials. For ac
 
 Copy `.env.example` to `.env.local` only when overriding the local defaults. `APP_NAME` controls the displayed name; `APP_STYLE` sets the Classic/Glass/Soft Blue default; `APP_ENV` is local, staging, or production; `APP_ORIGIN` is an origin with no credentials, path, query, or fragment. Staging/production require an explicit HTTPS origin. Only the application name, validated default style and explicit Firebase browser configuration are passed to browser components. Restart the development server after changing environment configuration.
 
-Open [Preferences](http://localhost:3000/preferences) to switch Classic/Glass/Soft Blue and color mode. Style changes apply immediately and persist in this browser; signed-in users can also save them with Save profile. Use the development-only [showcase](http://localhost:3000/design-system) to compare components. See [design-system customization and testing](docs/design-system.md).
+Open [Preferences](http://localhost:3000/preferences) to switch Classic/Glass/Soft Blue and color mode. Style changes apply immediately and persist in this browser; signed-in users can also save them with Save preferences. Use the development-only [showcase](http://localhost:3000/design-system) to compare components. See [design-system customization and testing](docs/design-system.md).
 
 ## Commands
 
@@ -74,8 +74,8 @@ Individual checks retain their real exit codes. The aggregate `validate` command
 ## Current application surface
 
 - `/`: responsive home and application navigation.
-- `/account`: email/Google sign-in, explicit registration, verification, password reset, profile editing, and sign-out/account switching.
-- `/preferences`: appearance/profile preferences and opt-in, memory-only browser diagnostics with redacted JSON export.
+- `/account`: email/Google sign-in, explicit registration, verification, password reset, display-name editing, read-only email, and opt-in browser diagnostics. Sign out/account switching is available in the avatar menu.
+- `/preferences`: color-mode and design-style preferences, with an independent Save preferences action for signed-in users.
 - `/credits`: owned wallet, held credits, debt, upcoming expiry, paginated ledger, local-only purchase simulation and opt-in Stripe Checkout.
 - `/ai`, `/ai/[id]`: owned workflow/chat/file tasks, saved results and usage, with configurable credit pricing. Dify is disabled by default.
 - `/admin/ai`: AI usage and paginated, audited resolution of uncertain executions.

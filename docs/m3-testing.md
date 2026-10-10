@@ -4,7 +4,7 @@ Start the app and emulators using [the local testing guide](local-testing.md). U
 
 ## Diagnostics
 
-1. Open `/preferences`. Diagnostics must initially be off and Export disabled.
+1. Open `/account`. Diagnostics must initially be off and Export disabled.
 2. Select **Enable diagnostics**. The buffer starts with one event and holds at most 100. It lives only in this page's memory; a full reload turns it off and clears it. Client-side navigation within the app preserves the choice.
 3. In the browser console, run `window.dispatchEvent(new ErrorEvent('error', { message: 'fake-secret@example.test' }))`. The count increases, but the message is never collected. This synthetic event tests collection without crashing the application.
 4. Export and inspect the JSON. Allowed fields are timestamp, fixed event name, HTTP status, elapsed milliseconds, and a generated request ID. There should be no URL, stack, email, cookie, token, request body, or error message.

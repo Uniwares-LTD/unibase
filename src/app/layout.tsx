@@ -9,6 +9,7 @@ import {
   parseStylePreference,
   resolveStyle,
 } from "@/lib/appearance";
+import { AccountMenu } from "@/components/account-menu";
 import { AppShell } from "@/components/app-shell";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getConfig } from "@/lib/server/config";
@@ -58,7 +59,12 @@ export default async function RootLayout({
           >
             <BrowserRuntime />
             <SessionBoundary>
-              <AppShell appName={publicConfig.appName}>{children}</AppShell>
+              <AppShell
+                appName={publicConfig.appName}
+                accountMenu={<AccountMenu />}
+              >
+                {children}
+              </AppShell>
             </SessionBoundary>
           </StyleProvider>
         </ThemeProvider>

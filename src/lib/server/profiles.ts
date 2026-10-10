@@ -2,6 +2,9 @@ import "server-only";
 import { MongoServerError } from "mongodb";
 import {
   profileSchema,
+  accountDetailsUpdateSchema,
+  appearanceUpdateSchema,
+  type ProfileUpdate,
   profileUpdateSchema,
   type Profile,
 } from "../contracts/profile";
@@ -52,12 +55,36 @@ export async function updateMyProfile(input: unknown) {
       "INVALID_INPUT",
       "Enter a name and a valid appearance preference.",
     );
+  return persistProfileFields(parsed.data);
+}
+
+export async function updateMyAccountDetails(input: unknown) {
+  const parsed = accountDetailsUpdateSchema.safeParse(input);
+  if (!parsed.success)
+    throw new AppError(
+      "INVALID_INPUT",
+      "Enter a display name between 1 and 80 characters.",
+    );
+  return persistProfileFields(parsed.data);
+}
+
+export async function updateMyAppearance(input: unknown) {
+  const parsed = appearanceUpdateSchema.safeParse(input);
+  if (!parsed.success)
+    throw new AppError(
+      "INVALID_INPUT",
+      "Choose a valid color mode and design style.",
+    );
+  return persistProfileFields(parsed.data);
+}
+
+async function persistProfileFields(fields: Partial<ProfileUpdate>) {
   const { session, collection } = await currentProfile();
   const document = await collection.findOneAndUpdate(
     { uid: session.uid },
     {
       $set: {
-        ...parsed.data,
+        ...fields,
         email: session.email!,
         updatedAt: new Date().toISOString(),
       },

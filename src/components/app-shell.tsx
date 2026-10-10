@@ -1,27 +1,9 @@
 "use client";
-import {
-  BookOpen,
-  Wallet,
-  Sparkles,
-  ChevronDown,
-  Home,
-  Menu,
-  Settings2,
-  UserRound,
-} from "lucide-react";
+import { BookOpen, Sparkles, Home, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
@@ -35,11 +17,8 @@ import { cn } from "@/lib/utils";
 
 const routes = [
   { href: "/", label: "Home", Icon: Home },
-  { href: "/account", label: "Account", Icon: UserRound },
-  { href: "/credits", label: "Credits", Icon: Wallet },
   { href: "/ai", label: "AI workspace", Icon: Sparkles },
   { href: "/workspaces", label: "Creation workspaces", Icon: BookOpen },
-  { href: "/preferences", label: "Preferences", Icon: Settings2 },
 ];
 
 function matchesRoute(pathname: string, href: string) {
@@ -101,14 +80,21 @@ function Navigation({
 export function AppShell({
   appName,
   children,
+  accountMenu,
 }: {
   appName: string;
   children: React.ReactNode;
+  accountMenu: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const title =
-    routes.find((route) => matchesRoute(pathname, route.href))?.label ??
+    [
+      ...routes,
+      { href: "/account", label: "Account" },
+      { href: "/credits", label: "Credits" },
+      { href: "/preferences", label: "Preferences" },
+    ].find((route) => matchesRoute(pathname, route.href))?.label ??
     (pathname.startsWith("/admin")
       ? "Administration"
       : pathname === "/design-system"
@@ -169,42 +155,7 @@ export function AppShell({
               {title}
             </span>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="h-11 gap-2 rounded-full px-2"
-                aria-label="Open account menu"
-              >
-                <Avatar className="size-8">
-                  <AvatarFallback className="bg-secondary">
-                    <UserRound className="size-4" aria-hidden="true" />
-                  </AvatarFallback>
-                </Avatar>
-                <span className="hidden text-sm sm:inline">Your account</span>
-                <ChevronDown
-                  className="size-4 text-muted-foreground"
-                  aria-hidden="true"
-                />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel>Your space</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/account">
-                  <UserRound aria-hidden="true" />
-                  Account
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/preferences">
-                  <Settings2 aria-hidden="true" />
-                  Preferences
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {accountMenu}
         </header>
         <main
           id="main-content"

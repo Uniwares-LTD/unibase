@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { AppError, requireSameOrigin } from "@/lib/auth-policy";
 import { getConfig } from "@/lib/server/config";
 import { requireSession } from "@/lib/server/session";
-import { updateMyProfile } from "@/lib/server/profiles";
+import {
+  updateMyAccountDetails,
+  updateMyAppearance,
+} from "@/lib/server/profiles";
 import { unstable_rethrow } from "next/navigation";
 import { logOperation } from "@/lib/server/log";
 
@@ -12,6 +15,34 @@ export async function saveProfile(
   expectedUid: string,
   _previous: { message: string; saved: boolean },
   form: FormData,
+) {
+  return saveSection(
+    expectedUid,
+    () => updateMyAccountDetails({ displayName: form.get("displayName") }),
+    "Profile saved.",
+  );
+}
+
+export async function saveAppearance(
+  expectedUid: string,
+  _previous: { message: string; saved: boolean },
+  form: FormData,
+) {
+  return saveSection(
+    expectedUid,
+    () =>
+      updateMyAppearance({
+        theme: form.get("theme"),
+        style: form.get("style"),
+      }),
+    "Preferences saved.",
+  );
+}
+
+async function saveSection(
+  expectedUid: string,
+  update: () => Promise<unknown>,
+  message: string,
 ) {
   const started = performance.now();
   try {
@@ -23,15 +54,11 @@ export async function saveProfile(
         "Your account changed. Reload this page before editing.",
         409,
       );
-    await updateMyProfile({
-      displayName: form.get("displayName"),
-      theme: form.get("theme"),
-      ...(form.has("style") ? { style: form.get("style") } : {}),
-    });
+    await update();
     revalidatePath("/account");
     revalidatePath("/preferences");
     logOperation("profile-save", started, 200);
-    return { message: "Profile saved.", saved: true };
+    return { message, saved: true };
   } catch (error) {
     unstable_rethrow(error);
     logOperation(

@@ -9,6 +9,13 @@ export const profileUpdateSchema = z
   })
   .strict();
 
+export const accountDetailsUpdateSchema = profileUpdateSchema.pick({
+  displayName: true,
+});
+export const appearanceUpdateSchema = profileUpdateSchema
+  .pick({ theme: true, style: true })
+  .required();
+
 export const profileSchema = profileUpdateSchema.extend({
   style: stylePreferenceSchema.default("default"),
   uid: z.string().min(1),

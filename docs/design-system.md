@@ -59,15 +59,15 @@ saved style is present before hydration. Invalid/missing values use Application
 default. No authentication or authorization comes from this public cookie.
 If cookie storage is unavailable, changes still work for the current page session.
 
-Signed-in users can click Save profile to save their style to the account. Account
-and Preferences load that saved style; after sign-in on another browser, the
-Account page restores it and updates that browser's appearance cookie. An unsaved
-preview may be replaced by the saved account style when revisiting these pages.
+Signed-in users can click Save preferences on Preferences to save their style to
+the account. Preferences loads that saved style and updates the browser appearance
+cookie. An unsaved preview may be replaced by the saved style when revisiting
+Preferences. Account only edits display name and does not apply appearance settings.
 Older profiles inherit Application default. Older API updates omitting `style`
 preserve an existing saved style; no database rewrite is needed.
 
-Account color-mode selection also previews immediately; Save profile persists the
-choice to the account. Restore the saved theme only on profile mount or a changed
+Preferences color-mode selection also previews immediately; Save preferences persists
+the choice to the account. Restore the saved theme only on appearance-form mount or a changed
 saved value. Do not depend on the identity of `next-themes`' `setTheme` callback:
 it changes with the browser theme and would overwrite previews and cross-tab changes.
 
@@ -202,7 +202,7 @@ After changing a token or pattern:
    dialogs. For mutations, use disposable local fixtures, never live services.
    Keep signed-in Preferences open beside a design-system tab. Selecting Dark in
    either tab must update both without reverting to the saved account mode. Verify
-   immediate profile preview, Save profile/reload, and System following the device.
+   immediate appearance preview, Save preferences/reload, and System following the device.
 8. Enable reduced motion and check menus/dialogs remain usable. Request reduced
    transparency and check Glass cards/sidebar become opaque in both color modes. Check the browser
    console for runtime/hydration errors. Automated checks supplement this manual

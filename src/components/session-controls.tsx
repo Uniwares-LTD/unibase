@@ -3,7 +3,8 @@ import { useState } from "react";
 import { announceSessionChange } from "@/lib/client/session-lifecycle";
 import { api } from "@/lib/client/api";
 import { successSchema } from "@/lib/contracts/profile";
-import { Button } from "./ui/button";
+import { LogOut } from "lucide-react";
+import { DropdownMenuItem } from "./ui/dropdown-menu";
 
 export function SessionControls() {
   const [pending, setPending] = useState(false);
@@ -20,15 +21,22 @@ export function SessionControls() {
     }
   }
   return (
-    <div className="space-y-2">
-      <Button variant="outline" disabled={pending} onClick={logout}>
-        {pending ? "Signing out…" : "Sign out / switch account"}
-      </Button>
+    <>
+      <DropdownMenuItem
+        disabled={pending}
+        onSelect={(event) => {
+          event.preventDefault();
+          void logout();
+        }}
+      >
+        <LogOut aria-hidden="true" />
+        {pending ? "Signing out…" : "Sign out"}
+      </DropdownMenuItem>
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="px-2 py-1.5 text-sm text-destructive">
           {error}
         </p>
       )}
-    </div>
+    </>
   );
 }

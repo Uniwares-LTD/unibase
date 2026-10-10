@@ -11,7 +11,6 @@ import {
 } from "@/lib/server/purchases";
 import { CreditSummary } from "@/components/credit-summary";
 import { PurchaseSimulator } from "@/components/purchase-simulator";
-import { SessionControls } from "@/components/session-controls";
 import { CreditCheckout } from "@/components/credit-checkout";
 
 export const metadata: Metadata = { title: "Credits" };
@@ -63,7 +62,6 @@ export default async function CreditsPage({
           Credit purchases are not available yet.
         </p>
       )}
-      <SessionControls />
     </div>
   );
 }

@@ -73,7 +73,7 @@ export function StylePreference({
       <p id={`${id}-help`} className="text-sm text-muted-foreground">
         Changes apply immediately and are remembered in this browser.
         {account
-          ? " Save your profile to remember this style on your account too."
+          ? " Save preferences to remember this style on your account too."
           : " Light, dark and system mode are separate settings."}
       </p>
     </fieldset>

@@ -3,6 +3,8 @@ import { test } from "node:test";
 import { parseStylePreference, resolveStyle } from "../src/lib/appearance";
 import { resolvePageCover } from "../src/lib/page-cover";
 import {
+  accountDetailsUpdateSchema,
+  appearanceUpdateSchema,
   profileSchema,
   profileUpdateSchema,
 } from "../src/lib/contracts/profile";
@@ -74,5 +76,36 @@ test("page covers accept image URLs and reject unsafe or mixed-content metadata"
     "https://[",
   ]) {
     assert.equal(resolvePageCover(value, base), null);
+  }
+});
+
+test("account and appearance updates reject fields from the other section", () => {
+  assert.deepEqual(
+    accountDetailsUpdateSchema.parse({ displayName: " New name " }),
+    { displayName: "New name" },
+  );
+  for (const extra of [
+    { theme: "dark" },
+    { style: "glass" },
+    { email: "forged@example.test" },
+    { uid: "other" },
+  ]) {
+    assert.equal(
+      accountDetailsUpdateSchema.safeParse({ displayName: "Name", ...extra })
+        .success,
+      false,
+    );
+  }
+  assert.deepEqual(
+    appearanceUpdateSchema.parse({ theme: "dark", style: "glass" }),
+    { theme: "dark", style: "glass" },
+  );
+  for (const input of [
+    { theme: "dark" },
+    { theme: "invalid", style: "glass" },
+    { theme: "dark", style: "invalid" },
+    { theme: "dark", style: "glass", displayName: "Name" },
+  ]) {
+    assert.equal(appearanceUpdateSchema.safeParse(input).success, false);
   }
 });

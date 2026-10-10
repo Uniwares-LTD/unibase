@@ -1,10 +1,8 @@
 import { PageHeader } from "@/components/page-patterns";
 import type { Metadata } from "next";
-import { DiagnosticsPanel } from "@/components/diagnostics-panel";
 import { ThemePreference } from "@/components/theme-preference";
 import { StylePreference } from "@/components/style-preference";
-import { ProfileForm } from "@/components/profile-form";
-import { SessionControls } from "@/components/session-controls";
+import { AppearanceForm } from "@/components/appearance-form";
 import { getSession } from "@/lib/server/session";
 import { getMyProfile } from "@/lib/server/profiles";
 import {
@@ -23,7 +21,7 @@ export default async function PreferencesPage() {
     <div className="max-w-3xl page-stack">
       <PageHeader
         title="Preferences"
-        description="Choose your appearance and manage browser diagnostics."
+        description="Choose your color mode and design style."
       />
       <Card className="shadow-none">
         <CardHeader>
@@ -35,8 +33,7 @@ export default async function PreferencesPage() {
         <CardContent>
           {profile ? (
             <div className="space-y-6">
-              <ProfileForm key={profile.uid} profile={profile} />
-              <SessionControls />
+              <AppearanceForm key={profile.uid} profile={profile} />
             </div>
           ) : (
             <div className="space-y-8">
@@ -46,7 +43,6 @@ export default async function PreferencesPage() {
           )}
         </CardContent>
       </Card>
-      <DiagnosticsPanel />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { adminPageSession } from "@/lib/server/admin-view";
 import { Button } from "@/components/ui/button";
-import { SessionControls } from "@/components/session-controls";
 
 export default async function AdminLayout({
   children,
@@ -30,9 +29,13 @@ export default async function AdminLayout({
         <Button variant="outline" asChild>
           <Link href="/admin/ai">AI operations</Link>
         </Button>
+        {process.env.NODE_ENV === "development" && (
+          <Button variant="outline" asChild>
+            <Link href="/design-system">Design system</Link>
+          </Button>
+        )}
       </nav>
       {children}
-      <SessionControls />
     </div>
   );
 }
