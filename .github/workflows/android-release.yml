@@ -82,4 +82,6 @@ jobs:
           PUBLISHED: ${{ inputs.publish }}
           TRACK: ${{ inputs.track }}
         run: |
+          # Literal JavaScript/template text must not be expanded by the shell.
+          # shellcheck disable=SC2016
           printf '### Android release\nCommit: `%s`\n\nSigned AAB uploaded. Play publishing selected: %s. Track: %s.\n' "$COMMIT" "$PUBLISHED" "$TRACK" >> "$GITHUB_STEP_SUMMARY"

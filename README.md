@@ -2,11 +2,55 @@
 
 Base is a Next.js application foundation with PWA support and a prepared Android Trusted Web Activity project. It uses TypeScript, Tailwind CSS, shadcn/ui, Firebase Authentication, MongoDB profiles, admin and credit management, optional Dify execution, and Classic/Glass/Soft Blue styles and persisted light/dark/system themes. See [the implementation plan](docs/implementation-plan.md) for verification status and remaining Android/VPS activation.
 
-These guides describe the reusable Base project. Existing runtime/package identifiers
-are retained until a separate rebranding change. Use `.env.example`, `package.json`
-and deployment scripts as the source of actual runtime identifiers.
-Use [the full feature test plan](docs/test-plan.md) before extracting or publishing
-Base. It includes setup, all pricing modes, expected balances and a results sheet.
+These guides describe the reusable Base project. `APP_NAME` controls the web
+shell, metadata and install manifest at runtime; the credential-free default is
+Base. Internal identifiers retained from the original implementation are listed
+below so derived projects can replace them deliberately.
+
+Use [the full feature test plan](docs/test-plan.md) for regression coverage and
+[the readiness audit](docs/implementation-plan.md#clone-readiness-audit--2026-10-10)
+for the current evidence and external limits.
+
+## Start a derived project
+
+1. Start from a reviewed commit. A normal Git clone includes committed files only;
+   local edits must be committed before another clone can receive them. Create a
+   new clone, then give it its own repository remote before publishing. Preserve
+   the base revision so future fixes can be compared or carried over.
+2. Install the pinned Node/npm versions and run `npm ci`. Create a new `.env.local`
+   from `.env.example`, set `APP_NAME`, `APP_ORIGIN` and a **new local database name**,
+   and use the local emulators. Run `npm run check:env` and `npm run db:indexes`
+   before creating your own verified account and appointing the first admin.
+   There is no shipped admin password or automatic credit grant.
+3. Keep Dify/MCP disabled and payments disabled or in local simulation until the
+   derived product needs them. Manual workspaces and PDF/ZIP export do not need
+   an AI provider. Build the workers; run the maintenance worker for exports and
+   cleanup, and the AI worker only when testing fake/live AI dispatch.
+4. Replace product copy, home-page content, icons and colors. Run
+   `npm run icons:generate` after editing `src/app/icon.svg`; it also creates the
+   favicon. The offline fallback is deliberately generic public HTML.
+5. Before deploying beside Base or another derived project, give the project its
+   own runtime and infrastructure identities using the inventory below. Re-run
+   affected tests after renaming; do not use a blind repository-wide replacement.
+6. Run `npm run validate`, inspect each actual result, then run `npm run build`
+   and the applicable HTTP/browser suites in [the test plan](docs/test-plan.md).
+   Validate optional providers against new owned staging resources separately.
+
+| Identity | Source to revise in the derived project |
+| --- | --- |
+| Display name, origin, style | `.env.local` / runtime env; `APP_NAME`, `APP_ORIGIN`, `APP_STYLE` |
+| npm package/repository | `package.json`, root package-lock identity, Git remotes, workflow/package settings |
+| Local Auth/database | `demo-unitale` in auth defaults, emulator commands/tests; `unitale_local` in database defaults and local runner; explicitly select a new database |
+| Browser state/session isolation | `unitale-*` cookies, storage keys and offline-cache namespace in client/server modules and `public/sw.js`; use distinct origins even before renaming |
+| Host/deployment isolation | `/opt/unitale`, `/etc/unitale`, `/var/lib/unitale`, Compose names, SSH alias, locks and database/user prefixes in `scripts/deploy`, `deploy`, workflows and deployment tests |
+| Android | Regenerate `android/project` with new `ANDROID_HOST` and `ANDROID_PACKAGE_NAME`; use your own signing identity and Digital Asset Links |
+| Optional providers/storage | New Firebase/Atlas, Stripe catalog/webhook, Dify/MCP credentials and private object bucket/prefix; configure web and workers consistently |
+
+Copy source and licenses, not `.env.local`, caches, emulator data, ignored `output`,
+private deployment snapshots, browser profiles, service-account files or signing
+keys. Skill/font/Bubblewrap licenses and provenance stay with the source. Rewrite
+`docs/implementation-plan.md` for the derived product's accepted scope and preserve
+Base verification as reference evidence, not a claim that its new services work.
 
 ## Local development
 

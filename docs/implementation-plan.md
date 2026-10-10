@@ -830,3 +830,42 @@ A built Next server also passed authenticated discovery/calls and safe logging
 against isolated MongoDB. Separate read-only review corrected MCP error-outcome
 logging and rechecked the affected surface. Live Dify callback acceptance remains
 pending a reachable URL and external client setup; no deployment was performed.
+
+## Clone-readiness audit — 2026-10-10
+
+The base is ready for a derived project's **local implementation**, subject to
+including this reviewed working-tree diff in a commit before cloning. Evidence
+below covers `e4731d5` plus the readiness changes; it is not a deployment or
+live-provider acceptance claim. Existing milestone/external limits still apply.
+
+The audit reviewed pages, navigation, account/preferences separation, public
+configuration, session/ownership boundaries, workers, packaging, PWA behavior,
+setup and canonical documentation. Corrections include all worker entry points
+in Docker's context, PDFKit's CommonJS dependency closure in standalone output,
+runtime application branding in metadata/install manifest, a generated favicon,
+generic offline copy and a discoverable admin execution-profile link. The
+[derived-project checklist](../README.md#start-a-derived-project) inventories
+retained internal identifiers and explains data/credential/resource isolation.
+
+| Verification | Recorded result |
+| --- | --- |
+| Fresh tracked-source fixture | Fresh `npm ci --offline`, environment/skill checks, production build and typecheck passed without copying local env, database data or existing node_modules. The offline install does not establish registry audit status. |
+| Source/build quality | Production web/worker build, typecheck, lint and formatting passed; 51 unit tests and 136 account/provider/workspace/MCP tests passed. |
+| HTTP/worker regressions | Account/session 9 passed, payment simulation 3 passed, AI/workspace/export 6 passed with 1 mode skip, pricing 4 passed with 3 mode skips. Health tests passed unavailable-dependency, credential/project mismatch and recovery boundaries. Final packaging changes were followed by build/typecheck and AI/export regression. |
+| Deployment tooling | 26 deployment tests, shell checks and actionlint passed. Docker built from the allowlisted context; an unmodified non-root runtime passed PDF/font rendering, worker presence, development-tool/env exclusion, liveness 200, readiness 503 for deliberately unavailable dependencies, and public-route checks. |
+| Browser/PWA | Twelve public/member/admin routes exercised at desktop and 390px; avatar/mobile navigation, keyboard focus/Escape, styles/themes, diagnostics and anonymous action visibility passed without normal-navigation console errors or horizontal overflow. Offline cache contained only the public fallback; offline account navigation exposed no profile data and reconnected successfully. |
+| Dependency advisory | Registry audit reported 35 aggregate advisories: 27 high, 8 moderate, 0 critical. These include development tooling and transitive provider dependencies; no forced major downgrade or audit suppression was applied. Review affected dependency paths before staging/release. |
+
+The separate final read-only review passed after checking the complete diff,
+compatibility, documentation and current evidence; no further actionable defect
+was identified in this change. Scope comparison is matched for local clone
+setup, reusable pages/features, runtime packaging and documentation; live services
+remain deliberately unverified. Local artifacts are ignored under `output/` and
+are not part of a clone. No commit, publication or deployment was performed.
+
+Before production acceptance, use new owned resources to verify Firebase/Atlas,
+Stripe sandbox, Dify/image execution and optional S3 storage; exercise actual VPS
+deployment/rollback and Android signing, Digital Asset Links, device installation
+and publishing. A derived product's new schemas, prompts, integrations and renamed
+infrastructure require their own tests. This audit does not complete those checks
+or the pending milestone acceptance.

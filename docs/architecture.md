@@ -8,6 +8,11 @@ Base is one Next.js App Router application with Firebase Authentication, MongoDB
 
 Client boundaries cover browser authentication, interactive forms, themes, navigation, diagnostics, payment controls and error recovery. The shell accepts server-rendered children rather than moving all page code into a Client Component. There is no custom API server or client state library. Server reads call server modules directly; web mutations use Server Actions and external HTTP contracts use Route Handlers.
 
+The public display default is Base. `APP_NAME` feeds server-rendered metadata and
+the request-time install manifest as well as the shell; image builds do not freeze
+an environment's name. Internal cookie, database and deployment identifiers remain
+stable for compatibility; derived projects follow the [identity inventory](../README.md#start-a-derived-project).
+
 ## Design system
 
 `src/styles/tokens.css` owns shared typography/effect defaults and page/reading
@@ -243,7 +248,7 @@ and live acceptance are described in [VPS deployment](deployment.md).
 
 Browser diagnostics default off in every document, retain at most 100 events in memory, and clear on disable/reload. The diagnostics panel on Account uses existing shadcn controls. Error listeners and the API helper record only sanitized metadata; there is no console interception, durable buffer, diagnostics upload or debug-header response mode.
 
-The manifest and PNG install icons describe the shared app. `public/sw.js` caches only the standalone public HTML fallback. Full document navigation uses the network and falls back on network failure, without writing fetched responses. API/auth-helper requests, RSC payloads, mutations and subresources are not intercepted. There is no offline account cache, mutation replay or automatic form-discarding refresh. Worker upgrades follow the browser's normal lifecycle.
+The request-time manifest uses the allowlisted runtime application name. The SVG, PNG install icons and generated favicon describe the shared app. `public/sw.js` caches only the standalone public HTML fallback. Full document navigation uses the network and falls back on network failure, without writing fetched responses. API/auth-helper requests, RSC payloads, mutations and subresources are not intercepted. There is no offline account cache, mutation replay or automatic form-discarding refresh. Worker upgrades follow the browser's normal lifecycle.
 
 `ANDROID_HOST` and `ANDROID_PACKAGE_NAME` supply wrapper identity through `.env.local` or process environment; `android/config.json` owns only the version. The pinned Bubblewrap generator retains `android/project`, using local icons without a live deployment. Generated sources embed the selected identity and must be regenerated when settings change. CI supplies the same names through GitHub environment variables. Signing comes from environment variables outside the generated project. The manual Android workflow is independent of web deployment and Play publishing is explicitly opt-in. Digital Asset Links uses the server runtime package/certificate settings; the private signing key is never part of the website. See [Android delivery](android.md) and [M3 testing](m3-testing.md) for setup, boundaries and pending external verification.
 
@@ -419,3 +424,15 @@ file rejection or quota exhaustion releases the undispatched generation hold. Th
 generic public AI endpoint cannot submit workspace reference IDs, and stale edit
 candidates cannot replace newer artifact versions. Provider-hosted copies retain
 their separate provider lifecycle.
+
+## Runtime packaging
+
+Docker's allowlisted context includes all three worker entries and the shared
+server source. The non-root standalone image carries the web server, maintenance
+worker, AI worker and worker-health probe. PDFKit remains external because it reads
+module-relative resources; tracing includes the CommonJS dependency entries used
+by PDFKit/fontkit (crypto, compression, layout and SWC helpers) as well as Next's
+ESM paths. Licensed export fonts are copied with public assets.
+`scripts/deploy/container-smoke.cjs` checks worker presence,
+renders a PDF using the packaged dependency/font, verifies excluded development
+tools and probes liveness/readiness/public routes against synthetic local inputs.

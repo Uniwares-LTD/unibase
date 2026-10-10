@@ -1,10 +1,17 @@
 import type { MetadataRoute } from "next";
-export default function manifest(): MetadataRoute.Manifest {
+import { connection } from "next/server";
+import { getConfig } from "@/lib/server/config";
+
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  await connection();
+  const {
+    public: { appName },
+  } = getConfig();
   return {
     id: "/",
-    name: "Unitale",
-    short_name: "Unitale",
-    description: "Your space in Unitale.",
+    name: appName,
+    short_name: appName,
+    description: `Your space in ${appName}.`,
     start_url: "/",
     scope: "/",
     display: "standalone",

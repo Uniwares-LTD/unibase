@@ -3,6 +3,19 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["pdfkit"],
+  // Next traces PDFKit's ESM dependency entries; the standalone CJS worker also
+  // needs the CommonJS entries selected by PDFKit's require() calls.
+  outputFileTracingIncludes: {
+    "/*": [
+      "node_modules/@noble/hashes/**/*.js",
+      "node_modules/@noble/ciphers/**/*.js",
+      "node_modules/fflate/lib/*.cjs",
+      "node_modules/restructure/dist/*.cjs",
+      "node_modules/unicode-properties/dist/*.cjs",
+      "node_modules/linebreak/dist/*.cjs",
+      "node_modules/@swc/helpers/cjs/*.cjs",
+    ],
+  },
   poweredByHeader: false,
   async headers() {
     return [

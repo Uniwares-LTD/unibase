@@ -30,7 +30,7 @@ export default function DesignSystemPage() {
     <div className="page-stack">
       <PageHeader
         title="Design system"
-        eyebrow="Unitale studio"
+        eyebrow="Design reference"
         description="A reference for changing and testing visual tokens, components and page patterns."
       />
       <DesignShowcase />

@@ -50,7 +50,7 @@ export function parseConfig(input: Record<string, string | undefined>) {
 
   return {
     public: parsePublicConfig({
-      appName: input.APP_NAME ?? "Unitale",
+      appName: input.APP_NAME ?? "Base",
       defaultStyle: input.APP_STYLE ?? "classic",
     }),
     server: {

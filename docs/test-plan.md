@@ -4,9 +4,9 @@ Use this checklist for a full regression and the smoke checklist for everyday
 changes. This document describes tests to perform; it does not record a new test
 execution. Record results against the actual commit/diff and environment tested.
 
-## Start here before creating Base
+## Start here before cloning a derived project
 
-Documentation reconciled with the working tree on 2026-10-06. This is the master
+Documentation reconciled with the working tree on 2026-10-10. This is the master
 acceptance checklist; linked guides supply detailed setup and troubleshooting.
 Earlier recorded passes are historical evidence, not your new acceptance run.
 
@@ -110,11 +110,11 @@ Perform browser checks in Chrome and another supported browser, at desktop and
 
 | ID    | Test steps                                                                                                                                               | Expected result                                                                                                                                                                                                |
 | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| UI-01 | Open home, Account, Preferences and available Credits/Admin links; use mobile navigation.                                                                | Correct destinations, readable layout, no viewport overflow or hydration errors.                                                                                                                               |
+| UI-01 | Open Home/workspaces from desktop/mobile navigation; open Account, Credits, Preferences and eligible Administration/Sign out from the avatar menu.                                                                | Correct destinations, readable layout, no viewport overflow or hydration errors.                                                                                                                               |
 | UI-02 | Select light, dark, then system theme; reload; change OS appearance in system mode.                                                                      | Selection persists; system mode follows OS; controls remain readable.                                                                                                                                          |
 | UI-03 | Tab through menus, forms and dialogs; use Enter/Escape; open and close confirmations.                                                                    | Visible focus, meaningful labels, usable controls; modal focus returns to trigger.                                                                                                                             |
 | UI-04 | Visit an unknown URL and follow the recovery link.                                                                                                       | Safe not-found page returns home. Exercise error retry through automated failure fixtures rather than adding failing production code.                                                                          |
-| UI-06 | In Preferences select each style, reload, save profile, sign out/in and switch users. Test Application default with `APP_STYLE=glass`, then restore env. | Style and color mode stay independent; saved account choices restore correctly; older profiles inherit the default.                                                                                            |
+| UI-06 | In Preferences select each style, reload, Save preferences, sign out/in and switch users. Test Application default with `APP_STYLE=glass`, then restore env. | Style and color mode stay independent; saved account choices restore correctly; older profiles inherit the default.                                                                                            |
 | UI-07 | With `npm run dev`, open `/design-system`; test sample fields, confirmations and each preset at desktop/390px and 200% zoom.                             | Usable focus, forms and readable semantic colors. Showcase is 404 in the production build.                                                                                                                     |
 | UI-08 | Use the showcase Glass cover controls: valid image, missing/broken image and removal; navigate away. Repeat with reduced transparency/motion.            | Image influences Glass, gradient fallback returns when unavailable, no old cover leaks to the next page; opaque fallback stays readable. See [cover convention](design-system.md#glass-page-cover-convention). |
 | UI-05 | Use long test display names and reasons; inspect errors and mobile tables.                                                                               | Content wraps or scrolls within its region; no hidden actions or secret error details.                                                                                                                         |
@@ -128,7 +128,7 @@ Perform browser checks in Chrome and another supported browser, at desktop and
 | AUTH-03 | Sign in with wrong password and an unknown email.                                                                      | Safe failure; login never creates an account.                                                                                                                                                                            |
 | AUTH-04 | Start Continue with Google from `/account`; select an emulator account. Log out and repeat with that existing account. | Both attempts reach the signed-in account; no loop back to login.                                                                                                                                                        |
 | AUTH-05 | Request password reset; complete the latest emulator reset action using the account guide; try old/new password.       | Old password fails and new password succeeds. Live hosted reset/email delivery is a separate staging check.                                                                                                              |
-| AUTH-06 | Edit display name and appearance; save and reload; sign out/in.                                                        | Own profile/preferences persist. Switching to another member shows that member's data.                                                                                                                                   |
+| AUTH-06 | Save display name in Account and appearance in Preferences independently; reload and sign out/in. | Each page saves its own fields without overwriting the other page's changes. Own profile/preferences persist; another member sees their own data. |
 | AUTH-07 | Open Account/Credits in two tabs; sign out or switch users in one; revisit/reload/back in the other.                   | Old protected data cannot reappear or overwrite the new account.                                                                                                                                                         |
 | AUTH-08 | Visit `/api/profile` and `/api/credits` as anonymous, unverified and verified users.                                   | Anonymous denied with 401; unverified with 403; verified responses contain only owned data.                                                                                                                              |
 | AUTH-09 | Inspect cookie/storage names and flags in browser devtools without exporting values.                                   | App session is HttpOnly/SameSite=Lax; HTTPS uses Secure. No app session token in local storage. Temporary Firebase tab state is cleared after exchange. Local HTTP is not expected to have a Secure cookie.              |
@@ -194,7 +194,7 @@ Use `/ai` for priced spending and the debt test in section 6a. Run
 | REP-03 | Open `/admin/reports?from=invalid`; try reversed dates; recover.                                     | Safe validation feedback, no internal details; clear filters recovers.                                                                                                              |
 | REP-04 | Use Older/Latest with more than 25 matches; test narrow layout and keyboard controls.                | Stable pagination and usable tables. Equal-timestamp and low-volume cases have automatic coverage.                                                                                  |
 | REP-05 | Inspect runtime records and diagnostic export using synthetic test data.                             | Fixed events/status/duration/request ID; no tokens, cookies, raw bodies, query strings or error-message contents. Runtime excludes admin reasons; audit intentionally retains them. |
-| DIA-01 | In Preferences, inspect diagnostics before enabling; enable, navigate within app, then fully reload. | Default off/export disabled; SPA navigation preserves enabled state; full reload clears memory and disables it.                                                                     |
+| DIA-01 | On Account, inspect diagnostics before enabling; enable, navigate within app, then fully reload. | Default off/export disabled; SPA navigation preserves enabled state; full reload clears memory and disables it.                                                                     |
 | DIA-02 | With diagnostics on, dispatch the synthetic error below; export JSON; turn off and repeat.           | Enabled event is recorded without the supplied secret text; turning off clears records and stops collection. Export is bounded to 100 memory-only events, with no upload.           |
 
 Synthetic browser-console input (test text only):
@@ -402,13 +402,15 @@ accounts/data. Keep Stripe sandbox cleanup separate from application ledger:
 refund through the provider and let the worker reconcile rather than editing
 balances or deleting ledger records directly.
 
-## 11. Decision before creating the general Base repository
+## 11. Decision before starting a derived project
 
 The general foundation now includes accounts, profiles, appearance presets, admin,
 reports, credits/ledger, simulated and opt-in Stripe payments, optional Dify
 workflow/chat/files, durable jobs, usage and configurable pricing, plus PWA and
-VPS/Android tooling. Domain-specific content, approval workflows, permanent assets
-and product orchestration remain downstream features. They need not enter Base.
+VPS/Android tooling. It also includes reusable generated UI, versioned artifacts,
+approvals, private media, durable workflows and PDF/ZIP exports. Domain schemas,
+provider prompts and product-specific layouts remain downstream features.
+See [derived-project setup and identity inventory](../README.md#start-a-derived-project).
 
 - [ ] Complete local sections 1-7 and record real Pass/Fail/Not run results below.
 - [ ] Review unresolved failures and advisory warnings; keep build failures real.
@@ -426,7 +428,7 @@ and product orchestration remain downstream features. They need not enter Base.
 - [ ] Retain architecture/setup/testing docs and record optional product migration
       plans as downstream-product reference rather than Base's implementation backlog.
 
-This guide does not authorize creating, publishing or renaming Base.
+This checklist does not authorize publication, provider changes or deployment.
 Do not copy emulator data, `.env.local`, provider credentials, `.cache`, `output`,
 local browser state, signing keys or deployment secret snapshots into it.
 
@@ -459,7 +461,7 @@ Worker bundles built from same source: yes/no
 | AND-01-04, PLAY-01                          | Not run                         | Play billing unimplemented |
 
 Unresolved failures / warnings:
-Base extraction decision and explicit unverified integrations:
+Derived-project readiness decision and explicit unverified integrations:
 ```
 
 ## Operations regression

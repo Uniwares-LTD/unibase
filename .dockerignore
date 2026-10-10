@@ -12,3 +12,5 @@
 !scripts/
 !scripts/payment-worker.ts
 !scripts/build-worker.mjs
+!scripts/ai-worker.ts
+!scripts/worker-healthcheck.ts

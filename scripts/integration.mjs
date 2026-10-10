@@ -27,6 +27,7 @@ const env = {
   APP_ENV: "local",
   // Different from the build default to verify runtime configuration.
   APP_STYLE: "glass",
+  APP_NAME: "Base runtime fixture",
   APP_ORIGIN: "http://127.0.0.1:3101",
   AUTH_MODE: "emulator",
   FIREBASE_PROJECT_ID: "demo-unitale",

@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
   } = getConfig();
   return {
     title: { default: appName, template: `%s · ${appName}` },
-    description: "Your space in Unitale.",
+    description: `Your space in ${appName}.`,
     appleWebApp: { capable: true, title: appName, statusBarStyle: "default" },
     icons: { apple: "/icons/apple-touch-icon.png" },
   };

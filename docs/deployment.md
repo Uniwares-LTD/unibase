@@ -9,6 +9,11 @@ availability does not prove real OAuth or email delivery; exercise those during
 staging acceptance. Probes are uncached. Releases supply `RELEASE_COMMIT` so checks
 can distinguish the expected application from a stale release.
 
+Before cloning this deployment onto a shared VPS, revise the retained host paths,
+Compose names, lock/SSH aliases and database prefixes for the new application;
+`APP_NAME` does not isolate infrastructure. Follow the [identity inventory](../README.md#start-a-derived-project)
+and rerun deployment tests against the renamed scripts before applying anything.
+
 ## Host inputs
 
 Reuse an existing Linux VPS with Docker, Compose 2.30 or newer (raw env files),

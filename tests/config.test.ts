@@ -5,7 +5,7 @@ import { parsePublicConfig } from "../src/lib/config/public";
 
 test("local development needs no cloud credentials", () => {
   assert.deepEqual(parseConfig({}), {
-    public: { appName: "Unitale", defaultStyle: "classic" },
+    public: { appName: "Base", defaultStyle: "classic" },
     server: { environment: "local", origin: "http://localhost:3000" },
   });
 });

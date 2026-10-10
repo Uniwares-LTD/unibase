@@ -21,6 +21,22 @@ test("design showcase is unavailable in production", async () => {
   );
 });
 
+test("runtime application name reaches metadata and the install manifest", async () => {
+  const response = await fetch(`${origin}/manifest.webmanifest`);
+  assert.equal(response.status, 200);
+  const manifest = await response.json();
+  assert.equal(manifest.name, "Base runtime fixture");
+  assert.equal(manifest.short_name, manifest.name);
+  assert.equal(manifest.description, "Your space in Base runtime fixture.");
+  assert.equal(manifest.start_url, "/");
+  const html = await (await fetch(origin)).text();
+  assert.match(html, /<title>Base runtime fixture<\/title>/);
+  assert.match(
+    html,
+    /name="description" content="Your space in Base runtime fixture\."/,
+  );
+});
+
 test("initial HTML resolves runtime style defaults and allowlisted browser cookies", async () => {
   for (const [cookie, expected] of [
     ["", "glass"],

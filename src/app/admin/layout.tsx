@@ -29,6 +29,9 @@ export default async function AdminLayout({
         <Button variant="outline" asChild>
           <Link href="/admin/ai">AI operations</Link>
         </Button>
+        <Button variant="outline" asChild>
+          <Link href="/admin/execution-profiles">Execution profiles</Link>
+        </Button>
         {process.env.NODE_ENV === "development" && (
           <Button variant="outline" asChild>
             <Link href="/design-system">Design system</Link>
