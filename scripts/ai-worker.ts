@@ -4,7 +4,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { parseConfig } from "../src/lib/config/schema";
 import { parseDatabaseConfig } from "../src/lib/config/database";
 import { readSettings } from "../src/lib/server/settings";
-import { providerForRun } from "../src/lib/server/runs/provider";
+import { providerForRun, tracingForRun } from "../src/lib/server/runs/provider";
 import { prepareRunInputs } from "../src/lib/server/runs/service";
 import { prepareResult, attachResult } from "../src/lib/server/runs/media";
 import { parseResult } from "../src/lib/contracts/runs";
@@ -50,6 +50,7 @@ async function main() {
           await readSettings(db);
           const executed = await processOneAiJob(db, {
             provider: (job) => providerForRun(job, db),
+            trace: tracingForRun,
             prepareInput: (job) => prepareRunInputs(job, db),
             materialize: (job, result, session) =>
               attachResult(db, job, session),

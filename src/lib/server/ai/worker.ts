@@ -20,7 +20,7 @@ import type {
 } from "./types";
 
 export type AiWorkerDependencies = {
-  provider: (job: AiJob) => WorkflowProvider;
+  provider: (job: AiJob) => WorkflowProvider | Promise<WorkflowProvider>;
   authorize: (uid: string, authTime: number) => Promise<boolean>;
   validateOutput: (
     job: AiJob,
@@ -35,6 +35,7 @@ export type AiWorkerDependencies = {
     session: ClientSession,
   ) => Promise<void>;
   now?: () => Date;
+  trace?: (job: AiJob) => Promise<import("./types").ProviderEvent[]>;
   terminalOutput?: (
     job: AiJob,
     execution: ProviderExecution,
@@ -99,6 +100,9 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       return;
     }
     if (job!.run && deps.terminalOutput) {
+      // Trace transport failure cannot invalidate already verified termination.
+      const trace = (await deps.trace?.(job!).catch(() => [])) ?? [];
+      for (const event of trace) await persistAiEvent(db, job!, event, now());
       if (
         await db.collection("runDecisions").findOne({
           jobId: job!._id,
@@ -166,7 +170,7 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
           status: { $in: ["unknown", "submitting"] },
         }))
       ) {
-        const provider = deps.provider(job);
+        const provider = await deps.provider(job);
         if (provider.stream)
           await provider.stream(job.runId, providerUser(job.uid), (event) =>
             persistAiEvent(db, job!, event, now()),
@@ -183,7 +187,7 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       await settleAiJob(db, job, "cancelled", now());
       return true;
     }
-    const provider = deps.provider(job);
+    const provider = await deps.provider(job);
     let outcome: ProviderOutcome<ProviderExecution>;
     const starting = job.status === "queued";
     if (starting) {
@@ -250,11 +254,6 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
         job.run &&
         provider.stream &&
         state.kind === "ok" &&
-        (["running", "paused"].includes(state.value.status) ||
-          !!(await db.collection("runDecisions").findOne({
-            jobId: job._id,
-            status: { $in: ["unknown", "submitting"] },
-          }))) &&
         !job.cancelRequested
           ? await provider.stream(
               job.runId,
@@ -264,6 +263,14 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
               },
             )
           : state;
+      // Completion may occur before this poll. Replay still supplies resumed
+      // node tracing; unavailable tracing must not discard verified termination.
+      if (
+        state.kind === "ok" &&
+        !["running", "paused"].includes(state.value.status) &&
+        outcome.kind !== "ok"
+      )
+        outcome = state;
     } else {
       await defer("acceptance-unknown", true);
       return true;

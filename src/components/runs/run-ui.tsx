@@ -128,7 +128,7 @@ export function RunLanding({
                     <Textarea
                       id={`${prefix}-${field.name}`}
                       value={values[field.name] ?? ""}
-                      maxLength={4000}
+                      maxLength={field.maxLength ?? 4000}
                       onChange={(e) =>
                         setValues((v) => ({
                           ...v,
@@ -163,6 +163,11 @@ export function RunLanding({
                           : field.kind === "number"
                             ? "number"
                             : "text"
+                      }
+                      maxLength={
+                        field.kind === "text"
+                          ? (field.maxLength ?? 4000)
+                          : undefined
                       }
                       disabled={busy}
                       {...(field.kind === "file"
@@ -556,7 +561,7 @@ export function RunDetail({ initial }: { initial: Detail }) {
       </div>
       <p role="status">{error}</p>
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold">Progress</h2>
+        <h2 className="text-xl font-semibold">Tracing</h2>
         {data.events
           .filter((e) => e.event.type === "stage")
           .map((e) => (

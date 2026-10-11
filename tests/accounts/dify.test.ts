@@ -124,6 +124,50 @@ test("pinned Dify reconnect replays node snapshots and parent Human Input withou
     ["stage", "decision"],
   );
 });
+test("reconnect retains resumed tracing after a historical pause and terminal snapshot", async () => {
+  const observed: ProviderEvent[] = [];
+  const provider = createDifyWorkflow(live, live.bindings[0], async (url) => {
+    assert.ok(String(url).includes("/events?"));
+    return sse(
+      started,
+      {
+        event: "workflow_paused",
+        workflow_run_id: runId,
+        task_id: taskId,
+        data: {},
+      },
+      {
+        event: "workflow_finished",
+        workflow_run_id: runId,
+        task_id: taskId,
+        data: detail,
+      },
+      {
+        event: "node_finished",
+        workflow_run_id: runId,
+        task_id: taskId,
+        data: {
+          id: "compose-execution",
+          node_id: "compose",
+          title: "Compose result",
+          status: "succeeded",
+          elapsed_time: 0.1,
+        },
+      },
+    );
+  });
+  const result = await provider.stream!(runId, input.user, async (event) => {
+    observed.push(event);
+  });
+  assert.equal(result.kind, "ok");
+  if (result.kind === "ok") assert.equal(result.value.status, "succeeded");
+  assert.ok(
+    observed.some(
+      (event) => event.type === "stage" && event.title === "Compose result",
+    ),
+  );
+});
+
 test("Human Input submission uses the native action/response contract and matching user", async () => {
   const provider = createDifyWorkflow(
     live,

@@ -8,9 +8,7 @@ export async function POST(request: Request) {
   return endpoint(async () => {
     await checkMutation(request);
     return json(
-      await manageDify(
-        await readJson(request, managementCommandSchema, 550000),
-      ),
+      await manageDify(await readJson(request, managementCommandSchema, 2000)),
     );
   });
 }

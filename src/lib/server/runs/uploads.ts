@@ -33,7 +33,7 @@ export async function readUpload(request: Request) {
 export async function uploadInitialFile(id: string, key: string, file: File) {
   const actor = await requireSession();
   const selected = await selectedOrchestrator(id);
-  const bound = executionBinding(selected.definition, selected.revision);
+  const bound = await executionBinding(selected.definition, selected.revision);
   const result = await uploadOwnedAiFile(
     database(),
     { uid: actor.uid, authTime: actor.auth_time },

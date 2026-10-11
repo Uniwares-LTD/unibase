@@ -1,0 +1,260 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { randomUUID } from "node:crypto";
+import { AppError } from "../../src/lib/auth-policy";
+import { MongoClient, type Document } from "mongodb";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
+import { createDifyOrchestrator } from "../../src/lib/server/runs/creation";
+import { starterDsl } from "../../src/lib/server/runs/dify-starter";
+import { inspectDifyWorkflow } from "../../src/lib/server/runs/dify-capabilities";
+import type { difyJson } from "../../src/lib/server/runs/dify-console-client";
+
+test("Starter declares no inputs and includes MCP, Generative UI and native result", () => {
+  const dsl = starterDsl("workspace_mcp");
+  const fit = inspectDifyWorkflow(dsl.workflow.graph);
+  assert.deepEqual(fit.inputs, []);
+  assert.deepEqual(fit.legacyInputs, []);
+  assert.deepEqual(fit.mcpTools, [
+    { providerId: "workspace_mcp", toolName: "get_reference_document_v1" },
+  ]);
+  assert.equal(
+    dsl.workflow.graph.edges.find((e) => e.source === "decision")?.sourceHandle,
+    "continue",
+  );
+  assert.equal(
+    dsl.workflow.graph.nodes.find((n) => n.id === "compose")?.data.type,
+    "code",
+  );
+});
+test("Creation imports only a new app, resumes safely and checks fresh admin access", async (t) => {
+  const repl = await MongoMemoryReplSet.create({
+    binary: { downloadDir: ".cache/mongodb-binaries" },
+    replSet: { count: 1 },
+  });
+  const client = new MongoClient(repl.getUri());
+  const db = client.db("creation");
+  const actor = { uid: "admin", auth_time: Math.floor(Date.now() / 1000) };
+  const access = db.collection<Document & { _id: string }>("accountAccess");
+  await access.insertOne({
+    _id: actor.uid,
+    role: "admin",
+    status: "active",
+    notBefore: 0,
+  });
+  const env = {
+    DIFY_MODE: "live",
+    DIFY_CONSOLE_URL: "https://dify.test/console/api",
+    DIFY_BASE_URL: "https://dify.test/v1",
+    DIFY_WORKSPACE_ID: randomUUID(),
+    DIFY_MANAGEMENT_KEY: "private-management",
+  };
+  function fixture(
+    options: {
+      missing?: boolean;
+      lost?: boolean;
+      registerFail?: boolean;
+      revoke?: boolean;
+      changed?: boolean;
+      rejected?: boolean;
+    } = {},
+  ) {
+    const appId = randomUUID(),
+      workflowId = randomUUID();
+    let graph: unknown;
+    let published = false;
+    let imports = 0,
+      publishes = 0,
+      keys = 0;
+    const request: typeof difyJson = async (path, config = {}) => {
+      if (path === "/workspaces/current/tools/mcp")
+        return options.missing
+          ? []
+          : [
+              {
+                id: "workspace_mcp",
+                is_team_authorization: true,
+                tools: [{ name: "get_reference_document_v1" }],
+              },
+            ];
+      if (path === "/apps/imports") {
+        imports++;
+        if (options.rejected)
+          throw new AppError(
+            "DIFY_IMPORT_REJECTED",
+            "Import permission denied",
+            409,
+          );
+        const body = config.body as { app_id?: string; yaml_content: string };
+        assert.equal(body.app_id, undefined);
+        graph = JSON.parse(body.yaml_content).workflow.graph;
+        if (options.lost) throw new Error("transport lost");
+        if (options.revoke)
+          await access.updateOne(
+            { _id: actor.uid },
+            { $set: { role: "member" } },
+          );
+        return { status: "completed", app_id: appId };
+      }
+      if (path === `/apps/${appId}/workflows/draft`)
+        return { graph: options.changed ? { nodes: [] } : graph };
+      if (path === `/apps/${appId}/workflows/publish`) {
+        if (config.body !== undefined) {
+          publishes++;
+          published = true;
+          return { result: "success" };
+        }
+        return published ? { id: workflowId, graph } : null;
+      }
+      if (path === `/apps/${appId}`)
+        return {
+          mode: "workflow",
+          name: "Unibase starter",
+          description: "Demo",
+        };
+      if (path === `/apps/${appId}/api-keys`) {
+        if (config.body !== undefined) keys++;
+        return config.body === undefined
+          ? {
+              data: keys
+                ? [{ id: randomUUID(), token: "app-fixture-private-canary" }]
+                : [],
+            }
+          : { id: randomUUID(), token: "app-fixture-private-canary" };
+      }
+      if (path === "/info") {
+        if (options.registerFail)
+          throw new Error("temporary verification failure");
+        return { mode: "workflow" };
+      }
+      if (path === "/parameters") return { user_input_form: [] };
+      throw new Error(`Unexpected path ${path}`);
+    };
+    return { request, options, counts: () => ({ imports, publishes, keys }) };
+  }
+  try {
+    await t.test("success and repeated key reuse the same app", async () => {
+      const f = fixture(),
+        key = randomUUID();
+      const first = await createDifyOrchestrator(
+        key,
+        actor,
+        db,
+        f.request,
+        env,
+      );
+      assert.equal(first.status, "ready");
+      const again = await createDifyOrchestrator(
+        key,
+        actor,
+        db,
+        f.request,
+        env,
+      );
+      assert.equal(again.appId, first.appId);
+      assert.deepEqual(f.counts(), { imports: 1, publishes: 1, keys: 1 });
+    });
+    await t.test("missing MCP performs no mutation and can retry", async () => {
+      const f = fixture({ missing: true }),
+        key = randomUUID();
+      await assert.rejects(
+        createDifyOrchestrator(key, actor, db, f.request, env),
+        /Connect Unibase MCP/,
+      );
+      assert.equal(f.counts().imports, 0);
+      f.options.missing = false;
+      assert.equal(
+        (await createDifyOrchestrator(key, actor, db, f.request, env)).status,
+        "ready",
+      );
+    });
+    await t.test(
+      "explicit permission rejection permits retry after correction",
+      async () => {
+        const f = fixture({ rejected: true }),
+          key = randomUUID();
+        await assert.rejects(
+          createDifyOrchestrator(key, actor, db, f.request, env),
+          /permission denied/,
+        );
+        f.options.rejected = false;
+        assert.equal(
+          (await createDifyOrchestrator(key, actor, db, f.request, env)).status,
+          "ready",
+        );
+        assert.deepEqual(f.counts(), { imports: 2, publishes: 1, keys: 1 });
+      },
+    );
+    await t.test("lost import response never duplicates the app", async () => {
+      const f = fixture({ lost: true }),
+        key = randomUUID();
+      await assert.rejects(
+        createDifyOrchestrator(key, actor, db, f.request, env),
+      );
+      await assert.rejects(
+        createDifyOrchestrator(key, actor, db, f.request, env),
+        /did not confirm/,
+      );
+      assert.equal(f.counts().imports, 1);
+    });
+    await t.test(
+      "verification retry never imports or publishes again",
+      async () => {
+        const f = fixture({ registerFail: true }),
+          key = randomUUID();
+        await assert.rejects(
+          createDifyOrchestrator(key, actor, db, f.request, env),
+        );
+        f.options.registerFail = false;
+        assert.equal(
+          (await createDifyOrchestrator(key, actor, db, f.request, env)).status,
+          "ready",
+        );
+        assert.deepEqual(f.counts(), { imports: 1, publishes: 1, keys: 1 });
+      },
+    );
+    await t.test("changed draft is never published automatically", async () => {
+      const f = fixture({ changed: true });
+      await assert.rejects(
+        createDifyOrchestrator(randomUUID(), actor, db, f.request, env),
+        /draft changed/,
+      );
+      assert.equal(f.counts().publishes, 0);
+    });
+    await t.test("role revocation stops publication", async () => {
+      const f = fixture({ revoke: true });
+      await assert.rejects(
+        createDifyOrchestrator(randomUUID(), actor, db, f.request, env),
+        /Administrator/,
+      );
+      assert.equal(f.counts().publishes, 0);
+      await access.updateOne({ _id: actor.uid }, { $set: { role: "admin" } });
+    });
+    await t.test("member and stale session cannot import", async () => {
+      const f = fixture();
+      await assert.rejects(
+        createDifyOrchestrator(
+          randomUUID(),
+          { ...actor, uid: "member" },
+          db,
+          f.request,
+          env,
+        ),
+        /Administrator/,
+      );
+      await assert.rejects(
+        createDifyOrchestrator(
+          randomUUID(),
+          { ...actor, auth_time: actor.auth_time - 301 },
+          db,
+          f.request,
+          env,
+        ),
+        /sign in again/,
+      );
+      assert.equal(f.counts().imports, 0);
+    });
+  } finally {
+    await client.close();
+    await repl.stop();
+  }
+});

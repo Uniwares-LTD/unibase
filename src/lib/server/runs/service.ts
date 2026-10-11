@@ -128,7 +128,16 @@ async function checkedInputs(
     } else if (field.kind === "number")
       result[field.name] = z.number().finite().parse(value);
     else {
-      const text = z.string().max(4000).parse(value);
+      const parsedText = z
+        .string()
+        .max(field.maxLength ?? 4000)
+        .safeParse(value);
+      if (!parsedText.success)
+        throw new AppError(
+          "INVALID_INPUT",
+          `Enter at most ${field.maxLength ?? 4000} text characters for ${field.label}.`,
+        );
+      const text = parsedText.data;
       if (field.kind === "select" && !field.options.includes(text))
         throw new AppError("INVALID_INPUT", "Choose an offered input.");
       result[field.name] = text;
@@ -178,7 +187,7 @@ async function createAttempt(
       "Configuration or pricing changed. Reload and review before starting.",
       409,
     );
-  const bound = executionBinding(d, selected.revision);
+  const bound = await executionBinding(d, selected.revision);
   const pricing = d.pricing ?? settings.runs.pricing;
   const values = await checkedInputs(
     d,
@@ -188,6 +197,11 @@ async function createAttempt(
   );
   const id = fingerprint([actor.uid, input.key]);
   const logicalId = previous?.run?.logicalId ?? id;
+  const legacyInputs = d.legacyInputs ?? [
+    "unibase_run_id",
+    "unibase_attempt_id",
+    "unibase_recovery",
+  ];
   const job = await createAiJob(
     database(),
     { uid: actor.uid, authTime: actor.auth_time },
@@ -198,9 +212,13 @@ async function createAttempt(
       binding: bound.snapshot,
       inputs: {
         ...values,
-        unibase_run_id: logicalId,
-        unibase_attempt_id: id,
-        ...(recovery
+        ...(legacyInputs.includes("unibase_run_id")
+          ? { unibase_run_id: logicalId }
+          : {}),
+        ...(legacyInputs.includes("unibase_attempt_id")
+          ? { unibase_attempt_id: id }
+          : {}),
+        ...(recovery && legacyInputs.includes("unibase_recovery")
           ? {
               unibase_recovery: JSON.stringify({
                 version: d.recovery!.version,
@@ -342,7 +360,11 @@ async function decisionView(decision: Decision, job: AiJob) {
   let form = decision.form;
   if (decision.status === "pending" && !form) {
     try {
-      form = formSchema.parse(await providerForRun(job).form!(decision.token));
+      form = formSchema.parse(
+        await (
+          await providerForRun(job)
+        ).form!(decision.token),
+      );
       await database()
         .collection<Decision>("runDecisions")
         .updateOne({ _id: decision._id }, { $set: { form } });
@@ -773,12 +795,9 @@ export async function submitDecision(
     },
   });
   try {
-    await providerForRun(job).submit!(
-      decision.token,
-      providerUser(actor.uid),
-      parsed.action,
-      inputs,
-    );
+    await (
+      await providerForRun(job)
+    ).submit!(decision.token, providerUser(actor.uid), parsed.action, inputs);
     await collection.updateOne(
       { _id: id, "intent.hash": hash, status: "submitting" },
       { $set: { status: "submitted" } },
@@ -803,7 +822,7 @@ export async function uploadRunFile(
 ) {
   const { actor, job } = await ownedAttempt(attemptId, logicalId);
   const d = job.run!.orchestrator;
-  const bound = executionBinding(d, job.run!.configurationRevision);
+  const bound = await executionBinding(d, job.run!.configurationRevision);
   const uploaded = await uploadOwnedAiFile(
     database(),
     { uid: actor.uid, authTime: actor.auth_time },

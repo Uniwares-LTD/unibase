@@ -38,12 +38,18 @@ const env = {
   MONGODB_DATABASE: database,
   PAYMENTS_MODE: process.argv.includes("--stripe") ? "stripe" : "simulation",
   ASSET_STORE: "mongo",
-  DIFY_MODE: process.argv.includes("--ai") ? "fake" : "disabled",
+  DIFY_MODE: process.argv.includes("--orchestrators")
+    ? "live"
+    : process.argv.includes("--ai")
+      ? "fake"
+      : "disabled",
   DIFY_BASE_URL: "",
   DIFY_ORCHESTRATORS_JSON: "",
   DIFY_MANAGEMENT_KEY: "",
   DIFY_WORKSPACE_ID: "",
   DIFY_CONSOLE_URL: "",
+  DIFY_CREDENTIAL_ENCRYPTION_KEY: "",
+  DIFY_KEYS_TEST: "",
   CREDIT_PACKS_JSON: process.argv.includes("--stripe")
     ? JSON.stringify([
         {
@@ -69,6 +75,16 @@ const env = {
   HOSTNAME: "127.0.0.1",
   PORT: "3101",
 };
+let difyKeys;
+if (
+  process.argv.includes("--dify-keys") ||
+  process.argv.includes("--orchestrators")
+) {
+  const { difyKeysFixture } =
+    await import("../tests/integration/dify-keys-fixture.mjs");
+  difyKeys = await difyKeysFixture();
+  Object.assign(env, difyKeys.env);
+}
 const app = spawn(process.execPath, [prepareStandalone()], {
   env,
   stdio: "inherit",
@@ -99,15 +115,18 @@ try {
     const test = spawn(
       process.execPath,
       [
-        ...(process.argv.includes("--ai")
+        ...(process.argv.includes("--ai") ||
+        process.argv.includes("--orchestrators")
           ? ["--conditions=react-server", "--import", "tsx"]
           : []),
         "--test",
-        process.argv.includes("--ai")
-          ? "tests/integration/ai.test.mjs"
-          : process.argv.includes("--stripe")
-            ? "tests/integration/payments.test.mjs"
-            : "tests/integration/auth.test.mjs",
+        process.argv.includes("--orchestrators")
+          ? "tests/integration/orchestrators.test.mjs"
+          : process.argv.includes("--ai")
+            ? "tests/integration/ai.test.mjs"
+            : process.argv.includes("--stripe")
+              ? "tests/integration/payments.test.mjs"
+              : "tests/integration/auth.test.mjs",
       ],
       { env, stdio: "inherit", windowsHide: true },
     );
@@ -150,6 +169,7 @@ try {
     }
   }
 } finally {
+  difyKeys?.server.close();
   if (app.exitCode === null && app.signalCode === null) {
     const exited = once(app, "exit");
     app.kill();

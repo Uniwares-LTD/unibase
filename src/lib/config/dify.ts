@@ -27,6 +27,11 @@ export function parseDifyConfig(
   if (mode === "disabled" || mode === "fake") return { mode };
   if (mode !== "live") throw new Error("Invalid DIFY_MODE.");
   try {
+    if (
+      env.DIFY_CREDENTIAL_ENCRYPTION_KEY &&
+      !/^[a-fA-F0-9]{64}$/.test(env.DIFY_CREDENTIAL_ENCRYPTION_KEY)
+    )
+      throw new Error();
     const url = new URL(env.DIFY_BASE_URL ?? "");
     const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     const local = (env.APP_ENV ?? "local") === "local";

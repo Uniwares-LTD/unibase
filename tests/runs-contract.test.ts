@@ -75,6 +75,14 @@ test("Dify initial input fixtures reject unsupported controls and retain select 
   });
   assert.equal(fields[0].kind, "text");
   assert.deepEqual(fields[1].options, ["brief", "detailed"]);
+  const bounded = difyInitialInputs({
+    user_input_form: [
+      { "text-input": { variable: "short", label: "Short", max_length: 48 } },
+      { paragraph: { variable: "long", label: "Long", max_length: 10000 } },
+    ],
+  });
+  assert.equal(bounded[0].maxLength, 48);
+  assert.equal(bounded[1].maxLength, 4000);
   assert.throws(() =>
     difyInitialInputs({
       user_input_form: [{ "file-list": { variable: "files", label: "Files" } }],
@@ -95,7 +103,7 @@ test("business outcome is structured and image and checkpoint references are bou
     parseResult({ result: JSON.stringify(result) }).outcome,
     "success",
   );
-  assert.throws(() => parseResult({ text: "failed" }));
+  assert.equal(parseResult({ text: "failed" }).outcome, "success");
   assert.throws(() =>
     parseResult({
       result: {
@@ -152,5 +160,26 @@ test("orchestrator inputs cannot override application correlation or duplicate f
     baseSettingsSchema.shape.runs.shape.imageBytes.safeParse(9 * 1024 * 1024)
       .success,
     false,
+  );
+});
+
+test("native workflow outputs normalize on the app without requiring result nodes", () => {
+  assert.equal(parseResult({ text: "Hello" }).text, "Hello");
+  assert.equal(parseResult({ result: "Plain result" }).text, "Plain result");
+  assert.equal(parseResult({}).text, "");
+  assert.deepEqual(
+    JSON.parse(parseResult({ answer: "Hello", count: 42 }).text),
+    { answer: "Hello", count: 42 },
+  );
+  assert.throws(() => parseResult({ text: "x".repeat(100001) }));
+  assert.throws(() =>
+    parseResult({
+      result: {
+        version: 2,
+        outcome: "success",
+        text: "Unsupported",
+        cards: [],
+      },
+    }),
   );
 });

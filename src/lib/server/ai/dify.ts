@@ -286,6 +286,7 @@ export function createDifyWorkflow(
       let runId: string | undefined = reconnectRunId;
       let taskId: string | undefined;
       let persistenceFailed = false;
+      let finished: ProviderExecution | undefined;
       async function emit(event: ProviderEvent) {
         try {
           await observe(event);
@@ -413,10 +414,16 @@ export function createDifyWorkflow(
             if (!runId) throw new Error("Missing accepted execution identity.");
             const result = checked(envelope.data, runId);
             await emit({ type: "execution", execution: result });
+            if (reconnectRunId) {
+              finished = result;
+              continue;
+            }
             return { kind: "ok", value: result };
           }
           if (envelope.event === "workflow_paused") {
             if (!runId) throw new Error("Missing execution identity.");
+            // Reconnect replays historical pauses before later resumed nodes.
+            if (reconnectRunId) continue;
             const detail = await request(
               `/workflows/run/${runId}`,
               undefined,
@@ -429,9 +436,20 @@ export function createDifyWorkflow(
             };
           }
         }
+        if (finished) return { kind: "ok", value: finished };
+        if (reconnectRunId && runId) {
+          const detail = await request(
+            `/workflows/run/${runId}`,
+            undefined,
+            signal,
+          );
+          if (!detail.ok) return httpFailure(detail, false);
+          return { kind: "ok", value: checked(await readJson(detail), runId) };
+        }
         return { kind: "unknown", failure: "transport" };
       } catch (error) {
         if (persistenceFailed) throw error;
+        if (finished) return { kind: "ok", value: finished };
         return {
           kind: "unknown",
           failure:

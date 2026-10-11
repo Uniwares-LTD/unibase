@@ -30,6 +30,21 @@ test("Dify is disabled without credentials and fake mode is independent", () => 
 });
 
 test("Dify resolves only named private bindings and validates the API base URL", () => {
+  assert.equal(
+    parseDifyConfig({
+      ...configured,
+      DIFY_CREDENTIAL_ENCRYPTION_KEY: "a".repeat(64),
+    }).mode,
+    "live",
+  );
+  assert.throws(
+    () =>
+      parseDifyConfig({
+        ...configured,
+        DIFY_CREDENTIAL_ENCRYPTION_KEY: "invalid-secret-canary",
+      }),
+    /Invalid Dify configuration/,
+  );
   const parsed = parseDifyConfig(configured);
   assert.equal(parsed.mode, "live");
   if (parsed.mode !== "live") return;

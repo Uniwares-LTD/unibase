@@ -1,18 +1,73 @@
 import "server-only";
 import type { Db } from "mongodb";
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import { AppError } from "@/lib/auth-policy";
 import { createDifyWorkflow, type LiveConfig, type Binding } from "../ai/dify";
 import { fingerprint, type AiJob, aiJobs } from "../ai/jobs";
 import type { WorkflowProvider, ProviderExecution } from "../ai/types";
 import { database } from "../mongo";
 import type { OrchestratorDefinition } from "@/lib/contracts/runs";
+import { executionKey } from "./credentials";
+import { difyJson } from "./dify-console-client";
+import type { ProviderEvent } from "../ai/types";
 
-export function executionBinding(d: OrchestratorDefinition, revision: number) {
+// Terminal event snapshots can omit historical nodes. Fetch bounded node metadata
+// only for the app/Run already accepted in this server-owned job; never expose outputs.
+export async function tracingForRun(
+  job: AiJob,
+  request: typeof difyJson = difyJson,
+): Promise<ProviderEvent[]> {
+  const appId = job.run?.orchestrator.appId;
+  if (
+    job.binding.mode !== "live" ||
+    !appId ||
+    !job.runId ||
+    !process.env.DIFY_MANAGEMENT_KEY
+  )
+    return [];
+  const rows = z
+    .object({
+      data: z
+        .array(
+          z.object({
+            id: z.string().max(128),
+            node_id: z.string().max(128),
+            title: z.string().max(200),
+            status: z.string(),
+            elapsed_time: z.number().nonnegative().nullish(),
+          }),
+        )
+        .max(1000),
+    })
+    .parse(
+      await request(
+        `/apps/${z.string().uuid().parse(appId)}/workflow-runs/${z.string().uuid().parse(job.runId)}/node-executions`,
+        { management: true },
+      ),
+    );
+  return rows.data
+    .filter((n) => ["succeeded", "failed", "running"].includes(n.status))
+    .map((n) => ({
+      type: "stage",
+      id: n.id,
+      nodeId: n.node_id,
+      title: n.title,
+      status: n.status as "succeeded" | "failed" | "running",
+      elapsedMs:
+        n.elapsed_time == null ? null : Math.round(n.elapsed_time * 1000),
+    }));
+}
+
+export async function executionBinding(
+  d: OrchestratorDefinition,
+  revision: number,
+  db: Db = database(),
+) {
   const mode = process.env.DIFY_MODE;
   if (mode !== "live" && mode !== "fake")
     throw new AppError("AI_DISABLED", "AI execution is disabled.", 503);
-  const key = mode === "fake" ? "fake" : process.env[d.keyEnv];
+  const key = mode === "fake" ? "fake" : await executionKey(d, db);
   if (!key || (mode === "live" && !d.workflowId))
     throw new AppError(
       "AI_CONFIGURATION",
@@ -59,16 +114,17 @@ export function executionBinding(d: OrchestratorDefinition, revision: number) {
     binding,
   };
 }
-export function providerForRun(
+export async function providerForRun(
   job: AiJob,
   db: Db = database(),
-): WorkflowProvider {
+): Promise<WorkflowProvider> {
   if (!job.run)
     throw new AppError("RUN_REQUIRED", "Run configuration is missing.", 503);
   if (job.binding.mode === "fake") return fakeRun(job, db);
-  const live = executionBinding(
+  const live = await executionBinding(
     job.run.orchestrator,
     job.run.configurationRevision,
+    db,
   );
   if (live.snapshot.fingerprint !== job.binding.fingerprint)
     throw new AppError(

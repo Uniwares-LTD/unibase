@@ -12,6 +12,12 @@ import {
   readWallet,
 } from "../../src/lib/server/store/credits.ts";
 import { createAiIndexes } from "../../src/lib/server/ai/jobs.ts";
+import {
+  existingApp,
+  emptyApp,
+  existingToken,
+  createdToken,
+} from "./dify-keys-fixture.mjs";
 
 assert.equal(process.env.DIFY_MODE, "fake");
 assert.equal(process.env.APP_ORIGIN, "http://127.0.0.1:3101");
@@ -359,27 +365,25 @@ test("Runs HTTP: durable decisions, owned history, recovery, settings, and exact
   const list = await (await owner.request("/api/runs")).json();
   assert.ok(list.rows.some((r) => r.id === run.id));
   assert.equal(list.rows.filter((r) => r.id === failure.id).length, 1);
-  const registration = {
-    revision: 0,
-    reason: "Disable the demo to prevent new attempts",
-    definition: Object.fromEntries(
-      Object.entries(demo).filter(
-        ([key]) =>
-          !["configurationKey", "revision", "ready", "validated"].includes(key),
-      ),
-    ),
-  };
-  registration.definition.enabled = false;
+  // Manual definitions and the former multi-step management surface are paused.
   assert.equal(
     (
       await owner.request("/api/admin/orchestrators", {
         method: "POST",
-        body: JSON.stringify(registration),
+        body: JSON.stringify({}),
       })
     ).status,
-    200,
+    405,
   );
-  assert.equal((await owner.request(`/api/runs/${run.id}`)).status, 200);
+  assert.equal(
+    (
+      await owner.request("/api/admin/orchestrators/manage", {
+        method: "POST",
+        body: JSON.stringify({ action: "validate", definition: {} }),
+      })
+    ).status,
+    400,
+  );
   assert.equal(
     (
       await owner.request("/api/admin/orchestrators/manage", {
@@ -387,22 +391,27 @@ test("Runs HTTP: durable decisions, owned history, recovery, settings, and exact
         body: JSON.stringify({ action: "discover" }),
       })
     ).status,
-    409,
+    process.env.DIFY_KEYS_TEST ? 200 : 409,
   );
-  assert.equal(
-    (
-      await owner.request("/api/admin/orchestrators/manage", {
+  if (process.env.DIFY_KEYS_TEST) {
+    for (const appId of [existingApp, emptyApp]) {
+      assert.equal(
+        (
+          await other.request("/api/admin/orchestrators/manage", {
+            method: "POST",
+            body: JSON.stringify({ action: "register", appId }),
+          })
+        ).status,
+        403,
+      );
+      const response = await owner.request("/api/admin/orchestrators/manage", {
         method: "POST",
-        body: JSON.stringify({
-          action: "import",
-          key: randomUUID(),
-          name: "fixture",
-          yaml: "app: {}",
-          appId: randomUUID(),
-          confirmOverwrite: false,
-        }),
-      })
-    ).status,
-    409,
-  );
+        body: JSON.stringify({ action: "register", appId }),
+      });
+      const text = await response.text();
+      assert.equal(response.status, 200, text);
+      assert.ok(!text.includes(existingToken) && !text.includes(createdToken));
+      assert.equal(JSON.parse(text).status, "ready");
+    }
+  }
 });

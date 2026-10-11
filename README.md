@@ -35,15 +35,15 @@ for the current evidence and external limits.
    and the applicable HTTP/browser suites in [the test plan](docs/test-plan.md).
    Validate optional providers against new owned staging resources separately.
 
-| Identity | Source to revise in the derived project |
-| --- | --- |
-| Display name, origin, style | `.env.local` / runtime env; `APP_NAME`, `APP_ORIGIN`, `APP_STYLE` |
-| npm package/repository | `package.json`, root package-lock identity, Git remotes, workflow/package settings |
-| Local Auth/database | `demo-unitale` in auth defaults, emulator commands/tests; `unitale_local` in database defaults and local runner; explicitly select a new database |
-| Browser state/session isolation | `unitale-*` cookies, storage keys and offline-cache namespace in client/server modules and `public/sw.js`; use distinct origins even before renaming |
-| Host/deployment isolation | `/opt/unitale`, `/etc/unitale`, `/var/lib/unitale`, Compose names, SSH alias, locks and database/user prefixes in `scripts/deploy`, `deploy`, workflows and deployment tests |
-| Android | Regenerate `android/project` with new `ANDROID_HOST` and `ANDROID_PACKAGE_NAME`; use your own signing identity and Digital Asset Links |
-| Optional providers/storage | New Firebase/Atlas, Stripe catalog/webhook, Dify/MCP credentials and private object bucket/prefix; configure web and workers consistently |
+| Identity                        | Source to revise in the derived project                                                                                                                                      |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Display name, origin, style     | `.env.local` / runtime env; `APP_NAME`, `APP_ORIGIN`, `APP_STYLE`                                                                                                            |
+| npm package/repository          | `package.json`, root package-lock identity, Git remotes, workflow/package settings                                                                                           |
+| Local Auth/database             | `demo-unitale` in auth defaults, emulator commands/tests; `unitale_local` in database defaults and local runner; explicitly select a new database                            |
+| Browser state/session isolation | `unitale-*` cookies, storage keys and offline-cache namespace in client/server modules and `public/sw.js`; use distinct origins even before renaming                         |
+| Host/deployment isolation       | `/opt/unitale`, `/etc/unitale`, `/var/lib/unitale`, Compose names, SSH alias, locks and database/user prefixes in `scripts/deploy`, `deploy`, workflows and deployment tests |
+| Android                         | Regenerate `android/project` with new `ANDROID_HOST` and `ANDROID_PACKAGE_NAME`; use your own signing identity and Digital Asset Links                                       |
+| Optional providers/storage      | New Firebase/Atlas, Stripe catalog/webhook, Dify/MCP credentials and private object bucket/prefix; configure web and workers consistently                                    |
 
 Copy source and licenses, not `.env.local`, caches, emulator data, ignored `output`,
 private deployment snapshots, browser profiles, service-account files or signing
@@ -122,7 +122,7 @@ Individual checks retain their real exit codes. The aggregate `validate` command
 - `/credits`: owned wallet, held credits, debt, upcoming expiry, paginated ledger, local-only purchase simulation and opt-in Stripe Checkout.
 - `/runs/new`, `/runs`, `/runs/[id]`: selectable orchestrators, durable progress, generated decisions, results and linked recovery attempts. Dify is disabled by default.
 - `/admin/settings`: revisioned branding, credit packs and execution policies.
-- `/admin/orchestrators`: validation, availability, discovery and DSL import/export.
+- `/admin/orchestrators`: create a working starter in Dify, register published workflows and check availability.
 - `/admin/ai`: AI usage and paginated, audited resolution of uncertain executions.
 - `/admin/operations`: worker/queue health, manual payment reconciliation and preview-confirm local AI cleanup.
 - `/runs`: paginated owned execution history.
@@ -256,17 +256,26 @@ self-hosted Dify 1.17.1 and configure the connection/key references in
 configuration. No database is reset or migrated automatically.
 
 Administration ? Base settings initializes defaults once, then saved policies
-control web/worker behavior. Branding is explicitly allowlisted; credentials,
+control web/worker behavior. Branding is explicitly allowlisted; management/encryption secrets,
 connection/origin settings and Android build identity stay in environment
 configuration. Accepted attempts and purchases retain their original billing
-terms. Administration ? Orchestrators validates app credentials/input contracts
-before selection. Console management uses a separate Dify admin API key and
-workspace UUID; when absent/denied, register execution credentials and import
-repository DSL manually. Imports remain unpublished and unavailable until reviewed.
+terms. Administration → Orchestrators lists Dify Workflow apps. **Create orchestrator**
+creates, publishes and registers **Unibase starter**: zero Start inputs, an MCP demo
+document, a Brief/Detailed Generative UI choice and a native text result. Connect
+Unibase MCP in Dify first; the starter needs Dify's code sandbox, but no LLM key.
+Existing published workflows use **Register** without a form. Registration checks API access, declared inputs, Human
+Input WebApp delivery and referenced MCP tools, then reuses/creates an encrypted
+app key and enables the Orchestrator. It never edits graphs, injects inputs or
+publishes. Native End outputs are normalized by Unibase. Inline prompts require no
+prompt field. Users start Runs and view owned status, node tracing and Human Input.
+Connected MCP tools can read or write according to their server's permissions;
+Unibase's supplied tools are read-only examples. Manual JSON/DSL setup was removed.
+
+See [registration and credential storage](docs/runs.md#administration-and-setup).
 
 See [Runs setup and contracts](docs/runs.md), [AI testing](docs/ai-testing.md), and
-[sanitized Dify templates](dify/README.md). Live Dify acceptance is pending until
-a disposable configured 1.17.1 instance is available.
+[sanitized Dify templates](dify/README.md). The starter's live MCP/Human Input test
+passed; broader plugin, image and recovery acceptance remains pending.
 
 ## MCP integration
 

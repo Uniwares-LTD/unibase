@@ -19,38 +19,11 @@ test("Dify Console fixtures isolate management authentication and bound mutation
     const requests: { url: string; options: RequestInit }[] = [];
     globalThis.fetch = async (url, options) => {
       requests.push({ url: String(url), options: options! });
-      const fixture = String(url).includes("export")
-        ? { data: "sanitized DSL" }
-        : String(url).endsWith("confirm")
-          ? { status: "completed", app_id: "fixture" }
-          : {
-              status: "pending",
-              id: "import-fixture",
-              warnings: [{ type: "dependency" }],
-            };
-      return Response.json(fixture, { status: 202 });
+      return Response.json({ data: [] });
     };
-    assert.deepEqual(
-      await difyJson("/apps/imports", {
-        management: true,
-        body: { mode: "yaml-content", yaml_content: "fixture" },
-      }),
-      {
-        status: "pending",
-        id: "import-fixture",
-        warnings: [{ type: "dependency" }],
-      },
-    );
-    await difyJson("/apps/imports/fixture/confirm", {
+    await difyJson("/apps/11111111-1111-4111-8111-111111111111/api-keys", {
       management: true,
-      body: {},
     });
-    assert.deepEqual(
-      await difyJson("/apps/fixture/export?include_secret=false", {
-        management: true,
-      }),
-      { data: "sanitized DSL" },
-    );
     assert.equal(
       new Headers(requests[0].options.headers).get("Authorization"),
       "Bearer management-fixture",
@@ -71,26 +44,30 @@ test("Dify Console fixtures isolate management authentication and bound mutation
       false,
     );
     globalThis.fetch = async () =>
-      Response.json({ status: "failed", error: "dependency" }, { status: 400 });
-    assert.equal(
-      (
-        (await difyJson("/apps/imports", { management: true, body: {} })) as {
-          status: string;
-        }
-      ).status,
-      "failed",
-    );
-    globalThis.fetch = async () =>
       new Response("private-denied", { status: 403 });
     await assert.rejects(
       difyJson("/apps", { management: true }),
       (e) => e instanceof Error && !e.message.includes("private-denied"),
     );
+    await assert.rejects(
+      difyJson("/apps/imports", {
+        management: true,
+        body: { mode: "yaml-content" },
+      }),
+      (e: unknown) =>
+        e instanceof Error &&
+        "code" in e &&
+        e.code === "DIFY_IMPORT_REJECTED" &&
+        !e.message.includes("private-denied"),
+    );
     globalThis.fetch = async () => {
       throw new Error("private-transport");
     };
     await assert.rejects(
-      difyJson("/apps/imports", { management: true, body: {} }),
+      difyJson("/apps/11111111-1111-4111-8111-111111111111/api-keys", {
+        management: true,
+        body: {},
+      }),
       /did not confirm/,
     );
     globalThis.fetch = async () => new Response("x".repeat(1024 * 1024 + 1));
@@ -101,7 +78,7 @@ test("Dify Console fixtures isolate management authentication and bound mutation
     delete process.env.DIFY_MANAGEMENT_KEY;
     await assert.rejects(
       difyJson("/apps", { management: true }),
-      /management is disabled/,
+      /Console connection/,
     );
   } finally {
     globalThis.fetch = originalFetch;

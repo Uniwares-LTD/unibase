@@ -9,48 +9,61 @@ export const inputFieldSchema = z.strictObject({
   kind: z.enum(["text", "paragraph", "number", "select", "file"]),
   required: z.boolean(),
   options: z.array(z.string().max(100)).max(30).default([]),
+  maxLength: z.number().int().min(1).max(4000).optional(),
 });
-export const orchestratorSchema = z.strictObject({
-  id: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
-  name: z.string().trim().min(1).max(100),
-  description: z.string().max(1000),
-  order: z.number().int().min(0).max(1000),
-  appId: z.string().uuid().optional(),
-  workflowId: z.string().uuid().optional(),
-  keyEnv: z.string().regex(/^DIFY_KEY_[A-Z0-9_]+$/),
-  enabled: z.boolean(),
-  inputs: z
-    .array(inputFieldSchema)
-    .max(20)
-    .refine(
-      (fields) =>
-        new Set(fields.map((f) => f.name)).size === fields.length &&
-        fields.every(
-          (f) =>
-            !f.name.startsWith("unibase_") &&
-            !["constructor", "prototype", "__proto__"].includes(f.name),
-        ),
-      "Input names must be unique application fields.",
-    ),
-  pricing: aiPricingSchema.nullable(),
-  failureCharging: z
-    .enum(["success-only", "verified-usage"])
-    .nullable()
-    .optional(),
-  recovery: z
-    .strictObject({
-      version: z.string().max(64),
-      stages: z.array(z.string().regex(/^[a-z][a-z0-9_-]{0,63}$/)).max(30),
-      diagnostic: z.boolean(),
-    })
-    .nullable(),
-});
+export const orchestratorSchema = z
+  .strictObject({
+    id: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
+    name: z.string().trim().min(1).max(100),
+    description: z.string().max(1000),
+    order: z.number().int().min(0).max(1000),
+    appId: z.string().uuid().optional(),
+    workflowId: z.string().uuid().optional(),
+    keyEnv: z.string().regex(/^DIFY_KEY_[A-Z0-9_]+$/),
+    credentialId: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
+    enabled: z.boolean(),
+    // Only existing workflows may declare these deprecated application fields.
+    // Omission preserves accepted snapshots created before native-ID registration.
+    legacyInputs: z
+      .array(
+        z.enum(["unibase_run_id", "unibase_attempt_id", "unibase_recovery"]),
+      )
+      .max(3)
+      .optional(),
+    inputs: z
+      .array(inputFieldSchema)
+      .max(20)
+      .refine(
+        (fields) =>
+          new Set(fields.map((f) => f.name)).size === fields.length &&
+          fields.every(
+            (f) =>
+              !f.name.startsWith("unibase_") &&
+              !["constructor", "prototype", "__proto__"].includes(f.name),
+          ),
+        "Input names must be unique application fields.",
+      ),
+    pricing: aiPricingSchema.nullable(),
+    failureCharging: z
+      .enum(["success-only", "verified-usage"])
+      .nullable()
+      .optional(),
+    recovery: z
+      .strictObject({
+        version: z.string().max(64),
+        stages: z.array(z.string().regex(/^[a-z][a-z0-9_-]{0,63}$/)).max(30),
+        diagnostic: z.boolean(),
+      })
+      .nullable(),
+  })
+  .refine((definition) => !definition.credentialId || !!definition.appId, {
+    message: "A managed credential requires its Dify app ID.",
+    path: ["appId"],
+  });
 export type OrchestratorDefinition = z.infer<typeof orchestratorSchema>;
-export const orchestratorUpdateSchema = z.strictObject({
-  definition: orchestratorSchema,
-  revision: z.number().int().nonnegative(),
-  reason: z.string().trim().min(5).max(300),
-});
 export const runStartSchema = z.strictObject({
   key: z.string().uuid(),
   orchestratorId: orchestratorSchema.shape.id,
@@ -115,13 +128,43 @@ export const resultSchema = z.strictObject({
     .default(null),
 });
 export function parseResult(outputs: unknown) {
-  const envelope = z
-    .object({ result: z.union([z.string(), z.json()]) })
-    .parse(outputs);
+  const values = z.record(z.string(), z.json()).parse(outputs);
+  let candidate = values.result;
+  if (typeof candidate === "string") {
+    try {
+      candidate = JSON.parse(candidate);
+    } catch {
+      /* Ordinary result text. */
+    }
+  }
+  // A claimed application envelope must validate; malformed rich data never
+  // becomes a successful plain-text fallback. Other Dify outputs need no wrapper.
+  const structured =
+    candidate !== null &&
+    typeof candidate === "object" &&
+    !Array.isArray(candidate) &&
+    "version" in candidate &&
+    ("outcome" in candidate || "cards" in candidate || "images" in candidate);
+  const entries = Object.entries(values);
+  const text = structured
+    ? ""
+    : entries.length === 1
+      ? typeof entries[0][1] === "string"
+        ? entries[0][1]
+        : JSON.stringify(entries[0][1])
+      : entries.length
+        ? JSON.stringify(values, null, 2)
+        : "";
   const result = resultSchema.parse(
-    typeof envelope.result === "string"
-      ? JSON.parse(envelope.result)
-      : envelope.result,
+    structured
+      ? candidate
+      : {
+          version: 1,
+          outcome: "success",
+          text,
+          cards: [],
+          images: [],
+        },
   );
   if (new Set(result.cards.map((c) => c.id)).size !== result.cards.length)
     throw new Error("Duplicate result card IDs");
@@ -176,6 +219,7 @@ export function difyInitialInputs(parameters: unknown) {
           label: z.string(),
           required: z.boolean().default(false),
           options: z.array(z.string()).default([]),
+          max_length: z.number().int().nonnegative().optional(),
         })
         .parse(value);
       if (!(kind in kinds)) throw new Error("Unsupported Dify input control");
@@ -185,6 +229,9 @@ export function difyInitialInputs(parameters: unknown) {
         required: v.required,
         options: v.options,
         kind: kinds[kind as keyof typeof kinds],
+        ...(["text-input", "paragraph"].includes(kind) && v.max_length
+          ? { maxLength: Math.min(v.max_length, 4000) }
+          : {}),
       };
     }),
   );

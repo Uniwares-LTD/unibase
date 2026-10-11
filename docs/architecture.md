@@ -286,16 +286,53 @@ Environment values seed once; public pages use bootstrap appearance until
 initialization. Database-dependent actions fail when settings cannot be read.
 Workers read current settings between cycles; accepted attempts freeze pricing,
 limits and reconciliation policy. Credit packs and expiry policy feed the existing
-credit/purchase ledger. Credentials, connections, deployment origin and Android
+credit/purchase ledger. Management/encryption secrets, connections, deployment origin and Android
 identity remain private environment configuration; absolute safety ceilings,
 protocol versions and component registrations remain in code.
 
-`/admin/orchestrators` discovers Workflow apps with the Console admin API key and
-workspace header, or registers environment-defined apps. App execution credentials
-remain separate. Validation precedes availability. DSL imports default to a new
-app, require explicit confirmation to overwrite and journal uncertain mutations;
-exports request secret exclusion. Repository DSL templates are read-only at
-runtime. Disabling admission does not change accepted attempt snapshots.
+`/admin/orchestrators` offers **Create orchestrator** for a published starter and
+formless registration of an existing Workflow. `registration.ts` reads the
+publication, acquires an encrypted key, verifies API inputs and enables a derived
+definition. `dify-capabilities.ts` checks supported Start controls, Human Input
+WebApp delivery/form contracts and referenced MCP authorization/tool metadata.
+Registration performs no draft mutation, publication, injected inputs or provider
+response wrapping. Obsolete input/graph setup, validation and manual-save modules/routes
+were removed. Registration/audit records retain sanitized progress, not graphs.
+
+The app contract normalizes native End outputs on the Unibase server, retaining
+explicit valid structured business outcomes/cards/images. Invalid claimed rich
+results fail validation. Local owned Run/attempt IDs map to Dify's returned
+`workflow_run_id` and active `task_id`; declared legacy fields remain compatible.
+Zero-control workflows send empty inputs. Human Input uses provider form tokens,
+matching end users and event reconnect; Generative UI is validated data, never
+executable model code. Saved node events form the owned tracing timeline.
+
+MCP provider checks do not invoke remote tools or prove network reachability.
+Connected providers may expose read/write operations under their own permission
+and ownership rules. The built-in Unibase MCP catalog remains read-only until a
+specific authorized save operation is defined; service tokens never imply user
+ownership. Registration performs no generation or MCP side-effect probe.
+
+Formless Create imports a new starter graph, checks that its draft is unchanged,
+publishes it and invokes the same registration service. `orchestratorCreations`
+journals the client idempotency key, irreversible import intent and confirmed app
+ID with a fenced lease. Unknown imports are not repeated. This path is separate
+from read-only Register. The starter uses zero inputs, an authorized reference MCP
+tool, a Human Input Generative UI choice and Code/End native text output. MCP
+structured content is consumed from `json`, because Dify may leave `text` empty.
+Reconnect consumes events following historical pauses; polling completed Runs
+also replays available events. When terminal snapshots omit historical nodes, the
+worker reads bounded Console node metadata for its accepted app/Run and saves only
+titles, statuses and timings. Raw inputs/outputs are discarded. Trace transport
+failure does not invalidate verified termination or charge the Run twice.
+
+App keys use AES-256-GCM in `difyCredentials`; `difyCredentialAcquisitions` serializes
+reuse/creation and retains uncertain create intent. Web/workers resolve only private
+credentials. Encryption uses a dedicated secret or HKDF from the management key,
+scoped to instance/workspace/app. Deterministic registration IDs prevent duplicate
+orchestrators, unchanged re-registration retains revisions, and accepted attempts
+keep their previous immutable configuration and credential reference. Legacy
+execution references and history remain readable without reintroducing manual UI.
 
 Existing credit reservations reserve the disclosed maximum once. Default fixed
 charges apply only on business success. Verified-usage failure billing excludes

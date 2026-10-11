@@ -11,6 +11,23 @@ local database. The fake orchestrator supports `decision`, `decision lost`,
 fixtures. `npm run test:accounts` covers the durable job/credit/lease/provider,
 private-file/storage and Runs boundaries. `npm test` covers pure contracts.
 
+`node --conditions=react-server --import tsx scripts/integration.mjs --orchestrators`
+checks read-only registration against a local Console/Service fixture in live
+adapter mode. Existing-key and keyless workflows execute native outputs through
+the bundled worker; checks include empty inputs, owned results, provider IDs,
+input limits and exactly-once billing. Registration graph changes/publications must
+remain zero. The Create scenario imports/publishes exactly one new app, retries
+without duplicating it, then starts an owned zero-input Run, renders Generative UI,
+submits a choice and verifies MCP/result tracing. Python is not required for these fixtures.
+`--orchestrators --browser` exposes the fixture for desktop/mobile acceptance.
+
+`node --conditions=react-server --import tsx scripts/integration.mjs --ai --dify-keys`
+retains the broader fake-provider Runs regression and adds registration/key checks.
+Focused account tests cover encryption, role checks, concurrent acquisition,
+publication/input compatibility, Human Input delivery, MCP tool availability and
+native output normalization. Removed graph-mutation services have no active tests.
+Fixtures do not establish live Dify model/plugin/network acceptance.
+
 Run `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run check:env`,
 `npm run check:skills`, `npm run test:integration`, `npm run test:payments`,
 `npm run test:health` and `npm run test:deployment` for repository checks. Quality
@@ -30,7 +47,7 @@ under `output/playwright/`; never commit session state or generated credentials.
 ## Configurable credit pricing
 
 Configure global defaults at `/admin/settings`; per-orchestrator overrides are
-optional at `/admin/orchestrators`. Fixed, total/split tokens, provider-cost and
+retained for existing definitions; their editor is currently paused. Fixed, total/split tokens, provider-cost and
 hybrid policies reserve the maximum at admission and settle once with exact
 whole-credit rounding. Default fixed pricing is one credit per success and zero
 on confirmed failure/cancellation. Free execution does not create a hold.
@@ -56,15 +73,15 @@ be treated as abandoned uploads. Provider files are not deleted automatically.
 Cleanup defaults come from Base settings; execution remains an explicit admin
 operation. There is no automatic local database deletion.
 
-## Live Dify 1.17.1 acceptance ? pending
+## Live Dify 1.17.1 acceptance
 
 Use disposable test apps in the configured Dify workspace and follow
 [dify/README.md](../dify/README.md). Verify:
 
-- Console admin-key/workspace authentication, discovery, metadata, availability,
-  missing keys, secret-excluded DSL export, new-app import, overwrite confirmation,
-  pending import warnings and uncertain mutation journal behavior.
-- Published parent version pinning, initial input/correlation fields, ordinary
+- Console admin-key/workspace authentication, workflow discovery, one-click
+  registration, key reuse/creation, native Start inputs, Human Input WebApp
+  delivery and referenced MCP tool metadata. Verify no graph or publication writes.
+- Published parent version pinning, zero/optional/required inputs, ordinary
   generation and business failure/partial result envelopes.
 - A real MCP Tool invocation with returned revision/request ID, image bytes/private
   ownership, parent-mediated child questions and installed plugin/tool bindings.
@@ -77,17 +94,23 @@ Use disposable test apps in the configured Dify workspace and follow
 
 Fixtures verify application behavior and pinned payloads; they do not prove a
 specific self-hosted deployment's plugins, network or management permissions.
-No live instance was supplied for this implementation. Keep this acceptance
-pending until the disposable apps are exercised. Do not mark fixture success as
-live provider acceptance.
+The starter was created, published and registered in the configured workspace.
+Its real MCP call, Human Input form, continuation, Code result and native adapter
+events passed. A real local Unibase HTTP Run using an owned emulator user also
+passed Start, Generative UI, continuation, document result and one-credit billing.
+The approved temporary MCP-only tunnel replaced the starter's offline connection;
+other workflows/providers were not edited. This evidence covers the starter,
+not image/child/model-plugin, parallel-human, failure/recovery or cancellation
+acceptance above. Those remain pending. Fixtures alone do not establish live behavior.
 
 ## Verified implementation evidence
 
-On 2026-10-11, 51 unit and 82 account/provider tests, owned Runs HTTP acceptance,
-9 account/session HTTP tests, 3 payment HTTP tests, health checks and 25 isolated
-deployment tests passed. Production web/worker builds, typecheck, lint, formatting,
-environment and skill integrity checks passed. Docker runtime/DSL packaging and
-Playwright desktop/mobile decision, reload, recovery, history and Administration
-checks passed. Full account fixtures used two concurrent test processes to avoid
-Mongo startup deadlines while builds were running. Live Dify acceptance above
-remains pending.
+The Create correction passed 52 pure and 113 account/provider checks, production
+web/worker build, typecheck/lint, owned HTTP and desktop/mobile Create/Run checks.
+Live Unibase tracing includes Start, MCP fetch, human choice, composition and End.
+Historical checks for the original Runs engine passed pure/account/provider suites,
+owned HTTP execution, session/payment/health/deployment checks, production builds
+and desktop/mobile decision/history flows. Current registration cleanup evidence
+is recorded in [the implementation plan](implementation-plan.md). Removed setup
+fixtures no longer establish current registration behavior. Live Dify acceptance
+above remains pending beyond the verified starter scenario.

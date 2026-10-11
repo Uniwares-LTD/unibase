@@ -66,6 +66,11 @@ class ConfigTests(unittest.TestCase):
         extra = "DIFY_MODE=live\nDIFY_BASE_URL=https://dify.example.test/v1\nDIFY_ORCHESTRATORS_JSON=" + json.dumps(bindings) + "\nDIFY_KEY_TEXT=synthetic-private-key\n"
         env.write_text(original + extra)
         self.assertNotIn("synthetic-private-key", "".join(config_module.validate(self.root, "staging")))
+        env.write_text(original + extra + "DIFY_CREDENTIAL_ENCRYPTION_KEY=" + "a" * 64 + "\n")
+        config_module.validate(self.root, "staging")
+        env.write_text(original + extra + "DIFY_CREDENTIAL_ENCRYPTION_KEY=invalid-canary\n")
+        with self.assertRaises(ValueError):
+            config_module.validate(self.root, "staging")
         for bad in (extra.replace("https://", "http://"), extra.replace("keyEnv", "invalidKeyRef"), extra.replace("DIFY_MODE=live", "DIFY_MODE=invalid")):
             env.write_text(original + bad)
             with self.assertRaises(ValueError):

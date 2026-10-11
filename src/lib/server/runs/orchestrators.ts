@@ -1,18 +1,14 @@
-import type { Document } from "mongodb";
 import "server-only";
-import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { AppError } from "@/lib/auth-policy";
 import {
   orchestratorSchema,
-  orchestratorUpdateSchema,
   type OrchestratorDefinition,
 } from "@/lib/contracts/runs";
 import { database } from "../mongo";
-import { requireAdmin } from "../admin";
-import { accessTransaction } from "../store/access";
 import { readSettings } from "../settings";
 import { fingerprint } from "../ai/jobs";
+import { executionKey } from "./credentials";
 
 export type OrchestratorRecord = {
   _id: string;
@@ -71,33 +67,72 @@ export async function orchestrators(admin = false) {
     .sort({ "definition.order": 1, _id: 1 })
     .limit(100)
     .toArray();
-  return rows.map((row) => {
-    const d = row.definition;
-    const ready =
-      process.env.DIFY_MODE === "fake" ||
-      (!!process.env[d.keyEnv] && !!d.workflowId);
-    const configurationKey = fingerprint([row.revision, settings.revision, d]);
-    return admin
-      ? {
-          ...d,
-          revision: row.revision,
-          validated: row.validated,
-          ready,
-          configurationKey,
-        }
-      : {
-          id: d.id,
-          name: d.name,
-          description: d.description,
-          inputs: d.inputs,
-          pricing: d.pricing ?? settings.settings.runs.pricing,
-          failureCharging:
-            d.failureCharging ?? settings.settings.runs.failureCharging,
-          configurationKey,
-          ready: ready && settings.settings.runs.enabled,
-          recovery: d.recovery,
-        };
-  });
+  return Promise.all(
+    rows.map(async (row) => {
+      const d = row.definition;
+      let hasKey = false;
+      try {
+        hasKey = !!(await executionKey(d));
+      } catch {
+        /* Report unavailable credentials without exposing them. */
+      }
+      const ready =
+        process.env.DIFY_MODE === "fake" || (hasKey && !!d.workflowId);
+      const configurationKey = fingerprint([
+        row.revision,
+        settings.revision,
+        d,
+      ]);
+      return admin
+        ? {
+            ...d,
+            revision: row.revision,
+            validated: row.validated,
+            ready,
+            setupIssues: [
+              ...(process.env.DIFY_MODE === "fake"
+                ? []
+                : [
+                    ...(!hasKey
+                      ? [
+                          d.credentialId
+                            ? "The saved app key is unavailable. Reconnect the app."
+                            : `Execution key ${d.keyEnv} is not configured on the server. Connect the app automatically or configure this variable.`,
+                        ]
+                      : []),
+                    ...(!d.workflowId
+                      ? ["Published workflow version is missing."]
+                      : []),
+                    ...(process.env.DIFY_MODE !== "live"
+                      ? ["Dify execution is disabled in server configuration."]
+                      : []),
+                    ...(!process.env.DIFY_BASE_URL
+                      ? ["Dify execution URL is not configured."]
+                      : []),
+                  ]),
+              ...(!row.validated
+                ? ["Connection and inputs need validation."]
+                : []),
+              ...(!settings.settings.runs.enabled
+                ? ["Runs are disabled in Base settings."]
+                : []),
+            ],
+            configurationKey,
+          }
+        : {
+            id: d.id,
+            name: d.name,
+            description: d.description,
+            inputs: d.inputs,
+            pricing: d.pricing ?? settings.settings.runs.pricing,
+            failureCharging:
+              d.failureCharging ?? settings.settings.runs.failureCharging,
+            configurationKey,
+            ready: ready && settings.settings.runs.enabled,
+            recovery: d.recovery,
+          };
+    }),
+  );
 }
 export async function selectedOrchestrator(id: string) {
   await seedOrchestrators();
@@ -111,61 +146,4 @@ export async function selectedOrchestrator(id: string) {
       409,
     );
   return row;
-}
-export async function saveOrchestrator(input: unknown, validated = false) {
-  const actor = await requireAdmin(true);
-  const parsed = orchestratorUpdateSchema.parse(input);
-  const db = database();
-  if (parsed.definition.enabled && !validated)
-    throw new AppError(
-      "VALIDATION_REQUIRED",
-      "Validate the orchestrator before enabling it.",
-      409,
-    );
-  await accessTransaction(
-    db,
-    actor.uid,
-    async (session) => {
-      const collection = db.collection<OrchestratorRecord>("orchestrators");
-      const prior = await collection.findOne(
-        { _id: parsed.definition.id },
-        { session },
-      );
-      if ((prior?.revision ?? 0) !== parsed.revision)
-        throw new AppError(
-          "ORCHESTRATOR_CONFLICT",
-          "Configuration changed. Reload.",
-          409,
-        );
-      if (prior)
-        await db
-          .collection<Document & { _id: string }>("orchestratorVersions")
-          .insertOne({ ...prior, _id: randomUUID() }, { session });
-      await collection.updateOne(
-        { _id: parsed.definition.id },
-        {
-          $set: {
-            definition: parsed.definition,
-            revision: parsed.revision + 1,
-            validated,
-            updatedAt: new Date(),
-          },
-        },
-        { session, upsert: true },
-      );
-      await db.collection<Document & { _id: string }>("auditEvents").insertOne(
-        {
-          _id: randomUUID(),
-          event: "orchestrator-save",
-          actorUid: actor.uid,
-          targetUid: actor.uid,
-          reason: parsed.reason,
-          timestamp: new Date(),
-        },
-        { session },
-      );
-    },
-    actor.auth_time,
-  );
-  return { saved: true };
 }

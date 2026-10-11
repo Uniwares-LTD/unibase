@@ -42,7 +42,7 @@ def validate(root, target):
                "FIREBASE_API_KEY", "FIREBASE_APP_ID", "MONGODB_URI", "MONGODB_DATABASE",
                "ANDROID_PACKAGE_NAME", "ANDROID_SHA256_FINGERPRINTS",
                "PAYMENTS_MODE", "CREDIT_PACKS_JSON", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
-               "DIFY_MODE", "DIFY_BASE_URL", "DIFY_ORCHESTRATORS_JSON", "DIFY_CONSOLE_URL", "DIFY_MANAGEMENT_KEY", "DIFY_WORKSPACE_ID",
+               "DIFY_MODE", "DIFY_BASE_URL", "DIFY_ORCHESTRATORS_JSON", "DIFY_CONSOLE_URL", "DIFY_MANAGEMENT_KEY", "DIFY_WORKSPACE_ID", "DIFY_CREDENTIAL_ENCRYPTION_KEY",
                "ASSET_STORE", "ASSET_S3_ENDPOINT", "ASSET_S3_REGION", "ASSET_S3_BUCKET",
                "ASSET_S3_PREFIX", "ASSET_S3_ACCESS_KEY_ID", "ASSET_S3_SECRET_ACCESS_KEY",
                "ASSET_S3_FORCE_PATH_STYLE"}
@@ -69,6 +69,8 @@ def validate(root, target):
     if mode not in ("disabled", "fake", "live"):
         raise ValueError("Invalid Dify mode")
     if mode == "live":
+        if env.get("DIFY_CREDENTIAL_ENCRYPTION_KEY") and not re.fullmatch(r"[a-fA-F0-9]{64}",env["DIFY_CREDENTIAL_ENCRYPTION_KEY"]):
+            raise ValueError("Invalid Dify credential encryption secret")
         dify_url = urlsplit(env.get("DIFY_BASE_URL", ""))
         if (dify_url.scheme != "https" or not dify_url.hostname or dify_url.username or
                 dify_url.password or dify_url.query or dify_url.fragment or

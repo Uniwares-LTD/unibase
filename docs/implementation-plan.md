@@ -496,14 +496,14 @@ generic offline copy and a discoverable admin execution-profile link. The
 [derived-project checklist](../README.md#start-a-derived-project) inventories
 retained internal identifiers and explains data/credential/resource isolation.
 
-| Verification | Recorded result |
-| --- | --- |
-| Fresh tracked-source fixture | Fresh `npm ci --offline`, environment/skill checks, production build and typecheck passed without copying local env, database data or existing node_modules. The offline install does not establish registry audit status. |
-| Source/build quality | Production web/worker build, typecheck, lint and formatting passed; 51 unit tests and 136 account/provider/workspace/MCP tests passed. |
-| HTTP/worker regressions | Account/session 9 passed, payment simulation 3 passed, AI/workspace/export 6 passed with 1 mode skip, pricing 4 passed with 3 mode skips. Health tests passed unavailable-dependency, credential/project mismatch and recovery boundaries. Final packaging changes were followed by build/typecheck and AI/export regression. |
-| Deployment tooling | 26 deployment tests, shell checks and actionlint passed. Docker built from the allowlisted context; an unmodified non-root runtime passed PDF/font rendering, worker presence, development-tool/env exclusion, liveness 200, readiness 503 for deliberately unavailable dependencies, and public-route checks. |
-| Browser/PWA | Twelve public/member/admin routes exercised at desktop and 390px; avatar/mobile navigation, keyboard focus/Escape, styles/themes, diagnostics and anonymous action visibility passed without normal-navigation console errors or horizontal overflow. Offline cache contained only the public fallback; offline account navigation exposed no profile data and reconnected successfully. |
-| Dependency advisory | Registry audit reported 35 aggregate advisories: 27 high, 8 moderate, 0 critical. These include development tooling and transitive provider dependencies; no forced major downgrade or audit suppression was applied. Review affected dependency paths before staging/release. |
+| Verification                 | Recorded result                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fresh tracked-source fixture | Fresh `npm ci --offline`, environment/skill checks, production build and typecheck passed without copying local env, database data or existing node_modules. The offline install does not establish registry audit status.                                                                                                                                                               |
+| Source/build quality         | Production web/worker build, typecheck, lint and formatting passed; 51 unit tests and 136 account/provider/workspace/MCP tests passed.                                                                                                                                                                                                                                                   |
+| HTTP/worker regressions      | Account/session 9 passed, payment simulation 3 passed, AI/workspace/export 6 passed with 1 mode skip, pricing 4 passed with 3 mode skips. Health tests passed unavailable-dependency, credential/project mismatch and recovery boundaries. Final packaging changes were followed by build/typecheck and AI/export regression.                                                            |
+| Deployment tooling           | 26 deployment tests, shell checks and actionlint passed. Docker built from the allowlisted context; an unmodified non-root runtime passed PDF/font rendering, worker presence, development-tool/env exclusion, liveness 200, readiness 503 for deliberately unavailable dependencies, and public-route checks.                                                                           |
+| Browser/PWA                  | Twelve public/member/admin routes exercised at desktop and 390px; avatar/mobile navigation, keyboard focus/Escape, styles/themes, diagnostics and anonymous action visibility passed without normal-navigation console errors or horizontal overflow. Offline cache contained only the public fallback; offline account navigation exposed no profile data and reconnected successfully. |
+| Dependency advisory          | Registry audit reported 35 aggregate advisories: 27 high, 8 moderate, 0 critical. These include development tooling and transitive provider dependencies; no forced major downgrade or audit suppression was applied. Review affected dependency paths before staging/release.                                                                                                           |
 
 The separate final read-only review passed after checking the complete diff,
 compatibility, documentation and current evidence; no further actionable defect
@@ -542,7 +542,7 @@ Local implementation and read-only review completed on 2026-10-11. Verified:
   their startup deadlines under build load.
 - Runs HTTP acceptance passed using real bundled workers and disposable databases,
   including concurrent decisions, lost-response reconciliation, recovery, immutable
-  pricing, ownership, admin settings revisions and management-disabled fallback.
+  pricing, ownership and admin settings revisions.
 - Account/session HTTP: 9 passed. Payment HTTP: 3 passed. Health/readiness checks and
   25 isolated deployment-tool tests passed.
 - Production web/worker builds, typecheck, lint, formatting, environment and pinned
@@ -550,7 +550,8 @@ Local implementation and read-only review completed on 2026-10-11. Verified:
   environment bindings, tests, fonts and dependencies were removed.
 - Docker built from the allowlisted context. Non-root runtime smoke verified worker
   presence, development-tool/environment exclusion, image normalization, liveness,
-  unavailable-dependency readiness, public assets and packaged DSL downloads.
+  unavailable-dependency readiness and public assets. DSL download packaging was
+  subsequently removed with graph setup tools.
 - Playwright verified desktop/mobile navigation, generated decisions, continuation,
   reload, stage recovery, attempt history, administration, keyboard/Escape handling
   and layout. No browser console errors or horizontal overflow were observed.
@@ -572,3 +573,46 @@ the read-only review found no further defect in this correction. Local MongoDB,
 Firebase Auth/UI, web and AI/payment workers were started; readiness returned 200
 and both current worker heartbeats reported `ok`. Dify remains the configured remote
 connection; orchestrator registration/availability still requires Administration.
+
+Orchestrator simplification (2026-10-11): Administration offers Create orchestrator
+and Register an existing published Workflow. Create imports/publishes a new minimal
+MCP/Human Input/Code starter and registers it; existing graphs stay authored in Dify.
+Unibase checks the publication, API key, supported inputs, Human Input WebApp
+configuration and referenced MCP tools, then enables it. Registration never edits
+nodes/inputs, imports or publishes. The previous setup/publish/adapter services,
+manual-save contract and DSL routes were deleted. Native outputs normalize on the
+Unibase server. Local Run attempts map to provider task/Run IDs; zero-input and
+inline-prompt execution is supported. Users retain owned status, node-event tracing
+and Generative UI submission/reconnection. Connected MCP providers can expose
+permission-checked read/write tools; the included Unibase catalog stays read-only
+until a specific save operation and ownership model are defined. Existing records,
+accepted snapshots, billing and runtime history remain compatible.
+The new starter's live MCP/Human Input execution and a local owned Unibase HTTP Run
+passed. Broader provider/plugin acceptance remains pending. The starter and a separate
+MCP provider were created with session authorization; no commit or deployment occurred.
+
+Cleanup verification: production web/worker builds, typecheck, lint and 52 pure
+contract tests passed. The 101 account/provider checks cover authorization,
+encryption, read-only registration, Human Input/MCP metadata, native outputs and
+existing durable billing/history. Owned HTTP execution verifies zero graph updates
+and publications, zero-input Runs, native provider IDs and saved node tracing.
+The broader Runs HTTP regression passed. Browser checks verified Create navigation,
+formless registration/reload, native output, tracing/timing, desktop/mobile and
+keyboard navigation without console/page errors. Separate read-only review found
+no remaining actionable defect in that cleanup. The subsequent Create correction
+adds a ready-to-run starter, durable import intent, draft-change protection and
+retry deduplication. It adds no user-data MCP save operation. The starter sends
+no initial prompt/Run/attempt/recovery fields, fetches synthetic MCP JSON, requests
+Brief/Detailed via Generative UI and returns the selected summary. Reconnect now
+consumes resumed node events after historical pauses. Create requires import and
+publish permissions; Register retains read-only workflow checks.
+
+Starter verification: 52 pure and 113 account/provider tests passed, along with
+production web/worker builds, typecheck/lint and owned HTTP Create/Register/Run
+acceptance. Browser checks verified formless creation, Ready after reload,
+desktop/mobile layouts, focus and the live result. The real starter completed
+through Unibase with Generative UI, MCP document content, every node in tracing
+and one-credit billing. Complete terminal tracing reads bounded Console node
+metadata when event snapshots omit history. The authorized temporary MCP-only
+tunnel must stay running for local Dify callbacks. Read-only review found no
+remaining actionable defect; broader live plugin/recovery acceptance is pending.

@@ -87,18 +87,18 @@ Neither tool changes data or charges credits. MCP results include
 3. In the existing Unibase Test workflow, insert a Tool node selecting
    `get_reference_document_v1` before the LLM. Set `documentId` to the constant
    `unibase-demo`, not a value chosen by the model.
-4. Connect **Start → Tool → LLM → End**. Keep the required Start input `prompt`.
+4. Connect **Start → Tool → LLM → End**. Use Start's `prompt` only if this workflow declares it; inline instructions need no input.
    In the LLM user message, insert Start's `prompt` and the Tool node's structured
    `title`, `body`, `revision` and `requestId` outputs using Dify's variable picker.
    Dify converts JSON text blocks into its `json` output, so the tool's `text`
    output can be empty even after a successful call. Tell the LLM to answer using
-   the reference document as data and include its revision and request ID. Wrap the generated text in the versioned result envelope and map End's `result`
-   to the serialized envelope.
+   the reference document as data and include its revision and request ID. Map the LLM output into End; Unibase normalizes ordinary outputs.
+   Use a versioned envelope only for rich cards/images or business failure outcomes.
 5. Test: “When does the observatory open and what is the visitor password?” Expect
    Friday at 19:30 and silver-lantern, with revision/request ID from the tool.
    Inspect the Tool node's result as well as the answer; model text alone is not
    proof of a callback. Publish the updated workflow in the same Dify app.
-6. Submit the same question through Unibase `/runs/new`. Confirm successful completion,
+6. Register the current published workflow in Administration, then submit the same question through Unibase `/runs/new`. Confirm successful completion,
    saved result after reload, and normal credit settlement. Correlate the tool's
    returned request ID with server logs.
 7. For update acceptance, change the synthetic document and increment its revision
@@ -112,6 +112,12 @@ Preserve its MCP server identifier; when importing into another Dify workspace,
 create a server with that same identifier and configure credentials there. Inspect
 exports for secrets before sharing. The sanitized `dify/orchestrators/mcp-reference.yaml` template uses `unibase_test`;
 rebind its Tool node and inspect structured outputs after importing.
+
+Registration checks the stored MCP provider authorization and selected tool names
+without invoking them. It does not configure providers, credentials or writes.
+External MCP servers may provide read/write tools under their own permissions.
+The included Unibase tools are read-only; user-owned saves require a specific
+bounded operation and an ownership context independent of the service token.
 
 ## Add and update tools
 
@@ -180,8 +186,11 @@ again. Removal revokes subsequent requests; an already executing read may finish
 Emergency disable uses `MCP_ENABLED=false` and restarts all replicas. Tokens and
 deployment URLs must not be copied into downstream template repositories.
 
-Live Dify callback acceptance is pending until exercised against a reachable URL;
-local SDK tests do not establish external networking or Dify compatibility.
+The Unibase starter exercised a live Dify MCP read through an authenticated
+temporary tunnel, then Human Input continuation and a native text result.
+Temporary tunnels depend on their local proxy and tunnel processes. Expose only
+`/api/mcp`; all other paths must return 404. Use a stable reachable endpoint for
+ongoing use. General deployment/plugin acceptance remains installation-specific.
 
 References: [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk),
 [Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http),

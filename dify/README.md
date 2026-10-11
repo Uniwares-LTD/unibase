@@ -1,7 +1,6 @@
 # Dify 1.17.1 templates
 
-These sanitized `.yaml` files use JSON syntax (valid YAML). The application reads
-them for downloads and never changes repository files. Import into disposable
+These sanitized `.yaml` files use JSON syntax (valid YAML). They remain reference fixtures; Administration download/import tools were removed. Registration never changes repository files. Import into disposable
 Workflow apps first, inspect dependencies and graph bindings, then publish in
 Dify. Import does not publish or enable an orchestrator.
 
@@ -26,17 +25,25 @@ version; record that binding when validating the parent.
 
 `examples/failure.yaml` distinguishes a business failure from a technical crash.
 `checkpoint-recovery.yaml` accepts `unibase_recovery` with version `1`, stage
-`draft`, saved checkpoint data and a diagnostic flag. Register recovery as
-`{"version":"1","stages":["draft"],"diagnostic":true}`. Change the version when
+`draft`, saved checkpoint data and a diagnostic flag. Legacy recovery snapshots may declare version `1` and stage `draft`; new registration
+does not configure custom recovery. Change the version when
 checkpoint semantics change. Recovery is a new linked execution, not node replay.
 `image-result.yaml` returns bounded base64 bytes with a UUID reference; Unibase
 mints its own owned asset ID. URLs are never fetched from generated output.
 
-After publishing, register the app ID, published workflow UUID, initial `prompt`
-input and an environment execution key reference in `/admin/orchestrators`.
-Validate before making it selectable. Console management is optional and uses a
-separate admin API key and workspace UUID. Without it, download these templates,
-import manually in Dify and register the app using its execution credentials.
+Configure the shared Dify connection described in [Runs setup](../docs/runs.md).
+In Administration, **Create orchestrator** creates and publishes the minimal
+starter defined in `src/lib/server/runs/dify-starter.ts`, then registers it. Connect
+Unibase MCP with `get_reference_document_v1` first. Start a Run without inputs,
+choose Brief/Detailed in Generative UI, Continue and view the demo document result
+and tracing. The Code node requires Dify's sandbox; no model configuration is needed.
+Existing published
+workflows register directly. Unibase reuses or creates the API key, checks the
+publication/inputs/Human Input/MCP configuration and enables the Orchestrator.
+Register never modifies or publishes the workflow. Ordinary End outputs need no JSON
+wrapper; Unibase normalizes them server-side. Inline prompts need no Start input.
+Configure WebApp delivery for Human Input and synchronize/authenticate referenced
+MCP tools. Model/plugin/MCP dependencies remain managed by Dify.
 
 Live acceptance against a configured disposable 1.17.1 instance is required to
 confirm installation-specific model/plugin, MCP and child-workflow bindings.

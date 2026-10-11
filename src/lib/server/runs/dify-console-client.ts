@@ -27,14 +27,21 @@ function baseUrl(management: boolean) {
 }
 export async function difyJson(
   path: string,
-  options: { management?: boolean; key?: string; body?: unknown } = {},
+  options: {
+    management?: boolean;
+    key?: string;
+    body?: unknown;
+    timeoutMs?: number;
+  } = {},
 ) {
   const management = options.management ?? false;
   const key = management ? process.env.DIFY_MANAGEMENT_KEY : options.key;
   if (!key || (management && !process.env.DIFY_WORKSPACE_ID))
     throw new AppError(
       "DIFY_NOT_CONFIGURED",
-      "Dify management is disabled. Use registered orchestrators and repository DSL files.",
+      management
+        ? "Configure the Dify Console connection and management key."
+        : "The app execution key is not configured on the server. Set the referenced DIFY_KEY_* variable to this app’s API key.",
       409,
     );
   let response: Response;
@@ -55,7 +62,9 @@ export async function difyJson(
       },
       body:
         options.body === undefined ? undefined : JSON.stringify(options.body),
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(
+        Math.min(30000, Math.max(1000, options.timeoutMs ?? 30000)),
+      ),
       redirect: "error",
       cache: "no-store",
     });
@@ -66,11 +75,30 @@ export async function difyJson(
       503,
     );
   }
-  if (
-    !response.ok &&
-    !(management && path.startsWith("/apps/imports") && response.status === 400)
-  ) {
+  if (!response.ok) {
     await response.body?.cancel();
+    if (
+      management &&
+      path === "/apps/imports" &&
+      options.body !== undefined &&
+      [401, 403, 404, 405, 429].includes(response.status)
+    )
+      throw new AppError(
+        "DIFY_IMPORT_REJECTED",
+        `Dify rejected workflow creation (${response.status}). Check import permissions and retry.`,
+        409,
+      );
+    if (
+      management &&
+      options.body !== undefined &&
+      /^\/apps\/[a-f0-9-]+\/api-keys$/.test(path) &&
+      [400, 401, 403, 404, 405, 422, 429].includes(response.status)
+    )
+      throw new AppError(
+        "DIFY_KEY_CREATION_REJECTED",
+        `Dify rejected app key creation (${response.status}). Check management permissions and the app’s key limit.`,
+        409,
+      );
     throw new AppError(
       "DIFY_REJECTED",
       `Dify rejected the request (${response.status}).`,
