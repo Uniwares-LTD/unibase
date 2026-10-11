@@ -30,7 +30,7 @@ test("API client preserves multipart file bodies and lets fetch set their bounda
     },
   );
   assert.deepEqual(
-    await api("/api/ai/files", z.object({ uploaded: z.boolean() }), {
+    await api("/api/run-uploads", z.object({ uploaded: z.boolean() }), {
       method: "POST",
       body: form,
       timeoutMs: 120000,

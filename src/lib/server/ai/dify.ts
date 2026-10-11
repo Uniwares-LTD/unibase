@@ -132,7 +132,7 @@ export function httpFailure(
 
 export async function readJson(
   response: Response,
-  limit = 2 * 1024 * 1024,
+  limit = 16 * 1024 * 1024,
 ): Promise<unknown> {
   return JSON.parse(
     new TextDecoder("utf-8", { fatal: true }).decode(
@@ -199,12 +199,15 @@ export function createDifyWorkflow(
   config: LiveConfig,
   binding: Binding,
   fetcher: typeof fetch = fetch,
+  reconnectRunId?: string,
 ): WorkflowProvider {
   if (binding.kind !== "workflow")
     throw new Error("A workflow binding is required.");
   const request = createDifyRequest(config, binding, fetcher);
   function checked(value: unknown, expectedId?: string) {
     const result = execution(value);
+    if (Buffer.byteLength(JSON.stringify(result.outputs)) > 12 * 1024 * 1024)
+      throw new Error("Result size limit.");
     if (
       (expectedId && result.runId !== expectedId) ||
       (binding.workflowId && result.workflowId !== binding.workflowId)
@@ -213,11 +216,52 @@ export function createDifyWorkflow(
     return result;
   }
   return {
+    async stream(runId, user, observe, signal) {
+      id.parse(runId);
+      const streamingFetch: typeof fetch = (_url, options) =>
+        options?.method === "POST"
+          ? fetcher(
+              `${config.baseUrl}/workflow/${runId}/events?user=${encodeURIComponent(user)}&include_state_snapshot=true`,
+              { ...options, method: "GET", body: undefined },
+            )
+          : fetcher(_url, options);
+      return createDifyWorkflow(config, binding, streamingFetch, runId).start(
+        { user, inputs: {} },
+        observe,
+        signal,
+      );
+    },
+    async form(token) {
+      if (!/^[A-Za-z0-9_-]{1,256}$/.test(token))
+        throw new Error("Invalid form token.");
+      const response = await request(`/form/human_input/${token}`, undefined);
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new Error("Form unavailable.");
+      }
+      return readJson(response);
+    },
+    async submit(token, user, action, inputs) {
+      if (!/^[A-Za-z0-9_-]{1,256}$/.test(token))
+        throw new Error("Invalid form token.");
+      const response = await request(`/form/human_input/${token}`, {
+        user,
+        action,
+        inputs,
+      });
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new Error("Submission outcome requires reconciliation.");
+      }
+      await readJson(response);
+    },
     async start(input, observe, signal) {
       let response: Response;
       try {
         response = await request(
-          "/workflows/run",
+          binding.workflowId
+            ? `/workflows/${binding.workflowId}/run`
+            : "/workflows/run",
           {
             inputs: input.inputs,
             user: input.user,
@@ -239,7 +283,7 @@ export function createDifyWorkflow(
         await response.body?.cancel().catch(() => undefined);
         return { kind: "unknown", failure: "invalid-response" };
       }
-      let runId: string | undefined;
+      let runId: string | undefined = reconnectRunId;
       let taskId: string | undefined;
       let persistenceFailed = false;
       async function emit(event: ProviderEvent) {
@@ -251,7 +295,10 @@ export function createDifyWorkflow(
         }
       }
       try {
-        for await (const raw of readSse(response.body)) {
+        for await (const raw of readSse(response.body, {
+          totalBytes: 32 * 1024 * 1024,
+          frameBytes: 16 * 1024 * 1024,
+        })) {
           const envelope = z
             .object({
               event: z.string(),
@@ -273,6 +320,72 @@ export function createDifyWorkflow(
           }
           if (envelope.event === "error")
             return { kind: "unknown", failure: "unavailable" };
+          if (["node_started", "node_finished"].includes(envelope.event)) {
+            const node = z
+              .object({
+                id: z.string().max(128),
+                node_id: z.string().max(128),
+                title: z.string().max(200).default("Stage"),
+                status: z.string().optional(),
+                elapsed_time: z.number().nonnegative().optional(),
+              })
+              .safeParse(envelope.data);
+            if (node.success)
+              await emit({
+                type: "stage",
+                id: node.data.id,
+                nodeId: node.data.node_id,
+                title: node.data.title,
+                status:
+                  envelope.event === "node_started"
+                    ? "running"
+                    : node.data.status === "failed"
+                      ? "failed"
+                      : "succeeded",
+                elapsedMs:
+                  node.data.elapsed_time === undefined
+                    ? null
+                    : Math.round(node.data.elapsed_time * 1000),
+              });
+          }
+          if (envelope.event === "human_input_required") {
+            const form = z
+              .object({
+                node_id: z.string().max(128),
+                node_title: z.string().max(200).default("Decision"),
+                form_token: z.string().regex(/^[A-Za-z0-9_-]{1,256}$/),
+              })
+              .parse(envelope.data);
+            await emit({
+              type: "decision",
+              nodeId: form.node_id,
+              title: form.node_title,
+              token: form.form_token,
+            });
+          }
+          if (envelope.event === "human_input_form_timeout") {
+            const form = z.object({ node_id: z.string() }).parse(envelope.data);
+            await emit({ type: "decision-expired", nodeId: form.node_id });
+            continue;
+          }
+          if (envelope.event === "human_input_form_filled") {
+            const form = z
+              .object({
+                node_id: z.string().max(128),
+                action_id: z.string().max(20),
+                submitted_data: z
+                  .record(z.string(), z.json())
+                  .nullable()
+                  .optional(),
+              })
+              .parse(envelope.data);
+            await emit({
+              type: "decision-filled",
+              nodeId: form.node_id,
+              action: form.action_id,
+              inputs: form.submitted_data ?? {},
+            });
+          }
           if (envelope.event === "node_finished") {
             const node = z
               .object({
@@ -303,8 +416,17 @@ export function createDifyWorkflow(
             return { kind: "ok", value: result };
           }
           if (envelope.event === "workflow_paused") {
-            // Obtain the complete validated record through the normal GET path.
-            return { kind: "unknown", failure: "unavailable" };
+            if (!runId) throw new Error("Missing execution identity.");
+            const detail = await request(
+              `/workflows/run/${runId}`,
+              undefined,
+              signal,
+            );
+            if (!detail.ok) return httpFailure(detail, false);
+            return {
+              kind: "ok",
+              value: checked(await readJson(detail), runId),
+            };
           }
         }
         return { kind: "unknown", failure: "transport" };

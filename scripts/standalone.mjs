@@ -6,6 +6,7 @@ export function prepareStandalone() {
   const server = path.join(root, "server.js");
   if (!existsSync(server))
     throw new Error("Run npm run build before starting the standalone server.");
+  cpSync("dify", path.join(root, "dify"), { recursive: true });
   cpSync("public", path.join(root, "public"), { recursive: true });
   cpSync(".next/static", path.join(root, ".next/static"), { recursive: true });
   return server;

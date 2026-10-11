@@ -17,11 +17,12 @@ import { cn } from "@/lib/utils";
 
 const routes = [
   { href: "/", label: "Home", Icon: Home },
-  { href: "/ai", label: "AI workspace", Icon: Sparkles },
-  { href: "/workspaces", label: "Creation workspaces", Icon: BookOpen },
+  { href: "/runs/new", label: "Start run", Icon: Sparkles },
+  { href: "/runs", label: "Runs", Icon: BookOpen },
 ];
 
 function matchesRoute(pathname: string, href: string) {
+  if (href === "/runs" && pathname === "/runs/new") return false;
   return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 }
 

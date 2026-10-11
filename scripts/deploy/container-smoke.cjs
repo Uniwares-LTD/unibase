@@ -29,24 +29,13 @@
   ]) {
     assert.ok(fs.statSync(`/app/${name}`).size > 0, `Missing worker: ${name}`);
   }
-  // Export rendering dependencies and fonts must survive standalone tracing.
-  for (const name of ["sharp", "pdfkit"]) assert.ok(require.resolve(name));
-  assert.ok(
-    fs.statSync("/app/public/export-fonts/NotoSans-Regular.ttf").size > 0,
-  );
-  const PDFDocument = load("pdfkit");
-  const pdf = new PDFDocument({
-    font: "/app/public/export-fonts/NotoSans-Regular.ttf",
-  });
-  const rendered = new Promise((resolve, reject) => {
-    const chunks = [];
-    pdf.on("data", (chunk) => chunks.push(chunk));
-    pdf.on("end", () => resolve(Buffer.concat(chunks)));
-    pdf.on("error", reject);
-  });
-  pdf.text("Clone packaging check");
-  pdf.end();
-  assert.ok((await rendered).subarray(0, 5).equals(Buffer.from("%PDF-")));
+  assert.ok(require.resolve("sharp"));
+  const image = await load("sharp")({
+    create: { width: 2, height: 2, channels: 4, background: "white" },
+  })
+    .png()
+    .toBuffer();
+  assert.equal((await load("sharp")(image).metadata()).format, "png");
   for (const [route, status] of [
     ["live", 200],
     ["ready", 503],

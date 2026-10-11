@@ -25,12 +25,17 @@ test("file adapter uses multipart boundaries and opaque user identity, with boun
   const config = parseDifyConfig({
     DIFY_MODE: "live",
     DIFY_BASE_URL: "https://dify.example.test/v1",
-    DIFY_BINDINGS_JSON: JSON.stringify([
+    DIFY_ORCHESTRATORS_JSON: JSON.stringify([
       {
-        name: "document-summary",
-        revision: "1",
-        kind: "workflow",
-        apiKeyEnv: "DIFY_KEY_DOC",
+        id: "document-summary",
+        name: "Document summary",
+        description: "",
+        order: 0,
+        enabled: true,
+        keyEnv: "DIFY_KEY_DOC",
+        inputs: [],
+        pricing: null,
+        recovery: null,
       },
     ]),
     DIFY_KEY_DOC: "secret",

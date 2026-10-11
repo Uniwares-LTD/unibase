@@ -84,7 +84,7 @@ export function AiResolution({
               variant="outline"
               disabled={busy || reason.trim().length < 10}
             >
-              Release reserved credits
+              Resolve attempt and release credits
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
@@ -93,8 +93,9 @@ export function AiResolution({
               <AlertDialogDescription>
                 This records an audited credit waiver. It does not stop a
                 provider execution whose state is uncertain; provider costs may
-                still accrue. An uncertain conversation stays blocked for
-                follow-up messages.
+                still accrue. This explicitly resolves the attempt and permits a
+                new attempt; it can duplicate work if the provider is still
+                running.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

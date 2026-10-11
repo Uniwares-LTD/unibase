@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-patterns";
 import { DesignShowcase } from "@/components/design-showcase";
-import { CreationShowcase } from "@/components/creation-showcase";
 import { getConfig } from "@/lib/server/config";
 
 export async function generateMetadata({
@@ -34,7 +33,6 @@ export default function DesignSystemPage() {
         description="A reference for changing and testing visual tokens, components and page patterns."
       />
       <DesignShowcase />
-      <CreationShowcase />
     </div>
   );
 }

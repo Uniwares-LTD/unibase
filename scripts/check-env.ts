@@ -6,7 +6,6 @@ import { assetLinks } from "../src/lib/config/android";
 import { parseCreditConfig } from "../src/lib/config/credits";
 import { parseStripeConfig } from "../src/lib/config/payments";
 import { parseDifyConfig } from "../src/lib/config/dify";
-import { parseAiPricing } from "../src/lib/config/ai-pricing";
 import { parseAssetConfig } from "../src/lib/config/assets";
 import { parseMcpConfig } from "../src/lib/config/mcp";
 
@@ -28,7 +27,6 @@ try {
   );
   parseStripeConfig(process.env, credits.mode === "stripe");
   parseDifyConfig(process.env);
-  parseAiPricing(process.env);
   parseAssetConfig(process.env);
   assetLinks(
     process.env.ANDROID_PACKAGE_NAME,

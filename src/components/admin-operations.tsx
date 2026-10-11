@@ -30,9 +30,9 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
 
-export function AdminCleanup() {
+export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
   const router = useRouter();
-  const [days, setDays] = useState("30");
+  const [days, setDays] = useState(String(defaultDays));
   const [limit, setLimit] = useState("50");
   const [scope, setScope] = useState("jobs");
   const [reason, setReason] = useState("");
@@ -79,13 +79,7 @@ export function AdminCleanup() {
         private uploads. Active and uncertain executions are excluded. Provider
         files, billing, usage, audit and retry records remain.
       </p>
-      <p>
-        Archived workspace cleanup permanently removes saved content,
-        conversations and private assets. Finish or cancel workflow runs before
-        archiving. Active or unresolved jobs and uploads prevent deletion. This
-        scope previews at most 10 eligible workspaces from the oldest 100
-        archived candidates.
-      </p>
+
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
           <Label htmlFor="cleanup-days">Older than (days)</Label>
@@ -136,9 +130,7 @@ export function AdminCleanup() {
                 Failed upload references
               </SelectItem>
               <SelectItem value="both">Both</SelectItem>
-              <SelectItem value="archived-workspaces">
-                Archived workspaces and content
-              </SelectItem>
+
               <SelectItem value="abandoned-uploads">
                 Abandoned private uploads
               </SelectItem>
@@ -167,14 +159,7 @@ export function AdminCleanup() {
             {report.abandonedUploads} abandoned private uploads · cutoff{" "}
             {report.cutoff.slice(0, 10)} UTC
           </p>
-          {report.workspaces > 0 && (
-            <p>
-              {report.workspaces} archived workspaces · {report.workspaceAssets}{" "}
-              saved assets · {report.workspaceEvents} conversation events. All
-              versions, decisions, reviews and workflow content in these
-              workspaces will be removed.
-            </p>
-          )}
+
           <p className="text-sm">
             This is one bounded batch. Generate another preview for remaining
             eligible content. Changed records are skipped rather than replaced
@@ -214,11 +199,7 @@ export function AdminCleanup() {
                     disabled={
                       busy ||
                       reason.trim().length < 10 ||
-                      report.jobs +
-                        report.files +
-                        report.abandonedUploads +
-                        report.workspaces ===
-                        0
+                      report.jobs + report.files + report.abandonedUploads === 0
                     }
                   >
                     Execute previewed cleanup
@@ -234,9 +215,7 @@ export function AdminCleanup() {
                       are considered. Billing and audit records remain, and
                       AI-provider files are not deleted. Approved abandoned
                       private uploads are removed from application storage by
-                      the maintenance worker. Archived workspace cleanup removes
-                      all saved workspace content and queues its private objects
-                      for removal.
+                      the maintenance worker.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

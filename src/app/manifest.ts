@@ -1,12 +1,10 @@
 import type { MetadataRoute } from "next";
 import { connection } from "next/server";
-import { getConfig } from "@/lib/server/config";
+import { publicSettings } from "@/lib/server/settings";
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   await connection();
-  const {
-    public: { appName },
-  } = getConfig();
+  const { appName } = await publicSettings();
   return {
     id: "/",
     name: appName,

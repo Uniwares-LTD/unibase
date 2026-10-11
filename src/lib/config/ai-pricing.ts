@@ -46,21 +46,3 @@ export type AiPricing = z.infer<typeof aiPricingSchema>;
 export function maximumCredits(pricing: AiPricing) {
   return pricing.mode === "fixed" ? pricing.credits : pricing.maxCredits;
 }
-
-// Rates are application billing terms, not private Dify credentials. Only this
-// allowlisted structure can reach the browser or a durable pricing snapshot.
-export function parseAiPricing(
-  env: Record<string, string | undefined>,
-): Record<string, AiPricing> {
-  if (!env.AI_PRICING_JSON) return {};
-  try {
-    if (env.AI_PRICING_JSON.length > 64 * 1024) throw new Error();
-    const parsed = z
-      .record(z.string().regex(/^[a-z][a-z0-9-]{0,63}$/), aiPricingSchema)
-      .parse(JSON.parse(env.AI_PRICING_JSON));
-    if (Object.keys(parsed).length > 100) throw new Error();
-    return parsed;
-  } catch {
-    throw new Error("Invalid AI_PRICING_JSON. Check capability pricing terms.");
-  }
-}

@@ -250,7 +250,7 @@ export function DesignShowcase() {
         </Notice>
         <EmptyState
           title="No stories yet"
-          description="When the creator workspace is implemented, saved stories will appear here."
+          description="Your completed runs will appear here."
         />
       </section>
       <section aria-labelledby="wallet-title" className="space-y-4">
@@ -262,7 +262,7 @@ export function DesignShowcase() {
       <section aria-labelledby="preview-title" className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <h2 id="preview-title" className="text-xl font-semibold">
-            Creator workspace preview
+            Run results preview
           </h2>
           <Badge variant="outline">Static concept · not implemented</Badge>
         </div>

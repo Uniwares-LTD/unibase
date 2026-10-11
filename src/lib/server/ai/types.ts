@@ -36,11 +36,25 @@ export type ProviderExecution = {
 };
 export type ProviderEvent =
   | {
+      type: "stage";
+      id: string;
+      nodeId: string;
+      title: string;
+      status: "running" | "succeeded" | "failed";
+      elapsedMs: number | null;
+    }
+  | { type: "decision"; nodeId: string; title: string; token: string }
+  | { type: "decision-expired"; nodeId: string }
+  | {
+      type: "decision-filled";
+      nodeId: string;
+      action: string;
+      inputs: Record<string, Json>;
+    }
+  | {
       type: "identity";
       runId: string;
       taskId: string;
-      providerConversationId?: string;
-      workflowRunId?: string;
     }
   | { type: "execution"; execution: ProviderExecution }
   | { type: "usage"; usage: UsageObservation };
@@ -57,6 +71,19 @@ export type WorkflowInput = {
   inputs: Record<string, Json>;
 };
 export interface WorkflowProvider {
+  stream?(
+    runId: string,
+    user: string,
+    observe: (event: ProviderEvent) => Promise<void>,
+    signal?: AbortSignal,
+  ): Promise<ProviderOutcome<ProviderExecution>>;
+  form?(token: string): Promise<unknown>;
+  submit?(
+    token: string,
+    user: string,
+    action: string,
+    inputs: Record<string, Json>,
+  ): Promise<void>;
   start(
     input: WorkflowInput,
     observe: (event: ProviderEvent) => Promise<void>,

@@ -457,364 +457,13 @@ access fences, retry evidence, terminal cleanup eligibility, worker rollout and
 current documentation. The selected scope and implemented surfaces match. Existing
 live Dify/Stripe, VPS and Android acceptance remain separate pending checkpoints.
 
-## Reusable creation workspaces
+## Retired creation workspace extension
 
-Accepted 2026-10-07: extract the ideas from the Unitale POC into product-neutral
-services: typed generated cards and saved decisions; immutable artifacts,
-dependencies and human approval; owned private assets; durable batch manifests,
-candidate selection and version-pinned quality reviews; optional Dify image and
-document export adapters. Use the existing AI worker, credit accounting and access
-boundaries. Product graphs, prompts, provider resources and booklet models are not
-part of this migration. Implemented at `/workspaces`; [creation workspaces](creation-workspaces.md)
-owns setup, provider contracts, recovery semantics, retention and extension limits.
-
-Verification on 2026-10-07: production build and worker bundles, typecheck, lint,
-formatting, environment and skill integrity checks passed. All 44 unit tests and
-83 account/provider tests passed, including 13 workspace contract/store checks.
-Production HTTP acceptance passed for workspace CSRF/ownership, generated decisions,
-private downloads, image generation through the bundled worker, existing AI flows
-and variable pricing. Tests used disposable MongoDB and the local Auth emulator.
-
-Browser acceptance passed for question/answer persistence after reload, comparing
-two candidates, selection, review/reapproval, JSON download, private image upload
-and generation, pause/resume, keyboard focus, mobile navigation and saved dark mode
-after reload. No horizontal overflow at 1440px/390px or browser runtime errors were
-observed. Final navigation/pricing disclosure changes were rechecked on both sizes.
-
-The separate read-only review found and corrected dependency loss during AI revision,
-decision-change approval invalidation and explicit APNG rejection; affected tests
-passed afterward. Final comparison: accepted feature surfaces, access/credit/worker
-reuse, local documentation and validation matched the plan. The asset adapter uses
-bounded MongoDB storage; exports are JSON/text. Product PDF layout, reference-image
-editing and object-storage implementations are extension points, not bundled features.
-Live Dify/provider acceptance and deployment remain unverified; no external writes
-or publication were performed.
-
-## Reusable creation platform extension
-
-Accepted 2026-10-07: implement the remaining recommended reusable capabilities,
-including a general data-driven generative UI. The six stages below are implemented;
-the completion audit follows the dated implementation checkpoints.
-
-1. **Registries:** versioned artifact schemas, editors/renderers and card/action
-   definitions; registered structured forms, galleries, summaries, progress and
-   issues; server-validated responses and compatibility with existing workspaces.
-2. **Conversation and previews:** persisted messages, card/action/execution events,
-   history retrieval and safe owned image previews before candidate selection.
-3. **Execution configuration:** versioned prompt/execution profiles, eligibility,
-   administrator configuration, mixed-profile candidates and explicit new attempts
-   for confirmed failed/cancelled items. Uncertain provider jobs retain admin recovery.
-4. **Workflows and repair:** durable step definitions and dependency scheduling on
-   the existing queue, human checkpoints, restart-safe resume, individually tracked
-   quality issues and bounded targeted repair/re-review.
-5. **Media/storage lifecycle:** owned reference-image inputs and editing contracts,
-   object-storage adapter and larger assets, archive/deletion and preview/confirm
-   cleanup that covers workspace snapshots/assets while preserving financial,
-   audit and retry evidence.
-6. **Exports:** generic version-pinned PDF/ZIP export jobs, progress and reusable
-   rendering hooks. Product-specific booklet layout remains in the product project.
-
-Change-surface forecast: creation contracts, feature registries, workspace storage,
-API/UI, AI preparation/validation, existing worker integration, administration,
-asset/export adapters and their setup documentation. Keep one Next.js application,
-explicit public DTOs, owned transactional mutations and the existing credit ledger.
-Persist contract versions and retain legacy reads; no source-project credentials,
-models, identities or autonomous in-process provider runners are imported.
-
-Acceptance requires real user-facing flows and extension examples, not only
-interfaces. Each stage must prove malformed/unknown types and actions fail safely,
-cross-owner references fail, exact retries do not duplicate effects, stale versions
-cannot overwrite current work, and restarts preserve durable progress. Verify new
-adapters against controlled fixtures without production services. Final acceptance
-includes the full unit/account/HTTP suites, build/type/lint checks, desktop/mobile
-and keyboard/theme browser checks, a separate read-only review, current README and
-architecture documentation, and a requirement-by-requirement completion audit.
-
-Status: implemented and locally verified on 2026-10-08. Live provider/deployment
-acceptance remains separate from fixture-based verification; nothing is published
-by this goal. Earlier checkpoint statements below describe their dated state.
-
-Extension checkpoint (2026-10-07): versioned card/artifact contracts and renderers,
-persisted structured responses, shared review approval rules, conversation messages
-and bounded history pages, and owned pre-selection image previews are implemented.
-Worker settlement validates generated asset ownership and records successful
-execution events. The latest 12 messages feed bounded frozen generation context.
-Typecheck, lint, production build, 48 unit tests and 87 account/provider tests passed.
-Production HTTP checks include history ownership/cursor handling and private candidate
-previews. Browser checks cover message/form persistence, image previews before selection,
-desktop/mobile overflow and 25+3 history pagination. These are checkpoint results,
-not full extension acceptance. Registries still need broader example/renderer coverage;
-execution configuration, durable workflows/repair, media lifecycle and export jobs
-remain pending, as does the final complete-diff review and requirement audit.
-
-Browser verification also reproduced a profile-save regression: the successful
-form action reset Radix radios to their mount-time values and overwrote browser
-theme/style preferences. The profile form now prevents that automatic reset.
-Rebuilt-app checks passed for saving Dark and Soft Blue, navigation persistence,
-mobile keyboard message submission and no horizontal overflow. A focused read-only
-review checked history authorization, transactional events, preview ownership and
-the form reset; the final review of the entire extension remains pending.
-
-Execution-configuration checkpoint (2026-10-07): administrator profile publication,
-immutable revision history, eligibility/context settings, alternative configured
-bindings, mixed-profile candidate batches and explicit new attempts are implemented.
-Existing batch requests retain their profile instructions, binding and pricing;
-new selections reject changed/disabled/ineligible revisions. Retry eligibility uses
-terminal evidence, not a cancelled status alone, and excludes uncertain admin waivers.
-A confirmed rejection survives a crash before credit release without another POST.
-Verification passed for build/type/lint, 48 unit tests, 91 account/provider tests,
-production AI/admin HTTP checks and variable-pricing HTTP checks. Browser checks
-covered two published profile revisions, history, a mixed-profile two-candidate
-batch, selection/reload and desktop/mobile layouts. Focused read-only review found
-the rejection-recovery gap; the correction and regression passed. Configuration
-alias tests use controlled fixtures; live provider acceptance remains unverified.
-Stages 4–6 and the broader generative-UI examples/final completion audit remain active.
-
-Workflow/repair checkpoint (2026-10-07): stage 4 is implemented and locally verified.
-The workspace now exposes version-aware workflow templates, step profiles and planned
-credit disclosure, durable progress, pause/resume/cancellation and human checkpoints.
-The existing worker schedules saved, leased command intents over the existing job
-queue and credit ledger. Independent branches, source pins, restart replay and
-confirmed-failure retry chains are covered. Generated decisions and checkpoint
-approvals are checked transactionally again before dependent batch creation.
-
-Quality reviews now have stable individual findings, explicit acceptance/reopening/
-resolution history, and targeted repair → re-review → human approval. Repair admission
-and attempt history commit together; runs are limited to three per finding and one
-active/paused repair per artifact. Resolution requires a newer version, a fresh review
-without open blocking findings, and an explicit human reason. Existing reviews and
-saved card history remain compatible; reopened cards retain replacement links.
-
-Verification passed for production build/worker bundles, typecheck, lint, formatting,
-49 unit tests, 101 account/provider tests, production AI/workflow/repair HTTP acceptance
-and variable-pricing HTTP checks. Browser checks demonstrated automatic progression,
-human approval, repair/re-review, persisted resolution, keyboard pause, reload/resume,
-cancellation and saved dark mode, without overflow at 1440px/390px. The final template
-picker change was rebuilt and rechecked for type/version, costs and mobile submission.
-Tests used disposable MongoDB and the local Auth emulator; live provider/deployment
-acceptance remains unverified.
-
-A separate read-only review found a prerequisite-change admission gap and a template
-version-selection gap. Both were corrected and affected checks passed. The stage's
-contracts, worker/store boundaries, owned API/UI, tests and current documentation match
-the forecast. This is a stage checkpoint, not full extension acceptance: stages 5–6,
-broader generative-UI extension examples and the final complete-diff requirement audit
-remain active. Next is media/storage lifecycle, followed by durable PDF/ZIP exports.
-
-Storage checkpoint (2026-10-07): optional private S3-compatible image storage and
-larger multipart uploads are implemented. MongoDB remains the credential-free
-default (8 MiB images); S3 allows 20 MiB images with a 64 MiB general asset adapter.
-Random staged keys, conditional writes and transactional attachment preserve ownership
-and retry evidence. Downloads verify size/digest and use owned no-store routes.
-Admin preview/confirmation now supports abandoned uploads. The existing maintenance
-worker performs approved exact-version removals with durable leases and retries;
-reports distinguish pending/failed/deleted storage from database confirmation.
-
-Verification passed for production build/worker bundles, typecheck, lint, formatting,
-environment validation, 50 unit tests, 107 account/provider tests and 26 deployment
-tests. Production AI HTTP checks include larger multipart uploads, CSRF/account
-boundaries and exact replay. Actual S3 SDK fixtures cover conditional writes,
-integrity/size checks and version deletion. Browser checks against a local object
-store and the bundled maintenance worker covered 9/14 MiB uploads, persisted owned
-previews, keyboard-confirmed cleanup, saved dark mode and 1440px/390px layouts.
-One initial HTTP readiness attempt timed out; the subsequent captured standalone
-run passed all applicable assertions. No live storage/provider or deployment was used.
-
-A separate read-only review covered staging, attachment, authorization, cleanup
-eligibility, leases, report semantics, upload bounds and configuration. Documentation
-now describes the implemented adapter and recovery workflow. This is partial stage 5:
-reference-image/editing inputs, workspace archive/deletion and snapshot/event/attached-
-asset cleanup remain, followed by stage 6 exports, broader generative-UI examples and
-the final complete-diff requirement audit. Nothing has been committed or published.
-
-Workspace-lifecycle checkpoint (2026-10-07): owners can archive/restore workspaces;
-archived content is read-only and new admission remains paused after restore until
-explicitly resumed. Administrators can preview/confirm deletion of old archived
-workspaces, with asset/event counts and a ten-workspace batch bound. Eligibility
-excludes unfinished workflows, uploading objects, leased/nonterminal or uncertain
-jobs, and accepted admission intents without durable job records. Execution rechecks
-revision/access/eligibility, erases content and queues private object removal in one
-transaction. Financial/global audit/job and command retry evidence remains, and
-workspace tombstones prevent deleted creation keys from resurrecting content.
-
-Verification passed for build/worker bundles, typecheck, lint, formatting, 50 unit
-tests, 112 account/provider tests and production AI HTTP acceptance. Focused storage
-and lifecycle regressions passed again after the reviewed staging guard correction.
-Browser checks demonstrated keyboard archive, read-only edits, preserved downloads,
-restore/edit/rearchive, preview-confirmed deletion, three completed object removals,
-404 workspace/history/asset endpoints and removal from the workspace list, with no
-mobile overflow. The recent-admin-authentication requirement was exercised through
-reauthentication. An overlapping local build encountered Windows EBUSY; it passed
-after the owned browser fixture stopped. No deployment or live provider was used.
-
-The separate read-only review found and corrected staging admission after archive;
-the new regression proves no remote PUT occurs. Current documentation covers lifecycle
-recovery and retained evidence. Stage 5 still needs owned reference-image/editing
-inputs. Stage 6 exports, broader generative-UI examples and the final complete-diff
-requirement audit remain active.
-
-Reference-image checkpoint (2026-10-08): stage 5 now includes owned image references
-and editing. Admission freezes up to four workspace references and an optional
-target-image base; worker preparation uses the existing owned Dify upload store.
-Successful files are reused by owner/binding/digest. Uncertain uploads require
-admin recovery; explicit new attempts receive a fresh upload scope. Rejections and
-quota exhaustion release the generation reservation without dispatching generation.
-An unexpired worker lease is renewed after preparation, and stale edit results
-cannot replace newer target versions.
-
-The production build and 118 account/provider tests passed before the final quota
-regression; all seven focused reference tests passed afterward. Current typecheck,
-lint, production AI HTTP acceptance and variable-pricing HTTP acceptance passed.
-Browser verification with the actual bundled fake worker covered keyboard reference
-selection, image-edit generation/selection, preserved versions after reload and
-private old-version previews, with no overflow at 1440px/390px. Local test fixtures
-were stopped. Live Dify image-backend behavior remains unverified.
-
-The focused read-only review covered reference ownership/admission, binding-scoped
-file reuse, ambiguous uploads, lease renewal, manual retries and stale targets.
-Documentation was corrected to distinguish file descriptors from asset identifiers
-in textual context and to remove stale targeted-repair claims. Stage 6 exports,
-broader generative-UI examples and final full-diff acceptance remain in progress.
-
-Stage 6 implementation contract: export admission snapshots an ordered selection of
-up to 20 owned artifact versions and their approval evidence, plus owned asset
-metadata. PDF and ZIP renderers are registered/versioned in server code; requests
-cannot supply executable templates, arbitrary URLs or filesystem paths. ZIP packages
-include a manifest and original normalized assets. PDF provides a generic readable
-document layout with text/checklists/images and a downstream renderer hook.
-
-Exports use a separate local-work queue on the existing maintenance worker, without
-AI calls or credits, and work when AI/payments are disabled. Jobs expose bounded
-progress, cancellation, terminal failure and private results; crashed workers recover
-under leases with a bounded attempt count. Completion attaches an immutable asset
-transactionally after rendering/staging outside the transaction. Late or cancelled
-workers cannot publish. Archive/deletion must account for queued/leased exports;
-cleanup removes export snapshots/results while retaining request fingerprints.
-Existing immediate JSON/text exports remain compatible. Verification must cover
-ownership, exact replay/conflicting keys, version pinning after edits, restart and
-cancellation races, malformed renderer/version requests, private downloads, real
-PDF/ZIP decoding and rendered output, standalone worker packaging, UI progress and
-cleanup. No product-specific booklet layout is included.
-
-Export foundation checkpoint (2026-10-08): the start/status/snapshot contracts,
-transactional snapshot capture helper and versioned ZIP renderer are implemented.
-Snapshots preserve selected content/approval evidence, validate asset ownership and
-pin digests without serializing private storage locations. ZIP output includes a
-manifest, JSON/text versions and normalized images under controlled ID-based paths.
-Rendering checks input integrity, cancellation and the configured output-size bound.
-Two focused account/renderer tests passed, including actual ZIP decoding, Unicode,
-later edits, forged asset ownership, deterministic output and cancellation. Typecheck,
-affected lint, 50 unit tests and the production build passed. This is infrastructure
-only: export admission/queue/worker, PDF rendering, routes/UI and lifecycle integration
-are still pending. The existing user-facing exports remain JSON/text.
-
-Durable ZIP checkpoint (2026-10-08): export admission, bounded queue, maintenance-
-worker leases/recovery, cancellation, atomic private publication, owned API routes
-and the export panel are implemented. Users select explicit artifact versions;
-completed results remain downloadable after reload. Jobs run without AI or payment
-activation and do not create AI jobs or credit reservations. Archive and cleanup
-now account for active/cancelled-but-leased exports and erase terminal snapshots
-while retaining export request fingerprints.
-
-The production build, typecheck, lint and formatting passed. All 128 account/provider
-tests passed before the last two publication regressions; nine focused export tests
-then passed, including rollback/retry and revocation after rendering. Production HTTP
-acceptance passed for the bundled maintenance worker with AI/payments disabled,
-CSRF, owner isolation, frozen versions, ZIP decoding, private downloads and cancellation.
-Browser acceptance passed for keyboard selection/download, reload persistence,
-explicitly exporting version 1 after editing version 2, and 1440px/390px layouts.
-The actual downloaded ZIP retained Unicode text and its decodable 64x64 PNG.
-
-A focused read-only review covered admission, worker fencing/publication, routes,
-DTOs, cleanup and UI recovery. It found unnecessary loading of snapshots during
-status polling; the query now projects them out, and affected tests, build/type/lint
-and variable-pricing HTTP acceptance (including ZIP export) passed again.
-ZIP functionality is locally verified, but stage 6 is not complete: PDF rendering,
-rendered-output verification and final export integration review remain. Broader
-generative-UI examples and the final whole-extension acceptance audit also remain.
-
-PDF renderer checkpoint (2026-10-08): registered `document@1` now produces readable
-A4 documents from frozen artifact versions, including approval evidence, text,
-checklists and owned PNG images. Bundled licensed Noto fonts support Latin, Greek,
-Cyrillic and Arabic/Persian; unsupported glyphs fail explicitly. Layout preserves
-mixed-direction text, wraps long identifiers and bounds pages, time and output size.
-The render context remains reusable for downstream layouts and font sets.
-
-Visual inspection of all six fixture pages and extracted text verified content through
-the final paragraph, images, checklists and page numbers. A regression fixes the bidi
-mirroring input shape for Persian text surrounding English parentheses. The bundled
-worker integration exposed PDFKit's module-relative resource requirement; PDFKit now
-remains external to bundles and is included in Next standalone tracing.
-
-The production build, typecheck, affected lint/formatting and all 12 focused export
-tests passed. Production HTTP acceptance reported six passing tests and one expected
-pricing-mode skip, including actual PDF/ZIP worker execution with AI/payments disabled,
-private download ownership and real PDF decoding. An unredirected run of
-`node scripts/integration.mjs --ai` exited successfully and also verified readiness
-failure after the owned database stops while liveness remains available.
-
-The focused read-only renderer review found no additional source defect after the
-mirroring and packaging corrections. PDF browser acceptance, final export integration
-review, broader generative-UI examples and the whole-extension audit remain active.
-
-PDF browser and generative-UI example checkpoint (2026-10-08): PDF browser acceptance
-passed with AI/payments disabled: keyboard source selection, format selection, queued
-completion, actual download, reload persistence and 1440px/390px layouts. The downloaded
-PDF was visually checked, including mixed Persian/English punctuation. Owned browser,
-worker and database fixtures were stopped.
-
-The development-only design system now renders all seven registered card types using
-reusable deterministic examples and the existing workspace components. Sample responses
-are registry-validated and kept only in memory. Browser acceptance verified typed form
-values, multiple selection/toggle input, keyboard choice, reopening, acknowledgements,
-revision requests, reset, reload and dark mode with no horizontal overflow. Gallery
-samples have no owned assets and stay disabled; review samples cannot approve real work.
-
-Current production build, typecheck, affected lint/formatting and all 131 account/provider
-tests passed. A separate read-only review of the examples checked development gating,
-state reset, registry validation and asset isolation without further defects. The final
-whole-extension requirements audit and remaining cross-cutting acceptance checks are
-still active; these checkpoints do not claim deployment or live-provider validation.
-
-Cross-cutting regression evidence for this checkpoint: all 50 unit tests, 131
-account/provider tests, eight account/session HTTP tests, three Stripe HTTP fixture
-tests and four variable-pricing HTTP tests passed (three expected mode skips).
-All 26 isolated deployment tests passed, including private-storage configuration,
-worker failure and rollback behavior. Full lint, formatting, environment validation
-and skill integrity checks passed. These runs used the current local working tree;
-no commit, publication, deployment or production service was involved.
-
-### Extension completion audit — 2026-10-08
-
-The accepted reusable extension is complete in the local working tree. This audit
-maps the original six-stage contract to implemented behavior and verified evidence;
-it does not expand the claim to product migration or live-service deployment.
-
-| Requirement | Implementation and evidence | Result |
-| --- | --- | --- |
-| Versioned generative UI and artifacts | `src/lib/creation` registries; shared card/artifact renderers and editors; document/image/checklist content and seven card types. Registry tests reject unknown versions, executable/extra fields, forged actions and invalid responses. Workspace tests prove legacy compatibility, persisted responses and stale-review protection; development examples and real workspace browser flows were exercised. | Pass |
-| Conversation and candidate previews | Owned `workspaceEvents`, bounded keyset history and frozen recent-message context; normalized private image preview before selection. Workspace/account and HTTP tests cover ownership, pagination, replay and preview retention; browser evidence covers reload and 25+3 pagination. | Pass |
-| Execution configuration and retries | Admin profile publication/history, immutable revisions, eligibility and frozen batch inputs/bindings/pricing; mixed-profile candidates and evidence-based explicit new attempts. Account/HTTP tests and profile browser flows cover changed revisions, demotion, duplicate requests and uncertain-job exclusions. | Pass |
-| Durable workflows and bounded repair | Versioned definitions/templates, persisted commands, dependency scheduling, human checkpoints, tracked findings and targeted repair/re-review. Workflow tests exercise crash replay, parallel roots, pause/cancel, late admission, stale sources, decision reopening and repair limits. Bundled-worker HTTP and browser flows verify progress and approval checkpoints. | Pass |
-| Private media and lifecycle | Owned references/edit inputs; Mongo and S3 adapters; larger bounded uploads; archive/restore and exact preview-confirm erasure. Reference/storage/lifecycle tests prove cross-owner rejection, digest checks, conditional writes, upload uncertainty, deletion retries and retained financial/retry evidence. Browser checks cover image editing, archive/restore and cleanup reports. | Pass |
-| Durable PDF/ZIP exports | Version-pinned snapshots, registered renderers, separate local queue on the maintenance worker, leases, progress, cancellation and atomic private publication. Export tests cover concurrent replay, forged ownership, rollback, revocation, crashes and cleanup. Actual worker HTTP tests decode downloads with AI/payments disabled; browser downloads and all rendered PDF fixture pages were inspected. | Pass |
-| Shared boundaries and operational reuse | One Next application, server-only storage/provider code, explicit public DTOs, session/CSRF checks, shared credit ledger and existing workers. Original session/managed-hold/admin-recovery work remains covered by the full account and HTTP regressions. No provider credentials/resources, source product models or independent backend were imported. | Pass |
-| Verification and documentation | Build/worker bundles, typecheck, full lint/formatting, environment and skill checks; 50 unit, 131 account/provider and 26 deployment tests passed. HTTP: account/session 8, Stripe 3, AI 6 with 1 mode skip, variable pricing 4 with 3 mode skips. README, architecture, creation guide and the creation regression checklist describe current behavior and limits. | Pass |
-
-The final separate read-only review revisited registry validation, immutable versions,
-approval invalidation, ownership/CSRF/DTO boundaries, profile selection, durable command
-replay, worker authorization, staged storage, cleanup and export fencing against the
-current code and acceptance evidence. No remaining actionable defect was identified.
-Final comparison: **Matched** for the planned feature surfaces, existing-worker/ledger
-reuse, compatibility, public/persisted contracts, local verification and documentation.
-The PDF renderer uses bundled licensed fonts and an external runtime PDFKit dependency;
-this is a verified implementation detail within the planned rendering adapter scope.
-
-Remaining external acceptance is explicit: live Dify/image-backend behavior, a chosen
-S3-compatible service, real Firebase/Atlas, Stripe sandbox, deployment and Android are
-not proved by these fixtures. Product-specific Unitale/booklet schemas, prompts and
-layouts remain downstream. PDF's bundled fonts exclude CJK/emoji; ZIP preserves that
-text and downstream renderers can add licensed fonts. Publication is not authorized.
+The former creation-workspace platform was superseded by the accepted Runs
+replacement on 2026-10-10. Its routes, authoring, approvals, comparison, quality
+scheduling, repair and PDF/ZIP export implementation/tests are removed. No legacy
+compatibility, automatic data deletion or deployed-data migration is required.
+Historical workspace acceptance counts do not describe the current tree.
 
 ## Accepted extension: reusable MCP tools
 
@@ -869,3 +518,57 @@ deployment/rollback and Android signing, Digital Asset Links, device installatio
 and publishing. A derived product's new schemas, prompts, integrations and renamed
 infrastructure require their own tests. This audit does not complete those checks
 or the pending milestone acceptance.
+
+## Accepted replacement: Dify orchestrator Runs - 2026-10-10
+
+The user authorized complete replacement with self-hosted Dify 1.17.1 Workflow
+orchestrators. One logical owned Run has ordered attempts. Administrators select
+available orchestrators, manage sanitized DSL and configure revisioned runtime
+settings/credits. Users start, reopen, answer validated generated UI, inspect
+progress/results and restart or recover compatible stages. The existing durable
+AI queue, credit ledger, MCP and private-media adapters are reused.
+
+Implementation surfaces: Base settings and orchestrator administration; pinned
+Service/Console API adapters; saved attempts/events/decision intents; registered
+Runs cards and owned media; three Runs pages; recovery/diagnostic entry points;
+obsolete source/dependency removal; worker/index/package and setup documentation.
+The detailed contracts and operational boundaries are in [Runs](runs.md) and
+[AI testing](ai-testing.md). Repository templates live in `dify/`.
+
+Local implementation and read-only review completed on 2026-10-11. Verified:
+
+- 51 pure unit tests and 82 account/provider/worker tests passed. The full account
+  suite was rerun with two test processes after concurrent Mongo fixtures exceeded
+  their startup deadlines under build load.
+- Runs HTTP acceptance passed using real bundled workers and disposable databases,
+  including concurrent decisions, lost-response reconciliation, recovery, immutable
+  pricing, ownership, admin settings revisions and management-disabled fallback.
+- Account/session HTTP: 9 passed. Payment HTTP: 3 passed. Health/readiness checks and
+  25 isolated deployment-tool tests passed.
+- Production web/worker builds, typecheck, lint, formatting, environment and pinned
+  skill integrity checks passed. Obsolete routes, worker/export packaging, indexes,
+  environment bindings, tests, fonts and dependencies were removed.
+- Docker built from the allowlisted context. Non-root runtime smoke verified worker
+  presence, development-tool/environment exclusion, image normalization, liveness,
+  unavailable-dependency readiness, public assets and packaged DSL downloads.
+- Playwright verified desktop/mobile navigation, generated decisions, continuation,
+  reload, stage recovery, attempt history, administration, keyboard/Escape handling
+  and layout. No browser console errors or horizontal overflow were observed.
+
+Read-only review comparison: matched for administration, durable Runs, private
+results, decision/recovery boundaries, credit policies, removals and documentation.
+Pinned API fixtures and example DSL do not prove a deployment's plugin bindings.
+Live Dify acceptance remains pending: no disposable configured 1.17.1 instance was
+supplied. Real management, MCP, child-question and image/checkpoint flows must be
+exercised there before claiming live-provider acceptance. See [AI testing](ai-testing.md).
+No local database was deleted. No commit, publication, deployment or production
+service mutation was performed.
+
+Local startup follow-up (2026-10-11): the retained development settings record
+predated the upload quota fields. Those fields now default to the original limits
+when absent, preserving saved prices and policies without rewriting the record.
+Eight targeted Runs/settings tests, worker bundling and TypeScript checks passed;
+the read-only review found no further defect in this correction. Local MongoDB,
+Firebase Auth/UI, web and AI/payment workers were started; readiness returned 200
+and both current worker heartbeats reported `ok`. Dify remains the configured remote
+connection; orchestrator registration/availability still requires Administration.

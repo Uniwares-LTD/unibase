@@ -37,7 +37,7 @@ export function parseAssetConfig(
       throw new Error();
     const region = env.ASSET_S3_REGION ?? "";
     const bucket = env.ASSET_S3_BUCKET ?? "";
-    const prefix = env.ASSET_S3_PREFIX ?? "workspace-assets";
+    const prefix = env.ASSET_S3_PREFIX ?? "run-assets";
     const accessKeyId = env.ASSET_S3_ACCESS_KEY_ID ?? "";
     const secretAccessKey = env.ASSET_S3_SECRET_ACCESS_KEY ?? "";
     if (

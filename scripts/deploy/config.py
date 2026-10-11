@@ -42,7 +42,7 @@ def validate(root, target):
                "FIREBASE_API_KEY", "FIREBASE_APP_ID", "MONGODB_URI", "MONGODB_DATABASE",
                "ANDROID_PACKAGE_NAME", "ANDROID_SHA256_FINGERPRINTS",
                "PAYMENTS_MODE", "CREDIT_PACKS_JSON", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
-               "DIFY_MODE", "DIFY_BASE_URL", "DIFY_BINDINGS_JSON", "AI_PRICING_JSON",
+               "DIFY_MODE", "DIFY_BASE_URL", "DIFY_ORCHESTRATORS_JSON", "DIFY_CONSOLE_URL", "DIFY_MANAGEMENT_KEY", "DIFY_WORKSPACE_ID",
                "ASSET_STORE", "ASSET_S3_ENDPOINT", "ASSET_S3_REGION", "ASSET_S3_BUCKET",
                "ASSET_S3_PREFIX", "ASSET_S3_ACCESS_KEY_ID", "ASSET_S3_SECRET_ACCESS_KEY",
                "ASSET_S3_FORCE_PATH_STYLE"}
@@ -65,12 +65,6 @@ def validate(root, target):
         for required in ("ASSET_S3_REGION", "ASSET_S3_BUCKET", "ASSET_S3_ACCESS_KEY_ID", "ASSET_S3_SECRET_ACCESS_KEY"):
             if not env.get(required):
                 raise ValueError("Incomplete private asset storage configuration")
-    if env.get("AI_PRICING_JSON"):
-        # Detailed pricing terms are validated by the shared application parser
-        # at web/worker startup. Bound the transport here without a second schema.
-        prices = json.loads(env["AI_PRICING_JSON"])
-        if len(env["AI_PRICING_JSON"]) > 65536 or not isinstance(prices, dict) or len(prices) > 100:
-            raise ValueError("Invalid AI pricing configuration")
     mode = env.get("DIFY_MODE", "disabled")
     if mode not in ("disabled", "fake", "live"):
         raise ValueError("Invalid Dify mode")
@@ -80,25 +74,22 @@ def validate(root, target):
                 dify_url.password or dify_url.query or dify_url.fragment or
                 not re.fullmatch(r"/(?:[A-Za-z0-9_-]+/)*v1/?", dify_url.path)):
             raise ValueError("Invalid Dify API URL")
-        bindings = json.loads(env.get("DIFY_BINDINGS_JSON", "null"))
-        if not isinstance(bindings, list) or not 1 <= len(bindings) <= 100:
-            raise ValueError("Invalid Dify bindings")
-        names = set()
-        for binding in bindings:
-            if (not isinstance(binding, dict) or
-                    set(binding) - {"name", "revision", "kind", "apiKeyEnv", "workflowId"} or
-                    not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", binding.get("name", "")) or
-                    binding["name"] in names or
-                    not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", binding.get("revision", "")) or
-                    binding.get("kind") not in ("workflow", "chat") or
-                    not re.fullmatch(r"DIFY_KEY_[A-Z0-9_]+", binding.get("apiKeyEnv", ""))):
-                raise ValueError("Invalid Dify binding")
-            names.add(binding["name"])
-            key = env.get(binding["apiKeyEnv"], "")
-            if not key or len(key) > 1024 or re.search(r"[\s\x00-\x1f\x7f]", key):
-                raise ValueError("Missing or invalid Dify credential")
-            if "workflowId" in binding:
-                UUID(binding["workflowId"])
+        definitions=json.loads(env.get("DIFY_ORCHESTRATORS_JSON", "[]"))
+        if not isinstance(definitions,list) or len(definitions)>100:
+            raise ValueError("Invalid orchestrator registrations")
+        names=set()
+        for definition in definitions:
+            if not isinstance(definition,dict) or not re.fullmatch(r"[a-z][a-z0-9-]{0,63}",definition.get("id","")) or definition["id"] in names:
+                raise ValueError("Invalid orchestrator registration")
+            names.add(definition["id"])
+            if not re.fullmatch(r"DIFY_KEY_[A-Z0-9_]+",definition.get("keyEnv","")):
+                raise ValueError("Invalid execution credential reference")
+            if "workflowId" in definition: UUID(definition["workflowId"])
+        if env.get("DIFY_MANAGEMENT_KEY"):
+            UUID(env.get("DIFY_WORKSPACE_ID",""))
+            console=urlsplit(env.get("DIFY_CONSOLE_URL",""))
+            if console.scheme!="https" or console.netloc!=dify_url.netloc or console.path!="/console/api" or console.query or console.fragment:
+                raise ValueError("Invalid management connection")
     expected = {"APP_ENV": target, "APP_ORIGIN": item["origin"], "AUTH_MODE": "firebase",
                 "FIREBASE_PROJECT_ID": item["firebaseProject"],
                 "MONGODB_DATABASE": item["mongoDatabase"]}

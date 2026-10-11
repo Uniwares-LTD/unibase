@@ -3,16 +3,12 @@ import { MongoClient } from "mongodb";
 import { setTimeout as delay } from "node:timers/promises";
 import { parseConfig } from "../src/lib/config/schema";
 import { parseDatabaseConfig } from "../src/lib/config/database";
-import { parseAiPricing } from "../src/lib/config/ai-pricing";
-import {
-  aiConfig,
-  capability,
-  providerForJob,
-  prepareAiInputs,
-  materializeAiResult,
-} from "../src/lib/server/ai/capabilities";
+import { readSettings } from "../src/lib/server/settings";
+import { providerForRun } from "../src/lib/server/runs/provider";
+import { prepareRunInputs } from "../src/lib/server/runs/service";
+import { prepareResult, attachResult } from "../src/lib/server/runs/media";
+import { parseResult } from "../src/lib/contracts/runs";
 import { processOneAiJob } from "../src/lib/server/ai/worker";
-import { processOneWorkflow } from "../src/lib/server/workspaces/workflows";
 import { authorizeWorkerAccount as authorizeAccount } from "../src/lib/server/worker-authorization";
 import { runtimeRecord } from "../src/lib/log-policy";
 import { writeRuntimeRecord } from "../src/lib/server/store/runtime";
@@ -28,8 +24,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const)
   });
 
 async function main() {
-  const config = aiConfig();
-  parseAiPricing(process.env);
+  const mode = process.env.DIFY_MODE ?? "disabled";
   const base = parseConfig(process.env);
   const databaseConfig = parseDatabaseConfig(
     process.env,
@@ -43,30 +38,44 @@ async function main() {
   const db = client.db(databaseConfig.database);
   const heartbeat = workerHeartbeat(db, "ai");
   try {
-    await heartbeat(config.mode === "disabled" ? "disabled" : "ok");
+    await heartbeat(mode === "disabled" ? "disabled" : "ok");
     do {
       let cycleState: "ok" | "error" | "disabled" =
-        config.mode === "disabled" ? "disabled" : "ok";
-      if (config.mode !== "disabled") {
+        mode === "disabled" ? "disabled" : "ok";
+      if (mode !== "disabled") {
         const started = performance.now();
         let status = 200;
         let worked = false;
         try {
-          const scheduled = await processOneWorkflow(db, {
-            authorize: authorizeAccount,
-          });
+          await readSettings(db);
           const executed = await processOneAiJob(db, {
-            provider: (job) => providerForJob(job, config),
-            prepareInput: (job) => prepareAiInputs(db, job),
+            provider: (job) => providerForRun(job, db),
+            prepareInput: (job) => prepareRunInputs(job, db),
             materialize: (job, result, session) =>
-              materializeAiResult(db, job, result, session),
+              attachResult(db, job, session),
             authorize: authorizeAccount,
-            validateOutput: (job, result) =>
-              capability(job.capability, job.capabilityVersion).validOutput(
-                result.outputs,
-              ),
+            validateOutput: (_job, result) => {
+              try {
+                parseResult(result.outputs);
+                return true;
+              } catch {
+                return false;
+              }
+            },
+            terminalOutput: async (job, result) => {
+              if (result.status === "failed" || result.status === "stopped") {
+                if (result.outputs?.result)
+                  await prepareResult(db, job, result);
+                return "failed";
+              }
+              await prepareResult(db, job, result);
+              return parseResult(result.outputs).outcome === "success" &&
+                result.status === "succeeded"
+                ? "succeeded"
+                : "failed";
+            },
           });
-          worked = scheduled || executed;
+          worked = executed;
         } catch {
           status = 503;
           cycleState = "error";

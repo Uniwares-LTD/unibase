@@ -30,7 +30,10 @@ export default async function AdminLayout({
           <Link href="/admin/ai">AI operations</Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link href="/admin/execution-profiles">Execution profiles</Link>
+          <Link href="/admin/settings">Base settings</Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/admin/orchestrators">Orchestrators</Link>
         </Button>
         {process.env.NODE_ENV === "development" && (
           <Button variant="outline" asChild>

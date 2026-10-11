@@ -1,3 +1,4 @@
+import type { Document } from "mongodb";
 import "server-only";
 
 import { createHash, randomUUID } from "node:crypto";
@@ -31,12 +32,30 @@ import type {
 export type BindingSnapshot = {
   name: string;
   revision: string;
-  kind: "workflow" | "chat";
+  kind: "workflow";
   mode: "fake" | "live";
   // Hash of provider origin, app key and publication. Never persist the key.
   fingerprint: string;
 };
 export type AiJob = {
+  runSuccessorId?: string;
+  operatorResolved?: boolean;
+  run?: {
+    logicalId: string;
+    attempt: number;
+    predecessorId: string | null;
+    orchestrator: import("@/lib/contracts/runs").OrchestratorDefinition;
+    configurationRevision: number;
+    settingsRevision: number;
+    failureCharging: "success-only" | "verified-usage";
+    concurrentPerAccount: number;
+    reconciliationHours: number;
+    retryBaseSeconds: number;
+    retryMaxSeconds: number;
+    pollSeconds: number;
+    imageBytes: number;
+    imagePixels: number;
+  };
   _id: string;
   uid: string;
   authTime: number;
@@ -50,7 +69,6 @@ export type AiJob = {
     type: string;
     id: string;
     version: string;
-    workflowRunId?: string;
   } | null;
   credits: number;
   pricing?: AiPricing;
@@ -69,9 +87,6 @@ export type AiJob = {
     | "cancelled";
   runId: string | null;
   taskId: string | null;
-  conversationId: string | null;
-  providerConversationId: string | null;
-  providerWorkflowRunId: string | null;
   execution: ProviderExecution | null;
   lease: string | null;
   leaseUntil: Date;
@@ -88,15 +103,17 @@ export type AiJob = {
     | "provider-rejected"
     | "provider-failed"
     | "provider-stopped"
+    | "provider-completed"
     | "unverified";
 };
 export function canStartNewAttempt(
   job: Pick<AiJob, "status" | "terminationEvidence"> &
-    Partial<Pick<AiJob, "execution">>,
+    Partial<Pick<AiJob, "execution" | "operatorResolved">>,
 ) {
   return (
     ["failed", "cancelled"].includes(job.status) &&
     Boolean(
+      job.operatorResolved ||
       (job.terminationEvidence && job.terminationEvidence !== "unverified") ||
       ["failed", "stopped"].includes(job.execution?.status ?? ""),
     )
@@ -113,17 +130,6 @@ export type AiUsage = UsageObservation & {
 };
 export const aiJobs = (db: Db) => db.collection<AiJob>("aiJobs");
 export const aiUsage = (db: Db) => db.collection<AiUsage>("aiUsage");
-export type AiConversation = {
-  _id: string;
-  uid: string;
-  bindingFingerprint: string;
-  providerId: string | null;
-  activeJobId: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
-export const aiConversations = (db: Db) =>
-  db.collection<AiConversation>("aiConversations");
 const terminal = ["succeeded", "failed", "cancelled"] as const;
 
 function canonical(value: Json): string {
@@ -157,7 +163,7 @@ export async function createAiJob(
     | "inputs"
     | "source"
     | "credits"
-  > & { conversationId?: string; pricing?: AiPricing },
+  > & { pricing?: AiPricing; run?: AiJob["run"] },
   now = new Date(),
 ) {
   if (
@@ -199,66 +205,44 @@ export async function createAiJob(
       saved = prior;
       return;
     }
+    if (request.run && request.run.attempt > 100)
+      throw new AppError(
+        "RUN_ATTEMPT_LIMIT",
+        "This run reached its attempt limit. Start a new run.",
+        409,
+      );
+    if (request.run?.predecessorId) {
+      const predecessor = await aiJobs(db).findOne(
+        { _id: request.run.predecessorId, uid: actor.uid },
+        { session },
+      );
+      if (
+        !predecessor ||
+        !canStartNewAttempt(predecessor) ||
+        predecessor.runSuccessorId ||
+        predecessor.run?.logicalId !== request.run.logicalId
+      )
+        throw new AppError(
+          "RUN_CONFLICT",
+          "This attempt cannot be restarted. Reload its state.",
+          409,
+        );
+      await aiJobs(db).updateOne(
+        { _id: predecessor._id },
+        { $set: { runSuccessorId: jobId } },
+        { session },
+      );
+    }
     if (
       (await aiJobs(db).countDocuments(
         { uid: actor.uid, status: { $nin: terminal } },
         { session },
-      )) >= 5
+      )) >= (request.run?.concurrentPerAccount ?? 5)
     )
       throw new AppError(
         "AI_CONCURRENCY_LIMIT",
         "Finish or resolve existing executions before starting another.",
         429,
-      );
-    let conversationId: string | null = null;
-    let providerConversationId: string | null = null;
-    if (request.binding.kind === "chat") {
-      conversationId = request.conversationId ?? jobId;
-      const previous = await aiConversations(db).findOne(
-        { _id: conversationId },
-        { session },
-      );
-      if (
-        request.conversationId &&
-        (!previous ||
-          previous.uid !== actor.uid ||
-          previous.bindingFingerprint !== request.binding.fingerprint)
-      )
-        throw new AppError(
-          "AI_CONVERSATION_NOT_FOUND",
-          "Conversation is unavailable for this capability.",
-          404,
-        );
-      if (previous?.activeJobId)
-        throw new AppError(
-          "AI_CONVERSATION_BUSY",
-          "Resolve the previous message before sending another.",
-          409,
-        );
-      providerConversationId = previous?.providerId ?? null;
-      if (previous)
-        await aiConversations(db).updateOne(
-          { _id: conversationId },
-          { $set: { activeJobId: jobId, updatedAt: now } },
-          { session },
-        );
-      else
-        await aiConversations(db).insertOne(
-          {
-            _id: conversationId,
-            uid: actor.uid,
-            bindingFingerprint: request.binding.fingerprint,
-            providerId: null,
-            activeJobId: jobId,
-            createdAt: now,
-            updatedAt: now,
-          },
-          { session },
-        );
-    } else if (request.conversationId)
-      throw new AppError(
-        "AI_CONVERSATION_UNSUPPORTED",
-        "This capability does not accept a conversation.",
       );
     saved = {
       ...request,
@@ -271,15 +255,14 @@ export async function createAiJob(
       status: "queued",
       runId: null,
       taskId: null,
-      conversationId,
-      providerConversationId,
-      providerWorkflowRunId: null,
       execution: null,
       lease: null,
       leaseUntil: new Date(0),
       attempts: 0,
       nextAttemptAt: now,
-      reviewAfter: new Date(now.getTime() + 24 * 3600_000),
+      reviewAfter: new Date(
+        now.getTime() + (request.run?.reconciliationHours ?? 24) * 3600_000,
+      ),
       cancelRequested: false,
       failure: null,
       createdAt: now,
@@ -339,8 +322,6 @@ export async function patchAiJob(
       | "terminationEvidence"
       | "runId"
       | "taskId"
-      | "providerConversationId"
-      | "providerWorkflowRunId"
       | "execution"
       | "lease"
       | "leaseUntil"
@@ -372,40 +353,10 @@ export async function persistAiEvent(
       const current = await patchAiJob(db, job, {}, now, session);
       if (event.type === "identity") {
         if (
-          current.providerWorkflowRunId &&
-          event.workflowRunId &&
-          current.providerWorkflowRunId !== event.workflowRunId
-        )
-          throw conflict();
-        if (
           current.runId &&
           (current.runId !== event.runId || current.taskId !== event.taskId)
         )
           throw conflict();
-        if (current.binding.kind === "chat") {
-          if (
-            !current.conversationId ||
-            !event.providerConversationId ||
-            (current.providerConversationId &&
-              current.providerConversationId !== event.providerConversationId)
-          )
-            throw conflict();
-          const updated = await aiConversations(db).updateOne(
-            {
-              _id: current.conversationId,
-              uid: current.uid,
-              activeJobId: current._id,
-            },
-            {
-              $set: {
-                providerId: event.providerConversationId,
-                updatedAt: now,
-              },
-            },
-            { session },
-          );
-          if (!updated.matchedCount) throw conflict();
-        } else if (event.providerConversationId) throw conflict();
         await patchAiJob(
           db,
           job,
@@ -413,18 +364,100 @@ export async function persistAiEvent(
             runId: event.runId,
             taskId: event.taskId,
             status: "running",
-            ...(event.providerConversationId
-              ? { providerConversationId: event.providerConversationId }
-              : {}),
-            ...(event.workflowRunId
-              ? { providerWorkflowRunId: event.workflowRunId }
-              : {}),
           },
           now,
           session,
         );
       } else {
         if (!current.runId) throw conflict();
+        if (
+          event.type === "stage" ||
+          event.type === "decision" ||
+          event.type === "decision-filled" ||
+          event.type === "decision-expired"
+        ) {
+          if (!current.run) return;
+          const eventId = fingerprint([
+            job._id,
+            event.type,
+            event.type === "stage"
+              ? [event.id, event.status]
+              : event.type === "decision"
+                ? [event.nodeId, event.token]
+                : event.type === "decision-filled"
+                  ? [event.nodeId, event.action, event.inputs]
+                  : event.nodeId,
+          ]);
+          if (event.type === "decision") {
+            await db
+              .collection<Document & { _id: string }>("runDecisions")
+              .updateOne(
+                { _id: fingerprint([job._id, event.nodeId, event.token]) },
+                {
+                  $setOnInsert: {
+                    uid: job.uid,
+                    jobId: job._id,
+                    logicalId: current.run.logicalId,
+                    nodeId: event.nodeId,
+                    title: event.title,
+                    token: event.token,
+                    status: "pending",
+                    createdAt: now,
+                  },
+                },
+                { upsert: true, session },
+              );
+          }
+          if (event.type === "decision-expired") {
+            await db
+              .collection<Document & { _id: string }>("runDecisions")
+              .updateMany(
+                { jobId: job._id, nodeId: event.nodeId, status: "pending" },
+                { $set: { status: "expired", updatedAt: now } },
+                { session },
+              );
+          }
+          if (event.type === "decision-filled") {
+            await db
+              .collection<Document & { _id: string }>("runDecisions")
+              .findOneAndUpdate(
+                {
+                  jobId: job._id,
+                  nodeId: event.nodeId,
+                  status: { $in: ["pending", "submitting", "unknown"] },
+                },
+                {
+                  $set: {
+                    status: "submitted",
+                    confirmedAction: event.action,
+                    confirmedInputs: event.inputs,
+                    updatedAt: now,
+                  },
+                },
+                { session, sort: { createdAt: -1 } },
+              );
+          }
+          const safe =
+            event.type === "decision"
+              ? { type: event.type, nodeId: event.nodeId, title: event.title }
+              : event;
+          await db
+            .collection<Document & { _id: string }>("runEvents")
+            .updateOne(
+              { _id: eventId },
+              {
+                $setOnInsert: {
+                  uid: job.uid,
+                  jobId: job._id,
+                  logicalId: current.run.logicalId,
+                  event: safe,
+                  timestamp: now,
+                },
+              },
+              { upsert: true, session },
+            );
+          return;
+        }
         if (event.type === "execution") {
           if (event.execution.runId !== current.runId) throw conflict();
           await patchAiJob(
@@ -490,10 +523,25 @@ export async function settleAiJob(
     credits: saved.credits,
   };
   const usage = saved.execution?.usage ?? null;
+  const usageCharging =
+    status !== "succeeded" &&
+    saved.run?.failureCharging === "verified-usage" &&
+    Boolean(
+      saved.execution &&
+      !["running", "paused"].includes(saved.execution.status),
+    );
+  const failurePricing =
+    pricing.mode === "fixed"
+      ? { mode: "fixed" as const, credits: 0 }
+      : pricing.mode === "hybrid"
+        ? { ...pricing, baseCredits: 0 }
+        : pricing;
   const calculated =
     status === "succeeded"
       ? calculateAiCharge(pricing, usage)
-      : { credits: 0, calculatedCredits: "0", capped: false };
+      : usageCharging
+        ? calculateAiCharge(failurePricing, usage)
+        : { credits: 0, calculatedCredits: "0", capped: false };
   if (!calculated)
     throw new AppError(
       "AI_USAGE_MISSING",
@@ -502,7 +550,7 @@ export async function settleAiJob(
     );
   const charge = {
     ...calculated,
-    usage: status === "succeeded" ? usage : null,
+    usage: status === "succeeded" || usageCharging ? usage : null,
   };
   const persist = async (session: ClientSession) => {
     const prior = await aiJobs(db).findOne(
@@ -522,20 +570,6 @@ export async function settleAiJob(
         409,
       );
     await onSettle?.(session);
-    // An operator credit waiver does not establish that an uncertain chat turn
-    // ended. Keep that conversation blocked; a new conversation remains possible.
-    if (
-      prior?.conversationId &&
-      (prior.status === "queued" ||
-        (status === "failed" && !prior.runId) ||
-        (prior.execution &&
-          !["running", "paused"].includes(prior.execution.status)))
-    )
-      await aiConversations(db).updateOne(
-        { _id: prior.conversationId, uid: prior.uid, activeJobId: prior._id },
-        { $set: { activeJobId: null, updatedAt: now } },
-        { session },
-      );
     await patchAiJob(
       db,
       job,
@@ -551,7 +585,12 @@ export async function settleAiJob(
               ? "provider-failed"
               : prior.execution?.status === "stopped"
                 ? "provider-stopped"
-                : (prior.terminationEvidence ?? "unverified"),
+                : prior.run &&
+                    ["succeeded", "partial-succeeded"].includes(
+                      prior.execution?.status ?? "",
+                    )
+                  ? "provider-completed"
+                  : (prior.terminationEvidence ?? "unverified"),
       },
       now,
       session,
@@ -563,12 +602,12 @@ export async function settleAiJob(
       job.uid,
       `ai-settle:${job._id}`,
       job.reservationId,
-      status === "succeeded" ? "commit" : "release",
+      status === "succeeded" || charge.credits > 0 ? "commit" : "release",
       {
         managedJobId: job._id,
         persist,
         now,
-        ...(saved.pricing && status === "succeeded"
+        ...(saved.pricing && (status === "succeeded" || charge.credits > 0)
           ? { chargeAmount: charge.credits }
           : {}),
       },
@@ -651,6 +690,12 @@ export async function resolveAiJob(
           },
           { session },
         );
+        if (decision === "release" && job.run)
+          await aiJobs(db).updateOne(
+            { _id: job._id, lease: job.lease },
+            { $set: { operatorResolved: true } },
+            { session },
+          );
         if (decision === "accept") await onAccept?.(job, session);
       },
     );
@@ -664,7 +709,6 @@ export async function resolveAiJob(
 }
 
 export async function createAiIndexes(db: Db) {
-  await aiConversations(db).createIndex({ uid: 1, updatedAt: -1 });
   await aiJobs(db).createIndex({ uid: 1, createdAt: -1, _id: -1 });
   await aiJobs(db).createIndex({ status: 1, nextAttemptAt: 1, leaseUntil: 1 });
   await aiJobs(db).createIndex(

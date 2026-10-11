@@ -15,13 +15,18 @@ const workflowId = "00000000-0000-4000-8000-000000000003";
 const config = parseDifyConfig({
   DIFY_MODE: "live",
   DIFY_BASE_URL: "https://dify.example.test/v1",
-  DIFY_BINDINGS_JSON: JSON.stringify([
+  DIFY_ORCHESTRATORS_JSON: JSON.stringify([
     {
-      name: "example",
-      revision: "1",
-      kind: "workflow",
+      id: "example",
+      name: "Example",
+      description: "",
+      order: 0,
+      enabled: true,
+      keyEnv: "DIFY_KEY_EXAMPLE",
       workflowId,
-      apiKeyEnv: "DIFY_KEY_EXAMPLE",
+      inputs: [],
+      pricing: null,
+      recovery: null,
     },
   ]),
   DIFY_KEY_EXAMPLE: "secret-canary",
@@ -67,6 +72,77 @@ const started = {
   data: {},
 };
 
+test("pinned Dify reconnect replays node snapshots and parent Human Input without dispatch", async () => {
+  const observed: ProviderEvent[] = [];
+  let calls = 0;
+  const provider = createDifyWorkflow(
+    live,
+    live.bindings[0],
+    async (url, options) => {
+      calls++;
+      if (String(url).includes("/events?")) {
+        assert.equal(options?.method, "GET");
+        assert.equal(options?.body, undefined);
+        assert.ok(String(url).includes("include_state_snapshot=true"));
+        return sse(
+          started,
+          {
+            event: "node_started",
+            workflow_run_id: runId,
+            task_id: taskId,
+            data: { id: "execution-1", node_id: "draft", title: "Draft" },
+          },
+          {
+            event: "human_input_required",
+            workflow_run_id: runId,
+            task_id: taskId,
+            data: {
+              node_id: "decision",
+              node_title: "Choose",
+              form_token: "private-form-token",
+            },
+          },
+          {
+            event: "workflow_paused",
+            workflow_run_id: runId,
+            task_id: taskId,
+            data: {},
+          },
+        );
+      }
+      assert.equal(url, `${live.baseUrl}/workflows/run/${runId}`);
+      return Response.json({ ...detail, status: "paused" });
+    },
+  );
+  const outcome = await provider.stream!(runId, input.user, async (e) => {
+    observed.push(e);
+  });
+  assert.equal(outcome.kind, "ok");
+  assert.equal(calls, 2);
+  assert.deepEqual(
+    observed.map((e) => e.type),
+    ["stage", "decision"],
+  );
+});
+test("Human Input submission uses the native action/response contract and matching user", async () => {
+  const provider = createDifyWorkflow(
+    live,
+    live.bindings[0],
+    async (url, options) => {
+      assert.equal(url, `${live.baseUrl}/form/human_input/private-token`);
+      assert.deepEqual(JSON.parse(String(options?.body)), {
+        user: input.user,
+        action: "continue",
+        inputs: { response: '{"direction":"brief"}' },
+      });
+      return Response.json({});
+    },
+  );
+  await provider.submit!("private-token", input.user, "continue", {
+    response: '{"direction":"brief"}',
+  });
+});
+
 test("SSE handles split unicode, CRLF, multiline data, ping and incomplete frames", async () => {
   const values = [];
   for await (const value of readSse(
@@ -98,7 +174,10 @@ test("workflow persists identity before completion and does not expose raw provi
     live,
     live.bindings[0],
     async (url, options) => {
-      assert.equal(url, "https://dify.example.test/v1/workflows/run");
+      assert.equal(
+        url,
+        `https://dify.example.test/v1/workflows/${workflowId}/run`,
+      );
       assert.equal(options?.redirect, "error");
       assert.equal(options?.cache, "no-store");
       assert.deepEqual(JSON.parse(options?.body as string), {

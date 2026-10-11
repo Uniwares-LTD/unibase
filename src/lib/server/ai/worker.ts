@@ -35,6 +35,10 @@ export type AiWorkerDependencies = {
     session: ClientSession,
   ) => Promise<void>;
   now?: () => Date;
+  terminalOutput?: (
+    job: AiJob,
+    execution: ProviderExecution,
+  ) => Promise<"succeeded" | "failed">;
 };
 
 // Lease exceeds the provider's bounded 120s stream attempt. An expired worker can
@@ -61,7 +65,12 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
         nextAttemptAt: new Date(
           current.getTime() +
             (delay ??
-              Math.min(300_000, 2000 * 2 ** Math.min(job!.attempts, 8))),
+              Math.min(
+                (job!.run?.retryMaxSeconds ?? 300) * 1000,
+                (job!.run?.retryBaseSeconds ?? 2) *
+                  1000 *
+                  2 ** Math.min(job!.attempts, 8),
+              )),
         ),
       },
       current,
@@ -81,9 +90,33 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
         {
           lease: null,
           leaseUntil: new Date(0),
-          nextAttemptAt: new Date(now().getTime() + 5000),
+          nextAttemptAt: new Date(
+            now().getTime() + (job.run?.pollSeconds ?? 5) * 1000,
+          ),
         },
         now(),
+      );
+      return;
+    }
+    if (job!.run && deps.terminalOutput) {
+      if (
+        await db.collection("runDecisions").findOne({
+          jobId: job!._id,
+          status: { $in: ["unknown", "submitting"] },
+        })
+      ) {
+        await defer("decision-outcome-unconfirmed", true);
+        return;
+      }
+      const status = await deps.terminalOutput(job!, execution);
+      await settleAiJob(
+        db,
+        job!,
+        execution.status === "stopped" ? "cancelled" : status,
+        now(),
+        deps.materialize
+          ? (session) => deps.materialize!(job!, execution, session)
+          : undefined,
       );
       return;
     }
@@ -125,6 +158,20 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       job.execution &&
       !["running", "paused"].includes(job.execution.status)
     ) {
+      if (
+        job.run &&
+        job.runId &&
+        (await db.collection("runDecisions").findOne({
+          jobId: job._id,
+          status: { $in: ["unknown", "submitting"] },
+        }))
+      ) {
+        const provider = deps.provider(job);
+        if (provider.stream)
+          await provider.stream(job.runId, providerUser(job.uid), (event) =>
+            persistAiEvent(db, job!, event, now()),
+          );
+      }
       await finish(job.execution);
       return true;
     }
@@ -198,7 +245,25 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
     } else if (job.runId) {
       if (job.cancelRequested && job.taskId)
         await provider.stop(job.taskId, providerUser(job.uid));
-      outcome = await provider.retrieve(job.runId);
+      const state = await provider.retrieve(job.runId);
+      outcome =
+        job.run &&
+        provider.stream &&
+        state.kind === "ok" &&
+        (["running", "paused"].includes(state.value.status) ||
+          !!(await db.collection("runDecisions").findOne({
+            jobId: job._id,
+            status: { $in: ["unknown", "submitting"] },
+          }))) &&
+        !job.cancelRequested
+          ? await provider.stream(
+              job.runId,
+              providerUser(job.uid),
+              async (event) => {
+                await persistAiEvent(db, job!, event, now());
+              },
+            )
+          : state;
     } else {
       await defer("acceptance-unknown", true);
       return true;

@@ -40,26 +40,10 @@ const env = {
   ASSET_STORE: "mongo",
   DIFY_MODE: process.argv.includes("--ai") ? "fake" : "disabled",
   DIFY_BASE_URL: "",
-  DIFY_BINDINGS_JSON: "",
-  AI_PRICING_JSON: process.argv.includes("--ai-pricing")
-    ? JSON.stringify({
-        "assistant-text": {
-          mode: "tokens",
-          maxCredits: 10,
-          rate: { basis: "total", creditsPerMillion: "1000" },
-        },
-        "assistant-chat": {
-          mode: "hybrid",
-          maxCredits: 10,
-          baseCredits: 1,
-          usage: {
-            mode: "provider-cost",
-            currency: "USD",
-            creditsPerCurrencyUnit: "400",
-          },
-        },
-      })
-    : "",
+  DIFY_ORCHESTRATORS_JSON: "",
+  DIFY_MANAGEMENT_KEY: "",
+  DIFY_WORKSPACE_ID: "",
+  DIFY_CONSOLE_URL: "",
   CREDIT_PACKS_JSON: process.argv.includes("--stripe")
     ? JSON.stringify([
         {
@@ -107,57 +91,63 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   if (!available) throw new Error("Test server did not become ready.");
-  const test = spawn(
-    process.execPath,
-    [
-      ...(process.argv.includes("--ai")
-        ? ["--conditions=react-server", "--import", "tsx"]
-        : []),
-      "--test",
-      process.argv.includes("--ai")
-        ? "tests/integration/ai.test.mjs"
-        : process.argv.includes("--stripe")
-          ? "tests/integration/payments.test.mjs"
-          : "tests/integration/auth.test.mjs",
-    ],
-    { env, stdio: "inherit", windowsHide: true },
-  );
-  const [code] = await once(test, "exit");
-  process.exitCode = code ?? 1;
-  if (code === 0) {
-    // Execute the actual bundled entry with only this owned disposable DB.
-    // Disable provider delivery so synthetic secrets never contact Stripe.
-    const worker = spawn(
+  if (process.argv.includes("--browser")) {
+    const { browserFixture } =
+      await import("../tests/integration/browser-fixture.mjs");
+    await browserFixture(env);
+  } else {
+    const test = spawn(
       process.execPath,
-      ["dist/payment-worker.cjs", "--once"],
-      {
-        env: { ...env, PAYMENTS_MODE: "disabled" },
-        stdio: "inherit",
-        windowsHide: true,
-      },
+      [
+        ...(process.argv.includes("--ai")
+          ? ["--conditions=react-server", "--import", "tsx"]
+          : []),
+        "--test",
+        process.argv.includes("--ai")
+          ? "tests/integration/ai.test.mjs"
+          : process.argv.includes("--stripe")
+            ? "tests/integration/payments.test.mjs"
+            : "tests/integration/auth.test.mjs",
+      ],
+      { env, stdio: "inherit", windowsHide: true },
     );
-    const [workerCode] = await once(worker, "exit");
-    assert.equal(
-      workerCode,
-      0,
-      "Bundled maintenance worker must run successfully",
-    );
-    await mongo.stop();
-    const ready = await fetch(`${env.APP_ORIGIN}/api/health/ready`, {
-      signal: AbortSignal.timeout(6500),
-    });
-    assert.equal(ready.status, 503);
-    assert.deepEqual(await ready.json(), {
-      status: "unavailable",
-      commit: env.RELEASE_COMMIT,
-    });
-    assert.equal(
-      (await fetch(`${env.APP_ORIGIN}/api/health/live`)).status,
-      200,
-    );
-    console.log(
-      "Readiness fails safely after the owned database stops; liveness remains available.",
-    );
+    const [code] = await once(test, "exit");
+    process.exitCode = code ?? 1;
+    if (code === 0) {
+      // Execute the actual bundled entry with only this owned disposable DB.
+      // Disable provider delivery so synthetic secrets never contact Stripe.
+      const worker = spawn(
+        process.execPath,
+        ["dist/payment-worker.cjs", "--once"],
+        {
+          env: { ...env, PAYMENTS_MODE: "disabled" },
+          stdio: "inherit",
+          windowsHide: true,
+        },
+      );
+      const [workerCode] = await once(worker, "exit");
+      assert.equal(
+        workerCode,
+        0,
+        "Bundled maintenance worker must run successfully",
+      );
+      await mongo.stop();
+      const ready = await fetch(`${env.APP_ORIGIN}/api/health/ready`, {
+        signal: AbortSignal.timeout(6500),
+      });
+      assert.equal(ready.status, 503);
+      assert.deepEqual(await ready.json(), {
+        status: "unavailable",
+        commit: env.RELEASE_COMMIT,
+      });
+      assert.equal(
+        (await fetch(`${env.APP_ORIGIN}/api/health/live`)).status,
+        200,
+      );
+      console.log(
+        "Readiness fails safely after the owned database stops; liveness remains available.",
+      );
+    }
   }
 } finally {
   if (app.exitCode === null && app.signalCode === null) {

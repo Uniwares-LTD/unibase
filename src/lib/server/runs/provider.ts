@@ -1,0 +1,236 @@
+import "server-only";
+import type { Db } from "mongodb";
+import { randomUUID } from "node:crypto";
+import { AppError } from "@/lib/auth-policy";
+import { createDifyWorkflow, type LiveConfig, type Binding } from "../ai/dify";
+import { fingerprint, type AiJob, aiJobs } from "../ai/jobs";
+import type { WorkflowProvider, ProviderExecution } from "../ai/types";
+import { database } from "../mongo";
+import type { OrchestratorDefinition } from "@/lib/contracts/runs";
+
+export function executionBinding(d: OrchestratorDefinition, revision: number) {
+  const mode = process.env.DIFY_MODE;
+  if (mode !== "live" && mode !== "fake")
+    throw new AppError("AI_DISABLED", "AI execution is disabled.", 503);
+  const key = mode === "fake" ? "fake" : process.env[d.keyEnv];
+  if (!key || (mode === "live" && !d.workflowId))
+    throw new AppError(
+      "AI_CONFIGURATION",
+      "Orchestrator credentials or version are missing.",
+      503,
+    );
+  const baseUrl = process.env.DIFY_BASE_URL || "https://dify.invalid/v1";
+  const url = new URL(baseUrl);
+  if (
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    (url.protocol !== "https:" &&
+      !(
+        process.env.APP_ENV === "local" &&
+        ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname) &&
+        url.protocol === "http:"
+      ))
+  )
+    throw new AppError("AI_CONFIGURATION", "Invalid provider URL.", 503);
+  const binding: Binding = {
+    name: d.id,
+    revision: String(revision),
+    kind: "workflow",
+    apiKeyEnv: d.keyEnv,
+    apiKey: key,
+    workflowId: d.workflowId,
+  };
+  const config: LiveConfig = {
+    mode: "live",
+    baseUrl: baseUrl.replace(/\/$/, ""),
+    bindings: [binding],
+  };
+  return {
+    snapshot: {
+      name: d.id,
+      revision: String(revision),
+      kind: "workflow" as const,
+      mode: mode as "live" | "fake",
+      fingerprint: fingerprint([baseUrl, key, d.workflowId ?? null, revision]),
+    },
+    config,
+    binding,
+  };
+}
+export function providerForRun(
+  job: AiJob,
+  db: Db = database(),
+): WorkflowProvider {
+  if (!job.run)
+    throw new AppError("RUN_REQUIRED", "Run configuration is missing.", 503);
+  if (job.binding.mode === "fake") return fakeRun(job, db);
+  const live = executionBinding(
+    job.run.orchestrator,
+    job.run.configurationRevision,
+  );
+  if (live.snapshot.fingerprint !== job.binding.fingerprint)
+    throw new AppError(
+      "AI_CONFIGURATION",
+      "Execution credentials changed. Restore the configured connection to reconcile this attempt.",
+      409,
+    );
+  return createDifyWorkflow(live.config, live.binding);
+}
+function fakeRun(job: AiJob, db: Db): WorkflowProvider {
+  const runId = job.runId ?? randomUUID();
+  const taskId = job.taskId ?? randomUUID();
+  const result = () => ({
+    version: 1,
+    outcome: String(job.inputs.prompt).includes("partial")
+      ? "partial"
+      : "success",
+    text: `Generated: ${String(job.inputs.prompt ?? "Your request")}`,
+    cards: [],
+    images: [],
+    failure: null,
+    checkpoint: null,
+  });
+  async function state(): Promise<ProviderExecution> {
+    const current = await aiJobs(db).findOne({ _id: job._id });
+    const decision = await db
+      .collection("runDecisions")
+      .findOne({ jobId: job._id });
+    const failed =
+      String(job.inputs.prompt).includes("fail") &&
+      !job.inputs.unibase_recovery;
+    return {
+      runId,
+      workflowId:
+        job.run!.orchestrator.workflowId ??
+        "00000000-0000-4000-8000-000000000003",
+      status: current?.cancelRequested
+        ? "stopped"
+        : failed
+          ? "failed"
+          : String(job.inputs.prompt).includes("decision") &&
+              decision?.status !== "submitted" &&
+              !decision?.fakeProviderAnswer
+            ? "paused"
+            : "succeeded",
+      outputs: failed
+        ? {
+            result: {
+              ...result(),
+              outcome: "failed",
+              checkpoint: {
+                version: "1",
+                stage: "draft",
+                data: { prompt: job.inputs.prompt },
+              },
+            },
+          }
+        : { result: result() },
+      usage: {
+        scope: "execution",
+        id: runId,
+        inputTokens: 5,
+        outputTokens: 5,
+        totalTokens: 10,
+        cost: null,
+        elapsedMs: 100,
+      },
+    };
+  }
+  return {
+    async start(_input, observe) {
+      await observe({ type: "identity", runId, taskId });
+      await observe({
+        type: "stage",
+        id: "draft-1",
+        nodeId: "draft",
+        title: "Prepare draft",
+        status: "running",
+        elapsedMs: null,
+      });
+      if (String(job.inputs.prompt).includes("decision"))
+        await observe({
+          type: "decision",
+          nodeId: "choice",
+          title: "Choose a direction",
+          token: job._id,
+        });
+      const value = await state();
+      await observe({ type: "execution", execution: value });
+      return { kind: "ok", value };
+    },
+    retrieve: async () => ({ kind: "ok", value: await state() }),
+    async stream(_id, _user, observe) {
+      const value = await state();
+      if (value.status === "succeeded") {
+        const decision = await db.collection("runDecisions").findOne({
+          jobId: job._id,
+          status: { $in: ["unknown", "submitting"] },
+        });
+        if (decision?.intent)
+          await observe({
+            type: "decision-filled",
+            nodeId: decision.nodeId,
+            action: decision.intent.action,
+            inputs: decision.intent.inputs,
+          });
+      }
+      if (value.status === "succeeded")
+        await observe({
+          type: "stage",
+          id: "draft-1",
+          nodeId: "draft",
+          title: "Prepare draft",
+          status: "succeeded",
+          elapsedMs: 100,
+        });
+      return { kind: "ok", value };
+    },
+    async stop() {
+      return { kind: "ok", value: undefined };
+    },
+    async form() {
+      return {
+        form_content:
+          "```unibase-ui\n" +
+          JSON.stringify({
+            version: 1,
+            cards: [
+              {
+                id: "direction",
+                content: {
+                  type: "question",
+                  version: 1,
+                  data: {
+                    kind: "single",
+                    title: "Choose a direction",
+                    explanation: "Your selection continues this run.",
+                    options: [
+                      { id: "brief", label: "Brief" },
+                      { id: "detailed", label: "Detailed" },
+                    ],
+                  },
+                },
+              },
+            ],
+          }) +
+          "\n```\n{{#$output.response#}}",
+        inputs: [{ type: "paragraph", output_variable_name: "response" }],
+        user_actions: [{ id: "continue", title: "Continue" }],
+        expiration_time: Math.floor(Date.now() / 1000) + 3600,
+      };
+    },
+    async submit() {
+      if (String(job.inputs.prompt).includes("lost")) {
+        await db
+          .collection("runDecisions")
+          .updateOne(
+            { jobId: job._id },
+            { $set: { fakeProviderAnswer: true } },
+          );
+        throw new Error("Simulated dropped submission response");
+      }
+    },
+  };
+}

@@ -14,3 +14,9 @@
 !scripts/build-worker.mjs
 !scripts/ai-worker.ts
 !scripts/worker-healthcheck.ts
+
+!dify/
+!dify/**/*.yaml
+!dify/orchestrators/
+!dify/workflows/
+!dify/examples/

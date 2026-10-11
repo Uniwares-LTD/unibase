@@ -1,0 +1,193 @@
+{
+  "version": "0.6.0",
+  "kind": "app",
+  "app": {
+    "name": "Unibase child question",
+    "mode": "workflow",
+    "description": "Unibase contract v1. Sanitized disposable acceptance template.",
+    "icon": "??",
+    "icon_background": "#FFEAD5",
+    "use_icon_as_answer_icon": false
+  },
+  "dependencies": [],
+  "workflow": {
+    "conversation_variables": [],
+    "environment_variables": [],
+    "features": {
+      "file_upload": {
+        "enabled": false
+      },
+      "opening_statement": "",
+      "suggested_questions": [],
+      "suggested_questions_after_answer": {
+        "enabled": false
+      },
+      "speech_to_text": {
+        "enabled": false
+      },
+      "text_to_speech": {
+        "enabled": false
+      }
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "start",
+          "type": "custom",
+          "data": {
+            "type": "start",
+            "title": "Initial inputs",
+            "desc": "",
+            "selected": false,
+            "variables": [
+              {
+                "variable": "prompt",
+                "label": "prompt",
+                "type": "paragraph",
+                "required": true,
+                "max_length": 4000,
+                "options": []
+              },
+              {
+                "variable": "unibase_run_id",
+                "label": "unibase_run_id",
+                "type": "text-input",
+                "required": true,
+                "max_length": 4000,
+                "options": []
+              },
+              {
+                "variable": "unibase_attempt_id",
+                "label": "unibase_attempt_id",
+                "type": "text-input",
+                "required": true,
+                "max_length": 4000,
+                "options": []
+              },
+              {
+                "variable": "unibase_recovery",
+                "label": "unibase_recovery",
+                "type": "text-input",
+                "required": false,
+                "max_length": 64000,
+                "options": []
+              }
+            ]
+          },
+          "position": {
+            "x": 30,
+            "y": 100
+          },
+          "sourcePosition": "right",
+          "targetPosition": "left",
+          "width": 244,
+          "height": 100
+        },
+        {
+          "id": "generate",
+          "type": "custom",
+          "data": {
+            "type": "code",
+            "title": "Generate structured result",
+            "desc": "",
+            "selected": false,
+            "code_language": "python3",
+            "code": "import json\ndef main(prompt: str, recovery: str = \"\") -> dict:\n    return {\"result\": json.dumps({\"version\":1,\"question\":{\"title\":\"Choose a direction\",\"options\":[\"brief\",\"detailed\"]},\"text\":prompt})}\n",
+            "variables": [
+              {
+                "variable": "prompt",
+                "value_selector": [
+                  "start",
+                  "prompt"
+                ]
+              },
+              {
+                "variable": "recovery",
+                "value_selector": [
+                  "start",
+                  "unibase_recovery"
+                ]
+              }
+            ],
+            "outputs": {
+              "result": {
+                "type": "string",
+                "children": null
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          },
+          "sourcePosition": "right",
+          "targetPosition": "left",
+          "width": 244,
+          "height": 100
+        },
+        {
+          "id": "end",
+          "type": "custom",
+          "data": {
+            "type": "end",
+            "title": "Result",
+            "desc": "",
+            "selected": false,
+            "outputs": [
+              {
+                "variable": "result",
+                "value_selector": [
+                  "generate",
+                  "result"
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          },
+          "sourcePosition": "right",
+          "targetPosition": "left",
+          "width": 244,
+          "height": 100
+        }
+      ],
+      "edges": [
+        {
+          "id": "start-source-generate",
+          "source": "start",
+          "target": "generate",
+          "sourceHandle": "source",
+          "targetHandle": "target",
+          "type": "custom",
+          "data": {
+            "sourceType": "code",
+            "targetType": "code",
+            "isInIteration": false,
+            "isInLoop": false
+          }
+        },
+        {
+          "id": "generate-source-end",
+          "source": "generate",
+          "target": "end",
+          "sourceHandle": "source",
+          "targetHandle": "target",
+          "type": "custom",
+          "data": {
+            "sourceType": "code",
+            "targetType": "code",
+            "isInIteration": false,
+            "isInLoop": false
+          }
+        }
+      ],
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "zoom": 0.7
+      }
+    }
+  }
+}

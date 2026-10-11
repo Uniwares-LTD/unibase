@@ -20,7 +20,7 @@ test("session invalidation aborts in-flight reads and discards late private resp
     await pending;
     return Response.json({ private: "old-account" });
   });
-  const request = api("/api/ai/jobs", z.object({ private: z.string() }));
+  const request = api("/api/runs", z.object({ private: z.string() }));
   invalidateBrowserSession();
   release();
   await assert.rejects(request, { name: "AbortError" });

@@ -126,8 +126,8 @@ The image contains `payment-worker.cjs`, `ai-worker.cjs` and `worker-healthcheck
 `worker` and `ai-worker` with the same immutable image and runtime env file as
 the web app, without public worker ports. The AI worker also receives the Firebase
 credential mount for access checks. The runtime allowlist accepts payment settings,
-`DIFY_MODE`, `DIFY_BASE_URL`, `DIFY_BINDINGS_JSON`, named `DIFY_KEY_*` secrets and
-`AI_PRICING_JSON` and `APP_STYLE` (`classic`, `glass`, `soft-blue`); startup validates configuration. Releases and rollback replace
+`DIFY_MODE`, `DIFY_BASE_URL`, `DIFY_ORCHESTRATORS_JSON`, named `DIFY_KEY_*` secrets and
+`DIFY_CONSOLE_URL`, `DIFY_MANAGEMENT_KEY`, `DIFY_WORKSPACE_ID` and `APP_STYLE` (`classic`, `glass`, `soft-blue`); startup validates configuration. Releases and rollback replace
 the app and both workers together. Install all indexes using `npm run db:indexes`
 and verify both workers separately in staging. Each worker emits progress to MongoDB
 and a local health file. Compose probes every 15 seconds; release/check/rollback

@@ -2,7 +2,7 @@
 
 Unibase exposes optional, authenticated, read-only tools at `/api/mcp` inside the
 existing Next.js Node application. No separate server or AI worker is required
-to call MCP. A Dify workflow invoking it still uses the normal AI job/credit flow.
+to call MCP. A Dify workflow invoking it still uses the normal Run attempt/credit flow.
 
 ## Setup
 
@@ -92,13 +92,13 @@ Neither tool changes data or charges credits. MCP results include
    `title`, `body`, `revision` and `requestId` outputs using Dify's variable picker.
    Dify converts JSON text blocks into its `json` output, so the tool's `text`
    output can be empty even after a successful call. Tell the LLM to answer using
-   the reference document as data and include its revision and request ID. Keep End's `text` output
-   mapped to the LLM's text output.
+   the reference document as data and include its revision and request ID. Wrap the generated text in the versioned result envelope and map End's `result`
+   to the serialized envelope.
 5. Test: “When does the observatory open and what is the visitor password?” Expect
    Friday at 19:30 and silver-lantern, with revision/request ID from the tool.
    Inspect the Tool node's result as well as the answer; model text alone is not
    proof of a callback. Publish the updated workflow in the same Dify app.
-6. Submit the same question through Unibase `/ai`. Confirm successful completion,
+6. Submit the same question through Unibase `/runs/new`. Confirm successful completion,
    saved result after reload, and normal credit settlement. Correlate the tool's
    returned request ID with server logs.
 7. For update acceptance, change the synthetic document and increment its revision
@@ -110,8 +110,8 @@ serialize that output through a Template node before passing it to the LLM; do
 not assume `text` contains the JSON. Once connected, export the working DSL from that instance.
 Preserve its MCP server identifier; when importing into another Dify workspace,
 create a server with that same identifier and configure credentials there. Inspect
-exports for secrets before sharing. A portable DSL is not supplied before the
-target server identifier/tool binding has been established.
+exports for secrets before sharing. The sanitized `dify/orchestrators/mcp-reference.yaml` template uses `unibase_test`;
+rebind its Tool node and inspect structured outputs after importing.
 
 ## Add and update tools
 

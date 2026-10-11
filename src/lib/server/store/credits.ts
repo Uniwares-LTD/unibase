@@ -19,8 +19,7 @@ import type {
   Wallet,
 } from "./credit-types";
 
-const HOLD_MS = 15 * 60 * 1000;
-const PROMOTION_MS = 90 * 24 * 60 * 60 * 1000;
+import { readSettings } from "../settings";
 const wallets = (db: Db) => db.collection<Wallet>("creditWallets");
 const lots = (db: Db) => db.collection<CreditLot>("creditLots");
 const holds = (db: Db) => db.collection<Reservation>("creditReservations");
@@ -525,7 +524,11 @@ async function grant(ctx: Context, input: Grant) {
     input.source === "purchase"
       ? null
       : input.expiresAt === undefined
-        ? new Date(ctx.now.getTime() + PROMOTION_MS)
+        ? new Date(
+            ctx.now.getTime() +
+              (await readSettings(ctx.db)).settings.credits.promotionDays *
+                86400000,
+          )
         : input.expiresAt;
   if (expiresAt && expiresAt <= ctx.now)
     throw bad("Grant expiry must be in the future.");
@@ -717,7 +720,10 @@ export async function reserveCredits(
         allocations,
         status: "active",
         createdAt: ctx.now,
-        expiresAt: new Date(ctx.now.getTime() + HOLD_MS),
+        expiresAt: new Date(
+          ctx.now.getTime() +
+            (await readSettings(db)).settings.credits.holdMinutes * 60000,
+        ),
         ...(options.managedJobId ? { managedJobId: options.managedJobId } : {}),
       };
       await holds(db).insertOne(hold, { session: ctx.session });

@@ -6,7 +6,7 @@ import type { AddressInfo } from "node:net";
 import {
   s3ObjectStore,
   objectStoreId,
-} from "../../src/lib/server/workspaces/object-store";
+} from "../../src/lib/server/runs/object-store";
 import type { AssetConfig } from "../../src/lib/config/assets";
 
 test("S3 adapter uses conditional writes, bounded verified reads and exact-version deletion", async () => {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { calculateAiCharge } from "../src/lib/ai-pricing";
-import { parseAiPricing, type AiPricing } from "../src/lib/config/ai-pricing";
+import { aiPricingSchema, type AiPricing } from "../src/lib/config/ai-pricing";
 
 const usage = {
   inputTokens: 1000,
@@ -9,8 +9,7 @@ const usage = {
   totalTokens: 1500,
   cost: { amount: "0.0025", currency: "USD", source: "provider" as const },
 };
-test("AI pricing configuration is opt-in, strict and never reflects invalid values", () => {
-  assert.deepEqual(parseAiPricing({}), {});
+test("billing terms reject invalid bounds and rates", () => {
   for (const terms of [
     { mode: "fixed", credits: -1 },
     {
@@ -34,17 +33,7 @@ test("AI pricing configuration is opt-in, strict and never reflects invalid valu
       },
     },
   ])
-    assert.throws(
-      () =>
-        parseAiPricing({ AI_PRICING_JSON: JSON.stringify({ example: terms }) }),
-      /Invalid AI_PRICING_JSON/,
-    );
-  assert.throws(
-    () => parseAiPricing({ AI_PRICING_JSON: "private-invalid-input" }),
-    (error) =>
-      error instanceof Error &&
-      !error.message.includes("private-invalid-input"),
-  );
+    assert.equal(aiPricingSchema.safeParse(terms).success, false);
 });
 test("fixed, token, provider-cost and hybrid prices round exactly once and cap charges", () => {
   const cases: [AiPricing, number][] = [

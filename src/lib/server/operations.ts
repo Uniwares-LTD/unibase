@@ -4,7 +4,7 @@ import { cleanupExecuteSchema } from "@/lib/contracts/operations";
 import { database } from "./mongo";
 import { requireAdmin } from "./admin";
 import { aiJobs } from "./ai/jobs";
-import { aiConfig } from "./ai/capabilities";
+import { parseDifyConfig } from "@/lib/config/dify";
 import { creditConfig } from "./credit-config";
 import { healthyHeartbeat, type WorkerHeartbeat } from "./worker-heartbeat";
 import {
@@ -54,7 +54,8 @@ export async function operationsSummary() {
     paymentPending: inbox,
     paymentAgeSeconds: age(oldestNotice?.createdAt),
     workers: (["payment", "ai"] as const).map((kind) => {
-      const enabled = kind === "payment" || aiConfig().mode !== "disabled";
+      const enabled =
+        kind === "payment" || parseDifyConfig(process.env).mode !== "disabled";
       const beat = beats.find((b) => b.kind === kind && b.commit === commit);
       return {
         kind,

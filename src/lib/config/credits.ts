@@ -38,14 +38,7 @@ export function parseCreditConfig(
   environment: "local" | "staging" | "production",
   authMode: "emulator" | "firebase",
 ) {
-  const simulationAllowed = environment === "local" && authMode === "emulator";
-  const mode =
-    input.PAYMENTS_MODE ?? (simulationAllowed ? "simulation" : "disabled");
-  if (
-    !["disabled", "simulation", "stripe"].includes(mode) ||
-    (mode === "simulation" && !simulationAllowed)
-  )
-    throw new Error("Invalid credit configuration: PAYMENTS_MODE.");
+  const mode = parsePaymentMode(input, environment, authMode);
   let raw: unknown = mode === "simulation" ? fixturePacks : [];
   if (input.CREDIT_PACKS_JSON) {
     try {
@@ -76,4 +69,21 @@ export function parseCreditConfig(
     mode: mode as "disabled" | "simulation" | "stripe",
     packs: parsed.data,
   };
+}
+
+// Connection activation is independent of the once-seeded catalog policy.
+export function parsePaymentMode(
+  input: Record<string, string | undefined>,
+  environment: "local" | "staging" | "production",
+  authMode: "emulator" | "firebase",
+) {
+  const simulationAllowed = environment === "local" && authMode === "emulator";
+  const mode =
+    input.PAYMENTS_MODE ?? (simulationAllowed ? "simulation" : "disabled");
+  if (
+    !["disabled", "simulation", "stripe"].includes(mode) ||
+    (mode === "simulation" && !simulationAllowed)
+  )
+    throw new Error("Invalid credit configuration: PAYMENTS_MODE.");
+  return mode as "disabled" | "simulation" | "stripe";
 }

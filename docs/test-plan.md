@@ -65,7 +65,7 @@ impersonation and account deletion are not part of the implemented feature set.
    demo Auth, local replica-set MongoDB and `APP_ORIGIN=http://localhost:3000`.
    Optionally set `APP_NAME=Base` for the displayed name.
    Set `PAYMENTS_MODE=simulation`, `DIFY_MODE=fake` and initially leave
-   `AI_PRICING_JSON` empty. Check that no process-level overrides select live services. Run `npm.cmd run check:env`, then
+   `DIFY_ORCHESTRATORS_JSON` empty. Check that no process-level overrides select live services. Run `npm.cmd run check:env`, then
    `npm.cmd run db:indexes` against this local configuration. Restart the app after
    env changes. Never paste credentials into test results.
    If preserving an older development database, choose a new dedicated database
@@ -110,7 +110,7 @@ Perform browser checks in Chrome and another supported browser, at desktop and
 
 | ID    | Test steps                                                                                                                                               | Expected result                                                                                                                                                                                                |
 | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| UI-01 | Open Home/workspaces from desktop/mobile navigation; open Account, Credits, Preferences and eligible Administration/Sign out from the avatar menu.                                                                | Correct destinations, readable layout, no viewport overflow or hydration errors.                                                                                                                               |
+| UI-01 | Open Home/Start run/Runs from desktop/mobile navigation; open Account, Credits, Preferences and eligible Administration/Sign out from the avatar menu.                                                                | Correct destinations, readable layout, no viewport overflow or hydration errors.                                                                                                                               |
 | UI-02 | Select light, dark, then system theme; reload; change OS appearance in system mode.                                                                      | Selection persists; system mode follows OS; controls remain readable.                                                                                                                                          |
 | UI-03 | Tab through menus, forms and dialogs; use Enter/Escape; open and close confirmations.                                                                    | Visible focus, meaningful labels, usable controls; modal focus returns to trigger.                                                                                                                             |
 | UI-04 | Visit an unknown URL and follow the recovery link.                                                                                                       | Safe not-found page returns home. Exercise error retry through automated failure fixtures rather than adding failing production code.                                                                          |
@@ -169,7 +169,7 @@ owner: use non-secret explanations. Reopen the member's Credits after each step.
 | SIM-05 | Successfully buy 500 and 1000; refund each order.                                                   | Starting from zero: 1500, then 1000 after refunding 500, then zero after refunding 1000.                                             |
 | SIM-06 | Set local `PAYMENTS_MODE=disabled`, restart app, inspect Credits; restore original env and restart. | Simulation disappears; ledger remains. Non-local simulation rejection is covered automatically.                                      |
 
-Use `/ai` for priced spending and the debt test in section 6a. Run
+Use `/runs/new` for priced spending and the debt test in section 6a. Run
 `npm.cmd run test:accounts` for deterministic accounting boundaries:
 
 - Concurrent reservations cannot overspend; commit/release retries and cross-user
@@ -210,66 +210,9 @@ and bounded best-effort logging failures. Do not wait 30 days or delete financia
 records to test retention. Runtime reporting may fall back to sanitized stdout;
 required accounting/audit failures must still roll back the transaction.
 
-## 6a. AI workspace and credit pricing
+## 6a. Orchestrator Runs
 
-Follow [AI setup](ai-testing.md) for capability contracts, fake usage and recovery
-limits. Keep `DIFY_MODE=fake`; fake output is deliberate fixture text, not actual
-AI quality. Start with an empty `AI_PRICING_JSON`, the AI worker running, and a
-fresh member funded with 100 simulated credits. Record the balance before each
-case instead of relying on another section's wallet.
-
-| ID    | Steps                                                                                                           | Expected result                                                                                                                                                                                               |
-| ----- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AI-01 | Send Text assistant, wait, open Details and usage, reload.                                                      | One durable success, simulated result, 1 credit charged by default; unknown provider costs are not zero.                                                                                                      |
-| AI-02 | Select Conversation, send two sequential turns, then start a new conversation.                                  | Saved turns and a separate new conversation; no concurrent second turn on an unfinished conversation. Fake replies need not demonstrate model memory.                                                         |
-| AI-03 | Select Document or image summary; attach a small `.txt` or PNG and send. Try unsupported type/over-20-MiB file. | Valid owned upload completes; invalid/oversized input rejected. Fake summary is not a content-quality test.                                                                                                   |
-| AI-04 | Open a completed job URL as Member B or anonymous; try `/admin/ai` as a member.                                 | No access to A's private inputs/results or administration.                                                                                                                                                    |
-| AI-05 | Stop only the AI worker, submit a task, check `/credits`, restart worker.                                       | Queued job retains one hold; worker completes it once and charges once. Reload does not resubmit.                                                                                                             |
-| AI-06 | Stop worker, submit and request cancellation, restart worker.                                                   | No generation for queued cancelled work; hold releases and no consumption. Running cancellation is only a request and can lose a race to success.                                                             |
-| AI-07 | Submit with zero credits or fewer than the configured maximum.                                                  | Submission rejected before a provider call; no job/hold billed. Maximum affordability is required even when expected actual charge is lower.                                                                  |
-| AI-08 | Set `DIFY_MODE=disabled` after draining work; restart app/worker, inspect `/ai`; restore fake mode.             | No new AI dispatch. Existing records are retained; do not disable a binding to resolve pending jobs.                                                                                                          |
-| AI-09 | Inspect `/admin/ai` as admin after several tasks.                                                               | Usage is marked fake, separate from application credit charges; no prompts/secrets in runtime reports.                                                                                                        |
-| AI-10 | Run `test:accounts` and `test:ai`.                                                                              | Duplicate keys, changed payloads, partial/paused/uncertain provider outcomes, fenced recovery and credit reversal races are covered deterministically. Do not kill the shared DB to manufacture these states. |
-
-### Pricing matrix
-
-Set each policy below as the value for `assistant-text` in `.env.local`:
-
-```dotenv
-AI_PRICING_JSON={"assistant-text":{"mode":"tokens","maxCredits":10,"rate":{"basis":"total","creditsPerMillion":"1000"}}}
-```
-
-Restart the web app **and AI worker**, reload `/ai`, check the disclosed formula,
-then submit one task. Use decimal strings exactly as shown. A variable fake task
-reports 1,000 input + 500 output tokens and USD 0.0025. These numbers are synthetic.
-For each success verify the job's actual charge, wallet balance delta and ledger:
-reserve maximum -> commit actual -> release unused. Actual charges round up once.
-
-| ID       | Policy for `assistant-text`                                                                                                          | Reserve |     Charge | Unused release |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------: | ---------: | -------------: |
-| PRICE-01 | `{"mode":"fixed","credits":3}`                                                                                                       |       3 |          3 |              0 |
-| PRICE-02 | `{"mode":"tokens","maxCredits":10,"rate":{"basis":"total","creditsPerMillion":"1000"}}`                                              |      10 |          2 |              8 |
-| PRICE-03 | `{"mode":"tokens","maxCredits":10,"rate":{"basis":"split","inputCreditsPerMillion":"1000","outputCreditsPerMillion":"2000"}}`        |      10 |          2 |              8 |
-| PRICE-04 | `{"mode":"provider-cost","maxCredits":10,"currency":"USD","creditsPerCurrencyUnit":"400"}`                                           |      10 |          1 |              9 |
-| PRICE-05 | `{"mode":"hybrid","maxCredits":10,"baseCredits":1,"usage":{"mode":"provider-cost","currency":"USD","creditsPerCurrencyUnit":"400"}}` |      10 |          2 |              8 |
-| PRICE-06 | `{"mode":"hybrid","maxCredits":10,"baseCredits":1,"usage":{"mode":"tokens","rate":{"basis":"total","creditsPerMillion":"1000"}}}`    |      10 |          3 |              7 |
-| PRICE-07 | `{"mode":"tokens","maxCredits":3,"rate":{"basis":"total","creditsPerMillion":"1000000"}}`                                            |       3 | 3 (capped) |              0 |
-| PRICE-08 | `{"mode":"fixed","credits":0}`                                                                                                       |       0 |          0 |              0 |
-
-Additional boundaries:
-
-| ID       | Steps                                                                                                    | Expected result                                                                                                                                                                                                                                           |
-| -------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PRICE-09 | Keep an old `/ai` tab, change rates and restart services, submit from the old tab.                       | 409 pricing-change feedback; reload and review new terms before resubmission. Already-created jobs keep original terms. Automated tests verify the saved-price boundary.                                                                                  |
-| PRICE-10 | Use PRICE-04 with `EUR` instead of `USD`; submit, wait, inspect admin.                                   | `needs-review`, 10 retained, no charge. Admin cannot accept without matching evidence; release with recent login, reason and confirmation, then wallet recovers. Cancel dialog first to verify no mutation. Release is a waiver, not remote cancellation. |
-| PRICE-11 | Try a numeric rate instead of a string or a negative rate, run `check:env`; restore valid configuration. | Safe validation error without leaking values. Do not test invalid configuration against shared deployment.                                                                                                                                                |
-| PRICE-12 | Buy 100 on a fresh member with no other funds; use fixed 3 credits once, then refund that purchase.      | Balance 97 after AI, then debt 3 after refund. New spending blocked. A new 100-credit simulated purchase repays debt, leaving 97 available. Replaying old success/refund changes nothing.                                                                 |
-
-Restore your chosen valid policy afterward. Review holds should be resolved in the
-admin UI, not by deleting job/ledger records. For node-only or absent monetary
-usage, live provider-cost pricing requires review; total-token pricing may be the
-appropriate policy. The maximum protects the user's credit charge, not the
-operator's Dify/model bill.
+Use the matrix in [AI testing](ai-testing.md) for pricing, generated decisions, recovery and durable worker acceptance. Configure fake Dify for local tests; use disposable Dify apps for live acceptance.
 
 ## 7. Automated regression and production-like PWA
 
@@ -466,7 +409,7 @@ Derived-project readiness decision and explicit unverified integrations:
 
 ## Operations regression
 
-- On `/ai`, detail/history and admin pages, sign out or switch accounts in another
+- On `/runs/new`, detail/history and admin pages, sign out or switch accounts in another
   tab. Verify private content clears and browser Back cannot restore the old data.
   The API unit regression also checks a late response after session invalidation.
 - With more than 25 executions, browse history and unresolved admin pages; verify
@@ -483,33 +426,6 @@ Derived-project readiness decision and explicit unverified integrations:
   when a candidate worker probe fails. Live provider/VPS acceptance stays separate.
 - Verify the cleanup dialog's keyboard focus/Escape and operations layout at
   desktop/mobile widths. Run the full acceptance sequence for broader accessibility.
-
-## Reusable creation platform regression
-
-Use disposable owned workspaces and fake AI. Keep the AI worker running for generation
-and workflows, and the maintenance worker for exports and approved object deletion.
-See [creation workspaces](creation-workspaces.md) for contracts, limits and recovery.
-
-| ID | Flow | Expected evidence |
-| --- | --- | --- |
-| CREATE-01 | In development, exercise `/design-system` card examples; in `/workspaces`, generate a `form`, select it, answer and reload. | Typed values persist in the real workspace; sample responses remain local. Reopening preserves prior decisions; unknown types/actions are rejected. |
-| CREATE-02 | Save messages, page through more than 25 events, and preview an image candidate before selecting it. | Stable owned history; preview creates no asset; another member cannot read history or image bytes. |
-| CREATE-03 | Publish two execution-profile revisions as admin; generate mixed-profile candidates and retry a confirmed failure. | Revisions and accepted inputs remain frozen. Demoted/ineligible users cannot publish/select profiles; uncertain jobs require admin recovery. |
-| CREATE-04 | Run draft/review/approval and parallel-synthesis workflows; pause, restart the worker, resume and cancel. | Saved commands resume without duplicate jobs/holds; downstream steps wait for decisions/approvals; changed sources block stale work. |
-| CREATE-05 | Track a blocking finding, request targeted repair, inspect the new version/review, then resolve or explicitly accept. | Approval is invalidated by revisions; resolution needs a newer reviewed version; repair/history limits and reasons are enforced. |
-| CREATE-06 | Upload a private image, use references, edit an image and reload old versions. | Ownership and exact upload retries hold; reference preparation reuses confirmed uploads and never repeats uncertain provider uploads automatically. |
-| CREATE-07 | With a controlled S3 fixture, stage/read an asset, interrupt attachment/deletion and run preview-confirm cleanup. | Digest/size checks, immutable keys, staged recovery and exact-version deletion work; old inline assets remain readable. |
-| CREATE-08 | Archive, preview cleanup, restore to invalidate the preview, then archive and confirm a fresh preview. | Read-only archive remains reversible. Confirmed cleanup removes content and queues object deletion while preserving financial/audit/retry evidence; unfinished work is excluded. |
-| CREATE-09 | Queue selected versions as PDF and ZIP, edit the source, reload and download. Cancel a rendering job and restart a worker. | Frozen content, private downloads, progress, cancellation and lease recovery; no AI calls/credits. Decode ZIP and inspect rendered PDF, including long text, Persian/English punctuation and images. |
-| CREATE-10 | Repeat the interactive flows with keyboard input, Dark mode, and 1440px/390px viewports; switch accounts in another tab. | Usable focus, persistent theme, no horizontal overflow and no restored private state after account changes. |
-
-Automated coverage lives in `tests/creation-registry.test.ts`,
-`tests/workflow-contract.test.ts`, `tests/accounts/workspaces.test.ts`, the
-workflow/reference-image/storage/lifecycle/export account suites, and
-`tests/integration/ai.test.mjs`. Run the unit/account suites, both AI HTTP modes,
-account/session and Stripe fixture HTTP suites, build/type/lint checks and deployment
-configuration tests. Record actual counts and mode skips; do not infer live provider,
-S3 service, VPS or Android acceptance from local fixtures.
 
 ## MCP regression
 

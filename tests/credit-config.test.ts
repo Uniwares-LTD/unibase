@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseCreditConfig } from "../src/lib/config/credits";
+import { parseCreditConfig, parsePaymentMode } from "../src/lib/config/credits";
 
 test("purchase simulation is restricted to local emulator configuration", () => {
   assert.deepEqual(
@@ -54,4 +54,18 @@ test("server catalog validates whole credits, identities and safe errors", () =>
         error.message === "Invalid credit configuration: CREDIT_PACKS_JSON.",
     );
   }
+});
+
+test("saved catalog policy is independent of environment connection activation", () => {
+  assert.equal(
+    parsePaymentMode(
+      { PAYMENTS_MODE: "stripe", CREDIT_PACKS_JSON: "invalid seed" },
+      "production",
+      "firebase",
+    ),
+    "stripe",
+  );
+  assert.throws(() =>
+    parsePaymentMode({ PAYMENTS_MODE: "simulation" }, "production", "firebase"),
+  );
 });

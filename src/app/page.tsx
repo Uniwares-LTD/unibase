@@ -8,12 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getConfig } from "@/lib/server/config";
+import { publicSettings } from "@/lib/server/settings";
 
-export default function HomePage() {
-  const {
-    public: { appName },
-  } = getConfig();
+export default async function HomePage() {
+  const { appName } = await publicSettings();
   return (
     <div className="space-y-10">
       <section className="reading-surface relative overflow-hidden rounded-2xl border bg-secondary/45 px-6 py-10 sm:px-10 sm:py-14">

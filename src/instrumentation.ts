@@ -6,8 +6,6 @@ export async function register() {
     parseMcpConfig(process.env, getConfig().server.origin);
     const { parseDifyConfig } = await import("./lib/config/dify");
     parseDifyConfig(process.env);
-    const { parseAiPricing } = await import("./lib/config/ai-pricing");
-    parseAiPricing(process.env);
     const { parseAssetConfig } = await import("./lib/config/assets");
     parseAssetConfig(process.env);
     const { getDatabaseConfig } = await import("./lib/server/database-config");

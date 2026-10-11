@@ -2,7 +2,7 @@ import "server-only";
 import Stripe from "stripe";
 import { AppError } from "../auth-policy";
 import { parseStripeConfig } from "../config/payments";
-import { creditConfig } from "./credit-config";
+import { creditConfig, runtimeCreditConfig } from "./credit-config";
 import { requireSession } from "./session";
 import { database } from "./mongo";
 import { getConfig } from "./config";
@@ -37,7 +37,7 @@ export function stripeClient() {
   });
 }
 export async function startStripeCheckout(packId: string, key: string) {
-  const config = creditConfig();
+  const config = await runtimeCreditConfig();
   if (config.mode !== "stripe")
     throw new AppError(
       "PAYMENTS_DISABLED",

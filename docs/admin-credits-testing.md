@@ -63,8 +63,8 @@ use credentials you create in the emulator, then appoint that exact Firebase UID
    disappears. Simulation configuration is rejected outside local emulator mode.
    Do not enable real billing as part of these checks.
 
-There is no arbitrary public grant/spend endpoint. The implemented `/ai` workspace
-spends server-priced credits; use [AI acceptance](test-plan.md#6a-ai-workspace-and-credit-pricing)
+There is no arbitrary public grant/spend endpoint. The implemented `/runs/new` page
+spends server-priced credits; use [AI acceptance](ai-testing.md)
 to test consumption and refund-after-spend debt manually. Ordinary holds have a
 15-minute timeout; managed AI holds await settlement or audited resolution.
 Concurrency, expiry and failure rollback also have automated coverage.

@@ -9,9 +9,6 @@ import { createPaymentIndexes } from "../src/lib/server/store/payments";
 import { createAiIndexes } from "../src/lib/server/ai/jobs";
 import { createAiFileIndexes } from "../src/lib/server/ai/files";
 import { createOperationsIndexes } from "../src/lib/server/worker-heartbeat";
-import { createWorkspaceIndexes } from "../src/lib/server/workspaces/store";
-import { createWorkflowIndexes } from "../src/lib/server/workspaces/workflows";
-import { createExportIndexes } from "../src/lib/server/workspaces/export-jobs";
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 const base = parseConfig(process.env);
 const config = parseDatabaseConfig(process.env, base.server.environment);
@@ -39,9 +36,19 @@ async function main() {
     await createAiIndexes(client.db(config.database));
     await createAiFileIndexes(client.db(config.database));
     await createOperationsIndexes(client.db(config.database));
-    await createWorkspaceIndexes(client.db(config.database));
-    await createWorkflowIndexes(client.db(config.database));
-    await createExportIndexes(client.db(config.database));
+    for (const [name, keys] of [
+      ["runEvents", { uid: 1, logicalId: 1, timestamp: 1 }],
+      ["runDecisions", { uid: 1, logicalId: 1, jobId: 1 }],
+      ["runAssets", { uid: 1, jobId: 1 }],
+      ["runAssetStages", { state: 1, nextDeleteAt: 1 }],
+      ["orchestratorVersions", { orchestratorId: 1, revision: -1 }],
+      ["baseSettingsVersions", { revision: -1 }],
+    ] as const)
+      await client.db(config.database).collection(name).createIndex(keys);
+    await client
+      .db(config.database)
+      .collection("aiJobs")
+      .createIndex({ uid: 1, "run.logicalId": 1, "run.attempt": -1 });
     console.log(
       "Profile, access, audit, credit, payment and runtime indexes are ready.",
     );

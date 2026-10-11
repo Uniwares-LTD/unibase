@@ -1,13 +1,25 @@
 import "server-only";
-import { parseCreditConfig } from "../config/credits";
+import { parseCreditConfig, parsePaymentMode } from "../config/credits";
 import { getAuthConfig } from "./auth-config";
 import { getConfig } from "./config";
 
 export function creditConfig() {
+  return {
+    mode: parsePaymentMode(
+      process.env,
+      getConfig().server.environment,
+      getAuthConfig().server.mode,
+    ),
+  };
+}
+
+export async function runtimeCreditConfig() {
+  const { readSettings } = await import("./settings");
+  const { settings } = await readSettings();
   return parseCreditConfig(
     {
-      PAYMENTS_MODE: process.env.PAYMENTS_MODE,
-      CREDIT_PACKS_JSON: process.env.CREDIT_PACKS_JSON,
+      ...process.env,
+      CREDIT_PACKS_JSON: JSON.stringify(settings.credits.packs),
     },
     getConfig().server.environment,
     getAuthConfig().server.mode,

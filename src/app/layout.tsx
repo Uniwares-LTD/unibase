@@ -12,7 +12,7 @@ import {
 import { AccountMenu } from "@/components/account-menu";
 import { AppShell } from "@/components/app-shell";
 import { ThemeProvider } from "@/components/theme-provider";
-import { getConfig } from "@/lib/server/config";
+import { publicSettings } from "@/lib/server/settings";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -23,9 +23,7 @@ export const viewport: Viewport = {
 
 export async function generateMetadata(): Promise<Metadata> {
   await connection();
-  const {
-    public: { appName },
-  } = getConfig();
+  const { appName } = await publicSettings();
   return {
     title: { default: appName, template: `%s · ${appName}` },
     description: `Your space in ${appName}.`,
@@ -41,7 +39,7 @@ export default async function RootLayout({
 }) {
   // Read allowlisted configuration at runtime, not frozen into a build.
   await connection();
-  const { public: publicConfig } = getConfig();
+  const publicConfig = await publicSettings();
   const preference = parseStylePreference(
     (await cookies()).get(STYLE_COOKIE)?.value,
   );

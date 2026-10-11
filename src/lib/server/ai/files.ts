@@ -1,4 +1,5 @@
 import "server-only";
+import { readSettings } from "../settings";
 
 import { createHash } from "node:crypto";
 import { z } from "zod";
@@ -130,6 +131,13 @@ export async function uploadOwnedAiFile(
   ) => Promise<ProviderOutcome<{ id: string }>>,
 ) {
   const type = validateAiFile(file);
+  const policy = (await readSettings(db)).settings.runs;
+  if (file.size > policy.uploadBytes)
+    throw new AppError(
+      "AI_FILE_LIMIT",
+      "File exceeds the configured upload limit.",
+      413,
+    );
   if (!/^[A-Za-z0-9_:-]{1,128}$/.test(key))
     throw new AppError("AI_INVALID_KEY", "Invalid upload request key.");
   const bytes = Buffer.from(await file.arrayBuffer());
@@ -167,9 +175,9 @@ export async function uploadOwnedAiFile(
         .limit(101)
         .toArray();
       if (
-        owned.length >= 100 ||
+        owned.length >= policy.filesPerAccount ||
         owned.reduce((sum, item) => sum + item.bytes, 0) + bytes.length >
-          100 * 1024 * 1024
+          policy.uploadBytesPerAccount
       )
         throw new AppError(
           "AI_FILE_QUOTA",

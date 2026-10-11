@@ -5,12 +5,17 @@ import { parseDifyConfig } from "../src/lib/config/dify";
 const configured = {
   DIFY_MODE: "live",
   DIFY_BASE_URL: "https://dify.example.test/v1",
-  DIFY_BINDINGS_JSON: JSON.stringify([
+  DIFY_ORCHESTRATORS_JSON: JSON.stringify([
     {
-      name: "summarize",
-      revision: "1",
-      kind: "workflow",
-      apiKeyEnv: "DIFY_KEY_SUMMARIZE",
+      id: "summarize",
+      name: "Summarize",
+      description: "",
+      order: 0,
+      enabled: true,
+      keyEnv: "DIFY_KEY_SUMMARIZE",
+      inputs: [],
+      pricing: null,
+      recovery: null,
     },
   ]),
   DIFY_KEY_SUMMARIZE: "private-canary",
@@ -62,14 +67,19 @@ test("Dify resolves only named private bindings and validates the API base URL",
 });
 
 test("Dify rejects duplicate capability names and missing private credentials", () => {
-  assert.throws(() =>
-    parseDifyConfig({ ...configured, DIFY_KEY_SUMMARIZE: undefined }),
+  assert.deepEqual(
+    (
+      parseDifyConfig({ ...configured, DIFY_KEY_SUMMARIZE: undefined }) as {
+        bindings: unknown[];
+      }
+    ).bindings,
+    [],
   );
-  const binding: unknown = JSON.parse(configured.DIFY_BINDINGS_JSON)[0];
+  const binding: unknown = JSON.parse(configured.DIFY_ORCHESTRATORS_JSON)[0];
   assert.throws(() =>
     parseDifyConfig({
       ...configured,
-      DIFY_BINDINGS_JSON: JSON.stringify([binding, binding]),
+      DIFY_ORCHESTRATORS_JSON: JSON.stringify([binding, binding]),
     }),
   );
   assert.throws(

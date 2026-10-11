@@ -1,281 +1,93 @@
-# AI setup, testing and extension guide
+# AI testing and operations
 
-For workflows that call back into Unibase, use the optional
-[MCP tools and Dify round-trip test](mcp.md). MCP service credentials authenticate
-Dify → Unibase and are distinct from the Dify app keys used by the AI worker.
+## Isolated local acceptance
 
-For the complete account/admin/payment/design regression and Base handoff, use
-[the full test plan](test-plan.md). This page owns AI-specific configuration and limits.
+Start Firebase Auth Emulator (`npm run emulators:auth`). Build with `npm run build`.
+`npm run test:ai` starts a disposable MongoDB replica set and standalone app,
+creates owned emulator users and runs the actual bundled AI/maintenance workers.
+It does not load deployment credentials, use production services or reset your
+local database. The fake orchestrator supports `decision`, `decision lost`,
+`fail` and `partial` prompts for deterministic decision/reconciliation and outcome
+fixtures. `npm run test:accounts` covers the durable job/credit/lease/provider,
+private-file/storage and Runs boundaries. `npm test` covers pure contracts.
 
-## Local setup
+Run `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run check:env`,
+`npm run check:skills`, `npm run test:integration`, `npm run test:payments`,
+`npm run test:health` and `npm run test:deployment` for repository checks. Quality
+checks are advisory; production compilation/bundling failures remain build errors.
+`npm run test:ai-pricing` exercises the same Runs HTTP suite; pricing modes are
+exhaustively covered by isolated credit/provider tests instead of legacy chat UI.
 
-Use the existing Firebase Auth and MongoDB replica-set emulator setup in README.
-Keep real provider credentials out of local tests. Set `DIFY_MODE=fake` in
-`.env.local`, then restart the web app and worker after configuration changes.
-
-```sh
-npm run db:indexes
-npm run worker:build
-npm run worker:ai
-```
-
-Run `npm run dev` in a separate terminal. Sign in with a verified local account
-and obtain fixture credits through the existing simulated purchase flow. Open
-`/ai`. With empty `AI_PRICING_JSON`, each example reserves one credit; successful completion consumes it.
-The fake provider returns labelled simulated output and unknown monetary cost.
-
-## Manual acceptance
-
-1. Submit Text assistant, wait for completion and reload. The saved result and
-   credit balance must persist. Inspect usage on the job detail page.
-2. Start Conversation, complete a turn, then continue it. Start a new conversation
-   separately. An unfinished turn must prevent a second concurrent turn.
-3. Submit Document or image summary with a small text file or PNG. The uploaded
-   reference belongs to this account and capability binding.
-4. Open a job URL using a different account. Its inputs/results must be unavailable.
-   A regular user must also be denied `/admin/ai` and its reporting/resolution APIs.
-5. Stop the worker, submit a job, then restart the worker. The queued job completes.
-   Cancel a queued job while the worker is stopped; after restart its hold releases.
-6. Inspect `/admin/ai` with an administrator account. Fake usage must remain
-   identifiable; missing tokens/costs must never be displayed as measured zero.
-7. Check mobile navigation, keyboard operation and Classic/Glass/Soft Blue in light
-   and dark modes. Use the confirmation dialog for manual credit release; Escape
-   should close it and return focus to the trigger.
-
-Provider uncertainty, credit races and crash recovery require deterministic tests;
-the fast fake UI alone cannot reproduce them reliably.
-
-```sh
-npm test
-npm run test:accounts
-npm run build
-npm run test:ai
-npm run test:ai-pricing
-```
-
-`test:ai` requires the local Auth emulator and uses disposable MongoDB, synthetic
-accounts, a production server and the bundled worker. It forces fake Dify mode.
-`test:ai-pricing` uses the same isolated runner with variable policies. Run these
-suites sequentially, also separately from account/payment HTTP suites on port 3101.
-They do not contact Dify or spend real money. Build before running it. Do not run
-development and build against the same `.next` directory concurrently.
-
-## Live configuration
-
-Set `DIFY_MODE=live`, `DIFY_BASE_URL` ending in `/v1`, and private
-`DIFY_BINDINGS_JSON`. Each binding names a registered capability and contains
-`revision`, `kind` (`workflow` or `chat`), and `apiKeyEnv` naming a private
-`DIFY_KEY_*` variable. Optional `workflowId` checks the expected publication ID.
-Use your own published apps and credentials; none are supplied by this repository.
-
-The examples are `assistant-text` (workflow: `prompt` input, `text` output),
-`document-summary` (workflow: `prompt` and `document` file-array inputs, `text`
-output), and `assistant-chat` (chat: prompt becomes the message query). Their
-default registered price is one application credit, unless overridden through
-`AI_PRICING_JSON`. Provider monetary cost is separate.
-The same private environment must reach the web process and AI worker. VPS Compose
-includes the worker using the application image. Disabled mode requires no Dify
-credentials. Live provider compatibility and deployment still need environment-
-specific acceptance; local fixtures do not prove them.
-
-## Adding product features
-
-Register a named, versioned capability in `src/lib/server/ai/capabilities.ts` with
-input/output validation, a server-controlled price and an optional file mapping.
-Keep product schemas out of provider transport. Server feature services can create
-jobs with a source reference `{ type, id, version }`; the generic public endpoint
-does not let clients manufacture that reference or choose prices/credentials.
-
-Use `prepare` to load and authorize feature input before dispatch. For chat
-capabilities, prepared `prompt` becomes
-the message query, optional `files` becomes the top-level attachment list, and all
-remaining fields become Dify input variables (including named file variables).
-Validate these fields in the capability and resolve local file IDs through the
-owned-file mapping; clients must not supply raw provider references. The AI job
-endpoint allows a 72 KiB JSON body, while stored inputs remain limited to 64 KiB
-and the example prompt remains limited to 10,000 UTF-16 code units.
-
-Use `materialize` for database-only result writes, passing its MongoDB session to every write and
-checking the exact source version. Materialization, credit settlement and terminal
-job state commit together. MongoDB may retry this hook: never perform network calls
-or other irreversible side effects inside it. Saved provider results permit a
-failed database transaction to recover without generating again. Administrator
-acceptance uses the same hook. Preserve old capability versions while jobs remain.
-
-Workspace image-reference regressions in `tests/accounts/reference-images.test.ts`
-cover ownership before admission, frozen edit versions, successful file reuse,
-uncertain-upload recovery without resend, explicit new attempts, rejected uploads,
-quota exhaustion and renewal of the worker lease after preparation. The production
-AI HTTP suite also exercises image editing through the bundled worker and rejects
-private reference inputs submitted through the generic AI endpoint.
-
-Workflows, chat and uploaded-file references are implemented. Knowledge management,
-audio-specific endpoints, human-input continuation and permanent generated-asset
-storage can add feature/provider adapters through these boundaries. They are not
-automatically implemented merely because Dify offers them. Product approvals and
-domain-specific orchestration belong to downstream applications.
-
-## Recovery, costs and retention
-
-Jobs save dispatch intent before the provider POST and never automatically repeat
-an uncertain generation. Worker leases last 180 seconds; provider POST attempts
-are bounded to 120 seconds. Known executions are reconciled through reads. After
-24 hours unresolved jobs escalate for review while credits stay reserved.
-Stopping a provider task is a request, not proof that it stopped. Successful work
-can win a cancellation race and still be charged.
-
-Basic chat history can contain partial answers without reliable completion proof;
-such evidence remains unresolved. Chatflows with a saved workflow identity can
-use the workflow's terminal status. Administrator release is an audited credit
-waiver and does not stop uncertain provider work or erase its possible cost.
-An unresolved conversation may remain blocked; start a new conversation instead.
-Drain work before disabling Dify or changing bindings. Pending jobs require their
-original binding fingerprint; restore that configuration to reconcile them.
-
-`aiUsage` stores deduplicated observations by job, scope and provider identity.
-Costs use exact decimal strings and explicit currencies. Do not add execution
-summaries to their node totals, mix currencies, or substitute credit price for
-provider spend. Private job inputs/results live in `aiJobs`; diagnostic logs contain
-safe categories and identifiers rather than prompts or provider response bodies.
-
-Uploads allow at most 20 MiB per file and retain at most 100 non-cleaned references /
-100 MiB per user. Admin cleanup can reclaim quota from failed uploads; ready and
-uncertain uploads remain counted. File bytes stay with the provider. Configure
-provider retention separately; references are not a permanent asset store. There
-is no automatic content expiry. Billing, usage, audit and retry evidence survive
-local content cleanup.
-
-## Administrator operations
-
-Open `/admin/operations` to inspect payment/AI worker progress, active AI count and
-oldest submission age, unresolved jobs, and pending payment notification age.
-Refresh for current readings. A failed cycle or five minutes without progress is
-unhealthy. Check the worker process/configuration and logs before restarting;
-web readiness alone does not establish worker progress or provider compatibility.
-
-Use `/admin/ai` for manual uncertain-job review, 25 records per page. Check saved
-execution identity and provider evidence. Accept only a verified successful result
-with sufficient billing evidence; release is an audited credit waiver, not proof
-that provider work stopped. Do not resubmit an uncertain generation to recover it.
-Users can browse their own saved executions at `/ai/history`, 25 per page.
-
-For payments, inspect the order in Stripe, enter its application order ID and a
-review explanation, then choose **Verify payment and reconcile credits**. An
-optional known Checkout session ID supports lost-session recovery; its ownership
-and terms are verified. Only canonical provider state changes the ledger. Review
-`started` or `needs-review` attempts against provider/order evidence before a new
-attempt. Repeating an unchanged request after an uncertain response retrieves its
-report. This tool does not issue refunds; perform refunds in Stripe and reconcile.
-The page lists the oldest 25 pending/disputed orders and latest 20 review attempts.
-
-Cleanup is manual and local only:
-
-1. Choose completed AI content, failed upload references, both, or abandoned
-   application-owned private uploads, or archived workspaces and their content. Set age from
-   1?3650 days and batch size from 1?100 records (defaults: 30 days, 50 jobs).
-2. **Preview cleanup** saves the exact candidate IDs and cutoff without deleting
-   content. Download the JSON report if needed. The preview expires in 15 minutes;
-   changing options requires a new preview. Combined scope fills jobs before files.
-3. Supply an explanation and confirm **Execute previewed cleanup** in the dialog.
-   Recent administrator authentication is required; sign out/in if asked.
-4. Review changed/skipped counts and the latest 20 saved reports. Changed or no
-   longer eligible targets are skipped; retries of a completed preview return the
-   same approved targets. Storage-removal counts update as the maintenance worker
-   completes them. Generate another preview for remaining eligible content.
-
-Abandoned private uploads are a separate scope from AI-provider file references.
-Confirmation queues exact unattached objects for removal; the payment/maintenance
-worker performs and retries removal even with AI disabled. Refresh the reports to
-see completed/pending/failed counts. Repeated failures require checking worker health
-and private storage configuration/permissions. Attached assets are excluded. See
-[private storage setup and limits](creation-workspaces.md#private-object-storage).
-
-Archived-workspace cleanup previews up to 10 eligible workspaces from the oldest
-100 archived candidates; age applies to when the owner archived them. The report
-includes saved-asset and event counts. Confirmation removes saved versions, decisions,
-reviews, workflow content, events and inline bytes, clears related terminal job
-payloads, and queues attached/private object removal. Active or uncertain work,
-unfinished workflow runs, uploads in progress and incomplete admission evidence
-prevent deletion. Restoring/editing a workspace invalidates its preview target.
-The workspace ID remains tombstoned, while finance, global audit and retry hashes
-remain. See [archive and deletion recovery](creation-workspaces.md#archive-and-confirmed-workspace-deletion).
-
-Cleanup clears job prompts/results and source references for successful/failed
-jobs without active leases, and cancelled jobs only with verified stopped execution.
-It excludes active/uncertain jobs, including uncertain work released by an operator.
-Failed upload names are cleared and their quota reclaimed; identifiers/fingerprints
-remain to prevent retries from repeating work. Provider-hosted files and provider
-conversation history are untouched. Ledger, pricing, usage, audit and duplicate
-suppression records remain. Cleanup cannot be undone in the application.
+For CLI browser verification, use the Playwright skill against the owned fixture:
+`node --conditions=react-server --import tsx scripts/integration.mjs --ai --browser`.
+Load `output/playwright/runs-state.json` into a named CLI browser session. The
+fixture runs the real worker and remains available until Enter is pressed. Check
+start, generated forms, reload/resume, failure recovery, history and Administration
+at desktop/mobile widths, with keyboard navigation and all appearance/theme modes.
+Inspect browser console/page errors and horizontal overflow. Capture artifacts
+under `output/playwright/`; never commit session state or generated credentials.
 
 ## Configurable credit pricing
 
-Set `AI_PRICING_JSON` in `.env.local` (or the VPS runtime environment), then restart
-both the web application and AI worker. Empty configuration retains the existing
-fixed capability prices. These are synthetic examples, not recommended business rates:
+Configure global defaults at `/admin/settings`; per-orchestrator overrides are
+optional at `/admin/orchestrators`. Fixed, total/split tokens, provider-cost and
+hybrid policies reserve the maximum at admission and settle once with exact
+whole-credit rounding. Default fixed pricing is one credit per success and zero
+on confirmed failure/cancellation. Free execution does not create a hold.
+Verified-usage failure pricing excludes fixed/hybrid base charges and requires
+trustworthy matching summary usage/currency. Missing usage leaves reviewable
+reserved credit rather than inventing a charge. Changing configuration affects
+new attempts and purchases; accepted snapshots remain unchanged.
 
-```dotenv
-AI_PRICING_JSON={"assistant-text":{"mode":"tokens","maxCredits":10,"rate":{"basis":"total","creditsPerMillion":"1000"}},"assistant-chat":{"mode":"hybrid","maxCredits":10,"baseCredits":1,"usage":{"mode":"provider-cost","currency":"USD","creditsPerCurrencyUnit":"400"}}}
-```
+## Administrator operations
 
-Each capability accepts one of these policies:
+`/admin/ai` shows usage and uncertain/blocked attempts. Accept only saved validated
+successful outputs with adequate billing evidence. Explicit resolution/release
+records administrator authority and explanation, releases credit and allows a new
+attempt. It does not stop unknown provider work; the confirmation states this.
+Cancellation remains pending until provider stop/final state is confirmed.
 
-```json
-{"mode":"fixed","credits":1}
-{"mode":"tokens","maxCredits":10,"rate":{"basis":"total","creditsPerMillion":"1000"}}
-{"mode":"tokens","maxCredits":10,"rate":{"basis":"split","inputCreditsPerMillion":"500","outputCreditsPerMillion":"2000"}}
-{"mode":"provider-cost","maxCredits":10,"currency":"USD","creditsPerCurrencyUnit":"400"}
-{"mode":"hybrid","maxCredits":10,"baseCredits":1,"usage":{"mode":"tokens","rate":{"basis":"total","creditsPerMillion":"1000"}}}
-```
+`/admin/operations` previews bounded terminal-content and failed-file cleanup.
+The preview expires, requires an explanation/confirmation and rechecks exactly
+those IDs. Active/uncertain jobs and changed records are skipped. Ownership,
+financial, usage, audit and retry identities remain. Run image deletion uses
+private-storage intents and the maintenance worker. Published Run images cannot
+be treated as abandoned uploads. Provider files are not deleted automatically.
+Cleanup defaults come from Base settings; execution remains an explicit admin
+operation. There is no automatic local database deletion.
 
-Hybrid also accepts a `provider-cost` usage rule, as in the environment example.
-Decimal rates must be nonnegative strings (up to nine whole and nine fractional
-digits). Credits are whole integers up to one billion; variable maximums must be
-positive and a hybrid base cannot exceed its maximum. Currency is an uppercase
-three-letter code; there is no automatic currency conversion.
+## Live Dify 1.17.1 acceptance ? pending
 
-The UI shows the formula and maximum before submission. The maximum is reserved;
-exact arithmetic calculates the successful task's charge, rounds up once after
-combining all components, and caps it at that maximum. Settlement consumes that
-amount and releases unused credits in the same transaction as the job result.
-Unused expired promotional credits expire immediately. Confirmed failures and
-cancellations release the hold without charging. Provider expenses can still exist
-for failed tasks; the credit cap is a user-charge cap, **not a provider spending limit**.
+Use disposable test apps in the configured Dify workspace and follow
+[dify/README.md](../dify/README.md). Verify:
 
-Each job saves its pricing terms and billing evidence. Later rate changes do not
-reprice it. API clients send the `pricingKey` supplied to the workspace alongside
-the submission; stale/missing variable-price keys return 409 `AI_PRICE_CHANGED`.
-Legacy fixed-price submissions without a key remain supported.
+- Console admin-key/workspace authentication, discovery, metadata, availability,
+  missing keys, secret-excluded DSL export, new-app import, overwrite confirmation,
+  pending import warnings and uncertain mutation journal behavior.
+- Published parent version pinning, initial input/correlation fields, ordinary
+  generation and business failure/partial result envelopes.
+- A real MCP Tool invocation with returned revision/request ID, image bytes/private
+  ownership, parent-mediated child questions and installed plugin/tool bindings.
+- Sequential/parallel parent Human Input, matching end-user identity, continuation
+  actions, expiry, stream drop/reconnect, split frames and paused snapshots.
+- Lost dispatch/submission responses, worker interruption/lease fencing, cancellation
+  races, provider summary usage and exactly-once settlement.
+- Compatible diagnostic/checkpoint recovery after code/DSL changes; incompatible
+  checkpoints require full restart and uncertain attempts require reconciliation.
 
-Billing uses only a completed run/message's reported summary. Node-level usage is
-retained for reporting but never summed with overlapping run totals. Some Dify
-workflow versions report total tokens but no summary monetary cost or split token
-counts: use total-token pricing for these workflows. Missing required usage or a
-currency mismatch leaves the job in `needs-review` with its hold intact. An operator
-can release the hold with an audited reason; accepting a result still requires
-sufficient billing evidence. The system never invents missing costs or charges the
-maximum as a fallback. A zero configured rate does not need usage evidence.
+Fixtures verify application behavior and pinned payloads; they do not prove a
+specific self-hosted deployment's plugins, network or management permissions.
+No live instance was supplied for this implementation. Keep this acceptance
+pending until the disposable apps are exercised. Do not mark fixture success as
+live provider acceptance.
 
-### Local checks
+## Verified implementation evidence
 
-With `DIFY_MODE=fake`, variable-priced jobs report synthetic 1,000 input tokens,
-500 output tokens and USD 0.0025. They remain labeled fake; these are not actual
-provider expenses. Fixed-price fake jobs retain the original unknown-usage fixture.
-
-1. Use the example environment above and restart the app and worker.
-2. Sign in with a local emulator account and grant/purchase at least 10 test credits.
-3. Open `/ai`. Verify the formula and `up to 10 credits` before sending.
-4. Submit a text task: 1,500 tokens at 1,000 credits/million costs **2 credits**.
-   The completed job shows 2 charged, maximum 10; the remaining 8 are released.
-5. Submit chat: base 1 + USD 0.0025 x 400 also costs **2 credits**.
-6. Change a rate, restart, and submit from an old tab. Refresh is required before
-   accepting new terms; existing jobs keep their saved terms.
-7. To exercise review, configure provider-cost pricing with `EUR` against the fake
-   USD fixture. The task requires review and retains its hold without charging.
-8. Inspect `/credits` for commit/release entries and `/admin/ai` for fake usage.
-
-Automated checks: `npm test`, `npm run test:accounts`, and (with the Auth emulator
-running) `npm run test:ai-pricing`. The last command owns its disposable MongoDB,
-production server and fake worker, and tests pricing consent plus exact settlement
-through real HTTP. `npm run test:ai` verifies legacy fixed-price compatibility.
-Live provider usage completeness still needs acceptance against your Dify app.
+On 2026-10-11, 51 unit and 82 account/provider tests, owned Runs HTTP acceptance,
+9 account/session HTTP tests, 3 payment HTTP tests, health checks and 25 isolated
+deployment tests passed. Production web/worker builds, typecheck, lint, formatting,
+environment and skill integrity checks passed. Docker runtime/DSL packaging and
+Playwright desktop/mobile decision, reload, recovery, history and Administration
+checks passed. Full account fixtures used two concurrent test processes to avoid
+Mongo startup deadlines while builds were running. Live Dify acceptance above
+remains pending.

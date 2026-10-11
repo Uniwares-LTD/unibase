@@ -3,7 +3,7 @@
 ## Purpose and audience
 
 Base serves end users of AI-enabled web applications and operators managing
-accounts, credits and execution. Its reusable UI covers forms, workspaces, results,
+accounts, credits and execution. Its reusable UI covers forms, Runs, results,
 tables and reports. A downstream product defines its own audience and content
 experience; each application defines its own audience and content requirements.
 

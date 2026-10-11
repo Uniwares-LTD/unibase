@@ -16,10 +16,52 @@ import {
   claimAiJob,
   persistAiEvent,
 } from "../../src/lib/server/ai/jobs";
-import {
-  bindingSnapshot,
-  providerForJob,
-} from "../../src/lib/server/ai/capabilities";
+import type { AiJob } from "../../src/lib/server/ai/jobs";
+import type {
+  WorkflowProvider,
+  ProviderExecution,
+} from "../../src/lib/server/ai/types";
+const bindingSnapshot = () => ({
+  name: "fixture",
+  revision: "1",
+  kind: "workflow" as const,
+  mode: "fake" as const,
+  fingerprint: "fixture",
+});
+function providerForJob(job: AiJob): WorkflowProvider {
+  const execution: ProviderExecution = {
+    runId: `${job._id.slice(0, 8)}-${job._id.slice(8, 12)}-4000-8000-${job._id.slice(12, 24)}`,
+    workflowId: null,
+    status: "succeeded",
+    outputs: { text: "fixture" },
+    usage: {
+      scope: "execution",
+      id: job._id,
+      inputTokens: 1000,
+      outputTokens: 500,
+      totalTokens: 1500,
+      cost: { amount: "0.0025", currency: "USD", source: "provider" },
+      elapsedMs: 0,
+    },
+  };
+  return {
+    async start(_input, observe) {
+      await observe({
+        type: "identity",
+        runId: execution.runId,
+        taskId: "00000000-0000-4000-8000-000000000002",
+      });
+      await observe({ type: "execution", execution });
+      return { kind: "ok", value: execution };
+    },
+    async retrieve() {
+      return { kind: "ok", value: execution };
+    },
+    async stop() {
+      return { kind: "ok", value: undefined };
+    },
+  };
+}
 import { processOneAiJob } from "../../src/lib/server/ai/worker";
 import type { AiPricing } from "../../src/lib/config/ai-pricing";
 
@@ -63,7 +105,7 @@ test("variable AI settlement is atomic, capped, replay-safe and compatible with 
         credits:
           pricing.mode === "fixed" ? pricing.credits : pricing.maxCredits,
         pricing,
-        binding: bindingSnapshot("assistant-text", { mode: "fake" }),
+        binding: bindingSnapshot(),
       },
       now,
     );
@@ -71,7 +113,7 @@ test("variable AI settlement is atomic, capped, replay-safe and compatible with 
   }
   const deps = {
     provider: (job: Parameters<typeof providerForJob>[0]) =>
-      providerForJob(job, { mode: "fake" }),
+      providerForJob(job),
     authorize: async () => true,
     validateOutput: () => true,
     now: () => now,
@@ -176,20 +218,18 @@ test("variable AI settlement is atomic, capped, replay-safe and compatible with 
       "saved terms survive configuration changes and cancellation releases the maximum",
       async () => {
         const { db, job } = await fixture();
-        const previous = process.env.AI_PRICING_JSON;
-        try {
-          process.env.AI_PRICING_JSON = JSON.stringify({
-            "assistant-text": { mode: "fixed", credits: 99 },
-          });
-          await processOneAiJob(db, deps);
-          assert.equal(
-            (await aiJobs(db).findOne({ _id: job._id }))?.charge?.credits,
-            2,
-          );
-        } finally {
-          if (previous === undefined) delete process.env.AI_PRICING_JSON;
-          else process.env.AI_PRICING_JSON = previous;
-        }
+        await db.collection<{ _id: string }>("baseSettings").updateOne(
+          { _id: "base" },
+          {
+            $set: { "settings.runs.pricing": { mode: "fixed", credits: 99 } },
+          },
+          { upsert: true },
+        );
+        await processOneAiJob(db, deps);
+        assert.equal(
+          (await aiJobs(db).findOne({ _id: job._id }))?.charge?.credits,
+          2,
+        );
         const cancelled = await fixture();
         const claimed = await claimAiJob(cancelled.db, now);
         assert.ok(claimed);
@@ -279,13 +319,13 @@ test("variable AI settlement is atomic, capped, replay-safe and compatible with 
             source: null,
             credits: 10,
             pricing: price,
-            binding: bindingSnapshot("assistant-text", { mode: "fake" }),
+            binding: bindingSnapshot(),
           },
           now,
         );
         const claimed = await claimAiJob(db, now);
         assert.ok(claimed);
-        await providerForJob(job, { mode: "fake" }).start(
+        await providerForJob(job).start(
           { user: "unused", inputs: {} },
           (event) => persistAiEvent(db, claimed, event, now),
         );

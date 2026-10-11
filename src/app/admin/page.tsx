@@ -63,7 +63,10 @@ export default async function AdminPage() {
         <Link href="/admin/reports">View reports</Link>
       </Button>
       <Button variant="outline" asChild>
-        <Link href="/admin/execution-profiles">Execution profiles</Link>
+        <Link href="/admin/settings">Base settings</Link>
+      </Button>
+      <Button variant="outline" asChild>
+        <Link href="/admin/orchestrators">Orchestrators</Link>
       </Button>
     </div>
   );

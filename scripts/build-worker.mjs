@@ -8,8 +8,7 @@ await build({
   outdir: "dist",
   outExtension: { ".js": ".cjs" },
   bundle: true,
-  // PDFKit resolves packaged resources relative to its own module URL.
-  external: ["sharp", "pdfkit"],
+  external: ["sharp"],
   platform: "node",
   target: "node24",
   format: "cjs",

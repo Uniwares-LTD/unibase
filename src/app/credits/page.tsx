@@ -32,7 +32,7 @@ export default async function CreditsPage({
     throw error;
   });
   const account = await currentCreditAccount(cursor);
-  const catalog = publicCatalog();
+  const catalog = await publicCatalog();
   const orders =
     catalog.mode === "simulation" ? await currentSimulatedPurchases() : [];
   return (

@@ -4,7 +4,7 @@ import Stripe from "stripe";
 import { parseConfig } from "../src/lib/config/schema";
 import { parseAuthConfig } from "../src/lib/config/auth";
 import { parseDatabaseConfig } from "../src/lib/config/database";
-import { parseCreditConfig } from "../src/lib/config/credits";
+import { parsePaymentMode } from "../src/lib/config/credits";
 import { parseStripeConfig } from "../src/lib/config/payments";
 import {
   maintainCredits,
@@ -15,9 +15,8 @@ import { paymentOrders } from "../src/lib/server/store/payments";
 import { runtimeRecord } from "../src/lib/log-policy";
 import { writeRuntimeRecord } from "../src/lib/server/store/runtime";
 import { workerHeartbeat } from "../src/lib/server/worker-heartbeat";
-import { processOneAssetDeletion } from "../src/lib/server/workspaces/asset-storage";
-import { processOneExport } from "../src/lib/server/workspaces/export-jobs";
-import { authorizeWorkerAccount } from "../src/lib/server/worker-authorization";
+import { readSettings } from "../src/lib/server/settings";
+import { processOneAssetDeletion } from "../src/lib/server/runs/cleanup";
 
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 let stopping = false;
@@ -38,12 +37,12 @@ async function main() {
     base.server.environment,
     base.server.origin,
   );
-  const credits = parseCreditConfig(
+  const mode = parsePaymentMode(
     process.env,
     base.server.environment,
     auth.server.mode,
   );
-  const settings = parseStripeConfig(process.env, credits.mode === "stripe");
+  const settings = parseStripeConfig(process.env, mode === "stripe");
   const stripe = settings
     ? new Stripe(settings.key, { timeout: 10000, maxNetworkRetries: 1 })
     : null;
@@ -74,6 +73,7 @@ async function main() {
       let worked = false;
       let cycleState: "ok" | "error" = "ok";
       try {
+        await readSettings(db);
         if (stripe) {
           for (let n = 0; n < 1 && !stopping; n++) {
             try {
@@ -109,9 +109,7 @@ async function main() {
         }
         worked = (await maintainCredits(db)) || worked;
         worked = (await processOneAssetDeletion(db)) || worked;
-        worked =
-          (await processOneExport(db, { authorize: authorizeWorkerAccount })) ||
-          worked;
+
         if (worked) await observe(200, started);
       } catch {
         cycleState = "error";

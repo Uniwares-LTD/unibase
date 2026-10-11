@@ -62,11 +62,11 @@ class ConfigTests(unittest.TestCase):
     def test_dify_bindings_are_private_and_validated(self):
         env = self.root / "staging/runtime.env"
         original = env.read_text()
-        bindings = [{"name": "assistant-text", "revision": "1", "kind": "workflow", "apiKeyEnv": "DIFY_KEY_TEXT"}]
-        extra = "DIFY_MODE=live\nDIFY_BASE_URL=https://dify.example.test/v1\nDIFY_BINDINGS_JSON=" + json.dumps(bindings) + "\nDIFY_KEY_TEXT=synthetic-private-key\n"
+        bindings = [{"id":"main","keyEnv":"DIFY_KEY_TEXT"}]
+        extra = "DIFY_MODE=live\nDIFY_BASE_URL=https://dify.example.test/v1\nDIFY_ORCHESTRATORS_JSON=" + json.dumps(bindings) + "\nDIFY_KEY_TEXT=synthetic-private-key\n"
         env.write_text(original + extra)
         self.assertNotIn("synthetic-private-key", "".join(config_module.validate(self.root, "staging")))
-        for bad in (extra.replace("https://", "http://"), extra.replace("DIFY_KEY_TEXT=synthetic-private-key\n", ""), extra.replace("DIFY_MODE=live", "DIFY_MODE=invalid")):
+        for bad in (extra.replace("https://", "http://"), extra.replace("keyEnv", "invalidKeyRef"), extra.replace("DIFY_MODE=live", "DIFY_MODE=invalid")):
             env.write_text(original + bad)
             with self.assertRaises(ValueError):
                 config_module.validate(self.root, "staging")
@@ -76,7 +76,7 @@ class ConfigTests(unittest.TestCase):
         original = env.read_text()
         settings = {"ASSET_STORE": "s3", "ASSET_S3_ENDPOINT": "https://objects.example.test",
                     "ASSET_S3_REGION": "us-east-1", "ASSET_S3_BUCKET": "private-assets",
-                    "ASSET_S3_PREFIX": "workspace-assets", "ASSET_S3_ACCESS_KEY_ID": "fixture",
+                    "ASSET_S3_PREFIX": "run-assets", "ASSET_S3_ACCESS_KEY_ID": "fixture",
                     "ASSET_S3_SECRET_ACCESS_KEY": "fixture-secret", "ASSET_S3_FORCE_PATH_STYLE": "true"}
         def write(values):
             env.write_text(original + "".join(f"{key}={value}\n" for key, value in values.items()))
@@ -86,16 +86,6 @@ class ConfigTests(unittest.TestCase):
         for override in ({"ASSET_STORE": "unknown"}, {"ASSET_S3_ENDPOINT": "http://objects.example.test"},
                          {"ASSET_S3_ENDPOINT": "https://objects.example.test/path"}, {"ASSET_S3_SECRET_ACCESS_KEY": ""}):
             write({**settings, **override})
-            with self.assertRaises(ValueError):
-                config_module.validate(self.root, "staging")
-
-    def test_ai_pricing_environment_is_allowed_and_bounded(self):
-        env = self.root / "staging/runtime.env"
-        original = env.read_text()
-        env.write_text(original + 'AI_PRICING_JSON={"assistant-text":{"mode":"fixed","credits":2}}\n')
-        config_module.validate(self.root, "staging")
-        for value in ('[]', 'broken', '{"x":"' + 'a' * 65536 + '"}'):
-            env.write_text(original + 'AI_PRICING_JSON=' + value + '\n')
             with self.assertRaises(ValueError):
                 config_module.validate(self.root, "staging")
 

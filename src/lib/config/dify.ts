@@ -1,9 +1,10 @@
 import { z } from "zod";
+import { orchestratorSchema } from "../contracts/runs";
 
 const bindingSchema = z.strictObject({
   name: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
   revision: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/),
-  kind: z.enum(["workflow", "chat"]),
+  kind: z.literal("workflow"),
   apiKeyEnv: z.string().regex(/^DIFY_KEY_[A-Z0-9_]+$/),
   workflowId: z.string().uuid().optional(),
 });
@@ -39,13 +40,36 @@ export function parseDifyConfig(
       !/^\/(?:[A-Za-z0-9_-]+\/)*v1\/?$/.test(url.pathname)
     )
       throw new Error();
-    const bindings = z
-      .array(bindingSchema)
-      .min(1)
+    const definitions = z
+      .array(orchestratorSchema)
       .max(100)
-      .parse(JSON.parse(env.DIFY_BINDINGS_JSON ?? ""));
-    if (new Set(bindings.map((item) => item.name)).size !== bindings.length)
+      .parse(JSON.parse(env.DIFY_ORCHESTRATORS_JSON || "[]"));
+    if (new Set(definitions.map((d) => d.id)).size !== definitions.length)
       throw new Error();
+    const bindings = definitions
+      .filter((d) => !!env[d.keyEnv])
+      .map((d) =>
+        bindingSchema.parse({
+          name: d.id,
+          revision: "0",
+          kind: "workflow",
+          apiKeyEnv: d.keyEnv,
+          workflowId: d.workflowId,
+        }),
+      );
+    if (env.DIFY_MANAGEMENT_KEY) {
+      z.string().uuid().parse(env.DIFY_WORKSPACE_ID);
+      const consoleUrl = new URL(env.DIFY_CONSOLE_URL ?? "");
+      if (
+        consoleUrl.origin !== url.origin ||
+        !consoleUrl.pathname.endsWith("/console/api") ||
+        consoleUrl.search ||
+        consoleUrl.hash ||
+        consoleUrl.username ||
+        consoleUrl.password
+      )
+        throw new Error();
+    }
     return {
       mode,
       baseUrl: url.href.replace(/\/$/, ""),
@@ -58,7 +82,7 @@ export function parseDifyConfig(
     };
   } catch {
     throw new Error(
-      "Invalid Dify configuration: check DIFY_BASE_URL, DIFY_BINDINGS_JSON and referenced DIFY_KEY_* variables.",
+      "Invalid Dify configuration: check DIFY_BASE_URL, DIFY_ORCHESTRATORS_JSON and referenced DIFY_KEY_* variables.",
     );
   }
 }

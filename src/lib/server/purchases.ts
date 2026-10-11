@@ -1,7 +1,7 @@
 import "server-only";
 import { AppError } from "../auth-policy";
 import type { PublicOrder, PublicPack } from "../contracts/credits";
-import { creditConfig } from "./credit-config";
+import { runtimeCreditConfig } from "./credit-config";
 import { database } from "./mongo";
 import { requireSession } from "./session";
 import {
@@ -11,8 +11,8 @@ import {
   type SimulationOrder,
 } from "./store/simulation";
 
-function requireSimulation() {
-  const config = creditConfig();
+async function requireSimulation() {
+  const config = await runtimeCreditConfig();
   if (config.mode !== "simulation")
     throw new AppError(
       "SIMULATION_DISABLED",
@@ -21,11 +21,11 @@ function requireSimulation() {
     );
   return config;
 }
-export function publicCatalog(): {
+export async function publicCatalog(): Promise<{
   mode: "disabled" | "simulation" | "stripe";
   packs: PublicPack[];
-} {
-  const config = creditConfig();
+}> {
+  const config = await runtimeCreditConfig();
   return {
     mode: config.mode,
     packs: config.packs.map(({ id, label, credits }) => ({
@@ -36,7 +36,7 @@ export function publicCatalog(): {
   };
 }
 export async function startSimulatedPurchase(packId: string, key: string) {
-  const config = requireSimulation();
+  const config = await requireSimulation();
   const session = await requireSession();
   const pack = config.packs.find((item) => item.id === packId);
   if (!pack)
@@ -52,7 +52,7 @@ export async function changeSimulatedPurchase(
   id: string,
   event: SimulationEvent,
 ) {
-  requireSimulation();
+  await requireSimulation();
   const session = await requireSession();
   return simulatePurchase(
     database(),
@@ -62,7 +62,7 @@ export async function changeSimulatedPurchase(
   );
 }
 export async function currentSimulatedPurchases(): Promise<PublicOrder[]> {
-  requireSimulation();
+  await requireSimulation();
   const session = await requireSession();
   const orders = await database()
     .collection<SimulationOrder>("purchaseOrders")

@@ -23,9 +23,8 @@ for the current evidence and external limits.
    before creating your own verified account and appointing the first admin.
    There is no shipped admin password or automatic credit grant.
 3. Keep Dify/MCP disabled and payments disabled or in local simulation until the
-   derived product needs them. Manual workspaces and PDF/ZIP export do not need
-   an AI provider. Build the workers; run the maintenance worker for exports and
-   cleanup, and the AI worker only when testing fake/live AI dispatch.
+   derived product needs them. Build the workers; run the maintenance worker for
+   credits/private-media cleanup, and the AI worker for fake/live orchestrator Runs.
 4. Replace product copy, home-page content, icons and colors. Run
    `npm run icons:generate` after editing `src/app/icon.svg`; it also creates the
    favicon. The offline fallback is deliberately generic public HTML.
@@ -121,10 +120,12 @@ Individual checks retain their real exit codes. The aggregate `validate` command
 - `/account`: email/Google sign-in, explicit registration, verification, password reset, display-name editing, read-only email, and opt-in browser diagnostics. Sign out/account switching is available in the avatar menu.
 - `/preferences`: color-mode and design-style preferences, with an independent Save preferences action for signed-in users.
 - `/credits`: owned wallet, held credits, debt, upcoming expiry, paginated ledger, local-only purchase simulation and opt-in Stripe Checkout.
-- `/ai`, `/ai/[id]`: owned workflow/chat/file tasks, saved results and usage, with configurable credit pricing. Dify is disabled by default.
+- `/runs/new`, `/runs`, `/runs/[id]`: selectable orchestrators, durable progress, generated decisions, results and linked recovery attempts. Dify is disabled by default.
+- `/admin/settings`: revisioned branding, credit packs and execution policies.
+- `/admin/orchestrators`: validation, availability, discovery and DSL import/export.
 - `/admin/ai`: AI usage and paginated, audited resolution of uncertain executions.
 - `/admin/operations`: worker/queue health, manual payment reconciliation and preview-confirm local AI cleanup.
-- `/ai/history`: paginated owned execution history.
+- `/runs`: paginated owned execution history.
 - `/admin/reports`: filtered runtime and permanent audit reports.
 - `/admin`, `/admin/users`: authorized user management, access/profile controls and confirmed credit adjustments.
 - `/manifest.webmanifest`, `/sw.js`, `/offline.html`: install metadata and a public-only offline fallback. No account/API data is persisted offline.
@@ -184,7 +185,7 @@ Play billing (C6) remains unimplemented. See [its checkpoint plan](docs/admin-cr
 The wallet UI, transactional core, admin adjustments and local purchase simulator
 are implemented. New accounts receive zero credits. Purchased credits
 never expire; promotional grants default to 90 days and support explicit expiry
-or perpetual grants. Ordinary spending uses 15-minute holds; managed AI holds remain reserved until
+or perpetual grants. Ordinary spending defaults to 15-minute holds; managed AI holds remain reserved until
 settlement or audited resolution and do not expire on that timer. Refund shortfalls create
 debt, which blocks spending until covered. There is no public endpoint for
 arbitrary grants or spending.
@@ -238,74 +239,34 @@ the same authorization and idempotency boundaries.
 - [Agent tooling](docs/agent-tooling.md): installed skills, provenance, and integrity commands.
 - [Repository instructions](AGENTS.md): conventions for contributors and coding agents.
 
-## AI foundation
+## Dify orchestrator Runs
 
-The reusable Dify foundation is implemented before the product-content migration.
-See [scope, checkpoints and verification evidence](docs/ai-foundation.md).
-`DIFY_MODE` defaults to `disabled`; the application does not need Dify credentials
-to start. `.env.example` describes the opt-in fake/live configuration. The separate
-AI worker is built by `npm run worker:build` and started with `npm run worker:ai`.
-Workflow, conversation and uploaded-file examples are available at `/ai`; owned
-results and usage persist across reloads. Administrators inspect usage and resolve
-uncertain executions at `/admin/ai`. Follow the [AI testing and extension guide](docs/ai-testing.md)
-for local setup, live binding contracts, recovery and retention limits. Live Dify
-acceptance is environment-specific; the existing payment worker has its own setup.
+Runs replace the former AI task/chat and creation-workspace features. Choose an
+administrator-enabled Workflow orchestrator, provide its inputs, review maximum
+credits and start. Progress and pending generated forms survive closing the
+browser. Reopen the same Run to continue; restart and compatible stage recovery
+create a new linked attempt. The default charge is one credit on successful
+completion and zero on confirmed failure/cancellation.
 
-AI credit pricing supports fixed, token, provider-cost and hybrid policies via `AI_PRICING_JSON`. See [pricing configuration and local tests](docs/ai-testing.md#configurable-credit-pricing). Empty configuration preserves fixed prices.
+Set `DIFY_MODE=fake` with local Firebase/MongoDB emulators for deterministic
+fixtures (`decision`, `fail` and `partial` prompts). Use `DIFY_MODE=live` for
+self-hosted Dify 1.17.1 and configure the connection/key references in
+[.env.example](.env.example). Run `npm run db:indexes`, `npm run build` and
+`npm run worker:ai`. Keep web and workers on the same database and private provider
+configuration. No database is reset or migrated automatically.
 
-Administrator recovery and cleanup options are documented in the
-[operations workflow](docs/ai-testing.md#administrator-operations). Run
-`npm run db:indexes` against the intended environment when installing this update;
-this adds operations indexes and worker-heartbeat TTL without deleting application
-content. Cleanup is manual, bounded and local-only; provider files are retained.
+Administration ? Base settings initializes defaults once, then saved policies
+control web/worker behavior. Branding is explicitly allowlisted; credentials,
+connection/origin settings and Android build identity stay in environment
+configuration. Accepted attempts and purchases retain their original billing
+terms. Administration ? Orchestrators validates app credentials/input contracts
+before selection. Console management uses a separate Dify admin API key and
+workspace UUID; when absent/denied, register execution credentials and import
+repository DSL manually. Imports remain unpublished and unavailable until reviewed.
 
-## Creation workspaces
-
-`/workspaces` provides registered generated cards/forms, saved decisions, a conversation
-timeline, versioned artifacts, human approvals, private image previews, candidate
-batches and quality reviews. It uses the
-existing AI worker and credits; manual authoring also works with AI disabled.
-Run `npm run db:indexes` for the additional owned-workspace indexes. No separate
-storage credentials are needed by default: bounded private assets live in MongoDB.
-Optional `ASSET_STORE=s3` enables private S3-compatible image storage; configure the
-server-only `ASSET_S3_*` settings in `.env.example` for web and workers. Uploads
-support 8 MiB with MongoDB or 20 MiB with S3, before and after normalization.
-Image generation can use up to four owned reference images. Selecting an existing
-image as the target requests an edit and preserves its previous version. Configure
-the Dify image workflow's file inputs as described in the creation-workspace guide;
-provider upload limits apply separately from private storage limits.
-The admin cleanup tool can preview and approve abandoned private uploads; keep
-`npm run worker` running to perform and retry approved storage removals. See
-[setup, Dify contracts, extension points and recovery](docs/creation-workspaces.md).
-
-Administrators can publish versioned prompt/execution profiles at
-`/admin/execution-profiles`. Users can compare profiles within a candidate batch;
-configured provider bindings and the existing capability pricing remain server-owned.
-
-The workflow panel runs reusable draft/review, candidate-comparison and parallel-
-synthesis templates through the same worker. It shows the maximum planned credits,
-saved progress and human checkpoints. Quality findings have explicit acceptance/
-resolution history and bounded targeted repair with re-review. Keep the AI worker
-running for workflow progress; closing the browser does not stop an accepted run.
-
-Archive finished workspaces to make them read-only; restore them to edit again.
-Administrators can preview and confirm deletion of old archived workspaces, including
-saved content, conversation history and private assets. Unresolved work prevents
-deletion, and financial/audit/retry records remain. The maintenance worker completes
-queued object removals; reports show their status. See the
-[lifecycle and recovery rules](docs/creation-workspaces.md#archive-and-confirmed-workspace-deletion).
-
-The export panel queues private PDF documents and ZIP archives of selected artifact
-versions. ZIP includes JSON/text content and normalized images; PDF provides a readable
-text, checklist and image layout. Keep `npm run worker` running for
-progress and downloads; this works with AI/payments disabled and costs no AI credits.
-See [export limits and recovery](docs/creation-workspaces.md#durable-pdf-and-zip-exports).
-PDF fonts support Latin, Greek, Cyrillic and Arabic/Persian. Unsupported characters
-produce a clear failure; use ZIP or register a renderer with additional fonts.
-
-For credential-free card examples, run `npm run dev` and open `/design-system`.
-The [generative UI showcase](docs/creation-workspaces.md#generative-ui-examples)
-uses the workspace renderers with local sample responses and reset controls.
+See [Runs setup and contracts](docs/runs.md), [AI testing](docs/ai-testing.md), and
+[sanitized Dify templates](dify/README.md). Live Dify acceptance is pending until
+a disposable configured 1.17.1 instance is available.
 
 ## MCP integration
 
