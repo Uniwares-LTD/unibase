@@ -11,6 +11,7 @@ export default async function Page() {
   let error: string | undefined;
   try {
     catalog = await discoverDifyOrchestrators();
+    error = catalog.warning;
   } catch (cause) {
     error =
       cause instanceof AppError

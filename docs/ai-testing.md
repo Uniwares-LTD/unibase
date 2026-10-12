@@ -20,6 +20,14 @@ remain zero. The Create scenario imports/publishes exactly one new app, retries
 without duplicating it, then starts an owned zero-input Run, renders Generative UI,
 submits a choice and verifies MCP/result tracing. Python is not required for these fixtures.
 `--orchestrators --browser` exposes the fixture for desktop/mobile acceptance.
+The fixture now verifies Disable, re-registration/Enable, Unregister, deleted-app
+discovery and stale admission without new jobs or credit holds. History and
+credentials survive removal. Account tests cover outages, incomplete/stale
+catalogs, current revisions, recent administrator authority and concurrent
+registration fencing. Browser checks cover the immediate post-register controls,
+reload persistence and Delete registration on desktop/mobile. The browser harness
+prints only its local fixture URL for simulating deletion; these endpoints never
+exist in the application.
 
 `node --conditions=react-server --import tsx scripts/integration.mjs --ai --dify-keys`
 retains the broader fake-provider Runs regression and adds registration/key checks.

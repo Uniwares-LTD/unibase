@@ -268,6 +268,10 @@ Input WebApp delivery and referenced MCP tools, then reuses/creates an encrypted
 app key and enables the Orchestrator. It never edits graphs, injects inputs or
 publishes. Native End outputs are normalized by Unibase. Inline prompts require no
 prompt field. Users start Runs and view owned status, node tracing and Human Input.
+Disable stops new Runs; Enable checks Dify again. Unregister removes the Unibase
+registration while preserving Dify and Run history. Missing Dify workflows show
+Unavailable with Delete registration; stale Start requests are rejected before
+reserving credits. Provider outages do not erase registrations.
 Connected MCP tools can read or write according to their server's permissions;
 Unibase's supplied tools are read-only examples. Manual JSON/DSL setup was removed.
 

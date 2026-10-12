@@ -9,6 +9,11 @@ import { database } from "../mongo";
 import { readSettings } from "../settings";
 import { fingerprint } from "../ai/jobs";
 import { executionKey } from "./credentials";
+import {
+  difyAppCatalog,
+  reconcileOrchestratorAvailability,
+  verifyOrchestratorAvailable,
+} from "./orchestrator-lifecycle";
 
 export type OrchestratorRecord = {
   _id: string;
@@ -16,6 +21,9 @@ export type OrchestratorRecord = {
   definition: OrchestratorDefinition;
   validated: boolean;
   updatedAt: Date;
+  lifecycle?: "unregistered";
+  availability?: "missing";
+  admissionSequence?: number;
 };
 export async function seedOrchestrators() {
   const raw = z
@@ -58,12 +66,41 @@ export async function seedOrchestrators() {
         { upsert: true },
       );
 }
-export async function orchestrators(admin = false) {
+export async function orchestrators(
+  admin = false,
+  refreshAvailability = false,
+) {
   await seedOrchestrators();
+  if (
+    refreshAvailability &&
+    process.env.DIFY_MODE === "live" &&
+    process.env.DIFY_MANAGEMENT_KEY &&
+    process.env.DIFY_CONSOLE_URL
+  ) {
+    try {
+      const observationStarted = new Date();
+      await reconcileOrchestratorAvailability(
+        await difyAppCatalog(),
+        database(),
+        observationStarted,
+      );
+    } catch {
+      /* Outages are not evidence of deletion; admission verifies again. */
+    }
+  }
   const settings = await readSettings();
   const rows = await database()
     .collection<OrchestratorRecord>("orchestrators")
-    .find(admin ? {} : { "definition.enabled": true, validated: true })
+    .find(
+      admin
+        ? { lifecycle: { $ne: "unregistered" } }
+        : {
+            "definition.enabled": true,
+            validated: true,
+            lifecycle: { $ne: "unregistered" },
+            availability: { $ne: "missing" },
+          },
+    )
     .sort({ "definition.order": 1, _id: 1 })
     .limit(100)
     .toArray();
@@ -77,7 +114,8 @@ export async function orchestrators(admin = false) {
         /* Report unavailable credentials without exposing them. */
       }
       const ready =
-        process.env.DIFY_MODE === "fake" || (hasKey && !!d.workflowId);
+        row.availability !== "missing" &&
+        (process.env.DIFY_MODE === "fake" || (hasKey && !!d.workflowId));
       const configurationKey = fingerprint([
         row.revision,
         settings.revision,
@@ -90,6 +128,9 @@ export async function orchestrators(admin = false) {
             validated: row.validated,
             ready,
             setupIssues: [
+              ...(row.availability === "missing"
+                ? ["Workflow is no longer available in Dify."]
+                : []),
               ...(process.env.DIFY_MODE === "fake"
                 ? []
                 : [
@@ -139,11 +180,18 @@ export async function selectedOrchestrator(id: string) {
   const row = await database()
     .collection<OrchestratorRecord>("orchestrators")
     .findOne({ _id: id });
-  if (!row || !row.validated || !row.definition.enabled)
+  if (
+    !row ||
+    !row.validated ||
+    !row.definition.enabled ||
+    row.lifecycle === "unregistered" ||
+    row.availability === "missing"
+  )
     throw new AppError(
       "ORCHESTRATOR_UNAVAILABLE",
       "This orchestrator is unavailable.",
       409,
     );
+  await verifyOrchestratorAvailable(row);
   return row;
 }

@@ -11,6 +11,10 @@ import { difyJson } from "./dify-console-client";
 import { acquireAppCredential, executionKey } from "./credentials";
 import { inspectDifyWorkflow, verifyMcpTools } from "./dify-capabilities";
 import type { OrchestratorRecord } from "./orchestrators";
+import {
+  difyAppCatalog,
+  reconcileOrchestratorAvailability,
+} from "./orchestrator-lifecycle";
 
 type Env = Record<string, string | undefined>;
 type Actor = { uid: string; auth_time: number };
@@ -24,20 +28,45 @@ type Registration = {
   message?: string;
   orchestratorId?: string;
 };
-async function publicStatus(state: Registration | null, db: Db, env: Env) {
-  if (!state) return { status: "unregistered" as const };
-  if (state.status === "registering" && state.until < new Date())
+async function publicStatus(
+  state: Registration | null,
+  db: Db,
+  env: Env,
+  saved?: OrchestratorRecord,
+) {
+  if (state?.status === "registering" && state.until > new Date())
+    return {
+      status: "registering" as const,
+      stage: state.stage,
+      message: state.message,
+    };
+  const record =
+    saved ??
+    (state?.orchestratorId
+      ? await db
+          .collection<OrchestratorRecord>("orchestrators")
+          .findOne({ _id: state.orchestratorId })
+      : null);
+  if (record?.lifecycle === "unregistered")
+    return { status: "unregistered" as const };
+  if (record?.availability === "missing")
+    return {
+      status: "unavailable" as const,
+      message: "Workflow is no longer available in Dify.",
+    };
+  if (record && !record.definition.enabled)
+    return {
+      status: "disabled" as const,
+      message: "Disabled for new Runs. Register to enable it again.",
+    };
+  if (!state && !record) return { status: "unregistered" as const };
+  if (state?.status === "registering" && state.until < new Date())
     return {
       status: "failed" as const,
       stage: state.stage,
       message: "Setup was interrupted. Register again to resume safely.",
     };
-  if (state.status === "ready") {
-    const record = state.orchestratorId
-      ? await db
-          .collection<OrchestratorRecord>("orchestrators")
-          .findOne({ _id: state.orchestratorId })
-      : null;
+  if (state?.status === "ready" || (!state && record)) {
     try {
       if (
         !record?.validated ||
@@ -56,9 +85,9 @@ async function publicStatus(state: Registration | null, db: Db, env: Env) {
     }
   }
   return {
-    status: state.status,
-    stage: state.stage,
-    ...(state.message ? { message: state.message } : {}),
+    status: state?.status ?? ("ready" as const),
+    stage: state?.stage ?? "Ready",
+    ...(state?.message ? { message: state.message } : {}),
   };
 }
 function scope(appId: string, env: Env) {
@@ -98,53 +127,89 @@ export async function discoverDifyOrchestrators(
   const registrations = db.collection<Registration>(
     "orchestratorRegistrations",
   );
-  scope("discovery", env);
   const apps: {
     id: string;
     name: string;
     description: string;
-    status: "unregistered" | "registering" | "ready" | "failed";
+    status:
+      | "unregistered"
+      | "registering"
+      | "ready"
+      | "failed"
+      | "disabled"
+      | "unavailable";
+    registered: boolean;
+    available: boolean;
+    orchestratorId?: string;
     stage?: string;
     message?: string;
   }[] = [];
-  for (let page = 1; page <= 10; page++) {
-    const result = z
-      .object({
-        data: z
-          .array(
-            z.object({
-              id: z.string().uuid(),
-              name: z.string().max(1000),
-              description: z.string().max(10000).nullish(),
-              mode: z.string(),
-            }),
-          )
-          .max(100),
-        has_more: z.boolean().optional(),
-      })
-      .parse(
-        await request(`/apps?page=${page}&limit=100`, { management: true }),
-      );
-    const records = await registrations
-      .find({ _id: { $in: result.data.map((app) => scope(app.id, env)) } })
-      .toArray();
-    const rows = await Promise.all(
-      result.data
-        .filter((app) => app.mode === "workflow")
-        .map(async (app) => {
-          const state = records.find((record) => record.appId === app.id);
-          return {
-            id: app.id,
-            name: app.name.slice(0, 100),
-            description: (app.description ?? "").slice(0, 1000),
-            ...(await publicStatus(state ?? null, db, env)),
-          };
-        }),
-    );
-    apps.push(...rows);
-    if (!result.has_more) break;
+  let catalog: Awaited<ReturnType<typeof difyAppCatalog>> = [];
+  let warning: string | undefined;
+  const observationStarted = new Date();
+  try {
+    scope("discovery", env);
+    catalog = await difyAppCatalog(request);
+    await reconcileOrchestratorAvailability(catalog, db, observationStarted);
+  } catch {
+    warning =
+      "Dify availability could not be checked. Saved registrations can still be disabled or unregistered.";
   }
-  return { apps };
+  const local = await db
+    .collection<OrchestratorRecord>("orchestrators")
+    .find({ "definition.appId": { $exists: true } })
+    .limit(1000)
+    .toArray();
+  const merged = [
+    ...catalog.filter((app) => app.mode === "workflow"),
+    ...local
+      .filter(
+        (r) =>
+          r.lifecycle !== "unregistered" &&
+          !catalog.some(
+            (app) => app.id === r.definition.appId && app.mode === "workflow",
+          ),
+      )
+      .map((r) => ({
+        id: r.definition.appId!,
+        name: r.definition.name,
+        description: r.definition.description,
+        mode: "workflow",
+      })),
+  ];
+  const records = warning
+    ? []
+    : await registrations
+        .find({ _id: { $in: merged.map((app) => scope(app.id, env)) } })
+        .toArray();
+  const rows = await Promise.all(
+    merged.map(async (app) => {
+      const state = records.find((record) => record.appId === app.id);
+      const saved = local.find((r) => r.definition.appId === app.id);
+      const registered = !!saved && saved.lifecycle !== "unregistered";
+      const status = await publicStatus(state ?? null, db, env, saved);
+      return {
+        id: app.id,
+        name: app.name.slice(0, 100),
+        description: (app.description ?? "").slice(0, 1000),
+        registered,
+        available: catalog.some(
+          (item) => item.id === app.id && item.mode === "workflow",
+        ),
+        ...(registered ? { orchestratorId: saved._id } : {}),
+        ...status,
+        ...(warning && status.status === "ready"
+          ? {
+              status: "unavailable" as const,
+              message:
+                "Could not verify Dify availability. Refresh to check again.",
+            }
+          : {}),
+      };
+    }),
+  );
+  apps.push(...rows);
+  return { apps, ...(warning ? { warning } : {}) };
 }
 
 export async function registrationStatus(
@@ -335,6 +400,8 @@ export async function registerDifyOrchestrator(
         );
         const unchanged =
           prior?.validated &&
+          prior.lifecycle !== "unregistered" &&
+          prior.availability !== "missing" &&
           fingerprint(z.json().parse(prior.definition)) ===
             fingerprint(z.json().parse(definition));
         if (!unchanged) {
@@ -351,6 +418,7 @@ export async function registerDifyOrchestrator(
                 validated: true,
                 updatedAt: new Date(),
               },
+              $unset: { lifecycle: "", availability: "" },
             },
             { session, upsert: true },
           );

@@ -328,6 +328,24 @@ test("Read-only registration runs native Dify outputs without graph changes", as
   assert.equal(paused.decisions.length, 1);
   const decision = paused.decisions[0];
   assert.equal(decision.cards[0].content.data.title, "Choose a summary");
+  assert.equal(
+    (
+      await command(owner, {
+        action: "disable",
+        orchestratorId: starter.orchestratorId,
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await command(owner, {
+        action: "unregister",
+        orchestratorId: starter.orchestratorId,
+      })
+    ).status,
+    200,
+  );
   const answer = {
     key: randomUUID(),
     action: "continue",
@@ -376,6 +394,11 @@ test("Read-only registration runs native Dify outputs without graph changes", as
         event.status === "succeeded",
     ),
   );
+  // The accepted paused Run continued using its snapshot after both actions.
+  assert.equal(
+    (await command(owner, { action: "register", appId: starter.appId })).status,
+    200,
+  );
   const finalStats = await fetch(
     `${process.env.DIFY_CONSOLE_URL}/fixture/stats`,
     {
@@ -393,4 +416,126 @@ test("Read-only registration runs native Dify outputs without graph changes", as
     imports: 1,
     mcpCalls: 1,
   });
+  const balance = (await readWallet(db, owner.uid)).balance;
+  const jobCount = await db.collection("aiJobs").countDocuments();
+  assert.equal(
+    (
+      await command(other, {
+        action: "disable",
+        orchestratorId: starter.orchestratorId,
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await command(owner, {
+        action: "disable",
+        orchestratorId: starter.orchestratorId,
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await (await command(owner, { action: "discover" })).json()).apps.find(
+      (a) => a.id === starter.appId,
+    ).status,
+    "disabled",
+  );
+  const startAgain = () =>
+    owner.request("/api/runs", {
+      method: "POST",
+      body: JSON.stringify({
+        key: randomUUID(),
+        orchestratorId: selected.id,
+        configurationKey: selected.configurationKey,
+        inputs: {},
+      }),
+    });
+  assert.equal((await startAgain()).status, 409);
+  assert.equal(
+    (await (await owner.request(`/api/runs/${run.id}`)).json()).status,
+    "succeeded",
+  );
+  assert.equal(
+    (await command(owner, { action: "register", appId: starter.appId })).status,
+    200,
+  );
+  const credentials = await db.collection("difyCredentials").countDocuments();
+  assert.equal(
+    (
+      await command(owner, {
+        action: "unregister",
+        orchestratorId: starter.orchestratorId,
+      })
+    ).status,
+    200,
+  );
+  assert.equal((await startAgain()).status, 409);
+  assert.equal(
+    (await (await command(owner, { action: "discover" })).json()).apps.find(
+      (a) => a.id === starter.appId,
+    ).registered,
+    false,
+  );
+  assert.equal(
+    await db.collection("difyCredentials").countDocuments(),
+    credentials,
+  );
+  assert.equal(
+    (await (await owner.request(`/api/runs/${run.id}`)).json()).status,
+    "succeeded",
+  );
+  assert.equal(
+    (await command(owner, { action: "register", appId: starter.appId })).status,
+    200,
+  );
+  const removed = await fetch(
+    `${process.env.DIFY_CONSOLE_URL}/fixture/remove`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${process.env.DIFY_MANAGEMENT_KEY}`,
+        "x-workspace-id": process.env.DIFY_WORKSPACE_ID,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ appId: starter.appId }),
+    },
+  );
+  assert.equal(removed.status, 200);
+  // A stale user page is rejected before reserving credit, even before Admin refresh.
+  assert.equal((await startAgain()).status, 409);
+  const missing = (
+    await (await command(owner, { action: "discover" })).json()
+  ).apps.find((a) => a.id === starter.appId);
+  assert.equal(missing.status, "unavailable");
+  assert.equal(missing.available, false);
+  assert.equal(missing.registered, true);
+  assert.equal(
+    (await (await owner.request("/api/admin/orchestrators")).json()).find(
+      (a) => a.id === starter.orchestratorId,
+    ).ready,
+    false,
+  );
+  assert.equal(
+    (await (await owner.request(`/api/runs/${run.id}`)).json()).attempts[0]
+      .result.text,
+    completed.attempts[0].result.text,
+  );
+  assert.equal(
+    (
+      await command(owner, {
+        action: "unregister",
+        orchestratorId: starter.orchestratorId,
+      })
+    ).status,
+    200,
+  );
+  assert.ok(
+    !(await (await command(owner, { action: "discover" })).json()).apps.some(
+      (a) => a.id === starter.appId,
+    ),
+  );
+  assert.equal((await readWallet(db, owner.uid)).balance, balance);
+  assert.equal(await db.collection("aiJobs").countDocuments(), jobCount);
 });

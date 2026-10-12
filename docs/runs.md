@@ -39,6 +39,24 @@ the structured MCP JSON and returns ordinary End text. Dify's code sandbox must
 work; no LLM credentials are required. Start a Run, choose an option, Continue,
 then view its result and tracing. Existing published workflows use **Register**.
 
+**Disable** stops new Runs. **Enable** performs registration checks again before
+allowing new Runs. **Unregister** removes the Unibase registration from Run choices;
+the workflow remains in Dify and can be registered again. Accepted Runs continue
+using their saved configuration and credential; results, tracing and history remain.
+
+Admin refresh and the Start page reconcile registered apps against a complete Dify
+catalog. Missing apps remain visible in Admin as **Unavailable in Dify**, with
+**Delete registration** to remove the stale entry. Deletion never recreates the
+Dify workflow. Fresh admission also verifies the app, so a stale browser cannot
+start a deleted workflow or reserve credits. Disable/unregister are fenced against
+concurrent registration and admission. Both require recent administrator login.
+
+Provider errors or incomplete catalogs do not mark workflows deleted. Saved entries
+remain manageable when Dify is unavailable. Unregister retains a private tombstone
+and encrypted credentials needed by accepted Runs; it does not delete history,
+assets, Dify apps or Dify keys. A workflow deleted after admission may fail through
+the normal provider reconciliation and credit-settlement rules.
+
 Creation records an idempotency key before import and remembers the returned app
 ID. Retrying a confirmed creation resumes publication/registration. An unknown
 import outcome is never repeated automatically: check Dify and register the new

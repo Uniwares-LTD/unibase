@@ -60,6 +60,18 @@ test("Dify Console fixtures isolate management authentication and bound mutation
         e.code === "DIFY_IMPORT_REJECTED" &&
         !e.message.includes("private-denied"),
     );
+    globalThis.fetch = async () =>
+      new Response("private-missing", { status: 404 });
+    await assert.rejects(
+      difyJson("/apps/11111111-1111-4111-8111-111111111111", {
+        management: true,
+      }),
+      (e: unknown) =>
+        e instanceof Error &&
+        "code" in e &&
+        e.code === "DIFY_APP_NOT_FOUND" &&
+        !e.message.includes("private-missing"),
+    );
     globalThis.fetch = async () => {
       throw new Error("private-transport");
     };

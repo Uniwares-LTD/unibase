@@ -103,6 +103,16 @@ export async function difyKeysFixture() {
           executions,
           ...(imports ? { imports, mcpCalls } : {}),
         });
+      if (path === "/console/api/fixture/remove" && request.method === "POST") {
+        const chunks = [];
+        for await (const chunk of request) chunks.push(chunk);
+        const { appId } = JSON.parse(Buffer.concat(chunks));
+        names.delete(appId);
+        keys.delete(appId);
+        workflows.delete(appId);
+        drafts.delete(appId);
+        return send({ result: "success" });
+      }
       if (path === "/console/api/workspaces/current/tools/mcp")
         return send([
           {

@@ -33,6 +33,7 @@ import {
   resolveOwnedAiFile,
 } from "../ai/files";
 import { selectedOrchestrator, orchestrators } from "./orchestrators";
+import { guardOrchestratorAdmission } from "./orchestrator-lifecycle";
 import { executionBinding, providerForRun } from "./provider";
 
 type Decision = {
@@ -243,6 +244,8 @@ async function createAttempt(
         failureCharging: d.failureCharging ?? settings.runs.failureCharging,
       },
     },
+    new Date(),
+    (session) => guardOrchestratorAdmission(database(), selected, session),
   );
   return { id: logicalId, attemptId: job._id };
 }

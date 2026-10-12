@@ -165,6 +165,7 @@ export async function createAiJob(
     | "credits"
   > & { pricing?: AiPricing; run?: AiJob["run"] },
   now = new Date(),
+  admission?: (session: ClientSession) => Promise<void>,
 ) {
   if (
     !/^[A-Za-z0-9_:-]{1,128}$/.test(key) ||
@@ -211,6 +212,7 @@ export async function createAiJob(
         "This run reached its attempt limit. Start a new run.",
         409,
       );
+    await admission?.(session);
     if (request.run?.predecessorId) {
       const predecessor = await aiJobs(db).findOne(
         { _id: request.run.predecessorId, uid: actor.uid },

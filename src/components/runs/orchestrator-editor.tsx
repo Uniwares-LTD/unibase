@@ -12,11 +12,24 @@ const appSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
-  status: z.enum(["unregistered", "registering", "ready", "failed"]),
+  status: z.enum([
+    "unregistered",
+    "registering",
+    "ready",
+    "failed",
+    "disabled",
+    "unavailable",
+  ]),
+  registered: z.boolean(),
+  available: z.boolean(),
+  orchestratorId: z.string().optional(),
   stage: z.string().optional(),
   message: z.string().optional(),
 });
-const catalogSchema = z.object({ apps: z.array(appSchema) });
+const catalogSchema = z.object({
+  apps: z.array(appSchema),
+  warning: z.string().optional(),
+});
 const statusSchema = z.object({
   status: appSchema.shape.status,
   stage: z.string().optional(),
@@ -37,6 +50,36 @@ export function OrchestratorEditor({
   const [message, setMessage] = useState(initialError ?? "");
   const [refreshing, setRefreshing] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [changing, setChanging] = useState<string | null>(null);
+  async function change(
+    action: "disable" | "unregister",
+    orchestratorId: string,
+  ) {
+    setChanging(orchestratorId);
+    setMessage("");
+    try {
+      await api(
+        "/api/admin/orchestrators/manage",
+        z.object({ status: z.enum(["disabled", "unregistered"]) }),
+        { method: "POST", body: { action, orchestratorId } },
+      );
+      await refresh();
+      router.refresh();
+      setMessage(
+        action === "disable"
+          ? "Disabled for new Runs. Existing Runs are preserved."
+          : "Unregistered from Unibase. Dify and Run history are preserved.",
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not change this orchestrator.",
+      );
+    } finally {
+      setChanging(null);
+    }
+  }
   async function create() {
     setCreating(true);
     setMessage("Creating the MCP and Human Input starter...");
@@ -90,7 +133,24 @@ export function OrchestratorEditor({
         );
         if (state.status !== "registering") {
           setActive((current) => (current === active ? null : current));
-          if (state.status === "ready") router.refresh();
+          if (state.status === "ready") {
+            try {
+              const catalog = await api(
+                "/api/admin/orchestrators/manage",
+                catalogSchema,
+                {
+                  method: "POST",
+                  body: { action: "discover" },
+                  signal: controller.signal,
+                },
+              );
+              if (disposed) return;
+              setApps(catalog.apps);
+            } catch {
+              /* Refresh apps can reconcile a lost catalog response. */
+            }
+            router.refresh();
+          }
           return;
         }
       } catch {
@@ -115,6 +175,7 @@ export function OrchestratorEditor({
         { method: "POST", body: { action: "discover" }, timeoutMs: 120000 },
       );
       setApps(catalog.apps);
+      setMessage(catalog.warning ?? "");
       setActive(
         (prior) =>
           prior ??
@@ -147,7 +208,11 @@ export function OrchestratorEditor({
     try {
       const result = await api(
         "/api/admin/orchestrators/manage",
-        z.object({ status: z.literal("ready"), name: z.string() }),
+        z.object({
+          status: z.literal("ready"),
+          name: z.string(),
+          orchestratorId: z.string(),
+        }),
         {
           method: "POST",
           body: { action: "register", appId },
@@ -160,6 +225,8 @@ export function OrchestratorEditor({
             ? {
                 ...app,
                 status: "ready",
+                registered: true,
+                orchestratorId: result.orchestratorId,
                 stage: "Ready",
                 message: "Ready for users.",
               }
@@ -188,6 +255,7 @@ export function OrchestratorEditor({
           return;
         }
         if (state.status === "ready") {
+          await refresh();
           setMessage("Registration completed. The orchestrator is ready.");
           setActive((current) => (current === appId ? null : current));
           router.refresh();
@@ -214,12 +282,15 @@ export function OrchestratorEditor({
           Dify workflows
         </h2>
         <div className="flex flex-wrap gap-2">
-          <Button disabled={creating || !!active} onClick={() => void create()}>
+          <Button
+            disabled={creating || !!active || !!changing}
+            onClick={() => void create()}
+          >
             {creating ? "Creating..." : "Create orchestrator"}
           </Button>
           <Button
             variant="outline"
-            disabled={refreshing}
+            disabled={refreshing || !!changing || creating}
             onClick={() => void refresh()}
           >
             {refreshing ? "Loading..." : "Refresh apps"}
@@ -255,7 +326,11 @@ export function OrchestratorEditor({
                 </p>
               )}
               <Badge
-                variant={app.status === "failed" ? "destructive" : "secondary"}
+                variant={
+                  app.status === "failed" || app.status === "unavailable"
+                    ? "destructive"
+                    : "secondary"
+                }
               >
                 {app.status === "ready"
                   ? "Ready"
@@ -263,34 +338,73 @@ export function OrchestratorEditor({
                     ? "Registering"
                     : app.status === "failed"
                       ? "Registration failed"
-                      : "Not registered"}
+                      : app.status === "disabled"
+                        ? "Disabled"
+                        : app.status === "unavailable"
+                          ? "Unavailable in Dify"
+                          : "Not registered"}
               </Badge>
               {app.status === "registering" && (
                 <p role="status" className="text-sm">
                   {app.stage ?? "Preparing workflow"}...
                 </p>
               )}
-              {app.status === "failed" && (
+              {["failed", "disabled", "unavailable"].includes(app.status) && (
                 <p className="break-words text-sm">{app.message}</p>
               )}
             </div>
-            <Button
-              disabled={
-                creating ||
-                !!active ||
-                app.status === "ready" ||
-                app.status === "registering"
-              }
-              onClick={() => void register(app.id)}
-            >
-              {app.status === "ready"
-                ? "Registered"
-                : app.status === "registering"
-                  ? "Registering..."
-                  : app.status === "failed"
-                    ? "Retry registration"
-                    : "Register"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                disabled={
+                  creating ||
+                  !!changing ||
+                  !app.available ||
+                  !!active ||
+                  app.status === "ready" ||
+                  app.status === "registering"
+                }
+                onClick={() => void register(app.id)}
+              >
+                {app.status === "ready"
+                  ? "Registered"
+                  : app.status === "registering"
+                    ? "Registering..."
+                    : app.status === "failed"
+                      ? "Retry registration"
+                      : app.status === "disabled"
+                        ? "Enable"
+                        : "Register"}
+              </Button>
+              {app.registered && app.orchestratorId && (
+                <>
+                  {app.status !== "disabled" &&
+                    app.status !== "unavailable" && (
+                      <Button
+                        variant="outline"
+                        disabled={creating || !!changing || !!active}
+                        onClick={() =>
+                          void change("disable", app.orchestratorId!)
+                        }
+                      >
+                        Disable
+                      </Button>
+                    )}
+                  <Button
+                    variant="destructive"
+                    disabled={creating || !!changing || !!active}
+                    onClick={() =>
+                      void change("unregister", app.orchestratorId!)
+                    }
+                  >
+                    {changing === app.orchestratorId
+                      ? "Updating..."
+                      : app.status === "unavailable" && !app.available
+                        ? "Delete registration"
+                        : "Unregister"}
+                  </Button>
+                </>
+              )}
+            </div>
           </CardContent>
         </Card>
       ))}

@@ -79,6 +79,17 @@ export async function difyJson(
     await response.body?.cancel();
     if (
       management &&
+      options.body === undefined &&
+      response.status === 404 &&
+      /^\/apps\/[a-f0-9-]+$/.test(path)
+    )
+      throw new AppError(
+        "DIFY_APP_NOT_FOUND",
+        "This workflow is no longer available in Dify.",
+        404,
+      );
+    if (
+      management &&
       path === "/apps/imports" &&
       options.body !== undefined &&
       [401, 403, 404, 405, 429].includes(response.status)

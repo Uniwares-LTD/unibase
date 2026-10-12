@@ -295,6 +295,15 @@ formless registration of an existing Workflow. `registration.ts` reads the
 publication, acquires an encrypted key, verifies API inputs and enables a derived
 definition. `dify-capabilities.ts` checks supported Start controls, Human Input
 WebApp delivery/form contracts and referenced MCP authorization/tool metadata.
+`orchestrator-lifecycle.ts` reconciles complete provider catalogs, verifies app
+existence before admission and handles audited Disable/Unregister operations.
+Missing workflows are unavailable; incomplete reads and provider errors are not
+deletion evidence. A catalog cannot invalidate registrations newer than its read.
+Lifecycle changes fence pending registration and increment the configuration
+revision. Admission conditionally writes the current orchestrator inside the
+credit/job transaction, preventing a concurrent disable from slipping through.
+Unregister leaves a private tombstone to prevent seed resurrection. Accepted job
+snapshots, encrypted credentials, saved results and tracing remain untouched.
 Registration performs no draft mutation, publication, injected inputs or provider
 response wrapping. Obsolete input/graph setup, validation and manual-save modules/routes
 were removed. Registration/audit records retain sanitized progress, not graphs.

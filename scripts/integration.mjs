@@ -108,6 +108,7 @@ try {
   }
   if (!available) throw new Error("Test server did not become ready.");
   if (process.argv.includes("--browser")) {
+    if (difyKeys) console.log(`Local Dify fixture: ${env.DIFY_CONSOLE_URL}`);
     const { browserFixture } =
       await import("../tests/integration/browser-fixture.mjs");
     await browserFixture(env);

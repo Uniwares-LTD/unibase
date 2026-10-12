@@ -616,3 +616,19 @@ and one-credit billing. Complete terminal tracing reads bounded Console node
 metadata when event snapshots omit history. The authorized temporary MCP-only
 tunnel must stay running for local Dify callbacks. Read-only review found no
 remaining actionable defect; broader live plugin/recovery acceptance is pending.
+
+Orchestrator lifecycle correction (2026-10-12): Admin retains missing Dify apps
+as Unavailable with Delete registration. Disable blocks new Runs; Enable rechecks
+registration; Unregister removes the registration from Run choices while retaining
+accepted configurations, credentials, results and history. Provider catalogs are
+complete before reconciliation, and stale snapshots cannot invalidate newer
+registrations. Provider outages preserve saved entries for administration. Fresh
+admission checks Dify before credits; a transaction guard and registration fencing
+prevent concurrent disable/unregister from being undone. No Dify apps/keys are
+deleted or recreated by these actions. The actual deleted starter was reconciled
+as unavailable. Production web/worker builds, typecheck/lint, 52 pure and 119
+account/provider tests passed. Desktop/mobile browser checks passed for Register,
+Disable, Enable, Unregister, Delete registration, reload and focus. Owned HTTP
+lifecycle acceptance passed without losing history or reserving new credits for
+unavailable registrations. A separate read-only review found no remaining
+actionable defect. Broader live provider acceptance remains as previously scoped.
