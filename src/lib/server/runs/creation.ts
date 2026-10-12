@@ -184,7 +184,25 @@ export async function createDifyOrchestrator(
         timestamp: new Date(),
       });
     }
+    // A retry must verify its saved app before attempting any setting mutation.
+    await creationRequest(`/apps/${appId}`, { management: true });
     if (!prior?.published) {
+      await checkpoint({ appId });
+      await creationRequest(`/apps/${appId}/site-enable`, {
+        management: true,
+        body: { enable_site: false },
+      });
+      const site = z
+        .object({ enable_site: z.literal(false) })
+        .safeParse(
+          await creationRequest(`/apps/${appId}`, { management: true }),
+        );
+      if (!site.success)
+        throw new AppError(
+          "DIFY_SITE_CONFIGURATION",
+          "Dify did not confirm that the starter Web App was disabled. Retry setup.",
+          409,
+        );
       const published = await creationRequest(
         `/apps/${appId}/workflows/publish`,
         {
@@ -200,7 +218,7 @@ export async function createDifyOrchestrator(
         if (fingerprint(draft.graph) !== graphHash)
           throw new AppError(
             "DIFY_STARTER_CHANGED",
-            "The starter draft changed in Dify. Review and publish it there, then Register it.",
+            "The starter draft changed in Dify. Review it there, then Register it.",
             409,
           );
         await checkpoint({ appId }); // Fresh role and live lease immediately before mutation.
@@ -220,6 +238,12 @@ export async function createDifyOrchestrator(
     );
     return { ...result, appId };
   } catch (error) {
+    if (error instanceof AppError && error.code === "DIFY_APP_NOT_FOUND")
+      throw new AppError(
+        "DIFY_CREATION_APP_DELETED",
+        "The previous starter was deleted in Dify. Click Create orchestrator again to create a new workflow.",
+        409,
+      );
     if (
       error instanceof AppError &&
       error.code === "DIFY_IMPORT_REJECTED" &&

@@ -632,3 +632,32 @@ Disable, Enable, Unregister, Delete registration, reload and focus. Owned HTTP
 lifecycle acceptance passed without losing history or reserving new credits for
 unavailable registrations. A separate read-only review found no remaining
 actionable defect. Broader live provider acceptance remains as previously scoped.
+
+Creation/publication correction (2026-10-12): Create immediately displays the
+confirmed starter and refreshes the Dify app catalog automatically. New starters
+disable the public Dify Web App while retaining Service API access and the Human
+Input node's WebApp delivery method for form tokens. Register validates the saved
+draft and publishes it when new or changed, superseding the earlier read-only
+registration contract. Unchanged publications are reused; concurrent draft changes
+and publication failures prevent enablement. Registration does not edit nodes or
+inputs. Account/provider verification covers these boundaries (121 tests); owned
+HTTP acceptance completes the starter's human interaction with its public site off.
+Production web/worker builds, typecheck and lint passed. Browser checks verified
+automatic appearance after Create, reload, mobile layout and keyboard focus.
+The broader Runs HTTP regression passed. A separate read-only review found no
+remaining actionable defect; no live Dify apps were changed by these checks.
+
+Deleted Create retry correction (2026-10-12): Saved creation attempts now check
+their confirmed app before updating settings. Dify's app-not-found response clears
+the browser retry key and requests a fresh explicit Create, while temporary and
+unknown failures retain retry protection. Read-only live checks confirmed the
+reported retry referenced a deleted app. Targeted account/Console tests, build,
+typecheck/lint and browser retry/reload checks passed. No live app was recreated.
+
+Authentication usability correction (2026-10-12): The shared recent-sign-in
+window is 30 minutes instead of five for session exchange and administrative
+changes. The five-day session lifetime, current role/access checks, CSRF and
+future-timestamp checks remain unchanged. Admin help text and test instructions
+match the new window. All 52 pure and 122 account/provider tests, production
+web/worker build, typecheck and lint passed. Separate read-only review found no
+actionable defect.

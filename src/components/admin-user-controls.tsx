@@ -166,7 +166,7 @@ export function AdminUserControls({
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Changes require a sign-in within the last five minutes. You cannot
+        Changes require a sign-in within the last 30 minutes. You cannot
         remove your own administrator access.
       </p>
       <ChangeForm kind="access" user={user} actorUid={actorUid} />

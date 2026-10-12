@@ -223,7 +223,7 @@ export async function registrationStatus(
   return publicStatus(state, db, env);
 }
 
-// Read-only workflow checks plus managed key acquisition. Only an app ID is needed.
+// Validate the current saved draft, publish when changed, then acquire its key.
 export async function registerDifyOrchestrator(
   appId: string,
   actor: Actor,
@@ -257,7 +257,7 @@ export async function registerDifyOrchestrator(
             until: new Date(Date.now() + 180000),
             status: "registering",
             stage: "Checking workflow",
-            message: "Checking the published app.",
+            message: "Checking the saved workflow draft.",
           },
         },
         { session, upsert: true },
@@ -270,7 +270,7 @@ export async function registerDifyOrchestrator(
           targetUid: actor.uid,
           appId,
           reason:
-            "Check and register the published Dify workflow without changing it",
+            "Validate the saved Dify draft, publish when needed, and connect the workflow",
           timestamp: new Date(),
         },
         { session },
@@ -319,19 +319,66 @@ export async function registerDifyOrchestrator(
         mode: z.literal("workflow"),
       })
       .parse(await request(`/apps/${appId}`, { management: true }));
-    const workflow = z
-      .object({ id: z.string().uuid(), graph: z.unknown() })
-      .safeParse(
+    const draftSchema = z.object({
+      graph: z.json(),
+      hash: z.string().optional(),
+      features: z.json().optional(),
+      environment_variables: z.json().optional(),
+      conversation_variables: z.json().optional(),
+    });
+    const draft = draftSchema.parse(
+      await request(`/apps/${appId}/workflows/draft`, { management: true }),
+    );
+    const fit = inspectDifyWorkflow(draft.graph);
+    await verifyMcpTools(fit.mcpTools, request);
+    const publicationSchema = draftSchema.extend({ id: z.string().uuid() });
+    const current = await request(`/apps/${appId}/workflows/publish`, {
+      management: true,
+    });
+    const comparable = (value: z.infer<typeof draftSchema>) =>
+      fingerprint([
+        value.graph,
+        value.features ?? {},
+        value.environment_variables ?? [],
+        value.conversation_variables ?? [],
+      ]);
+    const published = current == null ? null : publicationSchema.parse(current);
+    let workflow = published;
+    if (!published || comparable(published) !== comparable(draft)) {
+      await stage("Publishing workflow");
+      const latestDraft = draftSchema.parse(
+        await request(`/apps/${appId}/workflows/draft`, { management: true }),
+      );
+      if (
+        comparable(latestDraft) !== comparable(draft) ||
+        (draft.hash && latestDraft.hash !== draft.hash)
+      )
+        throw new AppError(
+          "DIFY_DRAFT_CHANGED",
+          "The Dify draft changed during registration. Retry to publish the latest draft.",
+          409,
+        );
+      await stage("Publishing workflow");
+      await request(`/apps/${appId}/workflows/publish`, {
+        management: true,
+        body: {},
+      });
+      workflow = publicationSchema.parse(
         await request(`/apps/${appId}/workflows/publish`, { management: true }),
       );
-    if (!workflow.success)
+      if (comparable(workflow) !== comparable(draft))
+        throw new AppError(
+          "DIFY_DRAFT_CHANGED",
+          "Dify published a different draft. Registration was not enabled; inspect it and retry.",
+          409,
+        );
+    }
+    if (!workflow)
       throw new AppError(
         "DIFY_PUBLICATION_REQUIRED",
-        "Publish this Workflow in Dify before registering it.",
+        "Dify did not confirm workflow publication. Retry registration.",
         409,
       );
-    const fit = inspectDifyWorkflow(workflow.data.graph);
-    await verifyMcpTools(fit.mcpTools, request);
     await stage("Connecting app key");
     const credential = await acquireAppCredential(
       appId,
@@ -346,7 +393,7 @@ export async function registerDifyOrchestrator(
       description: (app.description ?? "").slice(0, 1000),
       order: 0,
       appId,
-      workflowId: workflow.data.id,
+      workflowId: workflow.id,
       keyEnv: `DIFY_KEY_AUTO_${appId.replaceAll("-", "_").toUpperCase()}`,
       credentialId: credential.credentialId,
       enabled: true,

@@ -109,7 +109,9 @@ independent and provider-disabled accounts still cannot authenticate.
 
 The `/admin` routes and `/api/admin/users` call fresh authorization in their server
 modules. Administrative Server Actions additionally validate exact origin, current
-actor identity, recent authentication and strict inputs. User lists are paginated
+actor identity, authentication within 30 minutes and strict inputs. Session
+exchange uses the same freshness window; session cookies still last five days.
+User lists are paginated
 Firebase reads enriched with MongoDB application profiles; search is exact email or
 UID. Account editing changes the application name, not Firebase identity fields.
 
@@ -304,7 +306,8 @@ revision. Admission conditionally writes the current orchestrator inside the
 credit/job transaction, preventing a concurrent disable from slipping through.
 Unregister leaves a private tombstone to prevent seed resurrection. Accepted job
 snapshots, encrypted credentials, saved results and tracing remain untouched.
-Registration performs no draft mutation, publication, injected inputs or provider
+Registration validates the saved draft, publishes when new or changed and checks
+the resulting publication. It performs no draft mutation, injected inputs or provider
 response wrapping. Obsolete input/graph setup, validation and manual-save modules/routes
 were removed. Registration/audit records retain sanitized progress, not graphs.
 
@@ -326,7 +329,9 @@ Formless Create imports a new starter graph, checks that its draft is unchanged,
 publishes it and invokes the same registration service. `orchestratorCreations`
 journals the client idempotency key, irreversible import intent and confirmed app
 ID with a fenced lease. Unknown imports are not repeated. This path is separate
-from read-only Register. The starter uses zero inputs, an authorized reference MCP
+from general registration. New starters disable the public Dify site while retaining
+API access and Human Input WebApp delivery. Create merges its confirmed app into
+the client list and refreshes discovery. The starter uses zero inputs, an authorized reference MCP
 tool, a Human Input Generative UI choice and Code/End native text output. MCP
 structured content is consumed from `json`, because Dify may leave `text` empty.
 Reconnect consumes events following historical pauses; polling completed Runs

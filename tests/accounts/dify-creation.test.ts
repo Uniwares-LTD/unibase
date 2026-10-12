@@ -56,16 +56,31 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
       revoke?: boolean;
       changed?: boolean;
       rejected?: boolean;
+      deleted?: boolean;
+      siteFail?: boolean;
     } = {},
   ) {
     const appId = randomUUID(),
       workflowId = randomUUID();
     let graph: unknown;
     let published = false;
+    let siteEnabled = true;
     let imports = 0,
       publishes = 0,
       keys = 0;
     const request: typeof difyJson = async (path, config = {}) => {
+      if (options.deleted && path.startsWith(`/apps/${appId}`)) {
+        assert.equal(
+          config.body,
+          undefined,
+          "Missing apps must be checked before mutation",
+        );
+        throw new AppError(
+          "DIFY_APP_NOT_FOUND",
+          "App no longer available",
+          404,
+        );
+      }
       if (path === "/workspaces/current/tools/mcp")
         return options.missing
           ? []
@@ -97,6 +112,12 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
       }
       if (path === `/apps/${appId}/workflows/draft`)
         return { graph: options.changed ? { nodes: [] } : graph };
+      if (path === `/apps/${appId}/site-enable`) {
+        if (options.siteFail) throw new Error("temporary setting failure");
+        assert.deepEqual(config.body, { enable_site: false });
+        siteEnabled = false;
+        return { enable_site: false };
+      }
       if (path === `/apps/${appId}/workflows/publish`) {
         if (config.body !== undefined) {
           publishes++;
@@ -110,6 +131,7 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
           mode: "workflow",
           name: "Unibase starter",
           description: "Demo",
+          enable_site: siteEnabled,
         };
       if (path === `/apps/${appId}/api-keys`) {
         if (config.body !== undefined) keys++;
@@ -167,6 +189,33 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
         "ready",
       );
     });
+    await t.test(
+      "retry of a deleted starter performs no mutation or replacement",
+      async () => {
+        for (const options of [
+          {},
+          { registerFail: true },
+          { siteFail: true },
+        ]) {
+          const f = fixture(options);
+          const key = randomUUID();
+          if (f.options.registerFail || f.options.siteFail)
+            await assert.rejects(
+              createDifyOrchestrator(key, actor, db, f.request, env),
+            );
+          else await createDifyOrchestrator(key, actor, db, f.request, env);
+          const before = f.counts();
+          f.options.deleted = true;
+          await assert.rejects(
+            createDifyOrchestrator(key, actor, db, f.request, env),
+            (error: unknown) =>
+              error instanceof AppError &&
+              error.code === "DIFY_CREATION_APP_DELETED",
+          );
+          assert.deepEqual(f.counts(), before);
+        }
+      },
+    );
     await t.test(
       "explicit permission rejection permits retry after correction",
       async () => {
@@ -244,7 +293,7 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
       await assert.rejects(
         createDifyOrchestrator(
           randomUUID(),
-          { ...actor, auth_time: actor.auth_time - 301 },
+          { ...actor, auth_time: actor.auth_time - 1801 },
           db,
           f.request,
           env,

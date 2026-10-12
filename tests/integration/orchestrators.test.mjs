@@ -298,6 +298,20 @@ test("Read-only registration runs native Dify outputs without graph changes", as
   const createdText = await createdResponse.text();
   assert.equal(createdResponse.status, 200, createdText);
   const starter = JSON.parse(createdText);
+  const starterApp = await fetch(
+    `${process.env.DIFY_CONSOLE_URL}/apps/${starter.appId}`,
+    {
+      headers: {
+        authorization: `Bearer ${process.env.DIFY_MANAGEMENT_KEY}`,
+        "x-workspace-id": process.env.DIFY_WORKSPACE_ID,
+      },
+    },
+  );
+  assert.equal(
+    (await starterApp.json()).enable_site,
+    false,
+    "Create disables the public Dify Web App while keeping Human Input API delivery",
+  );
   assert.equal(
     (
       await (

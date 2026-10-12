@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
-import { api } from "@/lib/client/api";
+import { api, ApiError } from "@/lib/client/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -89,16 +89,40 @@ export function OrchestratorEditor({
       localStorage.setItem("unibase-starter-creation", key);
       const result = await api(
         "/api/admin/orchestrators/manage",
-        z.object({ status: z.literal("ready"), name: z.string() }),
+        z.object({
+          status: z.literal("ready"),
+          name: z.string(),
+          appId: z.string(),
+          orchestratorId: z.string(),
+        }),
         { method: "POST", body: { action: "create", key }, timeoutMs: 180000 },
       );
       localStorage.removeItem("unibase-starter-creation");
-      await refresh();
+      // Show the confirmed app immediately, even if discovery is temporarily stale.
+      const confirmed: Catalog["apps"][number] = {
+        id: result.appId,
+        name: result.name,
+        description: "MCP demo with a human choice.",
+        status: "ready",
+        registered: true,
+        available: true,
+        orchestratorId: result.orchestratorId,
+      };
+      setApps((prior) => [
+        ...prior.filter((app) => app.id !== result.appId),
+        confirmed,
+      ]);
+      await refresh(confirmed);
       setMessage(
         `${result.name} is ready. Start a Run and choose Brief or Detailed.`,
       );
       router.refresh();
     } catch (error) {
+      if (
+        error instanceof ApiError &&
+        error.code === "DIFY_CREATION_APP_DELETED"
+      )
+        localStorage.removeItem("unibase-starter-creation");
       setMessage(
         error instanceof Error
           ? error.message
@@ -165,7 +189,7 @@ export function OrchestratorEditor({
       controller.abort();
     };
   }, [active, router]);
-  async function refresh() {
+  async function refresh(confirmed?: Catalog["apps"][number]) {
     setRefreshing(true);
     setMessage("");
     try {
@@ -174,7 +198,11 @@ export function OrchestratorEditor({
         catalogSchema,
         { method: "POST", body: { action: "discover" }, timeoutMs: 120000 },
       );
-      setApps(catalog.apps);
+      setApps(
+        confirmed && !catalog.apps.some((app) => app.id === confirmed.id)
+          ? [...catalog.apps, confirmed]
+          : catalog.apps,
+      );
       setMessage(catalog.warning ?? "");
       setActive(
         (prior) =>

@@ -40,7 +40,10 @@ and tracing. The Code node requires Dify's sandbox; no model configuration is ne
 Existing published
 workflows register directly. Unibase reuses or creates the API key, checks the
 publication/inputs/Human Input/MCP configuration and enables the Orchestrator.
-Register never modifies or publishes the workflow. Ordinary End outputs need no JSON
+Register validates the saved draft and publishes it automatically when needed;
+it never changes its nodes or inputs. New starters disable the public Web App,
+while Human Input WebApp delivery remains enabled for Unibase's API forms.
+Ordinary End outputs need no JSON
 wrapper; Unibase normalizes them server-side. Inline prompts need no Start input.
 Configure WebApp delivery for Human Input and synchronize/authenticate referenced
 MCP tools. Model/plugin/MCP dependencies remain managed by Dify.

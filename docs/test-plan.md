@@ -145,7 +145,7 @@ Perform browser checks in Chrome and another supported browser, at desktop and
 | ADM-05 | Promote Admin B; demote it from Admin A; retry from B's old tab.                                            | Role takes effect on server immediately; old B session loses admin access. Restore B from A if needed.                                                                         |
 | ADM-06 | Try self-demotion/self-suspension; run last-admin concurrency tests.                                        | Protected operations are rejected; at least one active admin remains.                                                                                                          |
 | ADM-07 | Suspend a member with an existing session; try protected access/new sign-in; reactivate.                    | Suspension denies access. Reactivation requires a new sign-in; old cookies cannot revive.                                                                                      |
-| ADM-08 | Submit missing/short reason; cancel confirmation; try mutation after five minutes without signing in again. | Invalid/cancelled operations have no effect; stale authentication requires fresh sign-in before mutation.                                                                      |
+| ADM-08 | Submit missing/short reason; cancel confirmation; try mutation after 30 minutes without signing in again. | Invalid/cancelled operations have no effect; stale authentication requires fresh sign-in before mutation.                                                                      |
 
 ## 5. Credits, ledger and simulated purchases
 

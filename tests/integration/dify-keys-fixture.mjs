@@ -25,6 +25,10 @@ export async function difyKeysFixture() {
     [emptyApp, "New key workflow"],
   ]);
   const forms = new Map();
+  const sites = new Map([
+    [existingApp, true],
+    [emptyApp, true],
+  ]);
   const runs = new Map();
   const workflows = new Map(
     [existingApp, emptyApp].map((appId) => [
@@ -131,6 +135,7 @@ export async function difyKeysFixture() {
         imports++;
         names.set(appId, dsl.app.name);
         keys.set(appId, []);
+        sites.set(appId, true);
         drafts.set(appId, {
           ...dsl.workflow,
           id: randomUUID(),
@@ -154,7 +159,15 @@ export async function difyKeysFixture() {
           name: names.get(match[1]),
           description: "Local workflow fixture",
           mode: "workflow",
+          enable_site: sites.get(match[1]),
         });
+      if (match[2] === "/site-enable" && request.method === "POST") {
+        const chunks = [];
+        for await (const chunk of request) chunks.push(chunk);
+        const body = JSON.parse(Buffer.concat(chunks));
+        sites.set(match[1], body.enable_site);
+        return send({ enable_site: sites.get(match[1]) });
+      }
       const traceMatch =
         /^\/workflow-runs\/([a-f0-9-]+)\/node-executions$/.exec(match[2]);
       if (traceMatch) {

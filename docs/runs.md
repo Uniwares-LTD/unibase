@@ -27,8 +27,8 @@ ending `/console/api`, `DIFY_MANAGEMENT_KEY` and `DIFY_WORKSPACE_ID`. Both URLs
 must use the same instance. Enable self-hosted Dify admin-key authentication with
 permissions to read apps/publications/tool configuration and create app keys.
 Allow reading node execution traces for complete tracing after continuation.
-Registration needs no graph-edit or publish permission.
-Create additionally needs app-import and publication permissions.
+Register requires draft-read and publication permissions. Create additionally
+requires app-import and Web App setting permissions.
 
 At `/admin/orchestrators`, **Create orchestrator** creates a new **Unibase starter**,
 publishes it, acquires its execution key and registers it. There is no form. It
@@ -38,6 +38,9 @@ binds an authorized MCP provider exposing `get_reference_document_v1` (preferrin
 the structured MCP JSON and returns ordinary End text. Dify's code sandbox must
 work; no LLM credentials are required. Start a Run, choose an option, Continue,
 then view its result and tracing. Existing published workflows use **Register**.
+Create immediately shows the confirmed app and refreshes discovery automatically.
+New starters disable the public Dify Web App (`enable_site=false`). API access and
+the Human Input node's WebApp delivery stay enabled; they are separate settings.
 
 **Disable** stops new Runs. **Enable** performs registration checks again before
 allowing new Runs. **Unregister** removes the Unibase registration from Run choices;
@@ -63,11 +66,17 @@ import outcome is never repeated automatically: check Dify and register the new
 app if present. Changed drafts are not published automatically. Creation only
 publishes its own new app; registration never changes existing graphs.
 Explicit authentication/permission rejection permits retry after correction.
+Create checks a saved app before retrying settings or registration. If it was
+deleted in Dify, Unibase clears the browser's creation retry key and asks the admin
+to click Create again for a new workflow. Temporary failures retain the key;
+deleted apps are not silently recreated by a retry.
 
-Registration reads the publication, verifies supported inputs and declared Human
-Input/MCP configuration, reuses or creates an encrypted execution key, checks API
-access and saves an enabled Orchestrator. It never reads/writes drafts, inserts
-nodes, adds inputs, imports DSL or publishes. Repeating registration preserves an
+Registration reads the saved draft, verifies supported inputs and declared Human
+Input/MCP configuration, and publishes it when no publication exists or the draft
+has changed. It rechecks the draft before publishing and verifies the resulting
+publication. It then reuses or creates an encrypted execution key, checks API
+access and saves an enabled Orchestrator. It never writes drafts, inserts nodes,
+adds inputs or imports DSL. Repeating registration preserves an
 unchanged definition. Incomplete registration is never enabled. Keys and active
 registration are serialized to avoid duplicate creation; no graph-mutation journal
 or Python sandbox adapter is required.
@@ -86,8 +95,9 @@ read stored metadata, never execute tools, ask a human to act or run an LLM as a
 probe. Actual network/model/plugin readiness still needs a test Run. Workflows do
 not need to use every capability on every execution.
 
-Dify owns general graph editing and MCP provider credentials. Create publishes
-only its starter; other workflows are authored/published in Dify. A connected MCP server
+Dify owns general graph editing and MCP provider credentials. Workflows are
+authored in Dify; Register publishes their current valid saved draft. Create
+authors and publishes only its starter. A connected MCP server
 may expose permission-checked read or write tools; registration does not create
 new tool implementations. Unibase's included MCP tools remain read-only public
 reference examples; application save operations need explicit bounded tools and

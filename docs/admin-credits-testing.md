@@ -38,7 +38,7 @@ use credentials you create in the emulator, then appoint that exact Firebase UID
 5. Try a grant with No expiry, then one with a future Specific date in UTC. Verify
    that only expiring available grants appear in Upcoming expiry. A past date is
    rejected. Choose a time several minutes ahead for a manual expiry check.
-6. After five minutes, adjustments require signing in again. Removing your own
+6. After 30 minutes, adjustments require signing in again. Removing your own
    admin access is rejected. Suspend the member: its existing session is denied.
    Reactivate it: it must sign in again; old cookies cannot revive the session.
 7. Sign in as the member and open Credits: only its own grants/deductions appear.

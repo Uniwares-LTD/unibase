@@ -12,11 +12,12 @@ fixtures. `npm run test:accounts` covers the durable job/credit/lease/provider,
 private-file/storage and Runs boundaries. `npm test` covers pure contracts.
 
 `node --conditions=react-server --import tsx scripts/integration.mjs --orchestrators`
-checks read-only registration against a local Console/Service fixture in live
+checks draft validation/registration against a local Console/Service fixture in live
 adapter mode. Existing-key and keyless workflows execute native outputs through
 the bundled worker; checks include empty inputs, owned results, provider IDs,
 input limits and exactly-once billing. Registration graph changes/publications must
-remain zero. The Create scenario imports/publishes exactly one new app, retries
+remain zero for unchanged publications; unpublished/edited drafts publish once.
+The Create scenario disables its public Web App, imports/publishes exactly one new app, retries
 without duplicating it, then starts an owned zero-input Run, renders Generative UI,
 submits a choice and verifies MCP/result tracing. Python is not required for these fixtures.
 `--orchestrators --browser` exposes the fixture for desktop/mobile acceptance.

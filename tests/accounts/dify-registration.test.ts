@@ -135,7 +135,7 @@ test("MCP checks read the authorized tool catalog without executing read or writ
   );
 });
 
-test("Formless registration: read-only checks, retries, authorization and no partial enablement", async (t) => {
+test("Formless registration: draft validation, publication, retries, authorization and no partial enablement", async (t) => {
   const repl = await MongoMemoryReplSet.create({
     binary: { downloadDir: ".cache/mongodb-binaries" },
     replSet: { count: 1 },
@@ -163,6 +163,9 @@ test("Formless registration: read-only checks, retries, authorization and no par
       existing?: boolean;
       rejectKey?: boolean;
       unpublished?: boolean;
+      draftEdited?: boolean;
+      rejectPublish?: boolean;
+      draftChanged?: boolean;
       rejectMcp?: boolean;
       rejectParameters?: boolean;
       onPublishRead?: () => Promise<void>;
@@ -187,7 +190,7 @@ test("Formless registration: read-only checks, retries, authorization and no par
     let keys = options.existing
       ? [{ id: randomUUID(), token: "app-existing-private-canary" }]
       : [];
-    const counts = { keys: 0, reads: 0 };
+    const counts = { keys: 0, reads: 0, publishes: 0, drafts: 0 };
     if (options.rejectMcp)
       published.graph.nodes.push({
         id: "mcp",
@@ -198,6 +201,9 @@ test("Formless registration: read-only checks, retries, authorization and no par
           tool_name: "fetch",
         },
       } as never);
+    const draft = structuredClone(published);
+    if (options.draftEdited || options.draftChanged)
+      draft.graph.nodes[1].data.prompt_template![0].text = "Edited draft";
     const request: typeof difyJson = async (path, config = {}) => {
       assert.ok((config.timeoutMs ?? 30000) <= 30000);
       if (path.startsWith("/apps?"))
@@ -225,8 +231,29 @@ test("Formless registration: read-only checks, retries, authorization and no par
         }
         return { data: keys };
       }
+      if (path.endsWith("/draft")) {
+        assert.equal(
+          config.body,
+          undefined,
+          "Registration must not edit the draft",
+        );
+        counts.drafts++;
+        const value = structuredClone(draft);
+        if (options.draftChanged && counts.drafts > 1)
+          value.hash = "concurrent-change";
+        return value;
+      }
       if (path.endsWith("/publish")) {
-        assert.equal(config.body, undefined, "Registration must never publish");
+        if (config.body !== undefined) {
+          counts.publishes++;
+          if (options.rejectPublish)
+            throw new AppError("DIFY_REJECTED", "Publication denied", 409);
+          Object.assign(published, structuredClone(draft), {
+            id: randomUUID(),
+          });
+          options.unpublished = false;
+          return { result: "success" };
+        }
         counts.reads++;
         await options.onPublishRead?.();
         return options.unpublished ? null : structuredClone(published);
@@ -336,7 +363,7 @@ test("Formless registration: read-only checks, retries, authorization and no par
       async () => {
         for (const options of [
           { rejectKey: true },
-          { unpublished: true },
+          { unpublished: true, rejectPublish: true },
           { rejectMcp: true },
           { rejectParameters: true },
         ]) {
@@ -357,6 +384,27 @@ test("Formless registration: read-only checks, retries, authorization and no par
         }
       },
     );
+    await t.test(
+      "Register publishes a new or edited draft once and reuses an unchanged publication",
+      async () => {
+        for (const options of [{ unpublished: true }, { draftEdited: true }]) {
+          const f = fixture(options);
+          await registerDifyOrchestrator(f.appId, actor, db, f.request, env);
+          assert.equal(f.counts.publishes, 1);
+          await registerDifyOrchestrator(f.appId, actor, db, f.request, env);
+          assert.equal(f.counts.publishes, 1);
+        }
+      },
+    );
+    await t.test("Concurrent draft changes stop publication", async () => {
+      const f = fixture({ draftChanged: true });
+      await assert.rejects(
+        registerDifyOrchestrator(f.appId, actor, db, f.request, env),
+        /draft changed/,
+      );
+      assert.equal(f.counts.publishes, 0);
+      assert.equal(f.counts.keys, 0);
+    });
     await t.test("concurrent registration is serialized", async () => {
       let entered!: () => void;
       let release!: () => void;

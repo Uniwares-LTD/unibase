@@ -133,7 +133,7 @@ export function AdminCreditControls({
             </p>
           </div>
           <p className="text-sm text-muted-foreground">
-            Requires sign-in within five minutes. Deductions cannot consume held
+            Requires sign-in within 30 minutes. Deductions cannot consume held
             credits or create debt. Grants cover existing debt first.
           </p>
           <AlertDialog>

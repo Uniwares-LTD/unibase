@@ -1,4 +1,5 @@
 export const SESSION_SECONDS = 60 * 60 * 24 * 5;
+export const RECENT_LOGIN_SECONDS = 60 * 30;
 
 export class AppError extends Error {
   constructor(
@@ -17,9 +18,9 @@ export function requireRecentLogin(
   if (
     !Number.isFinite(claims.auth_time) ||
     !Number.isFinite(claims.iat) ||
-    now - claims.auth_time > 300 ||
+    now - claims.auth_time > RECENT_LOGIN_SECONDS ||
     claims.auth_time > now + 60 ||
-    now - claims.iat > 300 ||
+    now - claims.iat > RECENT_LOGIN_SECONDS ||
     claims.iat > now + 60
   ) {
     throw new AppError(

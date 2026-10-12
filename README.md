@@ -150,7 +150,7 @@ admins. Firebase remains the identity source; member/admin role and suspension
 state are server-owned MongoDB records. All existing accounts default to active
 members. Application suspension blocks both existing sessions and new session
 exchange; reactivation requires a new sign-in. It does not alter Firebase provider
-settings. Administrative changes require sign-in within five minutes, a reason
+settings. Administrative changes require sign-in within 30 minutes, a reason
 and confirmation, and write an atomic audit record.
 
 Local MongoDB now runs a single-node replica set so access and audit changes can
@@ -265,8 +265,11 @@ document, a Brief/Detailed Generative UI choice and a native text result. Connec
 Unibase MCP in Dify first; the starter needs Dify's code sandbox, but no LLM key.
 Existing published workflows use **Register** without a form. Registration checks API access, declared inputs, Human
 Input WebApp delivery and referenced MCP tools, then reuses/creates an encrypted
-app key and enables the Orchestrator. It never edits graphs, injects inputs or
-publishes. Native End outputs are normalized by Unibase. Inline prompts require no
+app key and enables the Orchestrator. Register validates the saved draft and
+publishes it automatically when new or changed; it never edits nodes or inputs.
+Create refreshes the app list automatically and disables Dify's public Web App;
+the Human Input node's WebApp delivery stays enabled for API forms.
+Native End outputs are normalized by Unibase. Inline prompts require no
 prompt field. Users start Runs and view owned status, node tracing and Human Input.
 Disable stops new Runs; Enable checks Dify again. Unregister removes the Unibase
 registration while preserving Dify and Run history. Missing Dify workflows show

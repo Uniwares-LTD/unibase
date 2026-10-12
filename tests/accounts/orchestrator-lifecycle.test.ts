@@ -64,7 +64,7 @@ test("Orchestrator lifecycle: deletion, outages, disable, unregister and registr
     if (!app) throw new AppError("DIFY_APP_NOT_FOUND", "App unavailable", 404);
     if (!match[2])
       return { mode: "workflow", name: app.name, description: "Example" };
-    if (match[2] === "/workflows/publish") {
+    if (match[2] === "/workflows/publish" || match[2] === "/workflows/draft") {
       assert.equal(config.body, undefined);
       await pause?.();
       return {
@@ -306,7 +306,7 @@ test("Orchestrator lifecycle: deletion, outages, disable, unregister and registr
           changeOrchestrator(
             "disable",
             record._id,
-            { ...actor, auth_time: actor.auth_time - 301 },
+            { ...actor, auth_time: actor.auth_time - 1801 },
             db,
           ),
           /sign in again/,

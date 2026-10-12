@@ -5,14 +5,18 @@ import { parseAuthConfig } from "../src/lib/config/auth";
 import { profileUpdateSchema } from "../src/lib/contracts/profile";
 
 test("session exchange requires recent authentication and issuance", () => {
-  requireRecentLogin({ auth_time: 900, iat: 999 }, 1000);
+  const now = 10000;
+  for (const age of [100, 301, 900, 1800])
+    requireRecentLogin({ auth_time: now - age, iat: now - age }, now);
   for (const claims of [
-    { auth_time: 699, iat: 999 },
-    { auth_time: 999, iat: 699 },
-    { auth_time: 1100, iat: 999 },
-    { auth_time: NaN, iat: 999 },
+    { auth_time: now - 1801, iat: now },
+    { auth_time: now, iat: now - 1801 },
+    { auth_time: now + 100, iat: now },
+    { auth_time: now, iat: now + 100 },
+    { auth_time: NaN, iat: now },
+    { auth_time: now, iat: NaN },
   ])
-    assert.throws(() => requireRecentLogin(claims, 1000));
+    assert.throws(() => requireRecentLogin(claims, now));
 });
 test("session mutations reject absent, foreign and sibling origins", () => {
   requireSameOrigin(
