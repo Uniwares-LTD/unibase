@@ -1,7 +1,8 @@
 import "server-only";
 import { z } from "zod";
+import { demoScenarioTools } from "./demo-scenarios";
 
-export const catalogVersion = "1.0.0";
+export const catalogVersion = "1.1.0";
 export type ToolContext = {
   clientId: string;
   appName: string;
@@ -58,4 +59,5 @@ export const tools: readonly RegisteredTool[] = [
       return { ...reference, requestId: context.requestId };
     },
   },
+  ...demoScenarioTools,
 ];

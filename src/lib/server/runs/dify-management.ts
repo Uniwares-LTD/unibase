@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "../admin";
 import { createDifyOrchestrator } from "./creation";
 import { changeOrchestrator } from "./orchestrator-lifecycle";
+import { orchestratorTemplateIdSchema } from "@/lib/contracts/orchestrator-templates";
 import {
   discoverDifyOrchestrators,
   registerDifyOrchestrator,
@@ -13,7 +14,11 @@ import {
 // Registration is one server-owned operation; callers never submit a definition.
 export const managementCommandSchema = z.discriminatedUnion("action", [
   z.strictObject({ action: z.literal("discover") }),
-  z.strictObject({ action: z.literal("create"), key: z.string().uuid() }),
+  z.strictObject({
+    action: z.literal("create"),
+    key: z.string().uuid(),
+    templateId: orchestratorTemplateIdSchema.default("document-summary"),
+  }),
   z.strictObject({ action: z.literal("register"), appId: z.string().uuid() }),
   z.strictObject({ action: z.literal("status"), appId: z.string().uuid() }),
   z.strictObject({
@@ -33,7 +38,14 @@ export async function manageDify(input: unknown) {
   if (command.action === "disable" || command.action === "unregister")
     return changeOrchestrator(command.action, command.orchestratorId, actor);
   if (command.action === "create")
-    return createDifyOrchestrator(command.key, actor);
+    return createDifyOrchestrator(
+      command.key,
+      actor,
+      undefined,
+      undefined,
+      undefined,
+      command.templateId,
+    );
   if (command.action === "discover") return discoverDifyOrchestrators();
   if (command.action === "status") return registrationStatus(command.appId);
   return registerDifyOrchestrator(command.appId, actor);

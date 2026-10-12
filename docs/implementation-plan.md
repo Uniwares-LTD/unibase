@@ -661,3 +661,21 @@ future-timestamp checks remain unchanged. Admin help text and test instructions
 match the new window. All 52 pure and 122 account/provider tests, production
 web/worker build, typecheck and lint passed. Separate read-only review found no
 actionable defect.
+
+Template catalog correction (2026-10-12): Admin Create is a shadcn dropdown for
+Document summary, Catalog picker and Quote approval. Server-only JSON DSL files
+live under `src/lib/server/runs/templates`; only metadata reaches the client.
+Each journal binds its template ID and each browser template retains a separate
+retry key. Legacy creation requests/journals default to Document summary. Required
+MCP tools are checked before import; selected workflows keep automatic publication,
+API keys, site disabling and catalog refresh. The original code template was removed.
+New bounded synthetic catalog and quote MCP methods require explicit `demo:read`;
+no orders, payments or user records are written. Local Dify client permissions and
+its dedicated starter tool catalog were refreshed; both new local MCP calls passed.
+All 52 pure and 124 account/provider tests, production web/worker build, typecheck,
+lint, owned HTTP template creation and broader Runs regression passed. Embedded
+Python passed both choices in each scenario with real tool output and Unibase's
+answer-object format. Desktop/mobile browser checks covered all three creations,
+reload, keyboard/menu focus and corrected mobile action wrapping. Separate read-only
+review found no remaining actionable defect. Full new-template Runs on live Dify
+remain installation-specific acceptance; its reachable MCP and code sandbox are required.

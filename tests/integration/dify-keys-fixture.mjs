@@ -122,7 +122,11 @@ export async function difyKeysFixture() {
           {
             id: "workspace_mcp",
             is_team_authorization: true,
-            tools: [{ name: "get_reference_document_v1" }],
+            tools: [
+              "get_reference_document_v1",
+              "get_demo_catalog_v1",
+              "calculate_demo_quote_v1",
+            ].map((name) => ({ name })),
           },
         ]);
       if (path === "/console/api/apps/imports" && request.method === "POST") {

@@ -16,7 +16,7 @@ Store the generated value privately in `.env.local` or deployment secrets:
 
 ```dotenv
 MCP_ENABLED=true
-MCP_CLIENTS_JSON='[{"id":"dify","tokenEnv":"MCP_TOKEN_DIFY","permissions":["server:read","reference:read"]}]'
+MCP_CLIENTS_JSON='[{"id":"dify","tokenEnv":"MCP_TOKEN_DIFY","permissions":["server:read","reference:read","demo:read"]}]'
 MCP_TOKEN_DIFY=replace-with-generated-token
 # Only when using an additional externally reachable hostname:
 MCP_ALLOWED_HOSTS_JSON='["your-tunnel.example.com"]'
@@ -68,10 +68,20 @@ database query tool. HTTP credentials never reach tool arguments or LLM prompts.
 | --------------------------- | ---------------- | -------------------------------------------------------------------------------- |
 | `get_server_info_v1`        | `server:read`    | Empty object → public app name and catalog version.                              |
 | `get_reference_document_v1` | `reference:read` | `documentId: "unibase-demo"` → synthetic visitor guide, revision and request ID. |
+| `get_demo_catalog_v1` | `demo:read` | `category: "all", "equipment" or "guides"` → three or fewer synthetic products and prices in USD cents. |
+| `calculate_demo_quote_v1` | `demo:read` | Allowlisted `itemId`, integer `quantity: 1..20`, `delivery: "standard" or "express"` → subtotal, delivery and total in USD cents. |
+
+Catalog version 1.1.0 adds the demo tools. Grant `demo:read` explicitly to intended
+clients, restart the web process, and refresh Dify tools. Existing reference-only
+clients retain their original tool access. Quote calculation and approval do not
+create orders, payments, inventory reservations or user records. The Admin Create
+dropdown includes matching Catalog picker and Quote approval workflows alongside
+Document summary. All three require Dify's code sandbox, with no LLM key or Start
+inputs. Templates are JSON DSL in `src/lib/server/runs/templates`.
 
 The example document is bundled server data, not a real venue or user record.
 It intentionally contains information a workflow should fetch rather than infer.
-Neither tool changes data or charges credits. MCP results include
+These tools change no data and charge no credits. MCP results include
 `structuredContent` and a text block containing the same JSON object.
 
 ## Connect Dify and extend the test workflow

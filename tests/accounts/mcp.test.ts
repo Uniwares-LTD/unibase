@@ -20,7 +20,7 @@ const env = {
     {
       id: "dify",
       tokenEnv: "MCP_TOKEN_DIFY",
-      permissions: ["server:read", "reference:read"],
+      permissions: ["server:read", "reference:read", "demo:read"],
     },
     {
       id: "limited",
@@ -210,6 +210,52 @@ test("MCP official client: real HTTP, discovery, calls and concurrent permission
     });
     assert.equal(result.isError, undefined);
     assert.match(JSON.stringify(result), /silver-lantern/);
+    const catalog = await clients[0].client.callTool({
+      name: "get_demo_catalog_v1",
+      arguments: { category: "guides" },
+    });
+    assert.equal(catalog.isError, undefined);
+    const catalogData = catalog.structuredContent as {
+      items: { id: string }[];
+    };
+    assert.deepEqual(
+      catalogData.items.map((item) => item.id),
+      ["star-map", "notebook"],
+    );
+    const quote = await clients[0].client.callTool({
+      name: "calculate_demo_quote_v1",
+      arguments: { itemId: "telescope", quantity: 2, delivery: "express" },
+    });
+    assert.equal(quote.isError, undefined);
+    assert.equal(
+      (quote.structuredContent as { totalMinor: number }).totalMinor,
+      10500,
+    );
+    for (const name of ["get_demo_catalog_v1", "calculate_demo_quote_v1"]) {
+      assert(!limited.tools.some((tool) => tool.name === name));
+      await assert.rejects(
+        clients[1].client.callTool({ name, arguments: {} }),
+        /not found/,
+      );
+    }
+    for (const args of [
+      { itemId: "telescope", quantity: 0, delivery: "express" },
+      { itemId: "telescope", quantity: 21, delivery: "express" },
+      { itemId: "telescope", quantity: 1.5, delivery: "standard" },
+      { itemId: "unknown", quantity: 1, delivery: "standard" },
+      {
+        itemId: "star-map",
+        quantity: 1,
+        delivery: "standard",
+        uid: "other-user",
+      },
+    ]) {
+      const invalid = await clients[0].client.callTool({
+        name: "calculate_demo_quote_v1",
+        arguments: args,
+      });
+      assert.equal(invalid.isError, true);
+    }
     const info = await clients[1].client.callTool({
       name: "get_server_info_v1",
       arguments: {},
@@ -307,7 +353,17 @@ test("MCP supports legacy Streamable HTTP clients and cancellation", async () =>
     request({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }),
     options,
   );
-  assert.equal((await list.json()).result.tools.length, 2);
+  assert.deepEqual(
+    (await list.json()).result.tools
+      .map((tool: { name: string }) => tool.name)
+      .sort(),
+    [
+      "calculate_demo_quote_v1",
+      "get_demo_catalog_v1",
+      "get_reference_document_v1",
+      "get_server_info_v1",
+    ],
+  );
   const controller = new AbortController();
   let observedAbort = false;
   const tool: RegisteredTool = {

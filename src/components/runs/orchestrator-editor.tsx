@@ -7,6 +7,14 @@ import { api, ApiError } from "@/lib/client/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { OrchestratorTemplateSummary } from "@/lib/contracts/orchestrator-templates";
 
 const appSchema = z.object({
   id: z.string(),
@@ -41,9 +49,11 @@ type Catalog = z.infer<typeof catalogSchema>;
 export function OrchestratorEditor({
   initial,
   initialError,
+  templates,
 }: {
   initial: Catalog;
   initialError?: string;
+  templates: OrchestratorTemplateSummary[];
 }) {
   const router = useRouter();
   const [apps, setApps] = useState(initial.apps);
@@ -80,13 +90,16 @@ export function OrchestratorEditor({
       setChanging(null);
     }
   }
-  async function create() {
+  async function create(template: OrchestratorTemplateSummary) {
+    const storageKey =
+      template.id === "document-summary"
+        ? "unibase-starter-creation"
+        : `unibase-orchestrator-creation:${template.id}`;
     setCreating(true);
-    setMessage("Creating the MCP and Human Input starter...");
+    setMessage(`Creating ${template.title}...`);
     try {
-      const key =
-        localStorage.getItem("unibase-starter-creation") ?? crypto.randomUUID();
-      localStorage.setItem("unibase-starter-creation", key);
+      const key = localStorage.getItem(storageKey) ?? crypto.randomUUID();
+      localStorage.setItem(storageKey, key);
       const result = await api(
         "/api/admin/orchestrators/manage",
         z.object({
@@ -95,14 +108,18 @@ export function OrchestratorEditor({
           appId: z.string(),
           orchestratorId: z.string(),
         }),
-        { method: "POST", body: { action: "create", key }, timeoutMs: 180000 },
+        {
+          method: "POST",
+          body: { action: "create", key, templateId: template.id },
+          timeoutMs: 180000,
+        },
       );
-      localStorage.removeItem("unibase-starter-creation");
+      localStorage.removeItem(storageKey);
       // Show the confirmed app immediately, even if discovery is temporarily stale.
       const confirmed: Catalog["apps"][number] = {
         id: result.appId,
         name: result.name,
-        description: "MCP demo with a human choice.",
+        description: template.description,
         status: "ready",
         registered: true,
         available: true,
@@ -114,7 +131,7 @@ export function OrchestratorEditor({
       ]);
       await refresh(confirmed);
       setMessage(
-        `${result.name} is ready. Start a Run and choose Brief or Detailed.`,
+        `${result.name} is ready. Start a Run to try ${template.title}.`,
       );
       router.refresh();
     } catch (error) {
@@ -122,7 +139,7 @@ export function OrchestratorEditor({
         error instanceof ApiError &&
         error.code === "DIFY_CREATION_APP_DELETED"
       )
-        localStorage.removeItem("unibase-starter-creation");
+        localStorage.removeItem(storageKey);
       setMessage(
         error instanceof Error
           ? error.message
@@ -310,12 +327,33 @@ export function OrchestratorEditor({
           Dify workflows
         </h2>
         <div className="flex flex-wrap gap-2">
-          <Button
-            disabled={creating || !!active || !!changing}
-            onClick={() => void create()}
-          >
-            {creating ? "Creating..." : "Create orchestrator"}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button disabled={creating || !!active || !!changing}>
+                {creating ? "Creating..." : "Create orchestrator"}
+                <ChevronDown aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-80 max-w-[calc(100vw-2rem)]"
+            >
+              {templates.map((template) => (
+                <DropdownMenuItem
+                  key={template.id}
+                  onSelect={() => void create(template)}
+                  className="items-start whitespace-normal"
+                >
+                  <span>
+                    <span className="block font-medium">{template.title}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {template.description}
+                    </span>
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="outline"
             disabled={refreshing || !!changing || creating}
@@ -345,7 +383,7 @@ export function OrchestratorEditor({
       )}
       {apps.map((app) => (
         <Card key={app.id}>
-          <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-4">
+          <CardContent className="flex flex-col gap-4 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1 space-y-2">
               <h3 className="break-words font-semibold">{app.name}</h3>
               {app.description && (

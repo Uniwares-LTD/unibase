@@ -33,7 +33,9 @@ mints its own owned asset ID. URLs are never fetched from generated output.
 
 Configure the shared Dify connection described in [Runs setup](../docs/runs.md).
 In Administration, **Create orchestrator** creates and publishes the minimal
-starter defined in `src/lib/server/runs/dify-starter.ts`, then registers it. Connect
+template from `src/lib/server/runs/templates`, then registers it. The dropdown
+offers Document summary, Catalog picker and Quote approval. Catalog/quote tools
+require the Dify MCP client's `demo:read` permission and tool refresh. Connect
 Unibase MCP with `get_reference_document_v1` first. Start a Run without inputs,
 choose Brief/Detailed in Generative UI, Continue and view the demo document result
 and tracing. The Code node requires Dify's sandbox; no model configuration is needed.

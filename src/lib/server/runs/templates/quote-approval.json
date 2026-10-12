@@ -1,0 +1,272 @@
+{
+  "id": "quote-approval",
+  "title": "Quote approval",
+  "description": "Calculate a demo quote and test human approval or rejection. No purchase is made.",
+  "requiredTools": ["calculate_demo_quote_v1"],
+  "dsl": {
+    "version": "0.6.0",
+    "kind": "app",
+    "dependencies": [],
+    "app": {
+      "name": "Unibase quote approval",
+      "description": "Calculate a synthetic quote through MCP, then approve or decline it. No order or payment is created.",
+      "mode": "workflow",
+      "icon_type": "emoji",
+      "icon": "🧪",
+      "icon_background": "#FFEAD5",
+      "use_icon_as_answer_icon": false
+    },
+    "workflow": {
+      "conversation_variables": [],
+      "environment_variables": [],
+      "features": {
+        "file_upload": {
+          "enabled": false
+        },
+        "opening_statement": "",
+        "suggested_questions": [],
+        "suggested_questions_after_answer": {
+          "enabled": false
+        },
+        "speech_to_text": {
+          "enabled": false
+        },
+        "text_to_speech": {
+          "enabled": false
+        }
+      },
+      "graph": {
+        "nodes": [
+          {
+            "id": "start",
+            "type": "custom",
+            "data": {
+              "type": "start",
+              "title": "Start",
+              "variables": [],
+              "desc": "",
+              "selected": false
+            },
+            "position": {
+              "x": 30,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "reference",
+            "type": "custom",
+            "data": {
+              "type": "tool",
+              "title": "Calculate demo quote through MCP",
+              "provider_type": "mcp",
+              "provider_id": "__UNIBASE_MCP_PROVIDER__",
+              "provider_name": "__UNIBASE_MCP_PROVIDER__",
+              "tool_name": "calculate_demo_quote_v1",
+              "tool_label": "Calculate demo quote",
+              "tool_configurations": {},
+              "tool_parameters": {
+                "itemId": {
+                  "type": "mixed",
+                  "value": "telescope"
+                },
+                "quantity": {
+                  "type": "constant",
+                  "value": 2
+                },
+                "delivery": {
+                  "type": "mixed",
+                  "value": "express"
+                }
+              },
+              "is_team_authorization": true,
+              "desc": "",
+              "selected": false
+            },
+            "position": {
+              "x": 330,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "decision",
+            "type": "custom",
+            "data": {
+              "type": "human-input",
+              "title": "Approve or decline",
+              "form_content": "```unibase-ui\n{\"version\":1,\"cards\":[{\"id\":\"approval\",\"content\":{\"type\":\"question\",\"version\":1,\"data\":{\"kind\":\"single\",\"title\":\"Approve the demo quote?\",\"explanation\":\"Two pocket telescopes with express delivery cost USD 105.00. This is a simulation; no order or payment is created.\",\"options\":[{\"id\":\"approve\",\"label\":\"Approve demo quote\"},{\"id\":\"decline\",\"label\":\"Decline demo quote\"}]}}}]}\n```\n{{#$output.response#}}",
+              "inputs": [
+                {
+                  "type": "paragraph",
+                  "output_variable_name": "response",
+                  "default": {
+                    "type": "constant",
+                    "selector": [],
+                    "value": ""
+                  }
+                }
+              ],
+              "user_actions": [
+                {
+                  "id": "continue",
+                  "title": "Continue",
+                  "button_style": "primary"
+                }
+              ],
+              "delivery_methods": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000010",
+                  "type": "webapp",
+                  "enabled": true,
+                  "config": {}
+                }
+              ],
+              "timeout": 24,
+              "timeout_unit": "hour",
+              "desc": "",
+              "selected": false
+            },
+            "position": {
+              "x": 630,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "compose",
+            "type": "custom",
+            "data": {
+              "type": "code",
+              "title": "Compose result",
+              "code_language": "python3",
+              "code": "import json\ndef main(reference: list, response: str) -> dict:\n    quote = next((item for item in reference if isinstance(item, dict) and \"totalMinor\" in item), None)\n    if not quote:\n        raise ValueError(\"The MCP quote was not received\")\n    choice = json.loads(response).get(\"approval\")\n    if choice not in [\"approve\", \"decline\"]:\n        raise ValueError(\"Choose approve or decline\")\n    return {\"text\": \"Demo quote \" + (\"approved\" if choice == \"approve\" else \"declined\") + \".\\nTotal: \" + str(quote[\"totalMinor\"] / 100) + \" \" + quote[\"currency\"] + \"\\nNo order or payment was created.\"}\n",
+              "variables": [
+                {
+                  "variable": "reference",
+                  "value_selector": ["reference", "json"]
+                },
+                {
+                  "variable": "response",
+                  "value_selector": ["decision", "response"]
+                }
+              ],
+              "outputs": {
+                "text": {
+                  "type": "string",
+                  "children": null
+                }
+              },
+              "desc": "",
+              "selected": false
+            },
+            "position": {
+              "x": 930,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "end",
+            "type": "custom",
+            "data": {
+              "type": "end",
+              "title": "Result",
+              "outputs": [
+                {
+                  "variable": "text",
+                  "value_selector": ["compose", "text"]
+                }
+              ],
+              "desc": "",
+              "selected": false
+            },
+            "position": {
+              "x": 1230,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          }
+        ],
+        "edges": [
+          {
+            "id": "start-reference",
+            "source": "start",
+            "target": "reference",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "start",
+              "targetType": "tool",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "reference-decision",
+            "source": "reference",
+            "target": "decision",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "human-input",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "decision-compose",
+            "source": "decision",
+            "target": "compose",
+            "sourceHandle": "continue",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "human-input",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "compose-end",
+            "source": "compose",
+            "target": "end",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "code",
+              "targetType": "end",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          }
+        ],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 0.7
+        }
+      }
+    }
+  }
+}

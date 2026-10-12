@@ -267,7 +267,10 @@ Existing published workflows use **Register** without a form. Registration check
 Input WebApp delivery and referenced MCP tools, then reuses/creates an encrypted
 app key and enables the Orchestrator. Register validates the saved draft and
 publishes it automatically when new or changed; it never edits nodes or inputs.
-Create refreshes the app list automatically and disables Dify's public Web App;
+Create offers Document summary, Catalog picker and Quote approval templates from
+`src/lib/server/runs/templates`. Catalog/quote MCP tools need the client's explicit
+`demo:read` permission and a refreshed Dify tool catalog. Both use synthetic data;
+quote approval creates no order or payment. Create refreshes the app list automatically and disables Dify's public Web App;
 the Human Input node's WebApp delivery stays enabled for API forms.
 Native End outputs are normalized by Unibase. Inline prompts require no
 prompt field. Users start Runs and view owned status, node tracing and Human Input.

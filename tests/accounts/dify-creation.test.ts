@@ -5,12 +5,15 @@ import { AppError } from "../../src/lib/auth-policy";
 import { MongoClient, type Document } from "mongodb";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { createDifyOrchestrator } from "../../src/lib/server/runs/creation";
-import { starterDsl } from "../../src/lib/server/runs/dify-starter";
+import {
+  orchestratorTemplate,
+  orchestratorTemplates,
+} from "../../src/lib/server/runs/templates";
 import { inspectDifyWorkflow } from "../../src/lib/server/runs/dify-capabilities";
 import type { difyJson } from "../../src/lib/server/runs/dify-console-client";
 
 test("Starter declares no inputs and includes MCP, Generative UI and native result", () => {
-  const dsl = starterDsl("workspace_mcp");
+  const dsl = orchestratorTemplate("document-summary").build("workspace_mcp");
   const fit = inspectDifyWorkflow(dsl.workflow.graph);
   assert.deepEqual(fit.inputs, []);
   assert.deepEqual(fit.legacyInputs, []);
@@ -58,6 +61,7 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
       rejected?: boolean;
       deleted?: boolean;
       siteFail?: boolean;
+      allTools?: boolean;
     } = {},
   ) {
     const appId = randomUUID(),
@@ -88,7 +92,14 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
               {
                 id: "workspace_mcp",
                 is_team_authorization: true,
-                tools: [{ name: "get_reference_document_v1" }],
+                tools: (options.allTools
+                  ? [
+                      "get_reference_document_v1",
+                      "get_demo_catalog_v1",
+                      "calculate_demo_quote_v1",
+                    ]
+                  : ["get_reference_document_v1"]
+                ).map((name) => ({ name })),
               },
             ];
       if (path === "/apps/imports") {
@@ -189,6 +200,55 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
         "ready",
       );
     });
+    await t.test(
+      "all templates create with their selected MCP tools; a retry cannot change templates",
+      async () => {
+        for (const template of orchestratorTemplates()) {
+          const f = fixture({ allTools: true });
+          const key = randomUUID();
+          const result = await createDifyOrchestrator(
+            key,
+            actor,
+            db,
+            f.request,
+            env,
+            template.id,
+          );
+          assert.equal(result.status, "ready");
+          await createDifyOrchestrator(
+            key,
+            actor,
+            db,
+            f.request,
+            env,
+            template.id,
+          );
+          assert.deepEqual(f.counts(), { imports: 1, publishes: 1, keys: 1 });
+          const different =
+            template.id === "document-summary"
+              ? "catalog-picker"
+              : "document-summary";
+          await assert.rejects(
+            createDifyOrchestrator(key, actor, db, f.request, env, different),
+            /another template/,
+          );
+          assert.deepEqual(f.counts(), { imports: 1, publishes: 1, keys: 1 });
+        }
+        const missing = fixture();
+        await assert.rejects(
+          createDifyOrchestrator(
+            randomUUID(),
+            actor,
+            db,
+            missing.request,
+            env,
+            "catalog-picker",
+          ),
+          /get_demo_catalog_v1/,
+        );
+        assert.equal(missing.counts().imports, 0);
+      },
+    );
     await t.test(
       "retry of a deleted starter performs no mutation or replacement",
       async () => {

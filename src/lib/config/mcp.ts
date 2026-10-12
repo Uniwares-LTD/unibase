@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-export const mcpPermissions = ["server:read", "reference:read"] as const;
+export const mcpPermissions = [
+  "server:read",
+  "reference:read",
+  "demo:read",
+] as const;
 const clientsSchema = z
   .array(
     z.strictObject({

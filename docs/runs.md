@@ -30,9 +30,22 @@ Allow reading node execution traces for complete tracing after continuation.
 Register requires draft-read and publication permissions. Create additionally
 requires app-import and Web App setting permissions.
 
-At `/admin/orchestrators`, **Create orchestrator** creates a new **Unibase starter**,
-publishes it, acquires its execution key and registers it. There is no form. It
-binds an authorized MCP provider exposing `get_reference_document_v1` (preferring
+At `/admin/orchestrators`, **Create orchestrator** opens a template dropdown,
+then imports, publishes and registers the selected workflow without a form.
+The server loads allowlisted JSON DSL files from `src/lib/server/runs/templates`;
+only template names/descriptions reach the browser. Available scenarios:
+
+| Template | Scenario | Required MCP tool |
+| --- | --- | --- |
+| Document summary | Fetch a guide and choose Brief/Detailed | `get_reference_document_v1` |
+| Catalog picker | Fetch structured catalog data and choose an item | `get_demo_catalog_v1` |
+| Quote approval | Calculate a synthetic quote, then approve or decline | `calculate_demo_quote_v1` |
+
+Grant `demo:read` to the intended MCP client for catalog/quote scenarios, restart
+the web process, then refresh that provider's tools in Dify. Quotes create no order
+or payment. Each template binds an authorized provider with all required tools,
+preferring `unibase_starter`. Missing tools stop creation before import.
+The Document summary binds `get_reference_document_v1` (preferring
 `unibase_starter` when available). Start sends empty inputs; MCP fetches the synthetic
 `unibase-demo` document; Generative UI asks Brief/Detailed; a Code node consumes
 the structured MCP JSON and returns ordinary End text. Dify's code sandbox must

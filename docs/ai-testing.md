@@ -21,6 +21,12 @@ The Create scenario disables its public Web App, imports/publishes exactly one n
 without duplicating it, then starts an owned zero-input Run, renders Generative UI,
 submits a choice and verifies MCP/result tracing. Python is not required for these fixtures.
 `--orchestrators --browser` exposes the fixture for desktop/mobile acceptance.
+Template acceptance verifies all three imports and retries, template-switch
+rejection, Ready state, and invalid template IDs. Account tests cover strict MCP
+catalog/quote inputs and permission-filtered discovery/direct invocation. Embedded
+Python code was checked with actual tool outputs and both choices per scenario;
+full Dify execution of new templates still requires its code sandbox and reachable
+MCP endpoint. Templates and tools use synthetic data and perform no saves/payments.
 The fixture now verifies Disable, re-registration/Enable, Unregister, deleted-app
 discovery and stale admission without new jobs or credit holds. History and
 credentials survive removal. Account tests cover outages, incomplete/stale

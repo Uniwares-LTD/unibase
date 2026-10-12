@@ -292,7 +292,7 @@ credit/purchase ledger. Management/encryption secrets, connections, deployment o
 identity remain private environment configuration; absolute safety ceilings,
 protocol versions and component registrations remain in code.
 
-`/admin/orchestrators` offers **Create orchestrator** for a published starter and
+`/admin/orchestrators` offers a **Create orchestrator** template dropdown and
 formless registration of an existing Workflow. `registration.ts` reads the
 publication, acquires an encrypted key, verifies API inputs and enables a derived
 definition. `dify-capabilities.ts` checks supported Start controls, Human Input
@@ -325,7 +325,14 @@ and ownership rules. The built-in Unibase MCP catalog remains read-only until a
 specific authorized save operation is defined; service tokens never imply user
 ownership. Registration performs no generation or MCP side-effect probe.
 
-Formless Create imports a new starter graph, checks that its draft is unchanged,
+Create selects an allowlisted JSON DSL from `src/lib/server/runs/templates` through
+a shadcn dropdown. Server Components pass only template metadata to the client;
+graphs and provider configuration stay server-only. Document summary, Catalog
+picker and Quote approval exercise public synthetic MCP reads/calculation and
+human decisions. `demo:read` separately grants the new tools. Each creation journal
+binds its template ID; browser retry keys are separate per template. Existing
+template-less journals map to Document summary. A template switch cannot reuse
+the same import intent. Create imports its graph, checks that its draft is unchanged,
 publishes it and invokes the same registration service. `orchestratorCreations`
 journals the client idempotency key, irreversible import intent and confirmed app
 ID with a fenced lease. Unknown imports are not repeated. This path is separate

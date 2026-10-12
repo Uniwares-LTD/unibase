@@ -7,7 +7,11 @@ import { database } from "../mongo";
 import { accessTransaction } from "../store/access";
 import { fingerprint } from "../ai/jobs";
 import { difyJson } from "./dify-console-client";
-import { starterDsl } from "./dify-starter";
+import { orchestratorTemplate } from "./templates";
+import {
+  orchestratorTemplateIdSchema,
+  type OrchestratorTemplateId,
+} from "@/lib/contracts/orchestrator-templates";
 import { registerDifyOrchestrator } from "./registration";
 
 type Creation = {
@@ -18,6 +22,7 @@ type Creation = {
   appId?: string;
   published?: boolean;
   graphHash?: string;
+  templateId?: OrchestratorTemplateId;
 };
 // Journal the irreversible import before sending it. A lost import response must
 // never turn a Retry into a second app. Once appId is known, Retry resumes setup.
@@ -27,9 +32,12 @@ export async function createDifyOrchestrator(
   db: Db = database(),
   request: typeof difyJson = difyJson,
   env: Record<string, string | undefined> = process.env,
+  templateId: OrchestratorTemplateId = "document-summary",
 ) {
   requireRecentLogin({ auth_time: actor.auth_time, iat: actor.auth_time });
   key = z.string().uuid().parse(key);
+  templateId = orchestratorTemplateIdSchema.parse(templateId);
+  const template = orchestratorTemplate(templateId);
   if (
     !env.DIFY_CONSOLE_URL ||
     !env.DIFY_MANAGEMENT_KEY ||
@@ -58,6 +66,12 @@ export async function createDifyOrchestrator(
     actor.uid,
     async (session) => {
       state = await records.findOne({ _id: id }, { session });
+      if (state && (state.templateId ?? "document-summary") !== templateId)
+        throw new AppError(
+          "DIFY_CREATION_TEMPLATE_CHANGED",
+          "This creation attempt belongs to another template. Retry its original template.",
+          409,
+        );
       if (state && state.until > new Date())
         throw new AppError(
           "DIFY_CREATION_BUSY",
@@ -67,12 +81,12 @@ export async function createDifyOrchestrator(
       if (state?.started && !state.appId)
         throw new AppError(
           "DIFY_CREATION_UNKNOWN",
-          "Dify did not confirm the new app. Refresh apps and check for Unibase starter before creating another.",
+          `Dify did not confirm the new app. Refresh apps and check for ${template.dsl.app.name} before creating another.`,
           409,
         );
       await records.updateOne(
         { _id: id },
-        { $set: { owner, until: new Date(Date.now() + 240000) } },
+        { $set: { owner, templateId, until: new Date(Date.now() + 240000) } },
         { session, upsert: true },
       );
       if (!state)
@@ -141,17 +155,19 @@ export async function createDifyOrchestrator(
       const capable = providers.filter(
         (p) =>
           p.is_team_authorization &&
-          p.tools.some((t) => t.name === "get_reference_document_v1"),
+          template.requiredTools.every((name) =>
+            p.tools.some((t) => t.name === name),
+          ),
       );
       const provider =
         capable.find((p) => p.id === "unibase_starter") ?? capable[0];
       if (!provider)
         throw new AppError(
           "DIFY_STARTER_MCP_REQUIRED",
-          "Connect Unibase MCP in Dify and synchronize get_reference_document_v1, then create the starter.",
+          `Connect Unibase MCP in Dify and synchronize ${template.requiredTools.join(", ")}, then create this template.`,
           409,
         );
-      const dsl = starterDsl(provider.id);
+      const dsl = template.build(provider.id);
       graphHash = fingerprint(z.json().parse(dsl.workflow.graph));
       await checkpoint({ started: true, graphHash });
       const imported = z
@@ -180,7 +196,8 @@ export async function createDifyOrchestrator(
         event: "orchestrator-creation",
         actorUid: actor.uid,
         appId,
-        reason: "Create a new MCP and Human Input starter workflow",
+        reason: `Create ${template.title} workflow`,
+        templateId,
         timestamp: new Date(),
       });
     }
