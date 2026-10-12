@@ -92,7 +92,7 @@ export async function handleMcp(
         inputSchema: tool.input,
         outputSchema: tool.output,
         annotations: {
-          readOnlyHint: true,
+          readOnlyHint: !tool.write,
           destructiveHint: false,
           idempotentHint: true,
           openWorldHint: false,

@@ -18,3 +18,11 @@ To add a template, add its JSON file and server import in `index.ts`, allowlist 
 ID in `src/lib/contracts/orchestrator-templates.ts`, and add its MCP requirements.
 Use supported node/output contracts and verify the embedded Code with actual tool
 outputs and the Unibase answer format. Refresh Dify tool metadata before creation.
+
+- `persona-responder.json`: bounded persona/question/context ? structured LLM ? normalized answer. Configure the Dify model/provider before use; no MCP binding is needed.
+- `saved-artifact.json`: private Run context ? owned draft read/save ? revision-bound approval/decline ? synthetic retained image. Start this from an owned artifact.
+
+Private tools bind the server-filled `unibase_context` directly; never send that
+value to a prompt. The artifact sample's approval metadata is rendered dynamically
+and validated against the saved revision. Persona responders receive no private
+capabilities and cannot call product tools.

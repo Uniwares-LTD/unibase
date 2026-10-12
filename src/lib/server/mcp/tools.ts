@@ -1,8 +1,9 @@
 import "server-only";
 import { z } from "zod";
 import { demoScenarioTools } from "./demo-scenarios";
+import { privateTools } from "./private-tools";
 
-export const catalogVersion = "1.1.0";
+export const catalogVersion = "1.2.0";
 export type ToolContext = {
   clientId: string;
   appName: string;
@@ -13,6 +14,7 @@ export type RegisteredTool = {
   name: string;
   description: string;
   permission: string;
+  write?: boolean;
   input: z.ZodObject;
   output: z.ZodObject;
   run: (
@@ -60,4 +62,5 @@ export const tools: readonly RegisteredTool[] = [
     },
   },
   ...demoScenarioTools,
+  ...privateTools,
 ];

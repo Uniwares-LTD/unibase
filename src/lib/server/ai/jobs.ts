@@ -41,6 +41,9 @@ export type AiJob = {
   runSuccessorId?: string;
   operatorResolved?: boolean;
   run?: {
+    answerer?: import("../runs/personas").PersonaSnapshot;
+    takenOver?: boolean;
+    artifactId?: string;
     logicalId: string;
     attempt: number;
     predecessorId: string | null;
@@ -73,6 +76,15 @@ export type AiJob = {
   credits: number;
   pricing?: AiPricing;
   charge?: AiCharge & { usage: UsageObservation | null };
+  responder?: {
+    parentId: string;
+    decisionId: string;
+    definition: import("@/lib/contracts/runs").OrchestratorDefinition;
+    revision: number;
+  };
+  responderCharge?: number;
+  responderFee?: number;
+  parentCharge?: number;
   reservationId: string | null;
   status:
     | "queued"
@@ -163,7 +175,11 @@ export async function createAiJob(
     | "inputs"
     | "source"
     | "credits"
-  > & { pricing?: AiPricing; run?: AiJob["run"] },
+  > & {
+    pricing?: AiPricing;
+    run?: AiJob["run"];
+    responder?: AiJob["responder"];
+  },
   now = new Date(),
   admission?: (session: ClientSession) => Promise<void>,
 ) {
@@ -175,7 +191,10 @@ export async function createAiJob(
     throw new AppError("AI_INVALID_REQUEST", "Invalid execution request.");
   if (request.pricing) {
     const pricing = aiPricingSchema.parse(request.pricing);
-    if (maximumCredits(pricing) !== request.credits)
+    if (
+      maximumCredits(pricing) + (request.run?.answerer?.maximum ?? 0) !==
+      request.credits
+    )
       throw new AppError(
         "AI_INVALID_PRICE",
         "Reservation must match the pricing maximum.",
@@ -237,9 +256,14 @@ export async function createAiJob(
     }
     if (
       (await aiJobs(db).countDocuments(
-        { uid: actor.uid, status: { $nin: terminal } },
+        {
+          uid: actor.uid,
+          responder: { $exists: false },
+          status: { $nin: terminal },
+        },
         { session },
-      )) >= (request.run?.concurrentPerAccount ?? 5)
+      )) >= (request.run?.concurrentPerAccount ?? 5) &&
+      !request.responder
     )
       throw new AppError(
         "AI_CONCURRENCY_LIMIT",
@@ -550,8 +574,11 @@ export async function settleAiJob(
       "Required billing usage is unavailable or has a different currency.",
       409,
     );
+  const { responderCharges } = await import("../runs/responder");
+  const responderTotal = await responderCharges(db, saved);
   const charge = {
     ...calculated,
+    credits: calculated.credits + responderTotal,
     usage: status === "succeeded" || usageCharging ? usage : null,
   };
   const persist = async (session: ClientSession) => {
@@ -571,6 +598,60 @@ export async function settleAiJob(
         "A saved successful execution is required before charging credits.",
         409,
       );
+    if (
+      saved.run?.answerer &&
+      (await aiJobs(db).countDocuments(
+        {
+          "responder.parentId": saved._id,
+          status: { $nin: ["succeeded", "failed", "cancelled"] },
+        },
+        { session },
+      ))
+    )
+      throw new AppError(
+        "RESPONDER_PENDING",
+        "Responder execution is pending.",
+        409,
+      );
+    await aiJobs(db).updateOne(
+      { _id: saved._id },
+      {
+        $set: {
+          parentCharge: calculated.credits,
+          responderCharge: responderTotal,
+        },
+      },
+      { session },
+    );
+    if (saved.run?.answerer) {
+      const children = await aiJobs(db)
+        .find({ "responder.parentId": saved._id }, { session })
+        .limit(101)
+        .toArray();
+      let confirmedTotal = 0;
+      for (const child of children) {
+        const fee =
+          child.status === "succeeded"
+            ? calculateAiCharge(
+                saved.run.answerer.pricing,
+                child.execution?.usage ?? null,
+              )?.credits
+            : 0;
+        if (fee === undefined)
+          throw new AppError(
+            "AI_USAGE_MISSING",
+            "Responder billing usage is unavailable.",
+            409,
+          );
+        confirmedTotal += fee;
+        await aiJobs(db).updateOne(
+          { _id: child._id },
+          { $set: { responderFee: fee } },
+          { session },
+        );
+      }
+      if (confirmedTotal !== responderTotal) throw conflict();
+    }
     await onSettle?.(session);
     await patchAiJob(
       db,
@@ -627,10 +708,10 @@ export async function resolveAiJob(
   now = new Date(),
   onAccept?: (job: AiJob, session: ClientSession) => Promise<void>,
 ) {
-  if (reason.trim().length < 10 || reason.length > 500)
+  if (typeof reason !== "string" || reason.length > 500)
     throw new AppError(
       "AI_RESOLUTION_REASON",
-      "Provide an explanation between 10 and 500 characters.",
+      "Use at most 500 characters for the explanation.",
     );
   const job = await aiJobs(db).findOneAndUpdate(
     {

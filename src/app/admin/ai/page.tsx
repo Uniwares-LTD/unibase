@@ -110,6 +110,7 @@ export default async function AdminAiPage({
               <TableHead>Tokens</TableHead>
               <TableHead>Reported cost</TableHead>
               <TableHead>Time (UTC)</TableHead>
+              <TableHead>Settled credits</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -138,6 +139,19 @@ export default async function AdminAiPage({
                 </TableCell>
                 <TableCell>
                   {item.timestamp.slice(0, 19).replace("T", " ")}
+                </TableCell>
+                <TableCell>
+                  {item.scope === "execution"
+                    ? (item.settledCredits ?? "Pending")
+                    : "—"}
+                  {item.parentAttemptId && (
+                    <p
+                      className="max-w-48 truncate text-xs"
+                      title={item.parentAttemptId}
+                    >
+                      Paid with parent {item.parentAttemptId}
+                    </p>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

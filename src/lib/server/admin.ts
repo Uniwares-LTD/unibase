@@ -99,7 +99,7 @@ export async function updateManagedAccess(input: unknown) {
   if (!parsed.success)
     throw new AppError(
       "INVALID_INPUT",
-      "Choose a role, account status and a reason of 5–300 characters.",
+      "Choose a valid role and account status; optional reasons allow up to 300 characters.",
     );
   const actor = await requireAdmin(true);
   const user = await adminAuth().getUser(parsed.data.targetUid);
@@ -128,7 +128,7 @@ export async function updateManagedProfile(input: unknown) {
   if (!parsed.success)
     throw new AppError(
       "INVALID_INPUT",
-      "Enter a name and a reason of 5–300 characters.",
+      "Enter a valid name; optional reasons allow up to 300 characters.",
     );
   const actor = await requireAdmin(true);
   const user = await adminAuth().getUser(parsed.data.targetUid);

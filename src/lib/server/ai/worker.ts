@@ -2,6 +2,7 @@ import "server-only";
 
 import type { ClientSession, Db } from "mongodb";
 import { AppError } from "@/lib/auth-policy";
+import { calculateAiCharge } from "@/lib/ai-pricing";
 import { readWallet } from "../store/credits";
 import type { Reservation } from "../store/credit-types";
 import {
@@ -130,8 +131,24 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
     }
     if (execution.status === "succeeded") {
       if (!(await deps.validateOutput(job!, execution))) {
+        if (job!.responder) {
+          await settleAiJob(db, job!, "failed", now());
+          return;
+        }
         await defer("invalid-output", true);
         return;
+      }
+      if (job!.responder) {
+        const parent = await aiJobs(db).findOne({
+          _id: job!.responder.parentId,
+        });
+        if (
+          !parent?.run?.answerer ||
+          !calculateAiCharge(parent.run.answerer.pricing, execution.usage)
+        ) {
+          await defer("responder-usage-unavailable", true);
+          return;
+        }
       }
       await settleAiJob(
         db,
@@ -190,6 +207,18 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
     const provider = await deps.provider(job);
     let outcome: ProviderOutcome<ProviderExecution>;
     const starting = job.status === "queued";
+    if (job.responder && starting) {
+      const parent = await aiJobs(db).findOne({ _id: job.responder.parentId });
+      if (
+        !parent ||
+        parent.cancelRequested ||
+        parent.run?.takenOver ||
+        ["succeeded", "failed", "cancelled"].includes(parent.status)
+      ) {
+        await settleAiJob(db, job, "cancelled", now());
+        return true;
+      }
+    }
     if (starting) {
       if (!(await deps.authorize(job.uid, job.authTime))) {
         await settleAiJob(db, job, "cancelled", now());
@@ -209,6 +238,56 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
           );
           if (current?.cancelRequested)
             throw new AppError("AI_CANCELLED", "Execution cancelled.", 409);
+          if (claimed.responder) {
+            const parent = await aiJobs(db).findOneAndUpdate(
+              {
+                _id: claimed.responder.parentId,
+                uid: claimed.uid,
+                cancelRequested: false,
+                "run.takenOver": { $ne: true },
+                status: { $in: ["running", "paused"] },
+                "execution.status": {
+                  $nin: ["succeeded", "failed", "stopped", "partial-succeeded"],
+                },
+              },
+              { $inc: { responderDispatchFence: 1 } },
+              { session },
+            );
+            if (
+              !parent ||
+              !(await db
+                .collection<import("../runs/service").Decision>("runDecisions")
+                .findOneAndUpdate(
+                  {
+                    _id: claimed.responder.decisionId,
+                    uid: claimed.uid,
+                    jobId: parent._id,
+                    status: "pending",
+                    responderId: claimed._id,
+                    intent: { $exists: false },
+                  },
+                  { $inc: { dispatchFence: 1 } },
+                  { session },
+                )) ||
+              (parent.reservationId &&
+                !(await db
+                  .collection<Reservation>("creditReservations")
+                  .findOne(
+                    {
+                      _id: parent.reservationId,
+                      uid: claimed.uid,
+                      managedJobId: parent._id,
+                      status: "active",
+                    },
+                    { session },
+                  )))
+            )
+              throw new AppError(
+                "AI_CANCELLED",
+                "Parent execution no longer authorizes responder spending.",
+                409,
+              );
+          }
           if (claimed.reservationId) {
             const hold = await db
               .collection<Reservation>("creditReservations")
@@ -323,6 +402,7 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
         "AI_REFERENCE_REJECTED",
         "AI_REFERENCE_INVALID",
         "AI_FILE_QUOTA",
+        "CAPABILITY_CONFIGURATION",
       ].includes(error.code)
     ) {
       job = await patchAiJob(
@@ -330,11 +410,13 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
         job,
         {
           failure:
-            error.code === "AI_FILE_QUOTA"
-              ? "reference-upload-quota"
-              : error.code === "AI_REFERENCE_REJECTED"
-                ? "reference-upload-rejected"
-                : "reference-unavailable",
+            error.code === "CAPABILITY_CONFIGURATION"
+              ? "private-context-unavailable"
+              : error.code === "AI_FILE_QUOTA"
+                ? "reference-upload-quota"
+                : error.code === "AI_REFERENCE_REJECTED"
+                  ? "reference-upload-rejected"
+                  : "reference-unavailable",
         },
         now(),
       );

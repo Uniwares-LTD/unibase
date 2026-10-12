@@ -52,9 +52,10 @@ The Next.js instrumentation hook checks application, database, authentication an
 Streamable HTTP transport with JSON responses. Each request authenticates a
 private service credential, receives a permission-filtered catalog, and uses an
 isolated server/transport. The typed server-only registry calls application
-services directly. Initial tools return only public app metadata and synthetic
-reference data. No user identity is inferred from a service token; private reads,
-writes, OAuth and persistent sessions are outside v1. Request/result bounds,
+services directly. Public tools return app metadata and synthetic reference data. Optional private
+Run/artifact tools additionally verify an encrypted, attempt-scoped capability.
+No user identity is inferred from a service token; OAuth and persistent MCP
+sessions remain outside this integration. Request/result bounds,
 execution cancellation and allowlisted runtime logs apply at the shared boundary.
 See [MCP implementation and maintenance](mcp.md) for configuration, lifecycle and
 future extension requirements.
@@ -115,7 +116,9 @@ User lists are paginated
 Firebase reads enriched with MongoDB application profiles; search is exact email or
 UID. Account editing changes the application name, not Firebase identity fields.
 
-Admin mutations and audit records share a MongoDB transaction. A common control
+Admin mutations and audit records share a MongoDB transaction. Change reasons
+are optional across administrative forms and contracts; omitted reasons normalize
+to an empty string, while supplied notes retain their length bounds. A common control
 document serializes permission changes to prevent snapshot-isolation races where
 admins remove each other. The actor's current access is checked again inside that
 transaction. No browser role cache or old session claim authorizes the mutation.
@@ -321,9 +324,8 @@ executable model code. Saved node events form the owned tracing timeline.
 
 MCP provider checks do not invoke remote tools or prove network reachability.
 Connected providers may expose read/write operations under their own permission
-and ownership rules. The built-in Unibase MCP catalog remains read-only until a
-specific authorized save operation is defined; service tokens never imply user
-ownership. Registration performs no generation or MCP side-effect probe.
+and ownership rules. The built-in catalog includes bounded artifact saves under explicit permissions
+and verified Run capabilities; service tokens never imply user ownership. Registration performs no generation or MCP side-effect probe.
 
 Create selects an allowlisted JSON DSL from `src/lib/server/runs/templates` through
 a shadcn dropdown. Server Components pass only template metadata to the client;
@@ -380,3 +382,47 @@ renderers, fonts, export jobs and dependencies are removed. Container smoke chec
 verify all worker entries, image normalization, excluded development dependencies
 and health boundaries. Tests use disposable MongoDB and Firebase Auth emulator;
 live provider, VPS and Android acceptance remain external checkpoints.
+
+## Personas and product persistence
+
+Administrator-owned, revisioned `personas` select registered noninteractive Dify
+responders. User Start choices snapshot instructions, responder publication/key
+reference, pricing and limits in an accepted attempt. Old attempts default to User.
+Responder registrations are hidden from ordinary Run choices. The existing AI
+worker schedules one zero-reservation child execution per pending decision and
+uses shared form validation/submission. Persona decisions record their source;
+Take over fences new submissions and requests cancellation of unfinished children.
+Unknown dispatch/submission remains evidence-driven reconciliation.
+
+Admission reserves the parent maximum plus the configured maximum responder
+calls. Successful valid responder results have separately calculated charges,
+including after takeover or parent failure. Child fee attribution is persisted
+in the parent settlement transaction; Run detail and administrator usage expose
+the breakdown without a second wallet charge. Combined settlement waits for every
+child's confirmed termination and required usage. Missing child price evidence
+remains reviewable and can receive an audited waiver. Parent pricing/failure rules
+are retained. Responder provider usage appears under `persona-responder` in the
+existing administrative usage report.
+
+Private MCP tools consume `unibase_context` only through direct Start-to-tool
+argument bindings checked during registration. `runCapabilities` stores a token
+hash plus AES-GCM encrypted recovery, attempt/owner/client/operation scope and the
+accepted review deadline. Services verify account access and mutate under the
+wallet/access transaction boundary. Dify's execution input/tool logs are private;
+capabilities never enter LLM prompts or browser DTOs. `productOperations` journals
+payload-hashed idempotent writes; approval binds a persisted decision to an exact
+artifact revision and records its human/persona source.
+
+The sample `artifacts` and immutable `artifactRevisions` demonstrate domain
+persistence through shared services. `resultApplications` journals the versioned
+artifact handler independently of generation/billing and retries with a fenced
+lease. Downstream code supplies typed result handlers and validates its own owned
+association; there is no arbitrary model-driven collection access.
+
+`productAssets` promotes validated Run images and tracks domain references,
+reusing the existing MongoDB bytes or private S3 object. Promotion, reference
+removal and cleanup share transactional lifecycle checks. Run cleanup preserves
+referenced objects and defers content cleanup while product application is pending
+or failed. The last product reference permits exact-object deletion after Run
+history releases its own reference. The existing maintenance worker handles S3
+removal retries; private asset reads continue checking the current owner session.

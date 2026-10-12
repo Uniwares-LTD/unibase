@@ -43,13 +43,9 @@ function date(value: Date) {
     throw bad("A valid credit date is required.");
   return value;
 }
-function reason(value: string) {
-  if (
-    typeof value !== "string" ||
-    value.trim().length < 5 ||
-    value.length > 300
-  )
-    throw bad("Provide a reason between 5 and 300 characters.");
+function reason(value: string = "") {
+  if (typeof value !== "string" || value.length > 300)
+    throw bad("Use at most 300 characters for the reason.");
   return value.trim();
 }
 function view(wallet: Wallet): CreditResult {
@@ -607,7 +603,7 @@ export async function adjustCredits(
   input: {
     amount: number;
     direction: "grant" | "deduct";
-    reason: string;
+    reason?: string;
     expiresAt?: Date | null;
   },
   options: Pick<MutationOptions, "now"> = {},

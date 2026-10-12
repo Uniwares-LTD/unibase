@@ -4,6 +4,9 @@ export const mcpPermissions = [
   "server:read",
   "reference:read",
   "demo:read",
+  "run:read",
+  "artifact:read",
+  "artifact:write",
 ] as const;
 const clientsSchema = z
   .array(

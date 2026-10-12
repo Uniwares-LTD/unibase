@@ -35,7 +35,7 @@ export async function changeUser(
         "CONFIRMATION_REQUIRED",
         "Confirm this administrative change.",
       );
-    const reason = form.get("reason");
+    const reason = form.get("reason") ?? undefined;
     if (kind === "access")
       await updateManagedAccess({
         targetUid,

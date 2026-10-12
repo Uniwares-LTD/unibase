@@ -54,7 +54,7 @@ export async function adjustUserCredits(
       key: form.get("key"),
       direction: form.get("direction"),
       amount: Number(form.get("amount")),
-      reason: form.get("reason"),
+      reason: form.get("reason") ?? undefined,
       expiresAt,
     });
     revalidatePath(`/admin/users/${encodeURIComponent(targetUid)}`);

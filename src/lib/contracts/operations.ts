@@ -7,7 +7,7 @@ export const cleanupOptionsSchema = z.strictObject({
 export const cleanupExecuteSchema = z.strictObject({
   reportId: z.uuid(),
   confirm: z.literal(true),
-  reason: z.string().trim().min(10).max(500),
+  reason: z.string().trim().max(500).default(""),
 });
 export const paymentReviewSchema = z.strictObject({
   key: z.uuid(),
@@ -17,7 +17,7 @@ export const paymentReviewSchema = z.strictObject({
     .regex(/^cs_[A-Za-z0-9_]+$/)
     .max(255)
     .optional(),
-  reason: z.string().trim().min(10).max(500),
+  reason: z.string().trim().max(500).default(""),
 });
 export const cleanupReportSchema = z.object({
   id: z.uuid(),

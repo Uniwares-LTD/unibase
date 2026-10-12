@@ -190,8 +190,11 @@ export async function executeCleanup(
   reason: string,
   now = new Date(),
 ) {
-  if (reason.trim().length < 10 || reason.length > 500)
-    throw new AppError("INVALID_INPUT", "Provide a cleanup explanation.");
+  if (typeof reason !== "string" || reason.length > 500)
+    throw new AppError(
+      "INVALID_INPUT",
+      "Use at most 500 characters for the cleanup explanation.",
+    );
   return accessTransaction(
     db,
     actor.uid,
@@ -214,6 +217,15 @@ export async function executeCleanup(
       report.approvedStages = [];
       for (const target of report.targets) {
         if (target.kind === "job") {
+          if (
+            await db
+              .collection("resultApplications")
+              .findOne(
+                { jobId: target.id, status: { $ne: "applied" } },
+                { session },
+              )
+          )
+            continue;
           const result = await aiJobs(db).updateOne(
             {
               $and: [
@@ -242,8 +254,20 @@ export async function executeCleanup(
               .collection<Document & { _id: string }>("runAssets")
               .find({ jobId: target.id }, { session })
               .toArray();
-            for (const asset of assets)
-              if (asset.object) {
+            for (const asset of assets) {
+              const { scheduleAssetDeletion } = await import("../runs/assets");
+              const product = await db
+                .collection<import("../runs/assets").ProductAsset>(
+                  "productAssets",
+                )
+                .findOneAndUpdate(
+                  { _id: asset._id, state: "ready" },
+                  { $inc: { fence: 1 } },
+                  { session },
+                );
+              if (product?.references.length) continue;
+              if (product) await scheduleAssetDeletion(db, product, session);
+              else if (asset.object) {
                 await assetStages(db).updateOne(
                   { _id: asset._id },
                   {
@@ -259,6 +283,7 @@ export async function executeCleanup(
                 );
                 report.approvedStages.push(asset._id);
               }
+            }
             await db
               .collection("runAssets")
               .deleteMany({ jobId: target.id }, { session });

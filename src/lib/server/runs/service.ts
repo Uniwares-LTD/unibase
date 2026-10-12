@@ -11,12 +11,17 @@ import {
   validateAnswers,
   type OrchestratorDefinition,
 } from "@/lib/contracts/runs";
+import { snapshotPersona, guardPersona, personaChoices } from "./personas";
 import { maximumCredits } from "@/lib/config/ai-pricing";
 import { cardRegistry } from "@/lib/runs/cards";
 import { database } from "../mongo";
-import { requireSession } from "../session";
+async function requireSession() {
+  return (await import("../session")).requireSession();
+}
 import { accountAccess } from "../store/access";
-import { requireAdmin } from "../admin";
+async function requireAdmin(recent = false) {
+  return (await import("../admin")).requireAdmin(recent);
+}
 import { readSettings } from "../settings";
 import { readWallet } from "../store/credits";
 import {
@@ -36,7 +41,15 @@ import { selectedOrchestrator, orchestrators } from "./orchestrators";
 import { guardOrchestratorAdmission } from "./orchestrator-lifecycle";
 import { executionBinding, providerForRun } from "./provider";
 
-type Decision = {
+export type Decision = {
+  responderId?: string;
+  answerSource?: {
+    type: "user" | "persona";
+    personaId?: string;
+    personaRevision?: number;
+  };
+  automaticError?: string;
+  approval?: ReturnType<typeof parseUiForm>["approval"];
   _id: string;
   uid: string;
   logicalId: string;
@@ -57,7 +70,7 @@ type Decision = {
   confirmedInputs?: unknown;
   error?: string;
 };
-const formSchema = z.object({
+export const formSchema = z.object({
   form_content: z.string().max(100000),
   inputs: z
     .array(
@@ -164,6 +177,16 @@ async function createAttempt(
     );
     if (
       replay.run.orchestrator.id !== input.orchestratorId ||
+      (replay.run.answerer?.id ?? null) !==
+        (input.answerer?.type === "persona" ? input.answerer.id : null) ||
+      (input.answerer?.type === "persona" &&
+        (replay.run.answerer?.revision !== input.answerer.revision ||
+          fingerprint([
+            replay.run.answerer.revision,
+            replay.run.answerer.responderRevision,
+            replay.run.answerer.responder,
+          ]) !== input.answerer.configurationKey)) ||
+      (replay.run.artifactId ?? null) !== (input.artifactId ?? null) ||
       fingerprint(saved) !== fingerprint(input.inputs) ||
       replay.run.predecessorId !== (previous?._id ?? null)
     )
@@ -189,6 +212,21 @@ async function createAttempt(
       409,
     );
   const bound = await executionBinding(d, selected.revision);
+  if (d.purpose === "responder")
+    throw new AppError(
+      "INVALID_ORCHESTRATOR",
+      "Responders cannot be started as ordinary Runs.",
+    );
+  const answerer = await snapshotPersona(input.answerer);
+  if (input.artifactId) {
+    const { ownedArtifact } = await import("./artifacts");
+    await ownedArtifact(database(), actor.uid, input.artifactId);
+  }
+  if (d.privateTools?.some((t) => t.includes("artifact")) && !input.artifactId)
+    throw new AppError(
+      "ARTIFACT_REQUIRED",
+      "Start this workflow from a saved artifact.",
+    );
   const pricing = d.pricing ?? settings.runs.pricing;
   const values = await checkedInputs(
     d,
@@ -231,9 +269,11 @@ async function createAttempt(
           : {}),
       },
       source: { type: "run", id: logicalId, version: "1" },
-      credits: maximumCredits(pricing),
+      credits: maximumCredits(pricing) + (answerer?.maximum ?? 0),
       pricing,
       run: {
+        answerer,
+        artifactId: input.artifactId,
         logicalId,
         attempt: (previous?.run?.attempt ?? 0) + 1,
         predecessorId: previous?._id ?? null,
@@ -245,7 +285,25 @@ async function createAttempt(
       },
     },
     new Date(),
-    (session) => guardOrchestratorAdmission(database(), selected, session),
+    async (session) => {
+      await guardOrchestratorAdmission(database(), selected, session);
+      await guardPersona(database(), answerer, session);
+      if (input.artifactId) {
+        const changed = await database()
+          .collection("artifacts")
+          .updateOne(
+            { id: input.artifactId, uid: actor.uid, deleted: { $ne: true } },
+            { $inc: { admissionFence: 1 } },
+            { session },
+          );
+        if (!changed.matchedCount)
+          throw new AppError(
+            "ARTIFACT_UNAVAILABLE",
+            "Artifact is unavailable.",
+            409,
+          );
+      }
+    },
   );
   return { id: logicalId, attemptId: job._id };
 }
@@ -359,16 +417,20 @@ export async function listRuns(cursor?: string, filter?: string) {
         : null,
   };
 }
-async function decisionView(decision: Decision, job: AiJob) {
+export async function decisionView(
+  decision: Decision,
+  job: AiJob,
+  db: Db = database(),
+) {
   let form = decision.form;
   if (decision.status === "pending" && !form) {
     try {
       form = formSchema.parse(
         await (
-          await providerForRun(job)
+          await providerForRun(job, db)
         ).form!(decision.token),
       );
-      await database()
+      await db
         .collection<Decision>("runDecisions")
         .updateOne({ _id: decision._id }, { $set: { form } });
     } catch {
@@ -401,14 +463,25 @@ async function decisionView(decision: Decision, job: AiJob) {
         form.inputs[0].output_variable_name !== "response"
       )
         throw new Error("Invalid structured response input");
-      cards = parseUiForm(form.form_content).cards;
+      const ui = parseUiForm(form.form_content);
+      cards = ui.cards;
+      if (ui.approval) {
+        const { validateApprovalIntent } = await import("./artifacts");
+        await validateApprovalIntent(db, job, ui.approval);
+        await db
+          .collection<Decision>("runDecisions")
+          .updateOne(
+            { _id: decision._id },
+            { $set: { approval: ui.approval } },
+          );
+      }
     }
     for (const card of cards as ReturnType<typeof parseUiForm>["cards"])
       for (const id of cardRegistry
         .get(card.content.type, card.content.version)
         .assets(card.content.data))
         if (
-          !(await database()
+          !(await db
             .collection<Document & { _id: string }>("runAssets")
             .findOne({
               _id: id,
@@ -452,6 +525,8 @@ async function decisionView(decision: Decision, job: AiJob) {
       : form.form_content,
     answers: decision.intent?.inputs ?? decision.confirmedInputs ?? null,
     expiresAt: form.expiration_time ?? null,
+    answerSource: decision.answerSource ?? null,
+    automaticError: decision.automaticError ?? null,
   };
 }
 export async function runDetail(id: string) {
@@ -491,7 +566,16 @@ export async function runDetail(id: string) {
     .sort({ timestamp: 1, _id: 1 })
     .limit(500)
     .toArray();
+  const awaitApplications = await database()
+    .collection("resultApplications")
+    .find({ jobId: { $in: attempts.map((j) => j._id) }, uid: actor.uid })
+    .toArray();
   const configs = await orchestrators();
+  const responderExecutions = await aiJobs(database())
+    .find({ uid: actor.uid, "responder.parentId": current._id })
+    .sort({ createdAt: 1 })
+    .limit(100)
+    .toArray();
   const choice = configs.find((d) => d.id === current.run!.orchestrator.id);
   return {
     id,
@@ -508,6 +592,20 @@ export async function runDetail(id: string) {
       updatedAt: job.updatedAt.toISOString(),
       credits: job.credits,
       chargedCredits: job.charge?.credits ?? null,
+      parentCharge: job.parentCharge ?? job.charge?.credits ?? null,
+      responderCharge: job.responderCharge ?? 0,
+      answerer: job.run?.answerer
+        ? {
+            id: job.run.answerer.id,
+            name: job.run.answerer.name,
+            revision: job.run.answerer.revision,
+          }
+        : null,
+      takenOver: job.run?.takenOver ?? false,
+      application:
+        (awaitApplications.find((a) => a.jobId === job._id)?.status as
+          string | undefined) ?? null,
+      artifactId: job.run?.artifactId ?? null,
       cancelRequested: job.cancelRequested,
       elapsedSeconds: Math.max(
         0,
@@ -543,11 +641,49 @@ export async function runDetail(id: string) {
     ),
     canRestart: canStartNewAttempt(current) && !current.runSuccessorId,
     configuration: choice ?? null,
+    personas: await personaChoices(),
+    responders: responderExecutions.map((j) => ({
+      id: j._id,
+      status: j.status,
+      settledCredits: j.responderFee ?? null,
+      totalTokens: j.execution?.usage.totalTokens ?? null,
+      cost: j.execution?.usage.cost ?? null,
+    })),
   };
 }
 export async function runCommand(id: string, input: unknown) {
   const command = runCommandSchema.parse(input);
   const { actor, job } = await ownedAttempt(command.attemptId, id);
+  if (command.action === "retry-application") {
+    await database()
+      .collection("resultApplications")
+      .updateOne(
+        { jobId: job._id, uid: actor.uid, status: "failed" },
+        { $set: { status: "pending", nextAttemptAt: new Date() } },
+      );
+    return { id };
+  }
+  if (command.action === "take-over") {
+    await readWallet(database(), actor.uid, {
+      actor: { uid: actor.uid, authTime: actor.auth_time },
+      persist: async (session) => {
+        await aiJobs(database()).updateOne(
+          { _id: job._id, uid: actor.uid },
+          { $set: { "run.takenOver": true } },
+          { session },
+        );
+        await aiJobs(database()).updateMany(
+          {
+            "responder.parentId": job._id,
+            status: { $nin: ["succeeded", "failed", "cancelled"] },
+          },
+          { $set: { cancelRequested: true, nextAttemptAt: new Date() } },
+          { session },
+        );
+      },
+    });
+    return { id };
+  }
   if (command.action === "cancel") {
     await readWallet(database(), actor.uid, {
       actor: { uid: actor.uid, authTime: actor.auth_time },
@@ -616,6 +752,8 @@ export async function runCommand(id: string, input: unknown) {
       key: command.key,
       orchestratorId: job.run!.orchestrator.id,
       configurationKey: command.configurationKey,
+      answerer: command.answerer,
+      artifactId: job.run?.artifactId,
       inputs:
         command.inputs ??
         Object.fromEntries(
@@ -634,17 +772,32 @@ export async function submitDecision(
   input: unknown,
 ) {
   const actor = await requireSession();
-  const parsed = decisionSubmitSchema.parse(input);
-  const collection = database().collection<Decision>("runDecisions");
-  const decision = await collection.findOne({
-    _id: runIdSchema.parse(id),
-    logicalId: runIdSchema.parse(logicalId),
-    uid: actor.uid,
-  });
+  const decision = await database()
+    .collection<Decision>("runDecisions")
+    .findOne({
+      _id: runIdSchema.parse(id),
+      logicalId: runIdSchema.parse(logicalId),
+      uid: actor.uid,
+    });
   if (!decision)
     throw new AppError("DECISION_NOT_FOUND", "Decision unavailable.", 404);
   const { job } = await ownedAttempt(decision.jobId, logicalId);
-  const view = await decisionView(decision, job);
+  return submitAuthorizedDecision(database(), actor, job, decision, input, {
+    type: "user",
+  });
+}
+export async function submitAuthorizedDecision(
+  db: Db,
+  actor: { uid: string; auth_time: number },
+  job: AiJob,
+  decision: Decision,
+  input: unknown,
+  source: NonNullable<Decision["answerSource"]>,
+) {
+  const parsed = decisionSubmitSchema.parse(input);
+  const id = decision._id;
+  const collection = db.collection<Decision>("runDecisions");
+  const view = await decisionView(decision, job, db);
   const refreshed = await collection.findOne({ _id: id });
   const form = refreshed?.form;
   if (!form || ["invalid", "expired", "unavailable"].includes(view.status))
@@ -708,7 +861,7 @@ export async function submitDecision(
         inputs[field.output_variable_name] = await Promise.all(
           ids.map(async (fileId) => {
             const file = await resolveOwnedAiFile(
-              database(),
+              db,
               actor.uid,
               job.binding,
               fileId,
@@ -721,7 +874,7 @@ export async function submitDecision(
                 : ["image", "document", "audio", "video"],
             );
             if (field.allowed_file_extensions?.length) {
-              const saved = await database()
+              const saved = await db
                 .collection<Document & { _id: string }>("aiFiles")
                 .findOne({ _id: fileId, uid: actor.uid });
               const extension = saved?.name?.split(".").at(-1)?.toLowerCase();
@@ -761,18 +914,27 @@ export async function submitDecision(
       409,
     );
   }
-  await readWallet(database(), actor.uid, {
+  await readWallet(db, actor.uid, {
     actor: { uid: actor.uid, authTime: actor.auth_time },
     persist: async (session) => {
-      const active = await aiJobs(database()).findOne(
+      const active = await aiJobs(db).findOne(
         {
           _id: job._id,
           uid: actor.uid,
           status: { $in: ["running", "paused"] },
           cancelRequested: false,
+          ...(source.type === "persona"
+            ? { "run.takenOver": { $ne: true } }
+            : {}),
         },
         { session },
       );
+      if (source.type === "persona" && active)
+        await aiJobs(db).updateOne(
+          { _id: active._id },
+          { $inc: { decisionFence: 1 } },
+          { session },
+        );
       if (!active)
         throw new AppError(
           "DECISION_UNAVAILABLE",
@@ -783,6 +945,7 @@ export async function submitDecision(
         { _id: id, status: "pending", intent: { $exists: false } },
         {
           $set: {
+            answerSource: source,
             status: "submitting",
             intent: { key: parsed.key, hash, action: parsed.action, inputs },
           },
@@ -799,7 +962,7 @@ export async function submitDecision(
   });
   try {
     await (
-      await providerForRun(job)
+      await providerForRun(job, db)
     ).submit!(decision.token, providerUser(actor.uid), parsed.action, inputs);
     await collection.updateOne(
       { _id: id, "intent.hash": hash, status: "submitting" },
@@ -811,7 +974,7 @@ export async function submitDecision(
       { $set: { status: "unknown" } },
     );
   }
-  await aiJobs(database()).updateOne(
+  await aiJobs(db).updateOne(
     { _id: job._id },
     { $set: { nextAttemptAt: new Date() } },
   );
@@ -840,6 +1003,10 @@ export async function uploadRunFile(
 }
 export async function prepareRunInputs(job: AiJob, db: Db = database()) {
   const inputs = { ...job.inputs };
+  if (job.run?.orchestrator.contextInput) {
+    const { capabilityForRun } = await import("./capabilities");
+    inputs.unibase_context = await capabilityForRun(db, job);
+  }
   for (const field of job.run!.orchestrator.inputs)
     if (field.kind === "file" && inputs[field.name]) {
       const file = await resolveOwnedAiFile(

@@ -2,10 +2,26 @@ import { RunLanding } from "@/components/runs/run-ui";
 import { orchestrators } from "@/lib/server/runs/orchestrators";
 import { listRuns } from "@/lib/server/runs/service";
 import { PageHeader } from "@/components/page-patterns";
-export default async function Page() {
-  const [choices, runs] = await Promise.all([
+import { personaChoices } from "@/lib/server/runs/personas";
+import { ownedArtifact } from "@/lib/server/runs/artifacts";
+import { database } from "@/lib/server/mongo";
+import { requireSession } from "@/lib/server/session";
+import { z } from "zod";
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ artifactId?: string }>;
+}) {
+  const actor = await requireSession();
+  const query = await searchParams;
+  const artifactId = query.artifactId
+    ? z.string().uuid().parse(query.artifactId)
+    : undefined;
+  if (artifactId) await ownedArtifact(database(), actor.uid, artifactId);
+  const [choices, runs, personas] = await Promise.all([
     orchestrators(false, true),
     listRuns(),
+    personaChoices(),
   ]);
   return (
     <div className="page-stack">
@@ -14,7 +30,11 @@ export default async function Page() {
         description="Choose an orchestrator and build with AI."
       />
       <RunLanding
-        choices={choices}
+        choices={choices.filter((c) =>
+          artifactId ? c.requiresArtifact : !c.requiresArtifact,
+        )}
+        personas={personas}
+        artifactId={artifactId}
         unfinished={runs.rows.filter(
           (r) => !["succeeded", "failed", "cancelled"].includes(r.status),
         )}

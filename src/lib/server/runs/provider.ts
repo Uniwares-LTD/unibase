@@ -118,12 +118,13 @@ export async function providerForRun(
   job: AiJob,
   db: Db = database(),
 ): Promise<WorkflowProvider> {
-  if (!job.run)
+  if (!job.run && !job.responder)
     throw new AppError("RUN_REQUIRED", "Run configuration is missing.", 503);
-  if (job.binding.mode === "fake") return fakeRun(job, db);
+  if (job.binding.mode === "fake")
+    return job.responder ? fakeResponder(job) : fakeRun(job, db);
   const live = await executionBinding(
-    job.run.orchestrator,
-    job.run.configurationRevision,
+    job.responder?.definition ?? job.run!.orchestrator,
+    job.responder?.revision ?? job.run!.configurationRevision,
     db,
   );
   if (live.snapshot.fingerprint !== job.binding.fingerprint)
@@ -135,6 +136,11 @@ export async function providerForRun(
   return createDifyWorkflow(live.config, live.binding);
 }
 function fakeRun(job: AiJob, db: Db): WorkflowProvider {
+  const sample =
+    job.run?.orchestrator.privateTools?.includes("save_artifact_draft_v1") ??
+    false;
+  const needsDecision =
+    sample || String(job.inputs.prompt).includes("decision");
   const runId = job.runId ?? randomUUID();
   const taskId = job.taskId ?? randomUUID();
   const result = () => ({
@@ -144,7 +150,7 @@ function fakeRun(job: AiJob, db: Db): WorkflowProvider {
       : "success",
     text: `Generated: ${String(job.inputs.prompt ?? "Your request")}`,
     cards: [],
-    images: [],
+    images: [] as { id: string; name: string; base64: string }[],
     failure: null,
     checkpoint: null,
   });
@@ -156,6 +162,25 @@ function fakeRun(job: AiJob, db: Db): WorkflowProvider {
     const failed =
       String(job.inputs.prompt).includes("fail") &&
       !job.inputs.unibase_recovery;
+    const output = result();
+    if (sample) {
+      const { sampleText, sampleImage, sampleApprove } =
+        await import("./sample");
+      output.text = sampleText;
+      output.images = [
+        {
+          id: "20000000-0000-4000-8000-000000000001",
+          name: "Synthetic sample image",
+          base64: sampleImage,
+        },
+      ];
+      if (
+        !current?.cancelRequested &&
+        decision?.status === "submitted" &&
+        (decision.confirmedAction ?? decision.intent?.action) === "approve"
+      )
+        await sampleApprove(db, job);
+    }
     return {
       runId,
       workflowId:
@@ -165,7 +190,7 @@ function fakeRun(job: AiJob, db: Db): WorkflowProvider {
         ? "stopped"
         : failed
           ? "failed"
-          : String(job.inputs.prompt).includes("decision") &&
+          : needsDecision &&
               decision?.status !== "submitted" &&
               !decision?.fakeProviderAnswer
             ? "paused"
@@ -182,7 +207,7 @@ function fakeRun(job: AiJob, db: Db): WorkflowProvider {
               },
             },
           }
-        : { result: result() },
+        : { result: output },
       usage: {
         scope: "execution",
         id: runId,
@@ -205,7 +230,11 @@ function fakeRun(job: AiJob, db: Db): WorkflowProvider {
         status: "running",
         elapsedMs: null,
       });
-      if (String(job.inputs.prompt).includes("decision"))
+      if (sample) {
+        const { sampleDraft } = await import("./sample");
+        await sampleDraft(db, job);
+      }
+      if (needsDecision)
         await observe({
           type: "decision",
           nodeId: "choice",
@@ -247,6 +276,7 @@ function fakeRun(job: AiJob, db: Db): WorkflowProvider {
       return { kind: "ok", value: undefined };
     },
     async form() {
+      if (sample) return (await import("./sample")).sampleForm(db, job);
       return {
         form_content:
           "```unibase-ui\n" +
@@ -288,5 +318,57 @@ function fakeRun(job: AiJob, db: Db): WorkflowProvider {
         throw new Error("Simulated dropped submission response");
       }
     },
+  };
+}
+
+function fakeResponder(job: AiJob): WorkflowProvider {
+  const runId = job.runId ?? randomUUID();
+  const q = JSON.parse(String(job.inputs.question));
+  const answers: Record<string, import("../ai/types").Json> = {};
+  if (q.form_content.includes("```unibase-ui")) {
+    const ui = JSON.parse(
+      q.form_content.match(/```unibase-ui\s*\n([\s\S]*?)\n```/)[1],
+    );
+    for (const card of ui.cards) {
+      if (["summary", "issue"].includes(card.content.type))
+        answers[card.id] = null;
+      else if (card.content.type === "question")
+        answers[card.id] =
+          card.content.data.kind === "text"
+            ? "Persona answer"
+            : card.content.data.kind === "multiple"
+              ? [card.content.data.options[0].id]
+              : card.content.data.options[0].id;
+      else if (card.content.type === "gallery")
+        answers[card.id] = card.content.data.items[0].assetId;
+    }
+  } else
+    for (const field of q.inputs)
+      answers[field.output_variable_name] =
+        field.options?.[0] ?? "Persona answer";
+  const state: ProviderExecution = {
+    runId,
+    workflowId: job.responder!.definition.workflowId ?? randomUUID(),
+    status: "succeeded",
+    outputs: {
+      answer: JSON.stringify({ action: q.user_actions[0].id, answers }),
+    },
+    usage: {
+      id: runId,
+      scope: "execution",
+      inputTokens: 20,
+      outputTokens: 10,
+      totalTokens: 30,
+      cost: null,
+      elapsedMs: 1,
+    },
+  };
+  return {
+    start: async (_input, event) => {
+      await event({ type: "identity", runId, taskId: runId });
+      return { kind: "ok", value: state };
+    },
+    retrieve: async () => ({ kind: "ok", value: state }),
+    stop: async () => ({ kind: "ok", value: undefined }),
   };
 }

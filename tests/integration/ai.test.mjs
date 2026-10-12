@@ -391,7 +391,7 @@ test("Runs HTTP: durable decisions, owned history, recovery, settings, and exact
         body: JSON.stringify({ action: "discover" }),
       })
     ).status,
-    process.env.DIFY_KEYS_TEST ? 200 : 409,
+    200,
   );
   if (process.env.DIFY_KEYS_TEST) {
     for (const appId of [existingApp, emptyApp]) {

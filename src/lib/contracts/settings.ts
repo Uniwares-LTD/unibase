@@ -66,6 +66,6 @@ export const baseSettingsSchema = z
 export type BaseSettings = z.infer<typeof baseSettingsSchema>;
 export const settingsUpdateSchema = z.strictObject({
   revision: z.number().int().nonnegative(),
-  reason: z.string().trim().min(5).max(300),
+  reason: z.string().trim().max(300).default(""),
   settings: baseSettingsSchema,
 });

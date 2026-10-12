@@ -7,6 +7,7 @@ import {
   parseUiForm,
 } from "@/lib/contracts/runs";
 import type { difyJson } from "./dify-console-client";
+import { privateToolPermissions } from "../mcp/private-tools";
 
 const graphSchema = z.object({
   nodes: z
@@ -50,6 +51,7 @@ export function inspectDifyWorkflow(graph: unknown) {
       (field) =>
         field.variable.startsWith("unibase_") &&
         field.required === true &&
+        field.variable !== "unibase_context" &&
         !legacyInputs.includes(field.variable as (typeof legacyInputs)[number]),
     )
   )
@@ -81,7 +83,38 @@ export function inspectDifyWorkflow(graph: unknown) {
     );
   }
   const mcpTools: McpTool[] = [];
+  const contextInput = fields.some((f) => f.variable === "unibase_context");
+  if (
+    contextInput &&
+    !fields.some(
+      (f) =>
+        f.variable === "unibase_context" &&
+        f.type === "text-input" &&
+        f.required === true,
+    )
+  )
+    throw new AppError(
+      "DIFY_CONTEXT_UNSUPPORTED",
+      "Private tools need a required unibase_context text input.",
+      409,
+    );
+  const privateTools: string[] = [];
   for (const { data } of nodes) {
+    if (
+      data.type !== "start" &&
+      JSON.stringify(data).includes("unibase_context") &&
+      !(
+        data.type === "tool" &&
+        data.provider_type === "mcp" &&
+        typeof data.tool_name === "string" &&
+        data.tool_name in privateToolPermissions
+      )
+    )
+      throw new AppError(
+        "DIFY_CONTEXT_UNSUPPORTED",
+        "Run context may only be bound directly to private MCP tools.",
+        409,
+      );
     if (data.type === "human-input") {
       const form = z
         .object({
@@ -153,6 +186,37 @@ export function inspectDifyWorkflow(graph: unknown) {
         })
         .parse(data);
       mcpTools.push({ providerId: tool.provider_id, toolName: tool.tool_name });
+      if (tool.tool_name in privateToolPermissions) {
+        const parameters = z
+          .record(z.string(), z.unknown())
+          .parse(data.tool_parameters);
+        const binding = z
+          .object({ type: z.literal("variable"), value: z.array(z.string()) })
+          .safeParse(parameters.runContext);
+        if (
+          !contextInput ||
+          !binding.success ||
+          JSON.stringify(binding.data.value) !==
+            JSON.stringify([starts[0].id, "unibase_context"])
+        )
+          throw new AppError(
+            "DIFY_CONTEXT_UNSUPPORTED",
+            "Bind private tool runContext directly to Start.unibase_context.",
+            409,
+          );
+        if (
+          JSON.stringify({
+            ...data,
+            tool_parameters: { ...parameters, runContext: undefined },
+          }).includes("unibase_context")
+        )
+          throw new AppError(
+            "DIFY_CONTEXT_UNSUPPORTED",
+            "Do not copy Run context into other arguments.",
+            409,
+          );
+        privateTools.push(tool.tool_name);
+      }
     }
   }
   if (new Set(mcpTools.map((tool) => tool.providerId)).size > 20)
@@ -161,7 +225,46 @@ export function inspectDifyWorkflow(graph: unknown) {
       "This workflow references too many MCP providers.",
       409,
     );
-  return { inputs, legacyInputs, mcpTools };
+  const purpose =
+    inputs.length === 3 &&
+    ["persona", "question", "context"].every((name) =>
+      inputs.some(
+        (f) => f.name === name && f.kind === "paragraph" && f.required,
+      ),
+    )
+      ? "responder"
+      : "run";
+  if (
+    purpose === "responder" &&
+    (nodes.some((n) =>
+      ["human-input", "tool", "agent", "http-request"].includes(n.data.type),
+    ) ||
+      contextInput ||
+      !nodes.some((n) => n.data.type === "llm") ||
+      !nodes.some(
+        (n) =>
+          n.data.type === "end" &&
+          Array.isArray(n.data.outputs) &&
+          n.data.outputs.some(
+            (o: unknown) =>
+              z.object({ variable: z.literal("answer") }).safeParse(o).success,
+          ),
+      ))
+  )
+    throw new AppError(
+      "DIFY_RESPONDER_UNSUPPORTED",
+      "Responder workflows need an LLM, an answer output and no human input or external tools.",
+      409,
+    );
+  return {
+    inputs,
+    legacyInputs,
+    mcpTools,
+    ...(contextInput
+      ? { contextInput: true, privateTools: [...new Set(privateTools)] }
+      : {}),
+    ...(purpose === "responder" ? { purpose } : {}),
+  };
 }
 
 export async function verifyMcpTools(

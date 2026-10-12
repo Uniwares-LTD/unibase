@@ -97,12 +97,10 @@ function ChangeForm({
             </>
           )}
           <div className="space-y-2">
-            <Label htmlFor={`${id}-reason`}>Reason</Label>
+            <Label htmlFor={`${id}-reason`}>Reason (optional)</Label>
             <Input
               id={`${id}-reason`}
               name="reason"
-              required
-              minLength={5}
               maxLength={300}
               disabled={pending}
               autoComplete="off"
@@ -166,8 +164,8 @@ export function AdminUserControls({
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Changes require a sign-in within the last 30 minutes. You cannot
-        remove your own administrator access.
+        Changes require a sign-in within the last 30 minutes. You cannot remove
+        your own administrator access.
       </p>
       <ChangeForm kind="access" user={user} actorUid={actorUid} />
       <ChangeForm kind="profile" user={user} actorUid={actorUid} />

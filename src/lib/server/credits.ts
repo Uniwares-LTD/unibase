@@ -41,7 +41,7 @@ export async function adjustManagedCredits(input: unknown) {
   if (!parsed.success)
     throw new AppError(
       "INVALID_INPUT",
-      "Enter a whole positive amount, a valid expiry and a reason.",
+      "Enter a whole positive amount and a valid expiry; optional reasons allow up to 300 characters.",
     );
   const actor = await requireAdmin(true);
   await adminAuth().getUser(parsed.data.targetUid);

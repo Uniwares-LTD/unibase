@@ -398,6 +398,10 @@ export async function registerDifyOrchestrator(
       credentialId: credential.credentialId,
       enabled: true,
       inputs: fit.inputs,
+      ...(fit.purpose ? { purpose: fit.purpose } : {}),
+      ...(fit.contextInput
+        ? { contextInput: true, privateTools: fit.privateTools }
+        : {}),
       legacyInputs: fit.legacyInputs,
       pricing: null,
       failureCharging: null,

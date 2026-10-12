@@ -19,6 +19,7 @@ const routes = [
   { href: "/", label: "Home", Icon: Home },
   { href: "/runs/new", label: "Start run", Icon: Sparkles },
   { href: "/runs", label: "Runs", Icon: BookOpen },
+  { href: "/artifacts", label: "Saved artifacts", Icon: BookOpen },
 ];
 
 function matchesRoute(pathname: string, href: string) {

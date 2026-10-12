@@ -679,3 +679,74 @@ answer-object format. Desktop/mobile browser checks covered all three creations,
 reload, keyboard/menu focus and corrected mobile action wrapping. Separate read-only
 review found no remaining actionable defect. Full new-template Runs on live Dify
 remain installation-specific acceptance; its reachable MCP and code sandbox are required.
+
+## Accepted extension: personas, Run-scoped MCP and persistent artifacts - 2026-10-12
+
+The accepted plan adds administrator-owned personas, a User/persona Start choice,
+noninteractive Dify responders on the existing worker, combined managed credit
+admission/settlement, private callback capabilities, durable product references and
+a generic saved-artifact sample. Booklet models, story prompts and long-term user
+memory remain downstream scope. Existing Runs default to User and existing public
+MCP tools retain their grants/contracts.
+
+Local implementation and a separate read-only review completed on 2026-10-12.
+The final diff includes persona administration/selection, immutable responder
+snapshots, durable automatic decisions/takeover, combined billing with separately
+attributed fees, private MCP capabilities and artifact saves/approvals, retained
+MongoDB/S3 assets, result-application retries, sample templates and owned pages.
+Existing Runs remain compatible; no separate application or worker was introduced.
+
+Verified locally:
+
+- Production Next.js and all worker bundles build successfully. Typecheck, lint,
+  environment and pinned-skill checks pass; 52 pure tests and all 136
+  account/provider tests pass. The latest fee/usage and deletion-boundary changes
+  were included in the final complete account/provider run.
+  The final dispatch and fallback-message corrections were followed by all 33
+  affected worker/Run/persona tests, typecheck and another production build.
+- Runs HTTP acceptance passes with the bundled worker and disposable database,
+  including decisions, history, recovery, settings and exactly-once billing.
+  Readiness fails safely after the test database stops while liveness remains up.
+- New integration coverage exercises automatic answers without a browser,
+  takeover, invalid/file/limit fallback, known pre-dispatch configuration failure,
+  uncertain dispatch and missing usage, audited child waiver, capability scope,
+  duplicate/conflicting writes, revision/human-source approval checks, application
+  retries and asset retention. A loopback S3-compatible fixture verifies private
+  object retention through history cleanup and exact final deletion.
+  Additive index setup passed against a disposable replica set. Anonymous artifact
+  pages returned Next.js streamed redirects to Account without server errors.
+- Playwright against isolated accounts demonstrates persona creation/editing,
+  archival, Start selection/maxima, automatic charge/source history, human takeover
+  and continuation, artifact draft approval/image/reload/deletion, settled-fee
+  displays, anonymous redirect, keyboard controls and desktop/mobile layouts.
+  Final exercised navigation has no console/hydration errors or page overflow.
+- The separate read-only review found and corrected retry-identity, responder
+  acceptance/usage, terminal callback and asset-deletion lifecycle boundaries.
+  Responder dispatch now fences the parent's active reservation, execution and
+  still-pending decision in the same transaction, preventing new paid work after
+  reversal, takeover or an already submitted answer.
+  Re-review of those corrections found no further actionable defect.
+
+Advisory limits: formatting reports the unchanged
+`src/components/admin-user-controls.tsx`. Docker/deployment and ShellCheck checks
+could not access the local Docker daemon; actionlint was unavailable; the registry
+audit endpoint was unreachable. These are reported warnings, not build failures.
+Live Dify model/plugin/private-MCP binding, real S3 and VPS/Android acceptance
+remain installation-specific. No live provider mutation, commit, publication or
+deployment was performed. Run additive index setup and configure the new provider
+permissions/settings as documented in README before using them in a derived app.
+
+### Persona administration follow-up - 2026-10-12
+
+- [x] Show persona cards with state/responder summaries and Add/Edit dialogs.
+- [x] Make change reasons optional across admin settings, personas, accounts,
+  credit adjustments, cleanup, payment review and AI reconciliation; preserve
+  authorization, revisions, confirmation, length bounds and atomic audits.
+
+Verification: 53 pure tests and 136 account tests passed, as did type checking,
+lint, formatting and the production web/worker build. Playwright on a disposable
+emulator account/database verified cancellation, blank-reason creation/editing,
+persistence after reload, dialog focus restoration and 390px mobile layouts with
+no console/hydration errors. The separate read-only review found no further
+actionable defect after correcting empty Add-form initialization. Existing
+deployment/tooling and registry-audit availability warnings remain advisory.

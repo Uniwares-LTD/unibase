@@ -382,7 +382,7 @@ test("durable AI jobs, credit boundaries and recovery", async (t) => {
           { uid: "operator", authTime: actor.authTime },
           saved._id,
           "release",
-          "Provider acceptance could not be established; waive the user charge",
+          "",
           () => true,
           start,
         );

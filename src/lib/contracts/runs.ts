@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { generatedCardSchema, cardRegistry, parseCard } from "../runs/cards";
 import { aiPricingSchema } from "../config/ai-pricing";
+import { answererSchema } from "./personas";
 
 export const runIdSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const inputFieldSchema = z.strictObject({
@@ -25,6 +26,9 @@ export const orchestratorSchema = z
       .regex(/^[a-f0-9]{64}$/)
       .optional(),
     enabled: z.boolean(),
+    purpose: z.enum(["run", "responder"]).optional(),
+    privateTools: z.array(z.string().max(128)).max(20).optional(),
+    contextInput: z.boolean().optional(),
     // Only existing workflows may declare these deprecated application fields.
     // Omission preserves accepted snapshots created before native-ID registration.
     legacyInputs: z
@@ -69,12 +73,22 @@ export const runStartSchema = z.strictObject({
   orchestratorId: orchestratorSchema.shape.id,
   configurationKey: z.string().regex(/^[a-f0-9]{64}$/),
   inputs: z.record(z.string(), z.json()),
+  answerer: answererSchema.optional(),
+  artifactId: z.string().uuid().optional(),
 });
 export const runCommandSchema = z.strictObject({
   key: z.string().uuid(),
-  action: z.enum(["cancel", "restart", "recover", "test-stage"]),
+  action: z.enum([
+    "cancel",
+    "restart",
+    "recover",
+    "test-stage",
+    "take-over",
+    "retry-application",
+  ]),
   attemptId: runIdSchema,
   inputs: z.record(z.string(), z.json()).optional(),
+  answerer: answererSchema.optional(),
   stage: z.string().max(64).optional(),
   configurationKey: z
     .string()
@@ -89,6 +103,15 @@ export const decisionSubmitSchema = z.strictObject({
 export const uiPayloadSchema = z
   .strictObject({
     version: z.literal(1),
+    approval: z
+      .strictObject({
+        artifactId: z.string().uuid(),
+        revision: z.number().int().positive(),
+        contentHash: z.string().regex(/^[a-f0-9]{64}$/),
+        action: z.string().min(1).max(20),
+        requireHuman: z.boolean().default(false),
+      })
+      .optional(),
     cards: z
       .array(
         z.strictObject({

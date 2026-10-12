@@ -97,6 +97,10 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
                       "get_reference_document_v1",
                       "get_demo_catalog_v1",
                       "calculate_demo_quote_v1",
+                      "get_run_context_v1",
+                      "read_artifact_v1",
+                      "save_artifact_draft_v1",
+                      "approve_artifact_v1",
                     ]
                   : ["get_reference_document_v1"]
                 ).map((name) => ({ name })),
@@ -159,7 +163,17 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
           throw new Error("temporary verification failure");
         return { mode: "workflow" };
       }
-      if (path === "/parameters") return { user_input_form: [] };
+      if (path === "/parameters")
+        return {
+          user_input_form: (
+            ((
+              graph as ReturnType<
+                typeof orchestratorTemplate
+              >["dsl"]["workflow"]["graph"]
+            ).nodes.find((n) => n.data.type === "start")?.data.variables ??
+              []) as { type: string; variable: string }[]
+          ).map((f) => ({ [f.type]: { ...f } })),
+        };
       throw new Error(`Unexpected path ${path}`);
     };
     return { request, options, counts: () => ({ imports, publishes, keys }) };

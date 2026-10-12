@@ -43,12 +43,33 @@ async function main() {
       ["runAssetStages", { state: 1, nextDeleteAt: 1 }],
       ["orchestratorVersions", { orchestratorId: 1, revision: -1 }],
       ["baseSettingsVersions", { revision: -1 }],
+      ["personas", { archived: 1, enabled: 1 }],
+      ["personaVersions", { personaId: 1, revision: -1 }],
+      ["artifactRevisions", { uid: 1, artifactId: 1, revision: -1 }],
+      ["productAssets", { uid: 1, references: 1, state: 1 }],
+      ["resultApplications", { status: 1, nextAttemptAt: 1 }],
     ] as const)
       await client.db(config.database).collection(name).createIndex(keys);
     await client
       .db(config.database)
       .collection("aiJobs")
       .createIndex({ uid: 1, "run.logicalId": 1, "run.attempt": -1 });
+    await client
+      .db(config.database)
+      .collection("runCapabilities")
+      .createIndex({ jobId: 1 }, { unique: true });
+    await client
+      .db(config.database)
+      .collection("artifacts")
+      .createIndex({ id: 1 }, { unique: true });
+    await client
+      .db(config.database)
+      .collection("artifacts")
+      .createIndex({ uid: 1, deleted: 1, createdAt: -1 });
+    await client
+      .db(config.database)
+      .collection("aiJobs")
+      .createIndex({ "responder.parentId": 1 });
     console.log(
       "Profile, access, audit, credit, payment and runtime indexes are ready.",
     );

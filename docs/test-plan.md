@@ -108,16 +108,16 @@ Detailed verification/reset email instructions and Google troubleshooting are in
 Perform browser checks in Chrome and another supported browser, at desktop and
 390px mobile width. Check keyboard navigation in light and dark across Classic, Glass and Soft Blue.
 
-| ID    | Test steps                                                                                                                                               | Expected result                                                                                                                                                                                                |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| UI-01 | Open Home/Start run/Runs from desktop/mobile navigation; open Account, Credits, Preferences and eligible Administration/Sign out from the avatar menu.                                                                | Correct destinations, readable layout, no viewport overflow or hydration errors.                                                                                                                               |
-| UI-02 | Select light, dark, then system theme; reload; change OS appearance in system mode.                                                                      | Selection persists; system mode follows OS; controls remain readable.                                                                                                                                          |
-| UI-03 | Tab through menus, forms and dialogs; use Enter/Escape; open and close confirmations.                                                                    | Visible focus, meaningful labels, usable controls; modal focus returns to trigger.                                                                                                                             |
-| UI-04 | Visit an unknown URL and follow the recovery link.                                                                                                       | Safe not-found page returns home. Exercise error retry through automated failure fixtures rather than adding failing production code.                                                                          |
+| ID    | Test steps                                                                                                                                                   | Expected result                                                                                                                                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UI-01 | Open Home/Start run/Runs from desktop/mobile navigation; open Account, Credits, Preferences and eligible Administration/Sign out from the avatar menu.       | Correct destinations, readable layout, no viewport overflow or hydration errors.                                                                                                                               |
+| UI-02 | Select light, dark, then system theme; reload; change OS appearance in system mode.                                                                          | Selection persists; system mode follows OS; controls remain readable.                                                                                                                                          |
+| UI-03 | Tab through menus, forms and dialogs; use Enter/Escape; open and close confirmations.                                                                        | Visible focus, meaningful labels, usable controls; modal focus returns to trigger.                                                                                                                             |
+| UI-04 | Visit an unknown URL and follow the recovery link.                                                                                                           | Safe not-found page returns home. Exercise error retry through automated failure fixtures rather than adding failing production code.                                                                          |
 | UI-06 | In Preferences select each style, reload, Save preferences, sign out/in and switch users. Test Application default with `APP_STYLE=glass`, then restore env. | Style and color mode stay independent; saved account choices restore correctly; older profiles inherit the default.                                                                                            |
-| UI-07 | With `npm run dev`, open `/design-system`; test sample fields, confirmations and each preset at desktop/390px and 200% zoom.                             | Usable focus, forms and readable semantic colors. Showcase is 404 in the production build.                                                                                                                     |
-| UI-08 | Use the showcase Glass cover controls: valid image, missing/broken image and removal; navigate away. Repeat with reduced transparency/motion.            | Image influences Glass, gradient fallback returns when unavailable, no old cover leaks to the next page; opaque fallback stays readable. See [cover convention](design-system.md#glass-page-cover-convention). |
-| UI-05 | Use long test display names and reasons; inspect errors and mobile tables.                                                                               | Content wraps or scrolls within its region; no hidden actions or secret error details.                                                                                                                         |
+| UI-07 | With `npm run dev`, open `/design-system`; test sample fields, confirmations and each preset at desktop/390px and 200% zoom.                                 | Usable focus, forms and readable semantic colors. Showcase is 404 in the production build.                                                                                                                     |
+| UI-08 | Use the showcase Glass cover controls: valid image, missing/broken image and removal; navigate away. Repeat with reduced transparency/motion.                | Image influences Glass, gradient fallback returns when unavailable, no old cover leaks to the next page; opaque fallback stays readable. See [cover convention](design-system.md#glass-page-cover-convention). |
+| UI-05 | Use long test display names and reasons; inspect errors and mobile tables.                                                                                   | Content wraps or scrolls within its region; no hidden actions or secret error details.                                                                                                                         |
 
 ## 3. Authentication, profiles and ownership
 
@@ -128,7 +128,7 @@ Perform browser checks in Chrome and another supported browser, at desktop and
 | AUTH-03 | Sign in with wrong password and an unknown email.                                                                      | Safe failure; login never creates an account.                                                                                                                                                                            |
 | AUTH-04 | Start Continue with Google from `/account`; select an emulator account. Log out and repeat with that existing account. | Both attempts reach the signed-in account; no loop back to login.                                                                                                                                                        |
 | AUTH-05 | Request password reset; complete the latest emulator reset action using the account guide; try old/new password.       | Old password fails and new password succeeds. Live hosted reset/email delivery is a separate staging check.                                                                                                              |
-| AUTH-06 | Save display name in Account and appearance in Preferences independently; reload and sign out/in. | Each page saves its own fields without overwriting the other page's changes. Own profile/preferences persist; another member sees their own data. |
+| AUTH-06 | Save display name in Account and appearance in Preferences independently; reload and sign out/in.                      | Each page saves its own fields without overwriting the other page's changes. Own profile/preferences persist; another member sees their own data.                                                                        |
 | AUTH-07 | Open Account/Credits in two tabs; sign out or switch users in one; revisit/reload/back in the other.                   | Old protected data cannot reappear or overwrite the new account.                                                                                                                                                         |
 | AUTH-08 | Visit `/api/profile` and `/api/credits` as anonymous, unverified and verified users.                                   | Anonymous denied with 401; unverified with 403; verified responses contain only owned data.                                                                                                                              |
 | AUTH-09 | Inspect cookie/storage names and flags in browser devtools without exporting values.                                   | App session is HttpOnly/SameSite=Lax; HTTPS uses Secure. No app session token in local storage. Temporary Firebase tab state is cleared after exchange. Local HTTP is not expected to have a Secure cookie.              |
@@ -136,16 +136,16 @@ Perform browser checks in Chrome and another supported browser, at desktop and
 
 ## 4. Admin dashboard and user management
 
-| ID     | Test steps                                                                                                  | Expected result                                                                                                                                                                |
-| ------ | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ADM-01 | Open `/admin` as anonymous and as a verified member; request `/api/admin/users` and `/api/admin/reports`.   | Anonymous page redirects to Account; member page shows not-found. APIs return 401/403 respectively.                                                                            |
-| ADM-02 | Open `/admin` as Admin A; compare labels with known test activity.                                          | Counts represent application profiles, active admins, suspended accounts and the labelled last-24-hour runtime errors/audit changes. Profiles are not all Firebase identities. |
-| ADM-03 | List users; search exact email and UID; search unknown identity and clear search.                           | Correct account, explicit empty result, then normal list. Next-page navigation works with more than 25 identities. Mark pagination Not run if there are too few fixtures.      |
-| ADM-04 | Edit a member's application display name with reason; review then cancel; repeat and confirm.               | Cancel changes nothing. Confirm persists and creates audit evidence. Firebase email/password/provider identity is not rewritten.                                               |
-| ADM-05 | Promote Admin B; demote it from Admin A; retry from B's old tab.                                            | Role takes effect on server immediately; old B session loses admin access. Restore B from A if needed.                                                                         |
-| ADM-06 | Try self-demotion/self-suspension; run last-admin concurrency tests.                                        | Protected operations are rejected; at least one active admin remains.                                                                                                          |
-| ADM-07 | Suspend a member with an existing session; try protected access/new sign-in; reactivate.                    | Suspension denies access. Reactivation requires a new sign-in; old cookies cannot revive.                                                                                      |
-| ADM-08 | Submit missing/short reason; cancel confirmation; try mutation after 30 minutes without signing in again. | Invalid/cancelled operations have no effect; stale authentication requires fresh sign-in before mutation.                                                                      |
+| ID     | Test steps                                                                                                | Expected result                                                                                                                                                                |
+| ------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ADM-01 | Open `/admin` as anonymous and as a verified member; request `/api/admin/users` and `/api/admin/reports`. | Anonymous page redirects to Account; member page shows not-found. APIs return 401/403 respectively.                                                                            |
+| ADM-02 | Open `/admin` as Admin A; compare labels with known test activity.                                        | Counts represent application profiles, active admins, suspended accounts and the labelled last-24-hour runtime errors/audit changes. Profiles are not all Firebase identities. |
+| ADM-03 | List users; search exact email and UID; search unknown identity and clear search.                         | Correct account, explicit empty result, then normal list. Next-page navigation works with more than 25 identities. Mark pagination Not run if there are too few fixtures.      |
+| ADM-04 | Edit a member's application display name with reason; review then cancel; repeat and confirm.             | Cancel changes nothing. Confirm persists and creates audit evidence. Firebase email/password/provider identity is not rewritten.                                               |
+| ADM-05 | Promote Admin B; demote it from Admin A; retry from B's old tab.                                          | Role takes effect on server immediately; old B session loses admin access. Restore B from A if needed.                                                                         |
+| ADM-06 | Try self-demotion/self-suspension; run last-admin concurrency tests.                                      | Protected operations are rejected; at least one active admin remains.                                                                                                          |
+| ADM-07 | Suspend a member with an existing session; try protected access/new sign-in; reactivate.                  | Suspension denies access. Reactivation requires a new sign-in; old cookies cannot revive.                                                                                      |
+| ADM-08 | Submit omitted, blank or short reason; reject overlong reason; cancel confirmation; try mutation after 30 minutes without signing in again. | Valid changes accept optional reasons and remain audited; invalid/cancelled operations have no effect; stale authentication requires fresh sign-in.                                                                      |
 
 ## 5. Credits, ledger and simulated purchases
 
@@ -187,15 +187,15 @@ Use `/runs/new` for priced spending and the debt test in section 6a. Run
 
 ## 6. Reports and safe diagnostics
 
-| ID     | Test steps                                                                                           | Expected result                                                                                                                                                                     |
-| ------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| REP-01 | As admin, grant credits successfully then attempt an excessive deduction; open `/admin/reports`.     | Runtime reports include success and warning. Audit contains only the successful adjustment, actor/target, reason and before/after values.                                           |
-| REP-02 | Filter runtime event/severity/request ID/UTC dates; audit actor/target/event. Clear filters.         | Correct matching rows; date bounds include selected UTC days; clearing restores list.                                                                                               |
-| REP-03 | Open `/admin/reports?from=invalid`; try reversed dates; recover.                                     | Safe validation feedback, no internal details; clear filters recovers.                                                                                                              |
-| REP-04 | Use Older/Latest with more than 25 matches; test narrow layout and keyboard controls.                | Stable pagination and usable tables. Equal-timestamp and low-volume cases have automatic coverage.                                                                                  |
-| REP-05 | Inspect runtime records and diagnostic export using synthetic test data.                             | Fixed events/status/duration/request ID; no tokens, cookies, raw bodies, query strings or error-message contents. Runtime excludes admin reasons; audit intentionally retains them. |
+| ID     | Test steps                                                                                       | Expected result                                                                                                                                                                     |
+| ------ | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| REP-01 | As admin, grant credits successfully then attempt an excessive deduction; open `/admin/reports`. | Runtime reports include success and warning. Audit contains only the successful adjustment, actor/target, reason and before/after values.                                           |
+| REP-02 | Filter runtime event/severity/request ID/UTC dates; audit actor/target/event. Clear filters.     | Correct matching rows; date bounds include selected UTC days; clearing restores list.                                                                                               |
+| REP-03 | Open `/admin/reports?from=invalid`; try reversed dates; recover.                                 | Safe validation feedback, no internal details; clear filters recovers.                                                                                                              |
+| REP-04 | Use Older/Latest with more than 25 matches; test narrow layout and keyboard controls.            | Stable pagination and usable tables. Equal-timestamp and low-volume cases have automatic coverage.                                                                                  |
+| REP-05 | Inspect runtime records and diagnostic export using synthetic test data.                         | Fixed events/status/duration/request ID; no tokens, cookies, raw bodies, query strings or error-message contents. Runtime excludes admin reasons; audit intentionally retains them. |
 | DIA-01 | On Account, inspect diagnostics before enabling; enable, navigate within app, then fully reload. | Default off/export disabled; SPA navigation preserves enabled state; full reload clears memory and disables it.                                                                     |
-| DIA-02 | With diagnostics on, dispatch the synthetic error below; export JSON; turn off and repeat.           | Enabled event is recorded without the supplied secret text; turning off clears records and stops collection. Export is bounded to 100 memory-only events, with no upload.           |
+| DIA-02 | With diagnostics on, dispatch the synthetic error below; export JSON; turn off and repeat.       | Enabled event is recorded without the supplied secret text; turning off clears records and stops collection. Export is bounded to 100 memory-only events, with no upload.           |
 
 Synthetic browser-console input (test text only):
 
@@ -415,7 +415,7 @@ Derived-project readiness decision and explicit unverified integrations:
 - With more than 25 executions, browse history and unresolved admin pages; verify
   stable pagination even with equal timestamps and isolation between owners.
 - On `/admin/operations`, preview a small batch of old local fixture content.
-  Preview must not change content; execution needs explanation/confirmation and
+  Preview must not change content; execution needs confirmation and
   recent admin access. Verify the report, retained ledger/usage/retry evidence and
   exclusions for active/unknown work. Automated tests cover expiry, demotion,
   changed-target skipping, replay and failed-upload cleanup.
@@ -444,3 +444,32 @@ Derived-project readiness decision and explicit unverified integrations:
 
 Automated MCP checks: `npm run test:mcp` (also included in `test:accounts`). Live
 MCP-05/06 acceptance remains environment-specific; follow [the runbook](mcp.md).
+
+## Personas and persistent product integration
+
+Automated boundaries are covered by `tests/accounts/persona-artifacts.test.ts`
+with disposable MongoDB, fake Dify and a loopback S3-compatible HTTP fixture.
+Verify persona snapshots and availability, automatic continuation with no browser,
+invalid/file/oversized-question fallback, takeover and cancellation races, combined
+billing after parent failure, and unknown outcome reconciliation without redispatch.
+Check wrong client/operation/owner/expired capability rejection, duplicate/conflicting
+saves, and exact revision/human-source approval checks. Product application retries
+must not generate or charge again. Retained images must survive Run cleanup, remain
+owned, and delete their exact S3 object after all references are released.
+
+For browser acceptance use the isolated fixture with
+`node --conditions=react-server --import tsx scripts/integration.mjs --ai --browser --personas`.
+It seeds a fake responder and owned admin session under `output/playwright/runs-state.json`;
+no production database/provider is used. Exercise persona administration, Start
+selection/maxima, automatic answering, takeover, artifact create/revisions/delete,
+associated Runs, desktop/mobile layout, keyboard focus and hydration. Stop the
+fixture with Enter after verification. For actual provider acceptance, use a newly
+owned Dify workflow with a configured structured-output model and reachable MCP.
+Fixture success is not live model/plugin or production S3 evidence.
+
+Persona administration follow-up: verify the responsive card list, Add/Edit dialogs,
+Escape/focus restoration, cancellation without a new card, and saves with blank reasons.
+`tests/optional-reasons.test.ts` covers omitted, blank, short and overlong reasons
+across admin contracts and retains cleanup/AI release confirmation checks. Account
+tests also exercise empty-note cleanup and AI resolution, and omitted-note credit
+adjustment with the existing atomic audits.

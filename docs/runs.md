@@ -17,7 +17,7 @@ defaults. New attempts/purchases use current policy, while accepted terms remain
 frozen. Management/encryption secrets, provider/storage connections and deployment
 identity remain in environment configuration. Managed app execution keys are
 encrypted in MongoDB. Updates require fresh administrator authority,
-recent authentication, mutation protection, matching revisions and an audit reason.
+recent authentication, mutation protection, matching revisions and an atomic audit record. Change reasons are optional.
 Previously initialized settings that lack upload limits read the original defaults:
 20 MiB per file, 100 files and 100 MiB per account. Reading these defaults does not
 rewrite saved settings or replace billing terms; explicitly saved limits still apply.
@@ -35,11 +35,13 @@ then imports, publishes and registers the selected workflow without a form.
 The server loads allowlisted JSON DSL files from `src/lib/server/runs/templates`;
 only template names/descriptions reach the browser. Available scenarios:
 
-| Template | Scenario | Required MCP tool |
-| --- | --- | --- |
-| Document summary | Fetch a guide and choose Brief/Detailed | `get_reference_document_v1` |
-| Catalog picker | Fetch structured catalog data and choose an item | `get_demo_catalog_v1` |
-| Quote approval | Calculate a synthetic quote, then approve or decline | `calculate_demo_quote_v1` |
+| Template          | Scenario                                                | Required MCP tool                                 |
+| ----------------- | ------------------------------------------------------- | ------------------------------------------------- |
+| Document summary  | Fetch a guide and choose Brief/Detailed                 | `get_reference_document_v1`                       |
+| Catalog picker    | Fetch structured catalog data and choose an item        | `get_demo_catalog_v1`                             |
+| Quote approval    | Calculate a synthetic quote, then approve or decline    | `calculate_demo_quote_v1`                         |
+| Persona responder | Noninteractive LLM answers with validated action/fields | None                                              |
+| Saved artifact    | Owned draft, approval/decline, persistent image         | Run context and artifact read/save/approval tools |
 
 Grant `demo:read` to the intended MCP client for catalog/quote scenarios, restart
 the web process, then refresh that provider's tools in Dify. Quotes create no order
@@ -112,9 +114,8 @@ Dify owns general graph editing and MCP provider credentials. Workflows are
 authored in Dify; Register publishes their current valid saved draft. Create
 authors and publishes only its starter. A connected MCP server
 may expose permission-checked read or write tools; registration does not create
-new tool implementations. Unibase's included MCP tools remain read-only public
-reference examples; application save operations need explicit bounded tools and
-ownership rules. See [MCP setup and boundaries](mcp.md).
+new tool implementations. Unibase includes public reference tools and optional
+Run-scoped artifact reads/writes with explicit permissions and capability checks. See [MCP setup and boundaries](mcp.md).
 
 User pages start Runs, list owned history and show status, tracing, decisions and
 results. Native `workflow_run_id`/`task_id` values track execution. Human Input
@@ -228,3 +229,59 @@ The integration targets [Dify 1.17.1 admin authentication](https://github.com/la
 and [workflow tools](https://github.com/langgenius/dify/blob/1.17.1/api/core/tools/workflow_as_tool/tool.py).
 Fixture verification does not substitute for live acceptance on the configured
 installation. See [AI testing](ai-testing.md).
+
+## Answering as a persona
+
+Start Run accepts optional `answerer` (`{type:"user"}` or a persona ID, revision
+and configuration key) and optional owned `artifactId`. Persona definitions live
+at `/admin/personas`; mutations use recent administrator authority, CSRF, revision
+checks and audits with optional change reasons. The admin page lists persona cards;
+Add and Edit open a dialog, and cancelling Add does not create a persona.
+Disabled/archived/unavailable personas cannot admit new attempts. Accepted attempts preserve their previous configuration.
+
+Responder workflows declare exactly three required paragraph controls: `persona`,
+`question`, and `context`, each bounded to 4,000 characters, plus an End `answer`
+output containing JSON `{action,answers}`. They need an LLM and no Human Input or
+external tool nodes. This contract derives registration purpose `responder`.
+The template uses structured LLM output and Code to normalize its answer object.
+Use Dify to configure the actual model and re-register after edits.
+
+Unibase sends rendered questions, constraints, allowed actions, explicit card
+answer contracts, initial inputs and previous decisions. Summary/issue cards use
+null acknowledgements. It excludes service credentials, form tokens and Run
+capabilities. The parent workflow receives only ordinary answers. Native text,
+select and registered Generative UI responses share human validation. File
+questions, malformed answers, unavailable forms and exceeded limits pause for the
+user. Unknown responder outcomes require reconciliation rather than redispatch.
+
+`take-over` switches remaining decisions to User and cancels unfinished responder
+executions; submitted/uncertain decisions reconcile before another answer. History
+records persona ID/revision separately from human decisions. Optional structured
+UI `approval` binds artifact ID, revision, content hash, action and `requireHuman`;
+services check persisted evidence rather than model claims. Personas may approve
+when the product permits them; human-required approvals fall back to User.
+
+Default responder pricing is one credit per valid completed answer, with ten calls
+(maximum configurable 1-100). Admission discloses/reserves parent plus responder
+maximum once. Main and responder charges remain separate; valid completed answers
+are charged even after takeover, failure or cancellation. Required missing usage
+or unknown child termination prevents combined settlement and retains the hold.
+A valid child with missing price evidence remains reviewable; an audited child
+waiver permits the parent to settle without that fee. Child fees are attributed
+in the parent transaction and shown alongside usage without a second wallet debit.
+Restart/recovery selects the answerer again and snapshots current terms.
+
+## Saved-artifact integration
+
+`/artifacts` creates owned records and shows saved revisions independently of
+Runs. Associated workflows require an owned artifact at admission. Sample MCP
+operations save a deterministic draft with a stable operation key and expected
+revision, then approve only its exact persisted decision target. Decline keeps
+the draft unapproved. Terminal sample results include a synthetic validated image.
+
+Result application is a separately journaled typed server handler, keyed by
+attempt and handler version. The worker promotes images and updates product
+references transactionally. A failed application appears as **Product save:
+failed** with **Retry product save**; retry creates no generation or extra charge.
+Deletion releases product references. Run history retains its own object until
+cleanup, and retained product images remain accessible after that cleanup.

@@ -57,12 +57,11 @@ export function AiResolution({
   }
   return (
     <div className="space-y-3">
-      <Label htmlFor={id}>Resolution explanation</Label>
+      <Label htmlFor={id}>Resolution explanation (optional)</Label>
       <Textarea
         id={id}
         value={reason}
         onChange={(event) => setReason(event.target.value)}
-        minLength={10}
         maxLength={500}
         disabled={busy}
         placeholder="Record the evidence and reason for this decision."
@@ -70,7 +69,7 @@ export function AiResolution({
       <div className="flex flex-wrap gap-2">
         {canAccept && (
           <Button
-            disabled={busy || reason.trim().length < 10}
+            disabled={busy}
             onClick={() => {
               void resolve("accept");
             }}
@@ -80,10 +79,7 @@ export function AiResolution({
         )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button
-              variant="outline"
-              disabled={busy || reason.trim().length < 10}
-            >
+            <Button variant="outline" disabled={busy}>
               Resolve attempt and release credits
             </Button>
           </AlertDialogTrigger>

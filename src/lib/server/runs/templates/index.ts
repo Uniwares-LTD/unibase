@@ -4,7 +4,40 @@ import catalogPicker from "./catalog-picker.json";
 import quoteApproval from "./quote-approval.json";
 import type { OrchestratorTemplateId } from "@/lib/contracts/orchestrator-templates";
 
-const templates = [documentSummary, catalogPicker, quoteApproval];
+import personaResponder from "./persona-responder.json";
+import savedArtifact from "./saved-artifact.json";
+type NodeData = {
+  type: string;
+  title: string;
+  provider_type?: string;
+  provider_id?: string;
+  provider_name?: string;
+  tool_name?: string;
+  tool_parameters?: Partial<Record<string, { type: string; value: unknown }>>;
+  form_content?: string;
+  [key: string]: unknown;
+};
+type Dsl = Omit<typeof documentSummary.dsl, "workflow"> & {
+  workflow: Omit<typeof documentSummary.dsl.workflow, "graph"> & {
+    graph: {
+      nodes: { id: string; data: NodeData; [key: string]: unknown }[];
+      edges: typeof documentSummary.dsl.workflow.graph.edges;
+    };
+  };
+};
+const templates: {
+  id: string;
+  title: string;
+  description: string;
+  requiredTools: string[];
+  dsl: Dsl;
+}[] = [
+  documentSummary,
+  catalogPicker,
+  quoteApproval,
+  personaResponder,
+  savedArtifact,
+];
 
 export function orchestratorTemplates() {
   return templates.map(({ id, title, description }) => ({

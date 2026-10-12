@@ -14,6 +14,12 @@ import { runtimeRecord } from "../src/lib/log-policy";
 import { writeRuntimeRecord } from "../src/lib/server/store/runtime";
 import { workerHeartbeat } from "../src/lib/server/worker-heartbeat";
 
+import {
+  processOneAutomaticDecision,
+  responderAnswer,
+} from "../src/lib/server/runs/responder";
+import { processOneResultApplication } from "../src/lib/server/runs/artifacts";
+
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 let stopping = false;
 const idle = new AbortController();
@@ -51,13 +57,17 @@ async function main() {
           const executed = await processOneAiJob(db, {
             provider: (job) => providerForRun(job, db),
             trace: tracingForRun,
-            prepareInput: (job) => prepareRunInputs(job, db),
+            prepareInput: (job) =>
+              job.responder
+                ? Promise.resolve(job.inputs)
+                : prepareRunInputs(job, db),
             materialize: (job, result, session) =>
               attachResult(db, job, session),
             authorize: authorizeAccount,
-            validateOutput: (_job, result) => {
+            validateOutput: (job, result) => {
               try {
-                parseResult(result.outputs);
+                if (job.responder) responderAnswer(job, result.outputs);
+                else parseResult(result.outputs);
                 return true;
               } catch {
                 return false;
@@ -77,6 +87,8 @@ async function main() {
             },
           });
           worked = executed;
+          worked = (await processOneAutomaticDecision(db)) || worked;
+          worked = (await processOneResultApplication(db)) || worked;
         } catch {
           status = 503;
           cycleState = "error";

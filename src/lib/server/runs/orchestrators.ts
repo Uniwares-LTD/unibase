@@ -96,6 +96,7 @@ export async function orchestrators(
         ? { lifecycle: { $ne: "unregistered" } }
         : {
             "definition.enabled": true,
+            "definition.purpose": { $ne: "responder" },
             validated: true,
             lifecycle: { $ne: "unregistered" },
             availability: { $ne: "missing" },
@@ -171,6 +172,8 @@ export async function orchestrators(
             configurationKey,
             ready: ready && settings.settings.runs.enabled,
             recovery: d.recovery,
+            requiresArtifact:
+              d.privateTools?.some((t) => t.includes("artifact")) ?? false,
           };
     }),
   );

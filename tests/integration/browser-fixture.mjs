@@ -52,6 +52,77 @@ export async function browserFixture(env) {
     source: "purchase",
     reference: user.uid,
   });
+  if (process.argv.includes("--personas")) {
+    const baseDefinition = {
+      id: "fixture-responder",
+      name: "Fixture responder",
+      description: "Synthetic local responder",
+      order: 0,
+      enabled: true,
+      keyEnv: "DIFY_KEY_FIXTURE",
+      pricing: null,
+      recovery: null,
+      purpose: "responder",
+      inputs: ["persona", "question", "context"].map((name) => ({
+        name,
+        label: name,
+        kind: "paragraph",
+        required: true,
+        options: [],
+      })),
+    };
+    await db.collection("orchestrators").insertOne({
+      _id: baseDefinition.id,
+      revision: 1,
+      definition: baseDefinition,
+      validated: true,
+      updatedAt: new Date(),
+    });
+    const { seedPersonas } =
+      await import("../../src/lib/server/runs/personas.ts");
+    await seedPersonas(db);
+    await db.collection("personas").updateOne(
+      { name: "Parent" },
+      {
+        $set: { enabled: true, responderId: baseDefinition.id, maxCalls: 2 },
+      },
+    );
+    const sample = {
+      ...baseDefinition,
+      id: "fixture-artifact",
+      name: "Saved artifact fixture",
+      description: "Local sample with owned draft and image",
+      purpose: "run",
+      inputs: [],
+      contextInput: true,
+      privateTools: [
+        "read_artifact_v1",
+        "save_artifact_draft_v1",
+        "approve_artifact_v1",
+      ],
+    };
+    await db.collection("orchestrators").insertOne({
+      _id: sample.id,
+      revision: 1,
+      definition: sample,
+      validated: true,
+      updatedAt: new Date(),
+    });
+    await db.collection("artifacts").createIndex({ id: 1 }, { unique: true });
+    await db
+      .collection("runCapabilities")
+      .createIndex({ jobId: 1 }, { unique: true });
+    env.MCP_ENABLED = "true";
+    env.MCP_TOKEN_FIXTURE = "b".repeat(43);
+    env.MCP_CLIENTS_JSON = JSON.stringify([
+      {
+        id: "dify",
+        tokenEnv: "MCP_TOKEN_FIXTURE",
+        permissions: ["run:read", "artifact:read", "artifact:write"],
+      },
+    ]);
+    env.DIFY_CREDENTIAL_ENCRYPTION_KEY = "cd".repeat(32);
+  }
   await mkdir("output/playwright", { recursive: true });
   await writeFile(
     "output/playwright/runs-state.json",

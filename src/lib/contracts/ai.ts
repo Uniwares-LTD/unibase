@@ -4,7 +4,7 @@ export const aiJobIdSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const aiResolutionSchema = z
   .strictObject({
     decision: z.enum(["accept", "release"]),
-    reason: z.string().trim().min(10).max(500),
+    reason: z.string().trim().max(500).default(""),
     acknowledgeProviderMayStillRun: z.boolean().optional(),
   })
   .refine(

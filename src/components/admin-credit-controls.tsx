@@ -117,13 +117,13 @@ export function AdminCreditControls({
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor={`${id}-reason`}>Credit adjustment reason</Label>
+            <Label htmlFor={`${id}-reason`}>
+              Credit adjustment reason (optional)
+            </Label>
             <Input
               id={`${id}-reason`}
               name="reason"
-              minLength={5}
               maxLength={300}
-              required
               disabled={pending}
               autoComplete="off"
             />

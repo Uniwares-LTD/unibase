@@ -1,6 +1,6 @@
 # MCP implementation and maintenance
 
-Unibase exposes optional, authenticated, read-only tools at `/api/mcp` inside the
+Unibase exposes optional, authenticated, bounded tools at `/api/mcp` inside the
 existing Next.js Node application. No separate server or AI worker is required
 to call MCP. A Dify workflow invoking it still uses the normal Run attempt/credit flow.
 
@@ -64,12 +64,12 @@ database query tool. HTTP credentials never reach tool arguments or LLM prompts.
 
 ## Included tools
 
-| Tool                        | Permission       | Input and result                                                                 |
-| --------------------------- | ---------------- | -------------------------------------------------------------------------------- |
-| `get_server_info_v1`        | `server:read`    | Empty object → public app name and catalog version.                              |
-| `get_reference_document_v1` | `reference:read` | `documentId: "unibase-demo"` → synthetic visitor guide, revision and request ID. |
-| `get_demo_catalog_v1` | `demo:read` | `category: "all", "equipment" or "guides"` → three or fewer synthetic products and prices in USD cents. |
-| `calculate_demo_quote_v1` | `demo:read` | Allowlisted `itemId`, integer `quantity: 1..20`, `delivery: "standard" or "express"` → subtotal, delivery and total in USD cents. |
+| Tool                        | Permission       | Input and result                                                                                                                  |
+| --------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `get_server_info_v1`        | `server:read`    | Empty object → public app name and catalog version.                                                                               |
+| `get_reference_document_v1` | `reference:read` | `documentId: "unibase-demo"` → synthetic visitor guide, revision and request ID.                                                  |
+| `get_demo_catalog_v1`       | `demo:read`      | `category: "all", "equipment" or "guides"` → three or fewer synthetic products and prices in USD cents.                           |
+| `calculate_demo_quote_v1`   | `demo:read`      | Allowlisted `itemId`, integer `quantity: 1..20`, `delivery: "standard" or "express"` → subtotal, delivery and total in USD cents. |
 
 Catalog version 1.1.0 adds the demo tools. Grant `demo:read` explicitly to intended
 clients, restart the web process, and refresh Dify tools. Existing reference-only
@@ -126,8 +126,8 @@ rebind its Tool node and inspect structured outputs after importing.
 Registration checks the stored MCP provider authorization and selected tool names
 without invoking them. It does not configure providers, credentials or writes.
 External MCP servers may provide read/write tools under their own permissions.
-The included Unibase tools are read-only; user-owned saves require a specific
-bounded operation and an ownership context independent of the service token.
+Public examples remain read-only. Private artifact tools require explicit
+permissions and an owned Run capability independent of the service token.
 
 ## Add and update tools
 
@@ -140,8 +140,8 @@ To add a read-only `get_catalog_item_v1` tool:
    context. Return an explicit DTO, never a database document or environment map.
 2. Add a registry entry with a unique stable name, precise description, strict Zod
    object input/output schemas, required permission, and async handler. Call the
-   service directly and propagate `context.signal`. The current registry is only
-   for bounded, read-only tools; annotations describe behavior, not authorization.
+   service directly and propagate `context.signal`. Register operation-specific permissions and write annotations for mutations;
+   annotations describe behavior, not authorization.
 3. Add the permission to the configuration allowlist. Grant it explicitly to
    intended client entries; never give new tools implicit access through wildcards.
 4. Test valid results, invalid arguments, denied discovery/direct invocation,
@@ -157,10 +157,9 @@ deployment while preserving old contracts. Remove tools only after confirming
 their consumers have migrated. Stateless v1 does not push catalog-change events;
 refresh is an explicit operator step.
 
-For future private data, add verified user/job authorization and ownership checks
-in the service; never trust a model-supplied UID. For future writes, design
-idempotency, operation-specific permissions, confirmation and audit behavior first.
-Do not register writes in this read-only adapter and merely change an annotation.
+Private tools use verified Run authorization and operation-specific services;
+never trust a model-supplied UID or Run ID. New writes must include transactional
+idempotency, ownership, approval and durable operation evidence.
 OAuth, arbitrary remote plugins, and an admin catalog are outside this version.
 
 ## Operations, verification and troubleshooting
@@ -205,3 +204,37 @@ ongoing use. General deployment/plugin acceptance remains installation-specific.
 References: [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk),
 [Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http),
 [Dify tool configuration](https://docs.dify.ai/en/cloud/use-dify/workspace/tools).
+
+## Private Run and artifact tools
+
+Catalog 1.2.0 adds `get_run_context_v1` (`run:read`), `read_artifact_v1`
+(`artifact:read`), and `save_artifact_draft_v1` / `approve_artifact_v1`
+(`artifact:write`). Explicit grants are required; public-only clients retain their
+previous catalog. Writes use the same request/output/time bounds and cancellation
+signal, and their discovery annotations reflect mutation behavior.
+
+Set `RUN_MCP_CLIENT_ID` (default `dify`) to the dedicated trusted Dify client. Run
+capabilities use the existing encryption-secret configuration, with a separate
+HKDF purpose. Enable the same MCP permissions/configuration on the web and worker
+processes. Provision indexes before use; `runCapabilities.jobId` is unique.
+
+Workflows opt in with required text Start input `unibase_context`. Bind it directly
+as a variable to private tools' `runContext` argument. Registration hides this
+system field from user controls and rejects using it in other nodes/arguments.
+No workflow graphs are rewritten. This bearer capability is visible to trusted
+Dify execution storage and must stay out of LLM prompts and shared DSL/log exports;
+Dify does not automatically forward an authenticated Unibase Run identity.
+
+Each request needs both the service credential and capability. The capability
+resolves the accepted attempt, verified user, allowed client/operations, optional
+artifact and deadline. Cancelled/terminal/expired or currently unauthorized access
+fails closed; pause and human takeover retain the owned context. Tools return
+bounded allowlisted context and entity DTOs, never database documents or tokens.
+
+Draft saves use `operationKey`, `expectedRevision` and bounded text. Approval uses
+`operationKey`, revision and content hash; a persisted matching decision must be
+submitted with the required action. Human-only approvals reject persona sources.
+Transactional `productOperations` records make identical retries return the first
+result and reject changed payloads. A timeout cannot undo a committed save; callers
+retry the same operation key to reconcile it. No arbitrary URL/image fetch or raw
+query endpoint is added.

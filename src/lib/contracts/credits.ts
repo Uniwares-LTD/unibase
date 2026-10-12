@@ -41,7 +41,7 @@ export const adjustmentSchema = z
     key: z.string().regex(/^[A-Za-z0-9_:-]{1,128}$/),
     amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     direction: z.enum(["grant", "deduct"]),
-    reason: z.string().trim().min(5).max(300),
+    reason: z.string().trim().max(300).default(""),
     expiresAt: z.date().nullable().optional(),
   })
   .strict();

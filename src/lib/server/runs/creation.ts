@@ -138,20 +138,22 @@ export async function createDifyOrchestrator(
     );
   try {
     if (!appId) {
-      const providers = z
-        .array(
-          z.object({
-            id: z.string().min(1).max(128),
-            is_team_authorization: z.boolean(),
-            tools: z.array(z.object({ name: z.string() })).max(1000),
-          }),
-        )
-        .max(1000)
-        .parse(
-          await creationRequest("/workspaces/current/tools/mcp", {
-            management: true,
-          }),
-        );
+      const providers = !template.requiredTools.length
+        ? []
+        : z
+            .array(
+              z.object({
+                id: z.string().min(1).max(128),
+                is_team_authorization: z.boolean(),
+                tools: z.array(z.object({ name: z.string() })).max(1000),
+              }),
+            )
+            .max(1000)
+            .parse(
+              await creationRequest("/workspaces/current/tools/mcp", {
+                management: true,
+              }),
+            );
       const capable = providers.filter(
         (p) =>
           p.is_team_authorization &&
@@ -161,13 +163,13 @@ export async function createDifyOrchestrator(
       );
       const provider =
         capable.find((p) => p.id === "unibase_starter") ?? capable[0];
-      if (!provider)
+      if (!provider && template.requiredTools.length)
         throw new AppError(
           "DIFY_STARTER_MCP_REQUIRED",
           `Connect Unibase MCP in Dify and synchronize ${template.requiredTools.join(", ")}, then create this template.`,
           409,
         );
-      const dsl = template.build(provider.id);
+      const dsl = template.build(provider?.id ?? "");
       graphHash = fingerprint(z.json().parse(dsl.workflow.graph));
       await checkpoint({ started: true, graphHash });
       const imported = z

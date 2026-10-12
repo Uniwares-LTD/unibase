@@ -51,6 +51,33 @@ keys. Skill/font/Bubblewrap licenses and provenance stay with the source. Rewrit
 `docs/implementation-plan.md` for the derived product's accepted scope and preserve
 Base verification as reference evidence, not a claim that its new services work.
 
+## Personas and saved artifacts
+
+Create **Persona responder** in Administration > Orchestrators, configure its
+LLM provider/model in Dify, then Register the saved workflow again. The template
+uses a suggested OpenAI model; it needs your Dify provider plugin/credentials and
+code sandbox, and can be changed to another structured-output model. Under
+Administration > Personas, edit an example or create a persona, select the
+registered responder, configure pricing/answer limits, and enable it. Start Run
+then offers **User** or an available persona. Completed valid responder answers
+remain chargeable if the main workflow fails or the user takes over. Review the
+combined maximum before starting. No model credentials are added to Unibase.
+
+For the reference product integration, grant `run:read`, `artifact:read`, and
+`artifact:write` explicitly to the dedicated MCP client and refresh its tools in
+Dify. Set `RUN_MCP_CLIENT_ID` to that client's ID (default `dify`), and configure
+`DIFY_CREDENTIAL_ENCRYPTION_KEY` or the existing management-key derivation on both
+web and AI workers. Create **Saved artifact**, then create an artifact under
+**Saved artifacts** and start its associated Run. Approve/decline its deterministic
+draft; the validated sample image is retained independently of execution cleanup.
+This sample requires the Dify code sandbox and reachable MCP, but no generation
+model. Persona mode additionally needs the responder model.
+
+Use the existing `ASSET_STORE=s3` and `ASSET_S3_*` settings for a private bucket;
+MongoDB storage remains the local default. Run `npm run db:indexes` for the new
+collections. Keep encryption secrets stable to resume accepted attempts. See
+[Runs](docs/runs.md) and [MCP](docs/mcp.md) for ownership, billing and callback rules.
+
 ## Local development
 
 Use Node.js **24.16.0**, pinned in `.nvmrc` and `.node-version`, and npm **12.0.1**. With your Node version manager, select the pinned version before installing.
@@ -150,8 +177,9 @@ admins. Firebase remains the identity source; member/admin role and suspension
 state are server-owned MongoDB records. All existing accounts default to active
 members. Application suspension blocks both existing sessions and new session
 exchange; reactivation requires a new sign-in. It does not alter Firebase provider
-settings. Administrative changes require sign-in within 30 minutes, a reason
-and confirmation, and write an atomic audit record.
+settings. Administrative changes require sign-in within 30 minutes and confirmation,
+and write an atomic audit record. Change reasons are optional; supplied notes remain
+bounded and are recorded with the change.
 
 Local MongoDB now runs a single-node replica set so access and audit changes can
 commit together. Stop your existing `npm run emulators:mongo` runner before

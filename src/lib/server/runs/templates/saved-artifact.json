@@ -1,0 +1,554 @@
+{
+  "id": "saved-artifact",
+  "title": "Saved artifact",
+  "description": "Save an owned draft, approve or decline, and retain a synthetic image.",
+  "requiredTools": [
+    "get_run_context_v1",
+    "read_artifact_v1",
+    "save_artifact_draft_v1",
+    "approve_artifact_v1"
+  ],
+  "dsl": {
+    "version": "0.6.0",
+    "kind": "app",
+    "dependencies": [],
+    "app": {
+      "name": "Unibase saved artifact",
+      "description": "Save an owned draft, approve or decline, and retain a synthetic image.",
+      "mode": "workflow",
+      "icon_type": "emoji",
+      "icon": "\ud83e\uddea",
+      "icon_background": "#FFEAD5",
+      "use_icon_as_answer_icon": false
+    },
+    "workflow": {
+      "conversation_variables": [],
+      "environment_variables": [],
+      "features": {
+        "file_upload": {
+          "enabled": false
+        },
+        "opening_statement": "",
+        "suggested_questions": [],
+        "suggested_questions_after_answer": {
+          "enabled": false
+        },
+        "speech_to_text": {
+          "enabled": false
+        },
+        "text_to_speech": {
+          "enabled": false
+        }
+      },
+      "graph": {
+        "nodes": [
+          {
+            "id": "start",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "start",
+              "title": "Start",
+              "variables": [
+                {
+                  "variable": "unibase_context",
+                  "label": "Private Run context",
+                  "type": "text-input",
+                  "required": true,
+                  "max_length": 256
+                }
+              ]
+            },
+            "position": {
+              "x": 30,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "runcontext",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "tool",
+              "title": "Read Run context",
+              "provider_type": "mcp",
+              "provider_id": "__UNIBASE_MCP_PROVIDER__",
+              "provider_name": "__UNIBASE_MCP_PROVIDER__",
+              "tool_name": "get_run_context_v1",
+              "tool_label": "get_run_context_v1",
+              "tool_configurations": {},
+              "tool_parameters": {
+                "runContext": {
+                  "type": "variable",
+                  "value": ["start", "unibase_context"]
+                }
+              },
+              "is_team_authorization": true
+            },
+            "position": {
+              "x": 330,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "read",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "tool",
+              "title": "read_artifact_v1",
+              "provider_type": "mcp",
+              "provider_id": "__UNIBASE_MCP_PROVIDER__",
+              "provider_name": "__UNIBASE_MCP_PROVIDER__",
+              "tool_name": "read_artifact_v1",
+              "tool_label": "read_artifact_v1",
+              "tool_configurations": {},
+              "tool_parameters": {
+                "runContext": {
+                  "type": "variable",
+                  "value": ["start", "unibase_context"]
+                }
+              },
+              "is_team_authorization": true
+            },
+            "position": {
+              "x": 330,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "draft",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "code",
+              "title": "draft",
+              "code_language": "python3",
+              "code": "def main(reference: list) -> dict:\n    a = next(x for x in reference if isinstance(x, dict) and \"artifactId\" in x)\n    return {\"text\": \"A curious explorer discovers a garden of glowing flowers.\", \"revision\": a[\"revision\"]}\n",
+              "variables": [
+                {
+                  "variable": "reference",
+                  "value_selector": ["read", "json"]
+                }
+              ],
+              "outputs": {
+                "text": {
+                  "type": "string",
+                  "children": null
+                },
+                "revision": {
+                  "type": "number",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 630,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "save",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "tool",
+              "title": "save_artifact_draft_v1",
+              "provider_type": "mcp",
+              "provider_id": "__UNIBASE_MCP_PROVIDER__",
+              "provider_name": "__UNIBASE_MCP_PROVIDER__",
+              "tool_name": "save_artifact_draft_v1",
+              "tool_label": "save_artifact_draft_v1",
+              "tool_configurations": {},
+              "tool_parameters": {
+                "runContext": {
+                  "type": "variable",
+                  "value": ["start", "unibase_context"]
+                },
+                "operationKey": {
+                  "type": "mixed",
+                  "value": "draft"
+                },
+                "expectedRevision": {
+                  "type": "variable",
+                  "value": ["draft", "revision"]
+                },
+                "text": {
+                  "type": "variable",
+                  "value": ["draft", "text"]
+                }
+              },
+              "is_team_authorization": true
+            },
+            "position": {
+              "x": 930,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "form",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "code",
+              "title": "form",
+              "code_language": "python3",
+              "code": "import json\ndef main(reference: list, text: str) -> dict:\n    a = next(x for x in reference if isinstance(x, dict) and \"contentHash\" in x)\n    ui = {\"version\":1,\"approval\":{\"artifactId\":a[\"artifactId\"],\"revision\":a[\"revision\"],\"contentHash\":a[\"contentHash\"],\"action\":\"approve\",\"requireHuman\":False},\"cards\":[{\"id\":\"draft\",\"content\":{\"type\":\"summary\",\"version\":1,\"data\":{\"title\":\"Approve this draft?\",\"body\":text}}}]}\n    return {\"form\":\"```unibase-ui\\n\"+json.dumps(ui)+\"\\n```\", \"revision\":a[\"revision\"],\"contentHash\":a[\"contentHash\"]}\n",
+              "variables": [
+                {
+                  "variable": "reference",
+                  "value_selector": ["save", "json"]
+                },
+                {
+                  "variable": "text",
+                  "value_selector": ["draft", "text"]
+                }
+              ],
+              "outputs": {
+                "form": {
+                  "type": "string",
+                  "children": null
+                },
+                "revision": {
+                  "type": "number",
+                  "children": null
+                },
+                "contentHash": {
+                  "type": "string",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 1230,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "decision",
+            "type": "custom",
+            "data": {
+              "type": "human-input",
+              "title": "Approve draft",
+              "form_content": "{{#form.form#}}\n{{#$output.response#}}",
+              "inputs": [
+                {
+                  "type": "paragraph",
+                  "output_variable_name": "response",
+                  "default": {
+                    "type": "constant",
+                    "selector": [],
+                    "value": ""
+                  }
+                }
+              ],
+              "user_actions": [
+                {
+                  "id": "approve",
+                  "title": "Approve",
+                  "button_style": "primary"
+                },
+                {
+                  "id": "decline",
+                  "title": "Decline",
+                  "button_style": "default"
+                }
+              ],
+              "delivery_methods": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000010",
+                  "type": "webapp",
+                  "enabled": true,
+                  "config": {}
+                }
+              ],
+              "timeout": 24,
+              "timeout_unit": "hour",
+              "desc": "",
+              "selected": false
+            },
+            "position": {
+              "x": 1530,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "approve",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "tool",
+              "title": "approve_artifact_v1",
+              "provider_type": "mcp",
+              "provider_id": "__UNIBASE_MCP_PROVIDER__",
+              "provider_name": "__UNIBASE_MCP_PROVIDER__",
+              "tool_name": "approve_artifact_v1",
+              "tool_label": "approve_artifact_v1",
+              "tool_configurations": {},
+              "tool_parameters": {
+                "runContext": {
+                  "type": "variable",
+                  "value": ["start", "unibase_context"]
+                },
+                "operationKey": {
+                  "type": "mixed",
+                  "value": "approval"
+                },
+                "revision": {
+                  "type": "variable",
+                  "value": ["form", "revision"]
+                },
+                "contentHash": {
+                  "type": "variable",
+                  "value": ["form", "contentHash"]
+                }
+              },
+              "is_team_authorization": true
+            },
+            "position": {
+              "x": 1830,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "finish",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "code",
+              "title": "finish",
+              "code_language": "python3",
+              "code": "import json\ndef main(text: str) -> dict:\n    return {\"result\":json.dumps({\"version\":1,\"outcome\":\"success\",\"text\":text,\"cards\":[],\"images\":[{\"id\":\"20000000-0000-4000-8000-000000000001\",\"name\":\"Synthetic sample image\",\"base64\":\"iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAO0lEQVRIiWPI7TtOU8QwakHfaBAdH01FuaMZ7fhoUZE7Wpr2jVY4uaNVZt9oq+L4aMOrb7TpeHxQt64Bo48Iagc7MYsAAAAASUVORK5CYII=\"}]})}\n",
+              "variables": [
+                {
+                  "variable": "text",
+                  "value_selector": ["draft", "text"]
+                }
+              ],
+              "outputs": {
+                "result": {
+                  "type": "string",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 2130,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "end",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "end",
+              "title": "Result",
+              "outputs": [
+                {
+                  "variable": "result",
+                  "value_selector": ["finish", "result"]
+                }
+              ]
+            },
+            "position": {
+              "x": 2430,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          }
+        ],
+        "edges": [
+          {
+            "id": "start-runcontext",
+            "source": "start",
+            "target": "runcontext",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "start",
+              "targetType": "tool",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "runcontext-read",
+            "source": "runcontext",
+            "target": "read",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "tool",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "read-draft",
+            "source": "read",
+            "target": "draft",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "draft-save",
+            "source": "draft",
+            "target": "save",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "code",
+              "targetType": "tool",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "save-form",
+            "source": "save",
+            "target": "form",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "form-decision",
+            "source": "form",
+            "target": "decision",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "code",
+              "targetType": "human-input",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "decision-approve",
+            "source": "decision",
+            "target": "approve",
+            "sourceHandle": "approve",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "human-input",
+              "targetType": "tool",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "approve-finish",
+            "source": "approve",
+            "target": "finish",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "decision-finish",
+            "source": "decision",
+            "target": "finish",
+            "sourceHandle": "decline",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "human-input",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "finish-end",
+            "source": "finish",
+            "target": "end",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "code",
+              "targetType": "end",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          }
+        ]
+      }
+    }
+  }
+}

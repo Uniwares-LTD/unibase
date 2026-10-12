@@ -8,7 +8,7 @@ import { parseResult } from "@/lib/contracts/runs";
 import { cardRegistry } from "@/lib/runs/cards";
 import { validatedImage } from "./image";
 import { s3ObjectStore, type ObjectReference } from "./object-store";
-import { fingerprint, type AiJob } from "../ai/jobs";
+import { aiJobs, fingerprint, type AiJob } from "../ai/jobs";
 import type { ProviderExecution } from "../ai/types";
 
 export type RunAsset = {
@@ -153,6 +153,7 @@ export async function prepareResult(
     );
 }
 export async function attachResult(db: Db, job: AiJob, session: ClientSession) {
+  if (!job.run) return;
   await db
     .collection<RunAsset>("runAssets")
     .updateMany(
@@ -167,11 +168,28 @@ export async function attachResult(db: Db, job: AiJob, session: ClientSession) {
       { $set: { state: "published" } },
       { session },
     );
+  const { queueResultApplication } = await import("./artifacts");
+  const current = await aiJobs(db).findOne(
+    { _id: job._id, uid: job.uid },
+    { session },
+  );
+  if (
+    current?.execution?.status === "succeeded" &&
+    parseResult(current.execution.outputs).outcome === "success"
+  )
+    await queueResultApplication(db, job, session);
 }
 export async function readRunAsset(db: Db, uid: string, id: string) {
-  const asset = await db
-    .collection<RunAsset>("runAssets")
-    .findOne({ _id: id, uid, status: "ready" });
+  const asset =
+    (await db
+      .collection<RunAsset>("runAssets")
+      .findOne({ _id: id, uid, status: "ready" })) ??
+    (await db.collection<RunAsset>("productAssets").findOne({
+      _id: id,
+      uid,
+      state: "ready",
+      "references.0": { $exists: true },
+    }));
   if (!asset) throw new AppError("ASSET_NOT_FOUND", "Image unavailable.", 404);
   let bytes: Buffer;
   if (asset.base64) bytes = Buffer.from(asset.base64, "base64");

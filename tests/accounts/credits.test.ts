@@ -749,7 +749,6 @@ test("transactional credit accounting", async (t) => {
           {
             amount: 20,
             direction: "grant",
-            reason: "Fail mandatory admin audit",
           },
           time(6),
         );

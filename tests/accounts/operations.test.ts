@@ -162,12 +162,7 @@ test("operations: maintenance, cleanup, ownership, history and manual payment re
           { _id: jobs[2]._id },
           { $set: { updatedAt: new Date() } },
         );
-        const result = await executeCleanup(
-          db,
-          admin,
-          preview.id,
-          "Remove old local content",
-        );
+        const result = await executeCleanup(db, admin, preview.id, "");
         assert.equal(result.changed, 25);
         assert.equal(result.skipped, 1);
         assert.deepEqual(

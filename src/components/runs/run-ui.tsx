@@ -5,6 +5,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { api, ApiError } from "@/lib/client/api";
+import { maximumCredits } from "@/lib/config/ai-pricing";
+import type { personaChoices } from "@/lib/server/runs/personas";
+import type { Answerer } from "@/lib/contracts/personas";
 import { pricingDescription } from "@/lib/ai-pricing";
 import { cardRegistry, type SavedCard } from "@/lib/runs/cards";
 import { uiPayloadSchema } from "@/lib/contracts/runs";
@@ -36,8 +39,12 @@ function message(error: unknown) {
 export function RunLanding({
   choices,
   unfinished,
+  personas = [],
+  artifactId,
 }: {
   choices: Choice[];
+  personas?: Awaited<ReturnType<typeof personaChoices>>;
+  artifactId?: string;
   unfinished: { id: string; name: string; status: string }[];
 }) {
   const router = useRouter();
@@ -47,6 +54,16 @@ export function RunLanding({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [key] = useState(() => crypto.randomUUID());
+  const [answerer, setAnswerer] = useState("user");
+  const persona = personas.find((p) => p.id === answerer);
+  const selection: Answerer = persona
+    ? {
+        type: "persona",
+        id: persona.id,
+        revision: persona.revision,
+        configurationKey: persona.configurationKey,
+      }
+    : { type: "user" };
   const choice = choices.find((c) => c.id === selected);
   async function start() {
     if (!choice) return;
@@ -60,6 +77,8 @@ export function RunLanding({
           orchestratorId: selected,
           configurationKey: choice.configurationKey,
           inputs: values,
+          answerer: selection,
+          artifactId,
         },
       });
       router.push(`/runs/${result.id}`);
@@ -115,6 +134,11 @@ export function RunLanding({
               ))}
             </SelectContent>
           </Select>
+          <AnswererSelect
+            personas={personas}
+            value={answerer}
+            onChange={setAnswerer}
+          />
           {choice && (
             <>
               <p>{choice.description}</p>
@@ -201,8 +225,23 @@ export function RunLanding({
               <p className="text-sm text-muted-foreground">
                 {choice.failureCharging === "verified-usage"
                   ? "Verified usage may be charged after failure or cancellation. The fixed base applies on success."
-                  : "Confirmed failed or cancelled attempts cost zero credits."}
+                  : "The main workflow costs zero credits on confirmed failure or cancellation."}
               </p>
+              {persona && (
+                <p className="text-sm">
+                  Main maximum{" "}
+                  {maximumCredits(
+                    choice.pricing ?? { mode: "fixed", credits: 1 },
+                  )}
+                  ; persona maximum {persona.maximum} ({persona.maxCalls}{" "}
+                  answers); combined maximum{" "}
+                  {maximumCredits(
+                    choice.pricing ?? { mode: "fixed", credits: 1 },
+                  ) + persona.maximum}{" "}
+                  credits. Completed valid persona answers are charged even if
+                  the main Run fails or is cancelled.
+                </p>
+              )}
               <Button
                 disabled={busy || !choice.ready}
                 onClick={() => void start()}
@@ -328,6 +367,18 @@ function Decision({
       </CardHeader>
       <CardContent className="space-y-4">
         {"error" in decision && <p role="status">{decision.error}</p>}
+        {"automaticError" in decision && decision.automaticError && (
+          <p role="status">{decision.automaticError}</p>
+        )}
+        {"answerSource" in decision && decision.answerSource && (
+          <p>
+            Answered by{" "}
+            {decision.answerSource.type === "persona"
+              ? `persona revision ${decision.answerSource.personaRevision}`
+              : "User"}
+            .
+          </p>
+        )}
         {"description" in decision && (
           <p className="whitespace-pre-wrap">{decision.description}</p>
         )}
@@ -450,6 +501,8 @@ export function RunDetail({ initial }: { initial: Detail }) {
     initial.attempts.at(-1)!.inputs,
   );
   const current = data.attempts.at(-1)!;
+  const [restartAnswerer, setRestartAnswerer] = useState("user");
+  const selectedPersona = data.personas.find((p) => p.id === restartAnswerer);
   async function refresh() {
     try {
       const result = await api(`/api/runs/${data.id}`, z.custom<Detail>());
@@ -483,7 +536,13 @@ export function RunDetail({ initial }: { initial: Detail }) {
     };
   }, [initial.id, initial.pollSeconds]);
   async function command(
-    action: "cancel" | "restart" | "recover" | "test-stage",
+    action:
+      | "cancel"
+      | "restart"
+      | "recover"
+      | "test-stage"
+      | "take-over"
+      | "retry-application",
     stage?: string,
   ) {
     setBusy(true);
@@ -500,6 +559,14 @@ export function RunDetail({ initial }: { initial: Detail }) {
                 inputs: restartInputs,
               }
             : {}),
+          answerer: selectedPersona
+            ? {
+                type: "persona",
+                id: selectedPersona.id,
+                revision: selectedPersona.revision,
+                configurationKey: selectedPersona.configurationKey,
+              }
+            : { type: "user" },
           ...(stage ? { stage } : {}),
         },
       });
@@ -559,6 +626,72 @@ export function RunDetail({ initial }: { initial: Detail }) {
           </Button>
         )}
       </div>
+      {current.answerer && (
+        <div className="space-y-2">
+          <p>
+            Answering as{" "}
+            {current.takenOver
+              ? "User (taken over)"
+              : `${current.answerer.name}, revision ${current.answerer.revision}`}
+            .
+          </p>
+          {!current.takenOver &&
+            [
+              "queued",
+              "starting",
+              "running",
+              "awaiting input",
+              "reconciling",
+            ].includes(data.status) && (
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() => void command("take-over")}
+              >
+                Take over
+              </Button>
+            )}
+          <p>
+            Main charge: {current.parentCharge ?? "pending"}; persona charge:{" "}
+            {current.responderCharge} credits.
+          </p>
+        </div>
+      )}
+      {current.application && (
+        <p>
+          Product save: {current.application}
+          {current.application === "failed" && (
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => void command("retry-application")}
+            >
+              Retry product save
+            </Button>
+          )}
+        </p>
+      )}
+      {current.artifactId && (
+        <Link className="underline" href={`/artifacts/${current.artifactId}`}>
+          Open saved artifact
+        </Link>
+      )}
+      {data.responders.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-xl font-semibold">Automatic answers</h2>
+          {data.responders.map((r) => (
+            <p key={r.id}>
+              {r.status} · {r.totalTokens ?? "unknown"} tokens ·{" "}
+              {r.settledCredits === null
+                ? "credit settlement pending"
+                : `${r.settledCredits} credits settled`}
+              {r.cost
+                ? ` · ${r.cost.amount} ${r.cost.currency} provider cost`
+                : ""}
+            </p>
+          ))}
+        </section>
+      )}
       <p role="status">{error}</p>
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">Tracing</h2>
@@ -639,6 +772,18 @@ export function RunDetail({ initial }: { initial: Detail }) {
             <CardTitle>Start another attempt</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            <AnswererSelect
+              personas={data.personas}
+              value={restartAnswerer}
+              onChange={setRestartAnswerer}
+            />
+            {selectedPersona && (
+              <p>
+                Additional persona maximum: {selectedPersona.maximum} credits
+                for {selectedPersona.maxCalls} answers. Completed valid answers
+                remain chargeable on main Run failure.
+              </p>
+            )}
             {data.configuration.inputs.map((field) => (
               <div key={field.name} className="space-y-2">
                 <Label htmlFor={`restart-${field.name}`}>{field.label}</Label>
@@ -708,7 +853,7 @@ export function RunDetail({ initial }: { initial: Detail }) {
             <p className="text-sm text-muted-foreground">
               {data.configuration.failureCharging === "verified-usage"
                 ? "Verified usage may be charged after failure or cancellation. The fixed base applies on success."
-                : "Confirmed failed or cancelled attempts cost zero credits."}
+                : "The main workflow costs zero credits on confirmed failure or cancellation."}
             </p>
             <Button
               disabled={busy || !data.configuration.ready}
@@ -744,6 +889,36 @@ export function RunDetail({ initial }: { initial: Detail }) {
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+function AnswererSelect({
+  personas,
+  value,
+  onChange,
+}: {
+  personas: Awaited<ReturnType<typeof personaChoices>>;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const id = useId();
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>Answer questions as</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger id={id}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="user">User</SelectItem>
+          {personas.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

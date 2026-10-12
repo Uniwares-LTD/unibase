@@ -6,7 +6,7 @@ import { parseResult } from "@/lib/contracts/runs";
 import { database } from "../mongo";
 import { requireAdmin } from "../admin";
 import { aiHistory } from "./history";
-import { aiUsage, resolveAiJob } from "./jobs";
+import { aiUsage, aiJobs, resolveAiJob } from "./jobs";
 import { prepareResult, attachResult } from "../runs/media";
 function checkedId(value: string) {
   const parsed = aiJobIdSchema.safeParse(value);
@@ -19,6 +19,10 @@ export async function listAdminAiUsage() {
   const records = await aiUsage(database())
     .find()
     .sort({ timestamp: -1, _id: -1 })
+    .limit(100)
+    .toArray();
+  const jobs = await aiJobs(database())
+    .find({ _id: { $in: records.map((r) => r.jobId) } })
     .limit(100)
     .toArray();
   return records.map(
@@ -48,6 +52,15 @@ export async function listAdminAiUsage() {
       cost,
       elapsedMs,
       timestamp: timestamp.toISOString(),
+      settledCredits:
+        scope === "execution"
+          ? (jobs.find((j) => j._id === jobId)?.responderFee ??
+            jobs.find((j) => j._id === jobId)?.parentCharge ??
+            jobs.find((j) => j._id === jobId)?.charge?.credits ??
+            null)
+          : null,
+      parentAttemptId:
+        jobs.find((j) => j._id === jobId)?.responder?.parentId ?? null,
     }),
   );
 }
@@ -76,6 +89,26 @@ export async function listAdminAiJobs(cursor?: string) {
             parseResult(job.execution.outputs).outcome === "success";
         } catch {
           /* A missing contract cannot authorize a charge. */
+        }
+        if (job.responder && canAccept) {
+          try {
+            (await import("../runs/responder")).responderAnswer(
+              job,
+              job.execution!.outputs,
+            );
+            const parent = await aiJobs(database()).findOne({
+              _id: job.responder.parentId,
+            });
+            canAccept = Boolean(
+              parent?.run?.answerer &&
+              calculateAiCharge(
+                parent.run.answerer.pricing,
+                job.execution!.usage,
+              ),
+            );
+          } catch {
+            canAccept = false;
+          }
         }
         return {
           id: job._id,
@@ -108,6 +141,26 @@ export async function resolveManagedAiJob(id: string, input: unknown) {
     parsed.data.decision,
     parsed.data.reason,
     async (job) => {
+      if (job.responder) {
+        try {
+          (await import("../runs/responder")).responderAnswer(
+            job,
+            job.execution?.outputs ?? null,
+          );
+          const parent = await aiJobs(database()).findOne({
+            _id: job.responder.parentId,
+          });
+          return Boolean(
+            parent?.run?.answerer &&
+            calculateAiCharge(
+              parent.run.answerer.pricing,
+              job.execution!.usage,
+            ),
+          );
+        } catch {
+          return false;
+        }
+      }
       if (
         !job.execution ||
         parseResult(job.execution.outputs).outcome !== "success"

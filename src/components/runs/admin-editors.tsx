@@ -55,7 +55,7 @@ const preset: Record<string, Json> = {
     },
   },
 };
-function SettingsField({
+export function SettingsField({
   name,
   value,
   onChange,
@@ -211,17 +211,13 @@ export function BaseSettingsEditor({
         value={settings}
         onChange={(value) => setSettings(value as typeof settings)}
       />
-      <Label htmlFor="settings-reason">Change reason</Label>
+      <Label htmlFor="settings-reason">Change reason (optional)</Label>
       <Input
         id="settings-reason"
         value={reason}
         onChange={(e) => setReason(e.target.value)}
-        minLength={5}
       />
-      <Button
-        disabled={busy || reason.trim().length < 5}
-        onClick={() => void save()}
-      >
+      <Button disabled={busy} onClick={() => void save()}>
         Save settings
       </Button>
       <p role="status">{message}</p>

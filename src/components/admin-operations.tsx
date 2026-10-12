@@ -184,7 +184,9 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
           </Button>
           {report.state === "preview" && (
             <>
-              <Label htmlFor="cleanup-reason">Cleanup explanation</Label>
+              <Label htmlFor="cleanup-reason">
+                Cleanup explanation (optional)
+              </Label>
               <Textarea
                 id="cleanup-reason"
                 value={reason}
@@ -198,7 +200,6 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
                     variant="destructive"
                     disabled={
                       busy ||
-                      reason.trim().length < 10 ||
                       report.jobs + report.files + report.abandonedUploads === 0
                     }
                   >
@@ -310,7 +311,7 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
           setKey(null);
         }}
       />
-      <Label htmlFor="payment-reason">Review explanation</Label>
+      <Label htmlFor="payment-reason">Review explanation (optional)</Label>
       <Textarea
         id="payment-reason"
         value={reason}
@@ -322,12 +323,7 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
         }}
       />
       <Button
-        disabled={
-          !enabled ||
-          busy ||
-          !/^[a-f0-9]{64}$/.test(orderId) ||
-          reason.trim().length < 10
-        }
+        disabled={!enabled || busy || !/^[a-f0-9]{64}$/.test(orderId)}
         onClick={() => void reconcile()}
       >
         Verify payment and reconcile credits
