@@ -853,3 +853,8 @@ admission, editable validation errors, non-artifact admission, keyboard selectio
 for direct Start, Test Booklet preselection, desktop/mobile and no page errors,
 without starting paid Runs. Typecheck, lint and final production web/worker build
 passed. A separate read-only review found no remaining actionable defect.
+
+Saved artifacts creation follow-up: the standalone title/create form was removed.
+**Create with a Run** links to Start Run; existing artifact deletion stays on the
+detail page. Browser navigation and control-presence checks, typecheck, lint and
+production build passed, with no artifact mutation during verification.

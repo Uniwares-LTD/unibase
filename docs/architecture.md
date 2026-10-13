@@ -464,3 +464,5 @@ artifact summaries, passing only ID, title and revision to the setup form. The
 client conditionally creates or selects an artifact, snapshots the complete Run
 request before submission and reuses its IDs after uncertain responses. Existing
 artifact and Run admission services retain ownership and idempotency authority.
+Saved artifacts links to Start Run for creation; its detail controls only delete
+existing artifacts.

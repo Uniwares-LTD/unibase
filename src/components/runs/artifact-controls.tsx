@@ -11,14 +11,10 @@ export function ArtifactControls({ id }: { id: string }) {
   async function submit() {
     setBusy(true);
     try {
-      const result = await api(
-        `/api/artifacts/${id}`,
-        z.object({ id: z.string() }),
-        {
-          method: "POST",
-          body: { action: "delete" },
-        },
-      );
+      await api(`/api/artifacts/${id}`, z.object({ id: z.string() }), {
+        method: "POST",
+        body: { action: "delete" },
+      });
       router.push("/artifacts");
       router.refresh();
     } catch (e) {

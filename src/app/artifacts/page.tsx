@@ -18,7 +18,8 @@ export default async function Page() {
           <Link href="/runs/new">Create with a Run</Link>
         </Button>
         <p className="text-sm text-muted-foreground">
-          Start a Run to create a new artifact or add a revision to an existing one.
+          Start a Run to create a new artifact or add a revision to an existing
+          one.
         </p>
       </div>
       <ul className="space-y-3">

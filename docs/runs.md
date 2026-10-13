@@ -290,8 +290,9 @@ Restart/recovery selects the answerer again and snapshots current terms.
 
 ## Saved-artifact integration
 
-`/artifacts` creates owned records and shows saved revisions independently of
-Runs. Associated workflows require an owned artifact at admission. Sample MCP
+`/artifacts` shows saved revisions independently of Runs. Its **Create with a Run**
+action opens Start Run, which creates owned records during submission. Associated
+workflows require an owned artifact at admission. Sample MCP
 operations save a deterministic draft with a stable operation key and expected
 revision, then approve only its exact persisted decision target. Decline keeps
 the draft unapproved. Terminal sample results include a synthetic validated image.
