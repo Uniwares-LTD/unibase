@@ -1,3 +1,4 @@
+import { enqueueNotification } from "../notifications";
 import type { Document } from "mongodb";
 import "server-only";
 
@@ -44,6 +45,7 @@ export type AiJob = {
     answerer?: import("../runs/personas").PersonaSnapshot;
     takenOver?: boolean;
     artifactId?: string;
+    target?: import("../domains").OwnedTarget;
     logicalId: string;
     attempt: number;
     predecessorId: string | null;
@@ -434,6 +436,19 @@ export async function persistAiEvent(
                 { upsert: true, session },
               );
           }
+          if (
+            event.type === "decision" &&
+            (!current.run.answerer || current.run.takenOver)
+          )
+            await enqueueNotification(
+              db,
+              job.uid,
+              `decision:${eventId}`,
+              "run-decision",
+              { runId: current.run.logicalId },
+              session,
+              now,
+            );
           if (event.type === "decision-expired") {
             await db
               .collection<Document & { _id: string }>("runDecisions")
@@ -666,6 +681,17 @@ export async function settleAiJob(
       if (confirmedTotal !== responderTotal) throw conflict();
     }
     await onSettle?.(session);
+    if (saved.run && !saved.responder)
+      await enqueueNotification(
+        db,
+        saved.uid,
+        `run-final:${saved._id}`,
+        "run-final",
+        { runId: saved.run.logicalId, status },
+        session,
+        now,
+      );
+
     await patchAiJob(
       db,
       job,

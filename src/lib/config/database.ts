@@ -1,3 +1,4 @@
+import { databasePrefix } from "../project";
 import { z } from "zod";
 
 const schema = z.object({
@@ -13,7 +14,8 @@ export function parseDatabaseConfig(
   const result = schema.safeParse({
     mongoUri:
       input.MONGODB_URI ?? (local ? "mongodb://127.0.0.1:27017" : undefined),
-    database: input.MONGODB_DATABASE ?? (local ? "unitale_local" : undefined),
+    database:
+      input.MONGODB_DATABASE ?? (local ? `${databasePrefix}_local` : undefined),
   });
   if (!result.success) {
     const names: Record<string, string> = {

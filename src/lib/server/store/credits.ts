@@ -1,3 +1,4 @@
+import { enqueueNotification } from "../notifications";
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { MongoServerError, type ClientSession, type Db } from "mongodb";
@@ -590,7 +591,20 @@ export async function grantCredits(
       input.reference,
       input.expiresAt === undefined ? "default" : input.expiresAt,
     ],
-    (ctx) => grant(ctx, input),
+    async (ctx) => {
+      const result = await grant(ctx, input);
+      if (input.source === "purchase")
+        await enqueueNotification(
+          db,
+          uid,
+          `purchase:${key}`,
+          "credit-purchase",
+          { amount: input.amount },
+          ctx.session,
+          ctx.now,
+        );
+      return result;
+    },
     options,
   );
 }
@@ -972,6 +986,16 @@ export async function reversePurchase(
         { $set: { reversedCredits: targetReversed } },
         { session: ctx.session },
       );
+      if (delta !== 0)
+        await enqueueNotification(
+          db,
+          uid,
+          `reversal:${key}`,
+          "credit-reversal",
+          { amount: targetReversed },
+          ctx.session,
+          ctx.now,
+        );
       return { ...view(ctx.wallet), lotId: purchase._id };
     },
     options,

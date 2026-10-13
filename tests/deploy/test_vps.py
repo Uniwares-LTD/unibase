@@ -282,9 +282,12 @@ runpy.run_path(filename,run_name='__main__')
         first = subprocess.Popen(args, env=dict(self.env, HOLD_UP="1"), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         import time
         try:
-            for _ in range(100):
-                if Path("/tmp/hold-up-started").exists(): break
-                time.sleep(0.01)
+            deadline = time.monotonic() + 10
+            while not Path("/tmp/hold-up-started").exists() and time.monotonic() < deadline:
+                if first.poll() is not None:
+                    out, error = first.communicate()
+                    self.fail(out + error)
+                time.sleep(0.02)
             self.assertTrue(Path("/tmp/hold-up-started").exists())
             second = self.run_host("deploy", commit="b" * 40)
             out, error = first.communicate(timeout=10)
@@ -300,7 +303,8 @@ runpy.run_path(filename,run_name='__main__')
             self.assertLess(up[0], completed[0])
             self.assertLess(completed[0], up[1])
         finally:
-            if first.poll() is None: first.kill(); first.wait()
+            if first.poll() is None: first.kill()
+            first.communicate()
 
     def test_invalid_credentials_stop_before_image_pull(self):
         (CONFIG / "staging/firebase.json").write_text("{}")

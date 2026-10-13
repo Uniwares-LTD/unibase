@@ -21,10 +21,14 @@ def fixture(root):
                 "firebaseProject": f"unitale-{target}-test", "mongoDatabase": f"unitale_{target}",
                 "mongoUser": f"unitale_{target}", "tunnelImage": "cloudflare/cloudflared@sha256:" + "a" * 64}
         item["tunnelId"] = "11111111-1111-4111-8111-111111111111" if target == "staging" else "22222222-2222-4222-8222-222222222222"
+        item["redisImage"] = "redis@sha256:" + "b" * 64
+        item["nginxImage"] = "nginx@sha256:" + "c" * 64
+        item["ingressSubnet"] = "172.30.241.0/24" if target == "staging" else "172.30.242.0/24"
         config[target] = item
         directory = root / target
         directory.mkdir(parents=True, exist_ok=True)
-        env = {"APP_ENV": target, "APP_ORIGIN": item["origin"], "AUTH_MODE": "firebase",
+        (directory / "redis-password").write_text("r" * 43)
+        env = {"REDIS_URL": "redis://default:" + "r" * 43 + "@redis:6379", "APP_ENV": target, "APP_ORIGIN": item["origin"], "AUTH_MODE": "firebase",
                "FIREBASE_PROJECT_ID": item["firebaseProject"], "FIREBASE_API_KEY": "test-public-key",
                "FIREBASE_APP_ID": "test-public-app", "MONGODB_DATABASE": item["mongoDatabase"],
                "MONGODB_URI": f"mongodb+srv://{item['mongoUser']}:test-password@example.test"}
@@ -130,3 +134,25 @@ class ConfigTests(unittest.TestCase):
         (self.root / "staging/tunnel-token").write_bytes((self.root / "production/tunnel-token").read_bytes())
         with self.assertRaises(ValueError):
             config_module.validate(self.root, "staging")
+
+    def test_mcp_clients_hosts_and_run_selection(self):
+        env = self.root / "staging/runtime.env"
+        original = env.read_text()
+        values = {
+            "MCP_ENABLED": "true",
+            "MCP_CLIENTS_JSON": json.dumps([{"id": "dify", "tokenEnv": "MCP_TOKEN_DIFY", "permissions": ["run:read", "artifact:write"]}]),
+            "MCP_TOKEN_DIFY": "s" * 43,
+            "MCP_ALLOWED_HOSTS_JSON": '["tools.example.test"]',
+            "RUN_MCP_CLIENT_ID": "dify",
+        }
+        def write(extra):
+            env.write_text(original + "".join(f"{k}={v}\n" for k, v in extra.items()))
+        write(values)
+        self.assertNotIn("s" * 43, "".join(config_module.validate(self.root, "staging")))
+        for changes in ({"MCP_TOKEN_DIFY": "short"}, {"MCP_TOKEN_bad": "x" * 43},
+                        {"RUN_MCP_CLIENT_ID": "missing"}, {"MCP_ALLOWED_HOSTS_JSON": '["*.example.test"]'},
+                        {"MCP_ENABLED": "yes"},
+                        {"MCP_CLIENTS_JSON": values["MCP_CLIENTS_JSON"].replace("artifact:write", "admin:all")}):
+            write({**values, **changes})
+            with self.assertRaises(ValueError):
+                config_module.validate(self.root, "staging")

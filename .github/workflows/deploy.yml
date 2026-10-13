@@ -13,7 +13,7 @@ permissions:
   packages: write
   actions: read
 concurrency:
-  group: unitale-vps-operation
+  group: ${{ github.repository }}-vps-operation
   cancel-in-progress: false
 jobs:
   release:
@@ -37,5 +37,6 @@ jobs:
       - name: Remove runner credentials
         if: always()
         run: |
-          rm -rf "$RUNNER_TEMP/unitale-access"
+          source scripts/deploy/identity.sh
+          rm -rf "$RUNNER_TEMP/${project_slug}-access"
           docker logout ghcr.io || true

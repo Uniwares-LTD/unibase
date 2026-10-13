@@ -1,4 +1,7 @@
 "use client";
+import { useTranslations } from "next-intl";
+
+import { namespace } from "@/lib/project";
 import { useSyncExternalStore } from "react";
 import { diagnostics } from "@/lib/client/diagnostics";
 import { Button } from "@/components/ui/button";
@@ -11,6 +14,9 @@ import {
 } from "@/components/ui/card";
 
 export function DiagnosticsPanel() {
+  const translate = useTranslations("ui");
+  const common = useTranslations("common");
+
   const enabled = useSyncExternalStore(
     diagnostics.subscribe,
     diagnostics.isEnabled,
@@ -27,25 +33,21 @@ export function DiagnosticsPanel() {
     );
     const link = document.createElement("a");
     link.href = url;
-    link.download = "unitale-diagnostics.json";
+    link.download = namespace("diagnostics.json");
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   return (
     <Card className="shadow-none">
       <CardHeader>
-        <CardTitle>Browser diagnostics</CardTitle>
-        <CardDescription>
-          Collect event types, timing, response status and request IDs in this
-          tab only. No messages, account details or page addresses are
-          collected. Turning this off or reloading clears the buffer.
-        </CardDescription>
+        <CardTitle>{translate("m6a8576dff840")}</CardTitle>
+        <CardDescription>{translate("m1e55606bd490")} </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <p role="status">
           {enabled
-            ? `${count} of up to 100 events collected.`
-            : "Diagnostics are off."}
+            ? common("diagnosticCount", { count })
+            : translate("mdb00d1b43aba")}
         </p>
         <div className="flex flex-wrap gap-3">
           <Button
@@ -53,14 +55,14 @@ export function DiagnosticsPanel() {
             aria-pressed={enabled}
             onClick={() => diagnostics.setEnabled(!enabled)}
           >
-            {enabled ? "Disable and clear diagnostics" : "Enable diagnostics"}
+            {enabled ? translate("md21efe50cdaf") : translate("m6b72b5f69f4a")}
           </Button>
           <Button
             variant="outline"
             disabled={!enabled || count === 0}
             onClick={download}
           >
-            Export diagnostics
+            {translate("mb4205182f0eb")}{" "}
           </Button>
         </div>
       </CardContent>

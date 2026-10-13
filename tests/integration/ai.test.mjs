@@ -103,6 +103,28 @@ async function runWorker() {
 test("Runs HTTP: durable decisions, owned history, recovery, settings, and exactly-once billing", async () => {
   await createCreditIndexes(db);
   await createAiIndexes(db);
+  const csrfResponse = await fetch(origin + "/api/auth/csrf");
+  const csrf = await csrfResponse.json();
+  const cookie = csrfResponse.headers
+    .getSetCookie()
+    .map((c) => c.split(";")[0])
+    .join("; ");
+  for (const path of [
+    "/api/run-uploads",
+    "/api/runs/" + "a".repeat(64) + "/uploads",
+  ]) {
+    const rejected = await fetch(origin + path, {
+      method: "POST",
+      headers: {
+        cookie,
+        origin,
+        "x-csrf-token": csrf.token,
+        "content-type": "multipart/form-data; boundary=invalid",
+      },
+      body: "invalid multipart must not be parsed",
+    });
+    assert.equal(rejected.status, 401);
+  }
   const owner = await browser();
   const other = await browser();
   await db.collection("accountAccess").updateOne(
@@ -164,6 +186,20 @@ test("Runs HTTP: durable decisions, owned history, recovery, settings, and exact
     assert.equal(response.status, 202, await response.clone().text());
     return { body, ...(await response.json()) };
   };
+  assert.equal((await owner.request("/api/runs/not-an-id")).status, 400);
+  assert.equal(
+    (await owner.request("/api/runs/" + "0".repeat(64))).status,
+    404,
+  );
+  assert.equal(
+    (
+      await owner.request("/api/artifacts/not-an-id", {
+        method: "POST",
+        body: JSON.stringify({ action: "delete" }),
+      })
+    ).status,
+    400,
+  );
   const run = await start("decision");
   assert.equal((await readWallet(db, owner.uid)).reserved, 1);
   const replay = await (
@@ -180,6 +216,40 @@ test("Runs HTTP: durable decisions, owned history, recovery, settings, and exact
   assert.equal(detail.decisions.length, 1);
   assert.ok(!JSON.stringify(detail).includes('"token"'));
   const decision = detail.decisions[0];
+  const historic = Array.from({ length: 106 }, (_, i) => ({
+    _id: i.toString(16).padStart(64, "0"),
+    uid: owner.uid,
+    logicalId: run.id,
+    jobId: detail.attempts[0].id,
+    nodeId: "historical",
+    title: "Historical",
+    token: "fixture",
+    status: "submitted",
+    createdAt: new Date(0),
+  }));
+  await db.collection("runDecisions").insertMany(historic);
+  const ids = new Set();
+  let cursor;
+  do {
+    const page = await (
+      await owner.request(
+        `/api/runs/${run.id}${cursor ? "?decisions=" + cursor : ""}`,
+      )
+    ).json();
+    assert.equal(
+      page.actionable.rows[0].id,
+      decision.id,
+      "pending independent of historical page",
+    );
+    assert.ok(page.decisionHistory.rows.length <= 25);
+    page.decisionHistory.rows.forEach((d) => ids.add(d.id));
+    cursor = page.decisionHistory.next;
+  } while (cursor);
+  assert.equal(ids.size, 106);
+  await db
+    .collection("runDecisions")
+    .deleteMany({ uid: owner.uid, logicalId: run.id, nodeId: "historical" });
+
   assert.equal(
     (
       await other.request(`/api/runs/${run.id}/decisions/${decision.id}`, {

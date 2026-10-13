@@ -123,6 +123,20 @@ export async function browserFixture(env) {
     ]);
     env.DIFY_CREDENTIAL_ENCRYPTION_KEY = "cd".repeat(32);
   }
+  if (process.argv.includes("--pagination")) {
+    const createdAt = new Date();
+    await db.collection("artifacts").insertMany(
+      Array.from({ length: 60 }, (_, i) => ({
+        id: randomUUID(),
+        uid: user.uid,
+        title: "Pagination artifact " + String(i).padStart(3, "0"),
+        revision: 0,
+        approvedRevision: null,
+        assets: [],
+        createdAt,
+      })),
+    );
+  }
   await mkdir("output/playwright", { recursive: true });
   await writeFile(
     "output/playwright/runs-state.json",
@@ -147,6 +161,11 @@ export async function browserFixture(env) {
     windowsHide: true,
     stdio: "inherit",
   });
+  const maintenance = spawn(process.execPath, ["dist/payment-worker.cjs"], {
+    env,
+    windowsHide: true,
+    stdio: "inherit",
+  });
   console.log(
     "Owned browser fixture ready at http://127.0.0.1:3101. Press Enter to stop.",
   );
@@ -154,6 +173,7 @@ export async function browserFixture(env) {
   await new Promise((resolve) => process.stdin.once("data", resolve));
   process.stdin.pause();
   worker.kill();
+  maintenance.kill();
   await client.close();
   await auth.deleteUser(user.uid);
 }

@@ -154,3 +154,7 @@ Each rule file contains:
 ## Full Compiled Document
 
 For the complete guide with all rules expanded: `AGENTS.md`
+
+For localized pages, inspect dictionary payloads and RSC navigation together. A
+persistent root provider must not retain only the previous page's messages. Keep
+server dictionaries and private provider configuration out of client imports.

@@ -226,6 +226,7 @@ export async function executeCleanup(
               )
           )
             continue;
+          const job = await aiJobs(db).findOne({ _id: target.id }, { session });
           const result = await aiJobs(db).updateOne(
             {
               $and: [
@@ -239,6 +240,11 @@ export async function executeCleanup(
             },
             { session },
           );
+          if (result.modifiedCount && job)
+            await (
+              await import("../private-files")
+            ).releaseFileReference(db, job.uid, `run:${target.id}`, session);
+
           changed += result.modifiedCount;
           if (result.modifiedCount) {
             await db

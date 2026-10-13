@@ -1,4 +1,7 @@
 "use server";
+import { getTranslations } from "next-intl/server";
+import { errorMessage } from "@/lib/server/error-message";
+import { limitRequest } from "@/lib/server/rate-limit";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { AppError, requireSameOrigin } from "@/lib/auth-policy";
@@ -19,7 +22,7 @@ export async function saveProfile(
   return saveSection(
     expectedUid,
     () => updateMyAccountDetails({ displayName: form.get("displayName") }),
-    "Profile saved.",
+    (await getTranslations("actions"))("mc1632eafd446"),
   );
 }
 
@@ -35,7 +38,7 @@ export async function saveAppearance(
         theme: form.get("theme"),
         style: form.get("style"),
       }),
-    "Preferences saved.",
+    (await getTranslations("actions"))("m60d6766a9e62"),
   );
 }
 
@@ -48,6 +51,7 @@ async function saveSection(
   try {
     requireSameOrigin(await headers(), getConfig().server.origin);
     const session = await requireSession();
+    await limitRequest("account:" + session.uid, "mutation");
     if (session.uid !== expectedUid)
       throw new AppError(
         "ACCOUNT_CHANGED",
@@ -67,10 +71,11 @@ async function saveSection(
       error instanceof AppError ? error.status : 503,
     );
     return {
-      message:
+      message: await errorMessage(
         error instanceof AppError
-          ? error.message
-          : "Couldn’t save your profile. Please try again.",
+          ? error
+          : new AppError("SERVICE_UNAVAILABLE", "Please try again.", 503),
+      ),
       saved: false,
     };
   }

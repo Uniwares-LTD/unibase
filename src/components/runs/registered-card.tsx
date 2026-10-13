@@ -1,4 +1,8 @@
 "use client";
+import { StateLabel } from "@/components/localized-value";
+
+import { useTranslations } from "next-intl";
+
 import { useId, useState, type ComponentType } from "react";
 import Image from "next/image";
 import { createRegistry, type RegisteredValue } from "@/lib/runs/registry";
@@ -36,6 +40,8 @@ type CardBodyProps = {
   allowedAssetIds: string[];
 };
 function QuestionBody({ content, disabled, respond }: CardBodyProps) {
+  const translate = useTranslations("ui");
+
   const data = questionSchema.parse(content.data);
   return (
     <FormBody
@@ -50,7 +56,7 @@ function QuestionBody({ content, disabled, respond }: CardBodyProps) {
               ? {
                   id: "answer",
                   kind: "text",
-                  label: "Your answer",
+                  label: translate("md0e869b777a6"),
                   required: true,
                   multiline: true,
                   maxLength: 4000,
@@ -58,7 +64,7 @@ function QuestionBody({ content, disabled, respond }: CardBodyProps) {
               : {
                   id: "answer",
                   kind: "choice",
-                  label: "Your answer",
+                  label: translate("md0e869b777a6"),
                   required: true,
                   multiple: data.kind === "multiple",
                   options: data.options,
@@ -78,6 +84,8 @@ function QuestionBody({ content, disabled, respond }: CardBodyProps) {
   );
 }
 function FormBody({ content, disabled, respond }: CardBodyProps) {
+  const translate = useTranslations("ui");
+
   const form = formCardSchema.parse(content.data);
   const prefix = useId();
   const [values, setValues] = useState<
@@ -98,7 +106,7 @@ function FormBody({ content, disabled, respond }: CardBodyProps) {
             .response(form, "submit", values);
           respond("submit", parsed);
         } catch (e) {
-          setError(e instanceof Error ? e.message : "Check the form fields.");
+          setError(e instanceof Error ? e.message : translate("m94391b48e270"));
         }
       }}
     >
@@ -133,7 +141,9 @@ function FormBody({ content, disabled, respond }: CardBodyProps) {
                 {field.required ? " (required)" : ""}
               </legend>
               <p className="text-xs text-muted-foreground">
-                {field.multiple ? "Choose one or more" : "Choose one"}
+                {field.multiple
+                  ? translate("m97169869b5b3")
+                  : translate("m0b24aed53ab6")}
               </p>
               <div className="flex flex-wrap gap-2">
                 {field.options.map((option) => (
@@ -214,11 +224,13 @@ function FormBody({ content, disabled, respond }: CardBodyProps) {
           {error}
         </p>
       )}
-      <Button disabled={disabled}>Save response</Button>
+      <Button disabled={disabled}>{translate("mf83d508047c9")}</Button>
     </form>
   );
 }
 function SummaryBody({ content, disabled, respond }: CardBodyProps) {
+  const translate = useTranslations("ui");
+
   const data = summaryCardSchema.parse(content.data);
   return (
     <div className="space-y-3">
@@ -228,7 +240,7 @@ function SummaryBody({ content, disabled, respond }: CardBodyProps) {
         variant="outline"
         onClick={() => respond("acknowledge", null)}
       >
-        Acknowledge
+        {translate("mf9236d9e87b6")}{" "}
       </Button>
     </div>
   );
@@ -239,6 +251,8 @@ function GalleryBody({
   respond,
   allowedAssetIds,
 }: CardBodyProps) {
+  const translate = useTranslations("ui");
+
   const data = galleryCardSchema.parse(content.data);
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -255,7 +269,7 @@ function GalleryBody({
             />
           ) : (
             <p className="text-sm text-muted-foreground">
-              This image is unavailable.
+              {translate("m8d25d2b1ce81")}{" "}
             </p>
           )}
           <p>{item.label}</p>
@@ -264,7 +278,7 @@ function GalleryBody({
             variant="outline"
             onClick={() => respond("choose", item.assetId)}
           >
-            Choose {item.label}
+            {translate("mc7f937836f5d")} {item.label}
           </Button>
         </div>
       ))}
@@ -286,29 +300,30 @@ function ProgressBody({ content }: CardBodyProps) {
   );
 }
 function IssueBody({ content, disabled, respond }: CardBodyProps) {
+  const translate = useTranslations("ui");
+
   const data = issueCardSchema.parse(content.data);
   return (
     <div className="space-y-3">
       <Badge
         variant={data.severity === "blocking" ? "destructive" : "secondary"}
       >
-        {data.severity}
+        <StateLabel value={data.severity} />
       </Badge>
-      <ul className="list-disc space-y-1 pl-5">
+      <ul className="list-disc space-y-1 ps-5">
         {data.details.map((detail, i) => (
           <li key={i}>{detail}</li>
         ))}
       </ul>
       <p className="text-sm text-muted-foreground">
-        Acknowledging records that you read this message; it does not resolve
-        the reported issue.
+        {translate("me289c76a8970")}{" "}
       </p>
       <Button
         disabled={disabled}
         variant="outline"
         onClick={() => respond("acknowledge", null)}
       >
-        Acknowledge
+        {translate("mf9236d9e87b6")}{" "}
       </Button>
     </div>
   );
@@ -338,6 +353,8 @@ export function RegisteredCard({
   allowedAssetIds?: string[];
   onRespond: (action: CardAction, value: RegisteredValue["data"]) => void;
 }) {
+  const translate = useTranslations("ui");
+
   let content: RegisteredValue;
   let Component: ComponentType<CardBodyProps>;
   try {
@@ -346,7 +363,7 @@ export function RegisteredCard({
   } catch {
     return (
       <p role="status" className="rounded-md border p-3">
-        This saved card needs a supported renderer. Its data has been preserved.
+        {translate("m1b069b7cfe37")}{" "}
       </p>
     );
   }
@@ -355,7 +372,7 @@ export function RegisteredCard({
     content.data !== null &&
     "title" in content.data
       ? String(content.data.title)
-      : "Generated card";
+      : translate("m857d0d542784");
   return (
     <Card>
       <CardHeader>
@@ -377,7 +394,9 @@ export function RegisteredCard({
           />
         ) : (
           <>
-            <p className="text-sm">Saved action: {card.responseAction}</p>
+            <p className="text-sm">
+              {translate("mfc56c76f0422")} {card.responseAction}
+            </p>
             <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-3 text-sm">
               {JSON.stringify(card.response, null, 2)}
             </pre>

@@ -1,3 +1,4 @@
+import { namespace } from "@/lib/project";
 // One cancellation scope for browser HTTP requests in the current document.
 const requests = new AbortController();
 export const sessionRequestSignal = () => requests.signal;
@@ -7,7 +8,7 @@ export function invalidateBrowserSession() {
 }
 export function announceSessionChange() {
   try {
-    localStorage.setItem("unitale-session-event", crypto.randomUUID());
+    localStorage.setItem(namespace("session-event"), crypto.randomUUID());
   } catch {
     // Navigation and clearing this document must work with storage disabled.
   }

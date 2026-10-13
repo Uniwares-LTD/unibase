@@ -253,3 +253,15 @@ Transactional `productOperations` records make identical retries return the firs
 result and reject changed payloads. A timeout cannot undo a committed save; callers
 retry the same operation key to reconcile it. No arbitrary URL/image fetch or raw
 query endpoint is added.
+
+
+## Project selection and shared limits
+
+MCP is an optional project module and remains runtime-disabled until configured.
+Application-mode projects omit synthetic reference/catalog/quote tools and artifact
+example tools. Example mode makes them available only under their explicit grants.
+Run tools still require owned Run capabilities; service credentials never confer
+end-user ownership. Registered clients share Redis-backed request limits scoped to
+project/environment/client. Exceeded limits return 429 with Retry-After; Redis
+failure returns a safe 503. The environment catalog and deployment validation use
+the same strictly named `MCP_TOKEN_*` credentials and Run client selection.

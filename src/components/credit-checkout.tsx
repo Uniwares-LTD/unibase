@@ -1,4 +1,7 @@
 "use client";
+import { useTranslations } from "next-intl";
+
+import { namespace } from "@/lib/project";
 import { Notice } from "./page-patterns";
 import { useActionState, useEffect, useState } from "react";
 import { paymentContext } from "@/lib/payment-context";
@@ -21,6 +24,8 @@ export function CreditCheckout({
     currency?: string;
   }[];
 }) {
+  const translate = useTranslations("ui");
+
   const [state, action, pending] = useActionState(
     checkoutCredits.bind(null, uid),
     { message: "" },
@@ -32,7 +37,7 @@ export function CreditCheckout({
     let active = true;
     let markedPlay = false;
     try {
-      markedPlay = sessionStorage.getItem("unitale-play-context") === "yes";
+      markedPlay = sessionStorage.getItem(namespace("play-context")) === "yes";
     } catch {
       /* browser storage is optional */
     }
@@ -51,7 +56,7 @@ export function CreditCheckout({
       if (!active) return;
       if (value === "play") {
         try {
-          sessionStorage.setItem("unitale-play-context", "yes");
+          sessionStorage.setItem(namespace("play-context"), "yes");
         } catch {
           /* retain the in-memory decision */
         }
@@ -65,20 +70,17 @@ export function CreditCheckout({
   if (context === "play")
     return (
       <p role="status" className="text-sm text-muted-foreground">
-        Purchases in the Play application are unavailable until Play billing is
-        enabled. No web checkout is offered here.
+        {translate("m67ae882d6ded")}{" "}
       </p>
     );
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Buy credits</CardTitle>
+        <CardTitle>{translate("mfd70f8c19e46")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          One-time purchases through Stripe Checkout. Credits arrive after
-          payment verification. Returning here does not confirm payment; refresh
-          your balance after processing.
+          {translate("m5a12455b2151")}{" "}
         </p>
         <form action={action} className="flex flex-wrap gap-3">
           <input type="hidden" name="key" value={initialKey} />
@@ -90,12 +92,12 @@ export function CreditCheckout({
               value={pack.id}
               disabled={pending || context !== "web"}
             >
-              {pack.label} · {pack.credits} credits
+              {pack.label} · {pack.credits} {translate("mbe379a30f1aa")}{" "}
             </Button>
           ))}
         </form>
         <p className="text-sm text-muted-foreground">
-          Price and currency are confirmed on Checkout before paying.
+          {translate("m75fada4bbaf4")}{" "}
         </p>
         {state.message && <Notice tone={"error"} title={state.message} />}
       </CardContent>

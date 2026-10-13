@@ -1,4 +1,7 @@
 "use server";
+import { getTranslations } from "next-intl/server";
+import { errorMessage } from "@/lib/server/error-message";
+import { limitRequest } from "@/lib/server/rate-limit";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
@@ -17,6 +20,7 @@ type State = { message: string; saved: boolean };
 async function guard(expectedUid: string) {
   requireSameOrigin(await headers(), getConfig().server.origin);
   const actor = await requireSession();
+  await limitRequest("account:" + actor.uid, "mutation");
   if (actor.uid !== expectedUid)
     throw new AppError(
       "ACCOUNT_CHANGED",
@@ -24,18 +28,19 @@ async function guard(expectedUid: string) {
       409,
     );
 }
-function failure(
+async function failure(
   error: unknown,
   event: DiagnosticEvent,
   started: number,
-): State {
+): Promise<State> {
   unstable_rethrow(error);
   logOperation(event, started, error instanceof AppError ? error.status : 503);
   return {
-    message:
+    message: await errorMessage(
       error instanceof AppError
-        ? error.message
-        : "Couldn’t complete this simulation. Please try again.",
+        ? error
+        : new AppError("SERVICE_UNAVAILABLE", "Please try again.", 503),
+    ),
     saved: false,
   };
 }
@@ -55,8 +60,7 @@ export async function startSimulation(
     revalidatePath("/credits");
     logOperation("purchase-simulation-start", started, 200);
     return {
-      message:
-        "Simulated purchase created. Choose its outcome below. No money was charged.",
+      message: (await getTranslations("actions"))("mdc2d635f2681"),
       saved: true,
     };
   } catch (error) {
@@ -87,8 +91,8 @@ export async function applySimulation(
     return {
       message:
         event === "replay"
-          ? "Prior success replayed. No extra credits were issued."
-          : "Simulated outcome saved. No money was charged.",
+          ? (await getTranslations("actions"))("m8f1610e7afed")
+          : (await getTranslations("actions"))("mfa38afe96649"),
       saved: true,
     };
   } catch (error) {

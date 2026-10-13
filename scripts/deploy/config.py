@@ -3,12 +3,61 @@ import json
 import base64
 import re
 import sys
+from ipaddress import ip_network
 from pathlib import Path
 from urllib.parse import urlsplit, unquote
 from uuid import UUID
 
 
+def validate_mcp(env, catalog):
+    enabled = env.get("MCP_ENABLED", "false")
+    if enabled not in ("true", "false"):
+        raise ValueError("Invalid MCP configuration")
+    client_id = env.get("RUN_MCP_CLIENT_ID", "dify")
+    if not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", client_id):
+        raise ValueError("Invalid Run MCP client selection")
+    if enabled == "false":
+        return
+    clients = json.loads(env.get("MCP_CLIENTS_JSON", ""))
+    hosts = json.loads(env.get("MCP_ALLOWED_HOSTS_JSON", "[]"))
+    if not isinstance(hosts, list) or len(hosts) > 16:
+        raise ValueError("Invalid MCP hosts")
+    for host in hosts:
+        if not isinstance(host, str) or not re.fullmatch(r"[a-zA-Z0-9.\-\[\]:]+", host):
+            raise ValueError("Invalid MCP host")
+        url = urlsplit("https://" + host)
+        canonical = ("[" + url.hostname + "]") if url.hostname and ":" in url.hostname else url.hostname
+        if url.port is not None and url.port != 443:
+            canonical = f"{canonical}:{url.port}"
+        if not url.hostname or url.path or url.query or url.fragment or canonical != host.lower():
+            raise ValueError("Invalid MCP host")
+    if not isinstance(clients, list) or not 1 <= len(clients) <= 32:
+        raise ValueError("Invalid MCP clients")
+    ids, tokens = set(), set()
+    for client in clients:
+        if (not isinstance(client, dict) or set(client) != {"id", "tokenEnv", "permissions"} or
+                not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", client.get("id", "")) or
+                not re.fullmatch(r"MCP_TOKEN_[A-Z0-9_]+", client.get("tokenEnv", ""))):
+            raise ValueError("Invalid MCP client")
+        permissions = client["permissions"]
+        token = env.get(client["tokenEnv"], "")
+        if (not isinstance(permissions, list) or not permissions or
+                any(p not in catalog["mcpPermissions"] for p in permissions) or
+                not re.fullmatch(r"[A-Za-z0-9_-]{43,256}", token) or
+                client["id"] in ids or token in tokens):
+            raise ValueError("Invalid MCP client configuration")
+        ids.add(client["id"])
+        tokens.add(token)
+    if "RUN_MCP_CLIENT_ID" in env and client_id not in ids:
+        raise ValueError("Run MCP client is not registered")
+
+
 def validate(root, target):
+    manifest = json.loads((Path(__file__).resolve().parents[2] / "project.config.json").read_text())
+    slug = manifest["slug"]
+    if not re.fullmatch(r"[a-z][a-z0-9-]{2,39}", slug):
+        raise ValueError("Invalid project identity")
+    prefix = slug.replace("-", "_")
     config = json.loads((root / "config.json").read_text())
     if not re.fullmatch(r"ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+", config["imageRepository"]):
         raise ValueError("Invalid Unitale image repository")
@@ -31,28 +80,48 @@ def validate(root, target):
             raise ValueError("Tunnel image must use a digest")
         if not re.fullmatch(r"[a-z][a-z0-9-]{4,28}[a-z0-9]", item["firebaseProject"]):
             raise ValueError("Invalid Firebase project")
-        if not re.fullmatch(r"unitale_[A-Za-z0-9_]+", item["mongoDatabase"]):
+        if not re.fullmatch(re.escape(prefix) + r"_[A-Za-z0-9_]+", item["mongoDatabase"]):
             raise ValueError("Database must be Unitale-specific")
-        if not re.fullmatch(r"unitale_[A-Za-z0-9_]+", item["mongoUser"]):
+        if not re.fullmatch(re.escape(prefix) + r"_[A-Za-z0-9_]+", item["mongoUser"]):
             raise ValueError("Database user must be Unitale-specific")
+    for name in ("staging", "production"):
+        for key, image in (("redisImage", "redis"), ("nginxImage", "nginx")):
+            if not re.fullmatch(image + r"@sha256:[a-f0-9]{64}", config[name].get(key, "")):
+                raise ValueError("Infrastructure images must use digests")
+    networks = []
+    for name in ("staging", "production"):
+        network = ip_network(config[name]["ingressSubnet"])
+        if network.version != 4 or not network.subnet_of(ip_network("172.16.0.0/12")) or not 24 <= network.prefixlen <= 28:
+            raise ValueError("Invalid isolated ingress subnet")
+        networks.append(network)
+    if networks[0].overlaps(networks[1]):
+        raise ValueError("Ingress networks must be distinct")
     item = config[target]
     directory = root / target
     env = {}
-    allowed = {"APP_NAME", "APP_STYLE", "APP_ENV", "APP_ORIGIN", "AUTH_MODE", "FIREBASE_PROJECT_ID",
-               "FIREBASE_API_KEY", "FIREBASE_APP_ID", "MONGODB_URI", "MONGODB_DATABASE",
-               "ANDROID_PACKAGE_NAME", "ANDROID_SHA256_FINGERPRINTS",
-               "PAYMENTS_MODE", "CREDIT_PACKS_JSON", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
-               "DIFY_MODE", "DIFY_BASE_URL", "DIFY_ORCHESTRATORS_JSON", "DIFY_CONSOLE_URL", "DIFY_MANAGEMENT_KEY", "DIFY_WORKSPACE_ID", "DIFY_CREDENTIAL_ENCRYPTION_KEY",
-               "ASSET_STORE", "ASSET_S3_ENDPOINT", "ASSET_S3_REGION", "ASSET_S3_BUCKET",
-               "ASSET_S3_PREFIX", "ASSET_S3_ACCESS_KEY_ID", "ASSET_S3_SECRET_ACCESS_KEY",
-               "ASSET_S3_FORCE_PATH_STYLE"}
+    catalog = json.loads((Path(__file__).parent / "environment-catalog.json").read_text())
+    allowed = set(catalog["runtime"])
     for line in (directory / "runtime.env").read_text().splitlines():
         if not line or line.startswith("#"):
             continue
         key, value = line.split("=", 1)
-        if (key not in allowed and not re.fullmatch(r"DIFY_KEY_[A-Z0-9_]+", key)) or key in env:
+        if (key not in allowed and not any(re.fullmatch(pattern, key) for pattern in catalog["credentialPatterns"])) or key in env:
             raise ValueError("Unknown or duplicate runtime setting")
         env[key] = value
+    validate_mcp(env, catalog)
+    redis = urlsplit(env.get("REDIS_URL", ""))
+    redis_password = (directory / "redis-password").read_text().strip()
+    if (redis.scheme != "redis" or redis.hostname != "redis" or redis.port != 6379 or
+            redis.username not in ("default", None, "") or
+            unquote(redis.password or "") != redis_password or
+            not re.fullmatch(r"[A-Za-z0-9_-]{43,256}", redis_password) or
+            redis.path not in ("", "/0") or redis.query or redis.fragment):
+        raise ValueError("Invalid private Redis configuration")
+    limits = json.loads(env.get("RATE_LIMITS_JSON", "{}"))
+    if not isinstance(limits, dict) or any(k not in ("read", "mutation", "upload", "admission", "mcp") or
+        type(v) is not int or not 1 <= v <= 100000 for k, v in limits.items()):
+        raise ValueError("Invalid request limits")
+
     if env.get("APP_STYLE", "classic") not in ("classic", "glass", "soft-blue"):
         raise ValueError("Invalid APP_STYLE")
     if env.get("ASSET_STORE", "mongo") not in ("mongo", "s3"):
@@ -113,7 +182,7 @@ def validate(root, target):
     if token.get("t") != item["tunnelId"] or not token.get("a") or not base64.b64decode(token["s"], validate=True):
         raise ValueError("Tunnel token identity mismatch")
     # Output only non-secret, validated Compose inputs, one value per line.
-    return [item["origin"], str(item["port"]), item["tunnelImage"], config["imageRepository"]]
+    return [item["origin"], str(item["port"]), item["tunnelImage"], config["imageRepository"], item["redisImage"], item["nginxImage"], item["ingressSubnet"]]
 
 
 if __name__ == "__main__":

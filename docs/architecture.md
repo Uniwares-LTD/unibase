@@ -466,3 +466,125 @@ request before submission and reuses its IDs after uncertain responses. Existing
 artifact and Run admission services retain ownership and idempotency authority.
 Saved artifacts links to Start Run for creation; its detail controls only delete
 existing artifacts.
+
+
+### Reuse hardening boundaries
+
+Application and host runtime names share a machine-readable catalog under
+`scripts/deploy`, included in host-operation bundles. MCP grants remain explicit
+and server-only. Caller input parsing uses safe application errors independently
+of persisted/provider response validation.
+
+Uploads verify a session before acquiring a body reader, then enforce the saved
+file limit plus multipart overhead and an absolute deadline. Service ownership
+checks still run before provider operations.
+
+Artifact pages use stable creation-time/ID cursors; revisions use revision cursors.
+Revision images are associated with the source attempt's globally final revision.
+Run history and actionable decisions have independent 25-row cursor pages.
+Cursors are validated against owner/resource/filter, and every database query
+continues to enforce ownership.
+
+### Shared request protection and project configuration
+
+The reviewed project manifest is build-time public configuration; it contains no
+credentials. Runtime Redis, database, Firebase and provider connections remain
+private. Namespace derivation preserves the current unitale installation.
+Server module guards remain independent of navigation.
+
+Protected Route Handlers authenticate and apply one account-scoped Redis counter
+before entering their service. MCP authenticates its client before applying a
+separate counter. Actions apply the mutation policy after their actor/origin check.
+Counters use a single atomic Lua increment/expiry operation, hashed actor IDs,
+project/environment scopes and a 60-second lifetime. Redis readiness participates
+in the existing readiness probe.
+
+Nginx strips incoming forwarded addresses, trusts CF-Connecting-IP only on the
+dedicated tunnel subnet, and preserves streaming. The application network is
+separate from the tunnel network; Redis has no published host port.
+
+
+### Owned domains and managed files
+
+Domain adapters provide stable ID/version, reference kind, bounded owned picker
+metadata, ownership/admission checks, approval validation and transactional result
+application. Pickers return `{ rows: [{ id, title }], next }` for the authenticated
+owner and accept `search`/`cursor`. Browser targets contain only kind and ID.
+The registered orchestrator selects executable behavior. Adapter admission must
+write a domain fence in the same transaction as reservation to serialize deletion.
+The generic fenced result worker checks the accepted target snapshot before
+application. Artifact-specific behavior lives behind the version-1 adapter;
+compatibility exports retain existing imports and persisted artifact associations.
+
+Private-file reservations share the account wallet transaction fence with legacy
+provider uploads, preventing concurrent quota over-admission. Durable staging
+records precede GridFS/S3 writes. Ready records retain digest, byte count and owned
+references; deleted tombstones preserve retry identity. A fenced maintenance
+consumer reclaims abandoned stages after 24 hours and releases quota only after
+storage removal. Run admission and file-bearing decisions acquire references in
+their state transaction. Terminal-history cleanup releases them. Provider upload
+references retain binding snapshots and add `managedFileId`; legacy references
+remain readable without pretending source bytes are available.
+
+
+### In-app notifications
+
+Run decisions requiring a human, terminal parent Runs, confirmed credit purchases
+and reversals, and administrative access changes write notification intents inside
+their originating MongoDB transaction. Persona fallback writes its intent together
+with the fallback decision state; child executions never create final Run notices.
+The maintenance worker uses expiring fenced leases and one transaction to evaluate
+category preferences, insert the unique inbox row and acknowledge the intent.
+Preferences share a write fence with materialization. All three categories default
+on. Only allowlisted template keys and bounded parameters are persisted.
+
+Inbox queries are owned, keyset-paginated and exclude records at 90 days; TTL and
+bounded worker cleanup remove expired data. The outbox retains only a hashed
+completed-event tombstone after retention to prevent duplicate replay. Opening a
+Run notification rechecks ownership and retained history before resolving its
+allowlisted internal destination. Visible tabs poll unread summaries every 30
+seconds and abort requests on hide, unmount and session invalidation.
+
+
+## Locale and direction
+
+English and Arabic retain identical page/API URLs. `requestLocale` resolves the
+project-namespaced browser cookie, stored account locale, weighted Accept-Language,
+then the project default. Missing account timezone defaults to UTC; supported IANA
+timezones are validated with Intl. The localization mutation updates only locale
+and timezone, independently of appearance and profile edits.
+
+The root renders lang/dir and Radix direction. Typed next-intl catalogs supply
+server text, with generated per-page client key inventories and a persistent shell
+catalog. Each page carries a provider on client navigation. Run/provider text,
+user-authored labels and identifiers retain their original content. Dates use the
+resolved timezone except administrative date filters/reports, which retain UTC.
+Notification templates resolve at read time; API error codes remain stable.
+
+Public offline recovery caches only its HTML and language script; the selected
+locale is a namespaced browser preference. It never caches account data. Regenerate
+public recovery assets and client key inventories with `node scripts/i18n-assets.mjs`
+and `node scripts/i18n-client-sections.mjs`; `npm run check:i18n` checks drift.
+
+
+## Project creation and compatibility
+
+`project.config.json` is the validated public setup manifest: slug/display/style,
+module selection, locales, example selection and optional Android package identity.
+Runtime environments retain credentials and connection settings. Module descriptors
+select navigation/admission, index ownership and worker requirements; accepted
+financial and Run history is preserved independently of new admission visibility.
+
+The initializer reads an immutable reviewed Git tree into a new empty directory.
+It rejects symlinks/submodules, case-colliding paths, unsafe destinations and missing
+source contracts; excludes environment overrides, credentials, generated Android,
+caches/browser/database state and Git history; and records the source revision.
+Package identity, local connections and deployment examples derive from the manifest.
+Application mode enables reusable modules with providers inactive and examples
+hidden. Example mode must be explicitly selected. Local fixture verification uses
+private synthetic commits and leaves working-repository refs/index/history alone.
+
+Protocol fields such as `unibase_context`, cryptographic derivation labels,
+accepted handler versions and permanent payment metadata remain compatibility
+contracts. They are not browser/deployment namespaces and must not be blindly renamed.
+See [reusable services](services.md) for quotas, references, limits and transactions.

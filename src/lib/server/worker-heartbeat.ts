@@ -1,4 +1,5 @@
 import "server-only";
+import { project } from "../project";
 import { randomUUID } from "node:crypto";
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -15,7 +16,10 @@ export type WorkerHeartbeat = {
 };
 export const WORKER_MAX_AGE_MS = 300_000;
 const heartbeatPath = (kind: WorkerKind) =>
-  join(tmpdir(), `base-${kind}-heartbeat.json`);
+  join(
+    tmpdir(),
+    `${project.slug === "unitale" ? "base" : project.slug}-${kind}-heartbeat.json`,
+  );
 export function healthyHeartbeat(
   value: Pick<WorkerHeartbeat, "updatedAt" | "state">,
   now = Date.now(),

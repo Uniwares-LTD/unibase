@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -53,22 +54,21 @@ const sampleWallet = {
 };
 
 export function DesignShowcase() {
+  const translate = useTranslations("ui");
+
   const [name, setName] = useState("");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   return (
     <div className="page-stack">
-      <Notice title="Development samples only">
-        No accounts, credits or stories are changed here. The appearance
-        selector updates this browser&apos;s theme preference.
+      <Notice title={translate("mbad95ad3aed2")}>
+        {translate("m6bf93533a449")}{" "}
       </Notice>
       <Card>
         <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <CardDescription>
-            Inspect the same components in light, dark and system modes.
-          </CardDescription>
+          <CardTitle>{translate("m3907fa7f8072")}</CardTitle>
+          <CardDescription>{translate("m5fb6d2daa0b0")} </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-8">
@@ -76,23 +76,22 @@ export function DesignShowcase() {
             <ThemePreference />
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Glass uses this page&apos;s declared cover. Try an image, no
-                image, or a failed image to compare the gradient fallback.
+                {translate("m455ef101ffd7")}{" "}
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button variant="outline" asChild>
                   <Link href="/design-system" scroll={false}>
-                    Sample cover
+                    {translate("m497a0675e0eb")}{" "}
                   </Link>
                 </Button>
                 <Button variant="outline" asChild>
                   <Link href="/design-system?cover=none" scroll={false}>
-                    No cover
+                    {translate("mb2ec3181b360")}{" "}
                   </Link>
                 </Button>
                 <Button variant="outline" asChild>
                   <Link href="/design-system?cover=broken" scroll={false}>
-                    Broken cover
+                    {translate("mcafbb4effbf9")}{" "}
                   </Link>
                 </Button>
               </div>
@@ -105,7 +104,7 @@ export function DesignShowcase() {
         className="reading-surface glass-inset space-y-4"
       >
         <h2 id="tokens-title" className="text-xl font-semibold">
-          Colors and typography
+          {translate("m6a2d703a4db0")}{" "}
         </h2>
         <div className="grid gap-3 sm:grid-cols-3">
           {[
@@ -120,38 +119,31 @@ export function DesignShowcase() {
               <p className="font-medium">
                 {
                   [
-                    "Canvas",
-                    "Primary action",
-                    "Secondary",
-                    "Success",
-                    "Warning",
-                    "Information",
+                    translate("m3824a9f4dafe"),
+                    translate("mda2eb576b5f6"),
+                    translate("m62f2ccfffcc5"),
+                    translate("mc88a0b907419"),
+                    translate("me981ddae45d8"),
+                    translate("m1cb0ba125f84"),
                   ][index]
                 }
               </p>
-              <p className="mt-1 text-sm">Surface and foreground pair</p>
+              <p className="mt-1 text-sm">{translate("md9d3428ceb63")}</p>
             </div>
           ))}
         </div>
-        <p className="font-heading text-3xl">
-          A small idea can become a story.
-        </p>
-        <p className="reading-copy">
-          Use readable body text for guidance and longer passages. Keep controls
-          concise and give every screen one clear next action.
-        </p>
+        <p className="font-heading text-3xl">{translate("ma3a363c066e5")} </p>
+        <p className="reading-copy">{translate("m62e660019c67")} </p>
       </section>
       <Card>
         <CardHeader>
-          <CardTitle>Controls and form states</CardTitle>
-          <CardDescription>
-            These examples use the installed shadcn primitives.
-          </CardDescription>
+          <CardTitle>{translate("mdf0ca460d71d")}</CardTitle>
+          <CardDescription>{translate("m385bdd598428")} </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex flex-wrap gap-3">
             <Button type="button" onClick={() => setSaved(true)}>
-              Sample action
+              {translate("m16f1de31e216")}{" "}
             </Button>
             <Button
               variant="secondary"
@@ -161,13 +153,13 @@ export function DesignShowcase() {
                 setConfirmed(false);
               }}
             >
-              Reset feedback
+              {translate("mf0ca41b33f7d")}{" "}
             </Button>
             <Button variant="outline" disabled>
-              Unavailable
+              {translate("mca1844969742")}{" "}
             </Button>
             <Button disabled aria-busy="true">
-              Saving…
+              {translate("m23e39291d613")}{" "}
             </Button>
           </div>
           <form
@@ -180,7 +172,7 @@ export function DesignShowcase() {
             }}
             noValidate
           >
-            <Label htmlFor="sample-name">Sample title</Label>
+            <Label htmlFor="sample-name">{translate("mc3f5e1b78a94")}</Label>
             <Input
               id="sample-name"
               value={name}
@@ -199,114 +191,112 @@ export function DesignShowcase() {
                   : "text-sm text-muted-foreground"
               }
             >
-              {error
-                ? "Enter a title before saving."
-                : "Stored only in this page's memory."}
+              {error ? translate("me81bdf743a28") : translate("mff140e9ca92c")}
             </p>
-            <Button type="submit">Save sample</Button>
+            <Button type="submit">{translate("m39a454bb496f")}</Button>
           </form>
           {saved && (
-            <Notice tone="success" title="Sample saved">
-              This is local feedback; no server request was made.
+            <Notice tone="success" title={translate("m3acde0d57c44")}>
+              {translate("m89cc53951f40")}{" "}
             </Notice>
           )}
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline">Review sample action</Button>
+              <Button variant="outline">{translate("m0421b63627df")}</Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Confirm sample action?</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {translate("maa83c299a26a")}
+                </AlertDialogTitle>
                 <AlertDialogDescription>
-                  This demonstrates confirmation and focus behavior. It changes
-                  only this page&apos;s sample feedback.
+                  {translate("m68d071d19283")}{" "}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>
+                  {translate("m19766ed6ccb2")}
+                </AlertDialogCancel>
                 <AlertDialogAction onClick={() => setConfirmed(true)}>
-                  Confirm sample
+                  {translate("m6b1ddf13bf87")}{" "}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          {confirmed && <Notice tone="success" title="Sample confirmed" />}
+          {confirmed && (
+            <Notice tone="success" title={translate("m66f0a92a9bc8")} />
+          )}
         </CardContent>
       </Card>
       <section aria-labelledby="states-title" className="space-y-4">
         <h2 id="states-title" className="text-xl font-semibold">
-          Feedback and empty states
+          {translate("m8c4a38d9f275")}{" "}
         </h2>
-        <Notice tone="warning" title="Review suggested">
-          This finding is optional. It does not approve, regenerate or charge
-          for work.
+        <Notice tone="warning" title={translate("m8802ea90e287")}>
+          {translate("m960ff4cc2272")}{" "}
         </Notice>
-        <Notice tone="info" title="Checking the result">
-          The outcome is not yet confirmed. Do not submit the same paid action
-          again.
+        <Notice tone="info" title={translate("m60745a887977")}>
+          {translate("m94cc5ffdae70")}{" "}
         </Notice>
-        <Notice tone="error" title="Could not save">
-          Your draft is still available. Try again when the service recovers.
+        <Notice tone="error" title={translate("m16efcd21d74f")}>
+          {translate("m215dabb95bd2")}{" "}
         </Notice>
         <EmptyState
-          title="No stories yet"
-          description="Your completed runs will appear here."
+          title={translate("m77313c35ad1b")}
+          description={translate("m2ec672a7aff5")}
         />
       </section>
       <section aria-labelledby="wallet-title" className="space-y-4">
         <h2 id="wallet-title" className="text-xl font-semibold">
-          Sample wallet and ledger
+          {translate("mdd077a0d1f27")}{" "}
         </h2>
         <CreditSummary account={sampleWallet} historyPath="/design-system" />
       </section>
       <section aria-labelledby="preview-title" className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <h2 id="preview-title" className="text-xl font-semibold">
-            Run results preview
+            {translate("m368ca89d45a5")}{" "}
           </h2>
-          <Badge variant="outline">Static concept · not implemented</Badge>
+          <Badge variant="outline">{translate("m30b3d85de4d4")}</Badge>
         </div>
         <div className="grid gap-5 lg:grid-cols-[12rem_1fr]">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Story stages</CardTitle>
+              <CardTitle className="text-base">
+                {translate("m4ac990270cec")}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <ol className="space-y-4 text-sm">
                 <li className="font-semibold text-primary">
-                  1. Concept · review
+                  {translate("mf8d586965237")}{" "}
                 </li>
-                <li>2. Outline · waiting</li>
-                <li>3. References · waiting</li>
-                <li>4. Pages · waiting</li>
+                <li>{translate("m33269fcb29a1")}</li>
+                <li>{translate("m4d400a893f71")}</li>
+                <li>{translate("mbb3ad68143c0")}</li>
               </ol>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>The little lighthouse</CardTitle>
-              <CardDescription>
-                Concept version 2 · sample content
-              </CardDescription>
+              <CardTitle>{translate("mf4d9529d8a97")}</CardTitle>
+              <CardDescription>{translate("mef7763c1eef0")} </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <p className="reading-copy font-heading text-lg">
-                A curious keeper discovers that a small light can guide more
-                than ships. A gentle story about helping others find their way.
+                {translate("m7a8277dc03b5")}{" "}
               </p>
-              <Notice title="Approval identifies a version">
-                A future approval applies to this exact concept version.
-                Revising it retains the previous version.
+              <Notice title={translate("maaa8bab5ae3f")}>
+                {translate("mca0163ddf92e")}{" "}
               </Notice>
               <div className="flex flex-wrap gap-3">
-                <Button disabled>Approve version 2</Button>
+                <Button disabled>{translate("mdb3ffc1d8bef")}</Button>
                 <Button variant="outline" disabled>
-                  Request revision
+                  {translate("m0bf92c49028d")}{" "}
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">
-                Future generation will show its credit price before
-                confirmation. No generation runs from this preview.
+                {translate("mf67641bc6467")}{" "}
               </p>
             </CardContent>
           </Card>

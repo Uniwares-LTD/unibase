@@ -1,3 +1,5 @@
+import { project } from "../project";
+import { validateEnvironmentNames } from "./environment";
 import { z } from "zod";
 
 import { parsePublicConfig } from "./public";
@@ -31,6 +33,7 @@ const serverConfigSchema = z
 // Pure parsing is separate from the server-only environment reader so it can be
 // tested without importing credentials or the Next.js server-only marker.
 export function parseConfig(input: Record<string, string | undefined>) {
+  validateEnvironmentNames(input);
   const environment = input.APP_ENV ?? "local";
   const parsed = serverConfigSchema.safeParse({
     APP_ENV: environment,
@@ -50,8 +53,8 @@ export function parseConfig(input: Record<string, string | undefined>) {
 
   return {
     public: parsePublicConfig({
-      appName: input.APP_NAME ?? "Base",
-      defaultStyle: input.APP_STYLE ?? "classic",
+      appName: input.APP_NAME ?? project.displayName,
+      defaultStyle: input.APP_STYLE ?? project.defaultStyle,
     }),
     server: {
       environment: parsed.data.APP_ENV,

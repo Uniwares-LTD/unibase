@@ -1,4 +1,7 @@
+import { domains } from "../domains";
 import "server-only";
+import { project } from "@/lib/project";
+import { parseInput } from "@/lib/input";
 import { z } from "zod";
 import { AppError } from "@/lib/auth-policy";
 import {
@@ -30,7 +33,7 @@ export async function seedOrchestrators() {
     .array(orchestratorSchema)
     .max(100)
     .parse(JSON.parse(process.env.DIFY_ORCHESTRATORS_JSON || "[]"));
-  if (process.env.DIFY_MODE === "fake" && !raw.length)
+  if (process.env.DIFY_MODE === "fake" && project.examples && !raw.length)
     raw.push({
       id: "demo",
       name: "Demo orchestrator",
@@ -173,12 +176,23 @@ export async function orchestrators(
             ready: ready && settings.settings.runs.enabled,
             recovery: d.recovery,
             requiresArtifact:
-              d.privateTools?.some((t) => t.includes("artifact")) ?? false,
+              d.domainAdapter?.id === "artifact" ||
+              (d.privateTools?.some((t) => t.includes("artifact")) ?? false),
+            domainTarget: d.domainAdapter
+              ? (() => {
+                  const adapter = domains.get(
+                    d.domainAdapter.id,
+                    d.domainAdapter.version,
+                  );
+                  return { kind: adapter.kind, ...adapter.picker };
+                })()
+              : null,
           };
     }),
   );
 }
 export async function selectedOrchestrator(id: string) {
+  parseInput(z.string().regex(/^[a-z][a-z0-9-]{0,63}$/), id);
   await seedOrchestrators();
   const row = await database()
     .collection<OrchestratorRecord>("orchestrators")

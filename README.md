@@ -4,52 +4,61 @@ Base is a Next.js application foundation with PWA support and a prepared Android
 
 These guides describe the reusable Base project. `APP_NAME` controls the web
 shell, metadata and install manifest at runtime; the credential-free default is
-Base. Internal identifiers retained from the original implementation are listed
-below so derived projects can replace them deliberately.
+Base. Project identity and reusable modules are declared in `project.config.json`.
+The initializer derives isolated namespaces while preserving the existing installation.
 
 Use [the full feature test plan](docs/test-plan.md) for regression coverage and
 [the readiness audit](docs/implementation-plan.md#clone-readiness-audit--2026-10-10)
-for the current evidence and external limits.
+for historical evidence and external limits. Current reuse acceptance is recorded in
+[the hardening extension](docs/implementation-plan.md#accepted-reuse-and-service-hardening-extension---2026-10-13).
 
 ## Start a derived project
 
-1. Start from a reviewed commit. A normal Git clone includes committed files only;
-   local edits must be committed before another clone can receive them. Create a
-   new clone, then give it its own repository remote before publishing. Preserve
-   the base revision so future fixes can be compared or carried over.
-2. Install the pinned Node/npm versions and run `npm ci`. Create a new `.env.local`
-   from `.env.example`, set `APP_NAME`, `APP_ORIGIN` and a **new local database name**,
-   and use the local emulators. Run `npm run check:env` and `npm run db:indexes`
-   before creating your own verified account and appointing the first admin.
-   There is no shipped admin password or automatic credit grant.
-3. Keep Dify/MCP disabled and payments disabled or in local simulation until the
-   derived product needs them. Build the workers; run the maintenance worker for
-   credits/private-media cleanup, and the AI worker for fake/live orchestrator Runs.
-4. Replace product copy, home-page content, icons and colors. Run
-   `npm run icons:generate` after editing `src/app/icon.svg`; it also creates the
-   favicon. The offline fallback is deliberately generic public HTML.
-5. Before deploying beside Base or another derived project, give the project its
-   own runtime and infrastructure identities using the inventory below. Re-run
-   affected tests after renaming; do not use a blind repository-wide replacement.
-6. Run `npm run validate`, inspect each actual result, then run `npm run build`
-   and the applicable HTTP/browser suites in [the test plan](docs/test-plan.md).
-   Validate optional providers against new owned staging resources separately.
+Use the initializer from a reviewed source revision. It creates a separate empty
+project directory; it never copies Git history, local environment overrides,
+credentials, caches, browser state, databases or the generated Android wrapper.
 
-| Identity                        | Source to revise in the derived project                                                                                                                                      |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Display name, origin, style     | `.env.local` / runtime env; `APP_NAME`, `APP_ORIGIN`, `APP_STYLE`                                                                                                            |
-| npm package/repository          | `package.json`, root package-lock identity, Git remotes, workflow/package settings                                                                                           |
-| Local Auth/database             | `demo-unitale` in auth defaults, emulator commands/tests; `unitale_local` in database defaults and local runner; explicitly select a new database                            |
-| Browser state/session isolation | `unitale-*` cookies, storage keys and offline-cache namespace in client/server modules and `public/sw.js`; use distinct origins even before renaming                         |
-| Host/deployment isolation       | `/opt/unitale`, `/etc/unitale`, `/var/lib/unitale`, Compose names, SSH alias, locks and database/user prefixes in `scripts/deploy`, `deploy`, workflows and deployment tests |
-| Android                         | Regenerate `android/project` with new `ANDROID_HOST` and `ANDROID_PACKAGE_NAME`; use your own signing identity and Digital Asset Links                                       |
-| Optional providers/storage      | New Firebase/Atlas, Stripe catalog/webhook, Dify/MCP credentials and private object bucket/prefix; configure web and workers consistently                                    |
+1. Copy `project.config.json` to a reviewable manifest outside the destination.
+   Set a unique `slug`, `displayName`, locales/default locale and style. Keep all
+   reusable modules enabled. Set `examples: false` for application mode, or select
+   `examples: true` explicitly for the sample workflows. Add
+   `android: { "packageName": "com.example.product" }` only for Android preparation.
+2. Run from the source repository with its pinned dependencies installed:
 
-Copy source and licenses, not `.env.local`, caches, emulator data, ignored `output`,
-private deployment snapshots, browser profiles, service-account files or signing
-keys. Skill/font/Bubblewrap licenses and provenance stay with the source. Rewrite
-`docs/implementation-plan.md` for the derived product's accepted scope and preserve
-Base verification as reference evidence, not a claim that its new services work.
+   ```powershell
+   npm.cmd run project:create -- --revision FULL_REVIEWED_COMMIT_ID --destination D:/Projects/my-product --manifest D:/Projects/my-product.manifest.json --mode application
+   ```
+
+   Use `--mode examples` only with an examples manifest. `--source` optionally
+   selects another local Git checkout. The revision must contain this initializer
+   contract; uncommitted working-tree edits are never copied. `project.source.json`
+   records the source commit for later upstream comparisons.
+3. In the new directory, run `npm.cmd ci`, copy `.env.example` to `.env.local`, and
+   review origin/connections before starting emulators. Run `npm.cmd run check:env`
+   and `npm.cmd run db:indexes`. Create a verified account and bootstrap its UID;
+   no admin password or automatic credit grant is shipped.
+4. Application mode starts with providers inactive and examples hidden. Examples
+   mode explicitly selects local fake Runs and simulated payments; it never
+   activates live credentials. Configure owned staging providers separately.
+5. Replace product copy, icons and colors; regenerate icons with
+   `npm.cmd run icons:generate`. Review generated deployment placeholders, ports,
+   and private subnets for the target host. Initializer subnets/ports are suggested
+   isolated defaults, not a host inventory or a collision-proof allocator.
+6. Run `npm.cmd run validate`, inspect advisory results, then `npm.cmd run build`
+   and affected HTTP/browser suites. Initialize the new repository and publish only
+   when explicitly authorized. Preserve source licenses and skill provenance.
+
+| Identity | Canonical source |
+| --- | --- |
+| Package name, browser cookies/storage/cache, Redis scope, deployment paths/locks/Compose names | Validated `project.config.json` slug; package/lock identity generated by the initializer |
+| Display defaults, enabled modules, locale and examples | `project.config.json`; runtime `APP_NAME`/`APP_STYLE` can override display defaults |
+| Local Auth and database | Derived `demo-<slug>` / `<slug_with_underscores>_local`; generated environment example |
+| Credentials and deployment connections | Private environment configuration; [environment catalog](docs/environment-catalog.md) and [deployment guide](docs/deployment.md) |
+| Android | Optional manifest package identity, explicit host/signing configuration; regenerate before building |
+
+The existing Unibase installation keeps its `unitale` namespaces and saved records.
+The base's recorded verification remains historical evidence for a derived product;
+replace its milestone scope with the new product's accepted work.
 
 ## Personas and saved artifacts
 
@@ -346,3 +355,101 @@ passed; broader plugin, image and recovery acceptance remains pending.
 Optional read-only MCP tools let Dify and trusted services fetch server data.
 See [MCP setup, Dify testing and maintenance](docs/mcp.md). The endpoint is disabled
 by default; its credential is separate from your Dify app API key.
+
+
+### Reuse hardening configuration and reads
+
+The [environment catalog](docs/environment-catalog.md) is generated from
+`scripts/deploy/environment-catalog.json`. Application checks and deployment
+validation consume that catalog. Run `node scripts/environment-docs.mjs --check`
+to check its documentation or omit `--check` to regenerate it.
+MCP runtime settings and strictly named `MCP_TOKEN_*` credentials are supported
+by VPS configuration validation; environment-specific identities remain required.
+
+Multipart uploads authenticate before reading the body. The saved file limit,
+1 MiB multipart allowance and 30-second body deadline apply to each request.
+Artifact lists, revisions, Run events and decision history use 25-row keyset pages;
+pending decisions are read independently. Start Run supports artifact search and
+paging. API cursors belong to their owner, resource and filter.
+
+`npm run test:ai-pricing` runs a distinct HTTP pricing suite through the bundled
+AI worker with synthetic authentication/provider data and disposable MongoDB.
+It covers all five pricing variants, stale consent, reservations, rounding,
+release, failure charging, missing usage and settlement replay.
+
+### Project identity, modules and request protection
+
+`project.config.json` defines the application slug, display/style defaults, modules,
+locales and example selection. Changing identity is a new-project operation:
+existing installations retain their slug to preserve cookies and browser storage.
+Module dependencies are validated; route visibility and server admission checks
+use the same descriptors. Disable providers in runtime configuration until ready.
+Accepted work and financial history are retained when admissions are disabled.
+
+Non-local application processes require an authenticated `REDIS_URL`.
+`RATE_LIMITS_JSON` overrides per-minute read/mutation/upload/admission/MCP limits.
+Redis outages fail protected API requests with 503; excess requests return 429
+and Retry-After. Account recovery endpoints and liveness remain available.
+Local development may omit Redis; `npm run test:limits` runs a disposable
+authenticated Redis container and two web replicas with the Auth Emulator.
+
+Deployment configuration now requires digest-pinned `redisImage` and `nginxImage`
+values. Provision a private `redis-password` file beside each runtime.env, containing
+the same 43-256-character base64url password used by REDIS_URL. Redis has no host
+port. Nginx is the only app ingress and retains the tunnel's existing `app:3000`
+address through a network alias. Staging/production tunnel networks use
+the configured `ingressSubnet` for each environment. The example uses
+172.30.241.0/24 and 172.30.242.0/24; choose nonoverlapping host subnets for each project.
+Fresh operation bundles contain the manifest, catalog and Nginx configuration.
+Keep old retained releases intact for rollback.
+
+Document responses carry a fresh script nonce, framing restrictions and safe
+browser headers. Firebase helper routes use a narrowly scoped separate policy.
+The local production build supports the local emulator, with no script unsafe-eval.
+
+
+### Private files and domain extensions
+
+Files supports the existing TXT, PDF, PNG/JPEG/WebP, MP3/WAV and MP4 allowlist.
+Saved upload quotas remain authoritative; defaults are 20 MiB/file, 100 files and
+100 MiB/account, counting legacy provider-only uploads. Images are decoded and
+normalized; other downloads are attachments. Local managed files use GridFS;
+S3 uses the existing private asset configuration. Deletion remains pending until
+the maintenance worker confirms storage deletion. Referenced files cannot be
+removed; terminal-history cleanup releases Run references.
+
+Start Run can reuse a managed file. Provider references are cached per owned file
+and execution binding without counting the bytes twice. Historical provider-only
+uploads do not acquire invented download links.
+
+Trusted server adapters are registered in `src/lib/server/domains.ts`. A workflow
+may select a registered `domainAdapter` ID/version; admission snapshots an owned
+`target`. Keep old versions registered while accepted work exists. Existing
+`artifactId` records remain readable. The optional additive metadata migration is:
+`node --conditions=react-server --import tsx scripts/migrate-domain-references.ts`.
+It reads the configured database; run it only against the intended environment.
+
+
+### Notifications
+
+The account-header bell opens the owned inbox. Runs, credit purchases/reversals
+and administrative account changes are enabled by default; category preferences
+control new delivery. Read and read-all actions are available in the inbox.
+Run `npm run db:indexes` for notification pagination/retention indexes and keep the
+maintenance worker running for delivery and 90-day cleanup. Notifications are
+in-app only; no external messaging provider is needed.
+
+
+Language and timezone are available under Preferences. English and Arabic use the
+same URLs; Arabic renders right to left. Browser language selection works before
+sign-in, and verified accounts can save language/timezone independently of
+appearance. See [locale architecture](docs/architecture.md#locale-and-direction).
+`npm run check:i18n` verifies generated client dictionary and offline assets.
+
+
+Reusable service contracts and migration instructions are in [services](docs/services.md).
+`npm run project:create` creates a new project from a reviewed commit.
+`npm run test:initializer` checks its safety boundaries; `npm run test:initialized-projects`
+installs and builds two disposable projects. `npm run check:docs` checks local links,
+anchors, command names and generated environment documentation. No initializer
+command publishes source, activates a live provider or deploys infrastructure.

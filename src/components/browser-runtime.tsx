@@ -1,8 +1,16 @@
 "use client";
+import { useLocale } from "next-intl";
+import { project } from "@/lib/project";
 import { useEffect } from "react";
 import { diagnostics } from "@/lib/client/diagnostics";
 
 export function BrowserRuntime() {
+  const locale = useLocale();
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${project.slug}-offline-locale`, locale);
+    } catch {}
+  }, [locale]);
   useEffect(() => {
     // Listeners observe only event types; never suppress browser/React handling.
     const error = () => diagnostics.record("browser-error");
@@ -15,7 +23,10 @@ export function BrowserRuntime() {
     window.addEventListener("offline", offline);
     if ("serviceWorker" in navigator) {
       void navigator.serviceWorker
-        .register("/sw.js", { scope: "/", updateViaCache: "none" })
+        .register(`/sw.js?namespace=${project.slug}`, {
+          scope: "/",
+          updateViaCache: "none",
+        })
         .then(
           () => diagnostics.record("worker-ready"),
           () => diagnostics.record("worker-failed"),

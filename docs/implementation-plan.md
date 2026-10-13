@@ -858,3 +858,114 @@ Saved artifacts creation follow-up: the standalone title/create form was removed
 **Create with a Run** links to Start Run; existing artifact deletion stays on the
 detail page. Browser navigation and control-presence checks, typecheck, lint and
 production build passed, with no artifact mutation during verification.
+
+
+## Accepted reuse and service-hardening extension - 2026-10-13
+
+The six milestones below are authorized for local implementation, in order.
+Previous verification entries describe their historical diffs, not acceptance of
+this extension. Each milestone requires affected checks, a production web/worker
+build, documentation reconciliation and a separate read-only review.
+
+- [x] H1: shared environment catalog, authenticated bounded uploads, caller input
+  errors/not-found pages, stable 25-row pagination, distinct HTTP pricing suite.
+- [x] H2: project identity and typed modules, private Redis limits, Nginx ingress,
+  nonce CSP and browser security policies.
+- [x] H3: versioned owned domain adapters and managed private files with atomic
+  quotas, reference-safe deletion, GridFS/S3 and provider upload reuse.
+- [x] H4: transactional in-app notification outbox, inbox and preferences for
+  Runs, credits and account changes.
+- [x] H5: complete English/Arabic catalogs, server locale/RTL, stable URLs and
+  explicit timezone formatting.
+- [x] H6: new-directory initializer from reviewed Git source, isolated identities,
+  application/examples modes, and reconciliation of all owned documentation/skills.
+
+New projects enable reusable modules, with live providers inactive until configured
+and examples explicitly selected. Existing session namespaces, accounting records,
+accepted Run snapshots and provider bindings remain compatible. Live deployment,
+provider activation, publication and Android/device acceptance are separate.
+
+H1 local verification (2026-10-13): production web and worker builds, typecheck,
+lint, environment validation and generated environment documentation checks pass.
+All 56 pure tests, 30 affected Run/persona/file/pricing tests, six MCP tests,
+two artifact pagination/association tests and 26 isolated deployment tests pass.
+Distinct pricing HTTP acceptance and the Runs HTTP regression pass, including
+106 historical decisions without hiding pending actions. Disposable browser
+checks cover artifact paging/search, Enter-key search, keyboard navigation,
+390px layout and streamed not-found rendering. The separate read-only review
+identified the search Enter-key submission hazard; its correction was rebuilt,
+browser-verified and reviewed. No live provider or deployment was changed.
+
+H2 local verification (2026-10-13): production web/worker build and typecheck
+pass; 58 pure tests and 26 isolated deployment tests pass. Two production web
+processes share authenticated Redis counters, including expiry, spoofed headers,
+429 Retry-After and safe 503 on Redis loss; recovery and liveness stay available.
+Production browser checks cover nonce styles, Select controls, mobile layout,
+offline recovery and rejection of parser-injected scripts. Nginx configuration
+passes under its non-root, read-only container constraints. A separate read-only
+review checked module admission, credential isolation, retained namespaces and
+release rollback paths. Full live Firebase/Cloudflare journeys remain environment
+acceptance, not locally claimed evidence. All fixtures are disposable.
+
+H3 local verification (2026-10-13): 150 account tests pass, including existing
+persona/artifact behavior. The added managed-file tests exercise concurrent quota
+admission, retry identity, owned downloads, reference protection, confirmed quota
+release and abandoned GridFS chunk reclamation. A second registered fixture
+adapter runs through the generic transactional result worker exactly once; the
+additive metadata migration is repeatable. Production web/worker build and
+typecheck pass. Browser checks cover upload, safe attachment download, cached
+provider references, deletion and 390px layout. A separate read-only review
+checked admission/cleanup transactions, snapshot compatibility and storage bounds.
+No production data migration or live S3/provider operation was performed.
+
+H4 local verification (2026-10-13): existing 150 account tests and the notification
+transaction/ownership/retention test pass. Production web/worker build and
+typecheck pass. Browser acceptance verifies worker delivery, read-all, persisted
+category preferences, unread state, 390px layout and cross-tab logout. The separate
+read-only review checked outbox/source transaction coupling, lease fences, owned
+links, bounded template parameters and replay protection after retention. No
+email, push delivery or external messaging was introduced.
+
+
+H5 local verification (2026-10-13): 60 pure tests and two notification tests pass,
+including catalog interpolation parity, locale precedence, timezone validation,
+independent profile mutations and read-time notification translation. Production
+web/worker build, lint and generated-catalog/asset checks pass. Final production
+browser checks cover Arabic locale saving, preserved appearance, client navigation,
+notifications, safe caller errors, preferences/files/Runs/credits/admin screens at
+390px, keyboard focus and public offline recovery. No hydration or CSP violations
+were observed. The separate read-only review checked server/client dictionary
+boundaries, stable URLs, ownership, UTC administrative filters and nonce retention.
+Native validation feedback uses the selected application language; user-authored
+content and provider output are intentionally preserved.
+
+
+H6 final local verification (2026-10-13): 61 pure tests, 153 account/service tests
+and 26 isolated deployment tests pass. Production web/worker build, independent
+TypeScript checking, lint, formatting, ShellCheck and workflow lint pass. The
+separate pricing HTTP suite and Runs HTTP regression pass; shared Redis acceptance
+covers two web processes, project/environment isolation, expiry, spoofed headers
+and safe dependency failure. Two newly initialized application-mode projects each
+install and build independently, with distinct browser/database/Redis/deployment
+namespaces and recorded source revisions. The main repository's index and history
+were not changed by fixture creation.
+
+Final production browser acceptance covers English/Arabic navigation, locale and
+timezone persistence, owned notification translation, safe API errors, pricing
+Select controls, native form validation/reset, 390px RTL layout, keyboard focus
+and offline recovery, without hydration or CSP violations. A fixture session was
+reloaded before repeating the final browser run; the repeated run passed.
+
+The separate read-only review checked initializer immutable-source and destination
+boundaries, excluded secrets/state, example selection, namespace compatibility,
+module configuration requirements, source/worker contracts and current instructions.
+Review corrections preserve ordinary Run-command capacity after admission limits,
+clear application-owned validity on form reset, and quote deployment SSH aliases.
+All affected checks were repeated. Local links/anchors/commands in 130 documents,
+the generated environment and client-message catalogs, and integrity of nine
+repository skills plus two supporting contracts pass. Upstream provenance and
+licenses remain intact; system-owned skills were unchanged.
+
+Remaining acceptance requires real environment evidence: live Firebase/Cloudflare
+journeys, actual provider/S3/billing integration, live deployment/publication and
+Android/device verification. Local fixtures do not constitute that acceptance.

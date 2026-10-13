@@ -1,4 +1,7 @@
 "use server";
+import { getTranslations } from "next-intl/server";
+import { errorMessage } from "@/lib/server/error-message";
+import { limitRequest } from "@/lib/server/rate-limit";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
@@ -18,6 +21,7 @@ export async function adjustUserCredits(
   try {
     requireSameOrigin(await headers(), getConfig().server.origin);
     const actor = await requireAdmin(true);
+    await limitRequest("account:" + actor.uid, "mutation");
     if (actor.uid !== expectedActor)
       throw new AppError(
         "ACCOUNT_CHANGED",
@@ -60,7 +64,10 @@ export async function adjustUserCredits(
     revalidatePath(`/admin/users/${encodeURIComponent(targetUid)}`);
     revalidatePath("/credits");
     logOperation("credit-adjustment", started, 200);
-    return { message: "Credit adjustment saved and audited.", saved: true };
+    return {
+      message: (await getTranslations("actions"))("m440127e9250a"),
+      saved: true,
+    };
   } catch (error) {
     unstable_rethrow(error);
     logOperation(
@@ -69,10 +76,11 @@ export async function adjustUserCredits(
       error instanceof AppError ? error.status : 503,
     );
     return {
-      message:
+      message: await errorMessage(
         error instanceof AppError
-          ? error.message
-          : "Couldn’t adjust credits. Please try again.",
+          ? error
+          : new AppError("SERVICE_UNAVAILABLE", "Please try again.", 503),
+      ),
       saved: false,
     };
   }

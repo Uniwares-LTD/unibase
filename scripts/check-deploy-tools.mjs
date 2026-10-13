@@ -15,7 +15,7 @@ const commands =
             : "bash",
           ["-n", file],
         ]),
-        ["shellcheck", scripts],
+        ["shellcheck", ["-x", ...scripts]],
       ]
     : [
         [
@@ -42,6 +42,7 @@ for (const [command, args] of commands) {
         "--entrypoint",
         "shellcheck",
         "unitale-deployment-tests",
+        "-x",
         ...scripts,
       ],
       { stdio: "inherit", windowsHide: true },

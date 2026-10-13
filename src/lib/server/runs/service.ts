@@ -1,5 +1,9 @@
+import { domains, jobTarget, resolveTarget } from "../domains";
 import type { Db, Document } from "mongodb";
 import "server-only";
+import { requireModule } from "../modules";
+import { PAGE_SIZE, pageCursor, readCursor } from "../pagination";
+import { parseInput } from "@/lib/input";
 import { z } from "zod";
 import { AppError } from "@/lib/auth-policy";
 import {
@@ -100,9 +104,11 @@ type Form = z.infer<typeof formSchema>;
 export async function ownedAttempt(id: string, logicalId?: string) {
   const actor = await requireSession();
   const job = await aiJobs(database()).findOne({
-    _id: runIdSchema.parse(id),
+    _id: parseInput(runIdSchema, id),
     uid: actor.uid,
-    ...(logicalId ? { "run.logicalId": runIdSchema.parse(logicalId) } : {}),
+    ...(logicalId
+      ? { "run.logicalId": parseInput(runIdSchema, logicalId) }
+      : {}),
   });
   if (!job?.run) throw new AppError("RUN_NOT_FOUND", "Run unavailable.", 404);
   return { actor, job };
@@ -128,10 +134,7 @@ async function checkedInputs(
       continue;
     }
     if (field.kind === "file") {
-      const id = z
-        .string()
-        .regex(/^[a-f0-9]{64}$/)
-        .parse(value);
+      const id = parseInput(runIdSchema, value);
       await resolveOwnedAiFile(database(), uid, binding, id, [
         "image",
         "document",
@@ -140,7 +143,7 @@ async function checkedInputs(
       ]);
       result[field.name] = id;
     } else if (field.kind === "number")
-      result[field.name] = z.number().finite().parse(value);
+      result[field.name] = parseInput(z.number().finite(), value);
     else {
       const parsedText = z
         .string()
@@ -186,7 +189,14 @@ async function createAttempt(
             replay.run.answerer.responderRevision,
             replay.run.answerer.responder,
           ]) !== input.answerer.configurationKey)) ||
-      (replay.run.artifactId ?? null) !== (input.artifactId ?? null) ||
+      fingerprint(jobTarget(replay) ?? null) !==
+        fingerprint(
+          resolveTarget(
+            replay.run.orchestrator,
+            input.target,
+            input.artifactId,
+          ) ?? null,
+        ) ||
       fingerprint(saved) !== fingerprint(input.inputs) ||
       replay.run.predecessorId !== (previous?._id ?? null)
     )
@@ -218,15 +228,11 @@ async function createAttempt(
       "Responders cannot be started as ordinary Runs.",
     );
   const answerer = await snapshotPersona(input.answerer);
-  if (input.artifactId) {
-    const { ownedArtifact } = await import("./artifacts");
-    await ownedArtifact(database(), actor.uid, input.artifactId);
-  }
-  if (d.privateTools?.some((t) => t.includes("artifact")) && !input.artifactId)
-    throw new AppError(
-      "ARTIFACT_REQUIRED",
-      "Start this workflow from a saved artifact.",
-    );
+  const target = resolveTarget(d, input.target, input.artifactId);
+  if (target)
+    await domains
+      .get(target.adapter, target.version)
+      .own(database(), actor.uid, target.id);
   const pricing = d.pricing ?? settings.runs.pricing;
   const values = await checkedInputs(
     d,
@@ -273,7 +279,8 @@ async function createAttempt(
       pricing,
       run: {
         answerer,
-        artifactId: input.artifactId,
+        artifactId: target?.kind === "artifact" ? target.id : undefined,
+        target,
         logicalId,
         attempt: (previous?.run?.attempt ?? 0) + 1,
         predecessorId: previous?._id ?? null,
@@ -288,27 +295,35 @@ async function createAttempt(
     async (session) => {
       await guardOrchestratorAdmission(database(), selected, session);
       await guardPersona(database(), answerer, session);
-      if (input.artifactId) {
-        const changed = await database()
-          .collection("artifacts")
-          .updateOne(
-            { id: input.artifactId, uid: actor.uid, deleted: { $ne: true } },
-            { $inc: { admissionFence: 1 } },
-            { session },
-          );
-        if (!changed.matchedCount)
-          throw new AppError(
-            "ARTIFACT_UNAVAILABLE",
-            "Artifact is unavailable.",
-            409,
+      for (const field of d.inputs.filter((f) => f.kind === "file")) {
+        const fileId = values[field.name];
+        if (typeof fileId !== "string") continue;
+        const file = await database()
+          .collection<import("../ai/files").AiFile>("aiFiles")
+          .findOne({ _id: fileId, uid: actor.uid }, { session });
+        if (file?.managedFileId)
+          await (
+            await import("../private-files")
+          ).referenceFile(
+            database(),
+            actor.uid,
+            file.managedFileId,
+            `run:${id}`,
+            session,
           );
       }
+
+      if (target)
+        await domains
+          .get(target.adapter, target.version)
+          .admit(database(), actor.uid, target.id, session);
     },
   );
   return { id: logicalId, attemptId: job._id };
 }
 export async function startRun(input: unknown) {
-  return createAttempt(runStartSchema.parse(input));
+  requireModule("runs");
+  return createAttempt(parseInput(runStartSchema, input));
 }
 function status(job: AiJob, result?: unknown) {
   if (job.status === "succeeded") return "succeeded";
@@ -335,11 +350,29 @@ function status(job: AiJob, result?: unknown) {
 export async function listRuns(cursor?: string, filter?: string) {
   const actor = await requireSession();
   const query = { uid: actor.uid, "run.logicalId": { $exists: true } };
-  const after = cursor
-    ? z
-        .object({ time: z.iso.datetime(), id: runIdSchema })
-        .parse(JSON.parse(Buffer.from(cursor, "base64url").toString()))
+  const scope = ["runs", actor.uid, filter ?? ""];
+  const cursorData = readCursor(cursor, scope);
+  const after = cursorData
+    ? {
+        time: parseInput(z.iso.datetime(), cursorData.value),
+        id: parseInput(runIdSchema, cursorData.id),
+      }
     : null;
+  if (filter)
+    parseInput(
+      z.enum([
+        "queued",
+        "running",
+        "paused",
+        "unknown",
+        "needs-review",
+        "succeeded",
+        "failed",
+        "partial",
+        "cancelled",
+      ]),
+      filter,
+    );
   const rows = await aiJobs(database())
     .aggregate<AiJob & { savedResults?: { result: unknown }[] }>([
       { $match: query },
@@ -408,12 +441,7 @@ export async function listRuns(cursor?: string, filter?: string) {
     })),
     next:
       rows.length > 25
-        ? Buffer.from(
-            JSON.stringify({
-              time: rows[24].createdAt.toISOString(),
-              id: rows[24]._id,
-            }),
-          ).toString("base64url")
+        ? pageCursor(scope, rows[24].createdAt.toISOString(), rows[24]._id)
         : null,
   };
 }
@@ -466,8 +494,11 @@ export async function decisionView(
       const ui = parseUiForm(form.form_content);
       cards = ui.cards;
       if (ui.approval) {
-        const { validateApprovalIntent } = await import("./artifacts");
-        await validateApprovalIntent(db, job, ui.approval);
+        const target = jobTarget(job);
+        const validate =
+          target && domains.get(target.adapter, target.version).approval;
+        if (!validate) throw new Error("Unsupported approval");
+        await validate(db, job, ui.approval);
         await db
           .collection<Decision>("runDecisions")
           .updateOne(
@@ -529,16 +560,22 @@ export async function decisionView(
     automaticError: decision.automaticError ?? null,
   };
 }
-export async function runDetail(id: string) {
+export type RunPages = {
+  decisions?: string;
+  actionable?: string;
+  events?: string;
+};
+export async function runDetail(id: string, pages: RunPages = {}) {
   const actor = await requireSession();
-  runIdSchema.parse(id);
+  parseInput(runIdSchema, id);
   const attempts = await aiJobs(database())
     .find({ uid: actor.uid, "run.logicalId": id })
-    .sort({ "run.attempt": 1 })
+    .sort({ "run.attempt": -1 })
     .limit(100)
     .toArray();
   if (!attempts.length)
     throw new AppError("RUN_NOT_FOUND", "Run unavailable.", 404);
+  attempts.reverse();
   const current = attempts[attempts.length - 1];
   const results = await database()
     .collection<Document & { _id: string }>("runResults")
@@ -555,17 +592,107 @@ export async function runDetail(id: string) {
       },
     })
     .toArray();
-  const decisions = await database()
-    .collection<Decision>("runDecisions")
-    .find({ uid: actor.uid, logicalId: id })
-    .limit(100)
-    .toArray();
-  const events = await database()
+  const actionableStates = ["pending", "submitting", "unknown"];
+  async function decisionPage(actionable: boolean, cursor?: string) {
+    const scope = ["decisions", actor.uid, id, actionable];
+    const after = readCursor(cursor, scope);
+    if (
+      after &&
+      (typeof after.value !== "string" ||
+        !Number.isFinite(Date.parse(after.value)))
+    )
+      throw new AppError("INVALID_INPUT", "Invalid page cursor.");
+    const records = await database()
+      .collection<Decision>("runDecisions")
+      .find({
+        uid: actor.uid,
+        logicalId: id,
+        status: actionable
+          ? { $in: actionableStates }
+          : { $nin: actionableStates },
+        ...(after
+          ? {
+              $or: [
+                { createdAt: { $lt: new Date(after.value) } },
+                { createdAt: new Date(after.value), _id: { $lt: after.id } },
+              ],
+            }
+          : {}),
+      })
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(PAGE_SIZE + 1)
+      .toArray();
+    const shown = records.slice(0, PAGE_SIZE);
+    const jobs = await aiJobs(database())
+      .find({ uid: actor.uid, _id: { $in: shown.map((d) => d.jobId) } })
+      .toArray();
+    const rows = await Promise.all(
+      shown.map(async (d) => ({
+        ...(await decisionView(
+          d,
+          jobs.find((j) => j._id === d.jobId)!,
+        )),
+        attemptId: d.jobId,
+      })),
+    );
+    const last = shown.at(-1);
+    return {
+      rows,
+      next:
+        records.length > PAGE_SIZE && last
+          ? pageCursor(scope, last.createdAt.toISOString(), last._id)
+          : null,
+    };
+  }
+  const [actionable, decisionHistory] = await Promise.all([
+    decisionPage(true, pages.actionable),
+    decisionPage(false, pages.decisions),
+  ]);
+  const eventScope = ["events", actor.uid, id];
+  const afterEvent = readCursor(pages.events, eventScope);
+  if (
+    afterEvent &&
+    (typeof afterEvent.value !== "string" ||
+      !Number.isFinite(Date.parse(afterEvent.value)))
+  )
+    throw new AppError("INVALID_INPUT", "Invalid page cursor.");
+  const eventRows = await database()
     .collection<Document & { _id: string }>("runEvents")
-    .find({ uid: actor.uid, logicalId: id })
-    .sort({ timestamp: 1, _id: 1 })
-    .limit(500)
+    .find({
+      uid: actor.uid,
+      logicalId: id,
+      ...(afterEvent
+        ? {
+            $or: [
+              { timestamp: { $lt: new Date(afterEvent.value) } },
+              {
+                timestamp: new Date(afterEvent.value),
+                _id: { $lt: afterEvent.id },
+              },
+            ],
+          }
+        : {}),
+    })
+    .sort({ timestamp: -1, _id: -1 })
+    .limit(PAGE_SIZE + 1)
     .toArray();
+  const events = eventRows.slice(0, PAGE_SIZE);
+  const eventHistory = {
+    rows: events.map((e) => ({
+      id: e._id,
+      attemptId: e.jobId,
+      event: e.event,
+      timestamp: e.timestamp.toISOString(),
+    })),
+    next:
+      eventRows.length > PAGE_SIZE
+        ? pageCursor(
+            eventScope,
+            events.at(-1)!.timestamp.toISOString(),
+            events.at(-1)!._id,
+          )
+        : null,
+  };
   const awaitApplications = await database()
     .collection("resultApplications")
     .find({ jobId: { $in: attempts.map((j) => j._id) }, uid: actor.uid })
@@ -631,20 +758,16 @@ export async function runDetail(id: string) {
       ),
       result: results.find((r) => r._id === job._id)?.result ?? null,
     })),
-    events: events.map((e) => ({
-      id: e._id,
-      attemptId: e.jobId,
-      event: e.event,
-      timestamp: e.timestamp.toISOString(),
-    })),
-    decisions: await Promise.all(
-      decisions.map((d) =>
-        decisionView(
-          d,
-          attempts.find((j) => j._id === d.jobId)!,
-        ),
+    actionable,
+    decisionHistory,
+    eventHistory,
+    events: eventHistory.rows,
+    decisions: [
+      ...actionable.rows,
+      ...decisionHistory.rows.filter(
+        (d) => !actionable.rows.some((a) => a.id === d.id),
       ),
-    ),
+    ],
     canRestart: canStartNewAttempt(current) && !current.runSuccessorId,
     configuration: choice ?? null,
     personas: await personaChoices(),
@@ -658,7 +781,7 @@ export async function runDetail(id: string) {
   };
 }
 export async function runCommand(id: string, input: unknown) {
-  const command = runCommandSchema.parse(input);
+  const command = parseInput(runCommandSchema, input);
   const { actor, job } = await ownedAttempt(command.attemptId, id);
   if (command.action === "retry-application") {
     await database()
@@ -759,7 +882,9 @@ export async function runCommand(id: string, input: unknown) {
       orchestratorId: job.run!.orchestrator.id,
       configurationKey: command.configurationKey,
       answerer: command.answerer,
-      artifactId: job.run?.artifactId,
+      target: jobTarget(job)
+        ? { kind: jobTarget(job)!.kind, id: jobTarget(job)!.id }
+        : undefined,
       inputs:
         command.inputs ??
         Object.fromEntries(
@@ -781,8 +906,8 @@ export async function submitDecision(
   const decision = await database()
     .collection<Decision>("runDecisions")
     .findOne({
-      _id: runIdSchema.parse(id),
-      logicalId: runIdSchema.parse(logicalId),
+      _id: parseInput(runIdSchema, id),
+      logicalId: parseInput(runIdSchema, logicalId),
       uid: actor.uid,
     });
   if (!decision)
@@ -800,7 +925,7 @@ export async function submitAuthorizedDecision(
   input: unknown,
   source: NonNullable<Decision["answerSource"]>,
 ) {
-  const parsed = decisionSubmitSchema.parse(input);
+  const parsed = parseInput(decisionSubmitSchema, input);
   const id = decision._id;
   const collection = db.collection<Decision>("runDecisions");
   const view = await decisionView(decision, job, db);
@@ -810,6 +935,7 @@ export async function submitAuthorizedDecision(
     throw new AppError("DECISION_UNAVAILABLE", "Decision is unavailable.", 409);
   if (!form.user_actions.some((action) => action.id === parsed.action))
     throw new AppError("INVALID_ACTION", "Choose an offered action.");
+  const managedFiles = new Set<string>();
   let inputs: Record<string, z.infer<ReturnType<typeof z.json>>> = {};
   if (form.form_content.includes("```unibase-ui")) {
     try {
@@ -838,12 +964,12 @@ export async function submitAuthorizedDecision(
         parsed.answers[field.output_variable_name] ??
         form.resolved_default_values[field.output_variable_name];
       if (field.type === "paragraph")
-        inputs[field.output_variable_name] = z
-          .string()
-          .max(4000)
-          .parse(value ?? "");
+        inputs[field.output_variable_name] = parseInput(
+          z.string().max(4000),
+          value ?? "",
+        );
       else if (field.type === "select") {
-        const text = z.string().parse(value);
+        const text = parseInput(z.string(), value);
         if (!(field.options ?? field.option_source?.value ?? []).includes(text))
           throw new AppError("INVALID_INPUT", "Choose an offered option.");
         inputs[field.output_variable_name] = text;
@@ -858,14 +984,20 @@ export async function submitAuthorizedDecision(
           );
         const ids =
           field.type === "file-list"
-            ? z
-                .array(runIdSchema)
-                .min(1)
-                .max(Math.min(10, field.number_limits ?? 10))
-                .parse(value)
-            : [runIdSchema.parse(value)];
+            ? parseInput(
+                z
+                  .array(runIdSchema)
+                  .min(1)
+                  .max(Math.min(10, field.number_limits ?? 10)),
+                value,
+              )
+            : [parseInput(runIdSchema, value)];
         inputs[field.output_variable_name] = await Promise.all(
           ids.map(async (fileId) => {
+            const owned = await db
+              .collection<import("../ai/files").AiFile>("aiFiles")
+              .findOne({ _id: fileId, uid: actor.uid });
+            if (owned?.managedFileId) managedFiles.add(owned.managedFileId);
             const file = await resolveOwnedAiFile(
               db,
               actor.uid,
@@ -947,6 +1079,10 @@ export async function submitAuthorizedDecision(
           "This attempt no longer accepts answers.",
           409,
         );
+      for (const fileId of managedFiles)
+        await (
+          await import("../private-files")
+        ).referenceFile(db, actor.uid, fileId, `run:${job._id}`, session);
       const changed = await collection.updateOne(
         { _id: id, status: "pending", intent: { $exists: false } },
         {

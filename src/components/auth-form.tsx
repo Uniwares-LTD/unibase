@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { useEffect, useState } from "react";
 import {
@@ -23,19 +24,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-function message(error: unknown) {
+function message(
+  error: unknown,
+  translate: ReturnType<typeof useTranslations<"ui">>,
+) {
   if (error instanceof ApiError) return error.message;
   const code = (error as { code?: string })?.code;
-  if (code === "auth/weak-password")
-    return "Choose a password with at least 12 characters.";
-  if (code === "auth/too-many-requests")
-    return "Too many attempts. Please wait and try again.";
-  if (code === "auth/network-request-failed")
-    return "Couldn’t reach the account service. Check your connection and try again.";
-  return "We couldn’t complete sign-in. Check your details or reset your password.";
+  if (code === "auth/weak-password") return translate("m3288a64ea288");
+  if (code === "auth/too-many-requests") return translate("md1de3635fd27");
+  if (code === "auth/network-request-failed") return translate("mc05785000a88");
+  return translate("m844d09e89ce4");
 }
 
 export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
+  const translate = useTranslations("ui");
+
   const [mode, setMode] = useState<"login" | "register" | "reset">("login");
   const [pending, setPending] = useState(true);
   const [notice, setNotice] = useState("");
@@ -76,14 +79,12 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
         ) {
           sessionStorage.removeItem(GOOGLE_REDIRECT_KEY);
           if (auth.currentUser) await signOut(auth);
-          setNotice(
-            "Google sign-in couldn’t finish. Please try Continue with Google again. If it repeats, check that site storage is allowed for this app.",
-          );
+          setNotice(translate("mc750549e48aa"));
         } else if (auth.currentUser && !auth.currentUser.emailVerified)
           setUnverified(auth.currentUser);
         else if (auth.currentUser) await signOut(auth);
       } catch (error) {
-        if (active) setNotice(message(error));
+        if (active) setNotice(message(error, translate));
       } finally {
         if (active) setPending(false);
       }
@@ -102,7 +103,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
     try {
       await action();
     } catch (error) {
-      setNotice(message(error));
+      setNotice(message(error, translate));
     } finally {
       setPending(false);
     }
@@ -124,9 +125,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
           if ((error as { code?: string }).code !== "auth/user-not-found")
             throw error;
         }
-        setNotice(
-          "If an account exists for that email, a password reset link has been sent.",
-        );
+        setNotice(translate("me1deafa6ebd6"));
         return;
       }
       const result =
@@ -138,7 +137,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
         await sendEmailVerification(result.user, {
           url: `${location.origin}/account`,
         });
-        setNotice("Check your inbox for a verification link.");
+        setNotice(translate("m2b5af1798fc1"));
       }
       await finish(result.user);
     });
@@ -153,10 +152,12 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
       )}
       {unverified ? (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Verify your email</h2>
+          <h2 className="text-xl font-semibold">
+            {translate("mbb265946234f")}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Open the verification link sent to {unverified.email}, then continue
-            here. Your profile stays protected until your email is verified.
+            {translate("m7e9fca60d938")} <bdi>{unverified.email}</bdi>
+            {translate("m3250ca735f0f")}{" "}
           </p>
           <div className="flex flex-wrap gap-3">
             <Button
@@ -165,14 +166,14 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
                 perform(async () => {
                   await reload(unverified);
                   if (!unverified.emailVerified) {
-                    setNotice("Your email is not verified yet.");
+                    setNotice(translate("m6ba8e2330b43"));
                     return;
                   }
                   await finish(unverified);
                 })
               }
             >
-              I’ve verified my email
+              {translate("mbc76912b1498")}{" "}
             </Button>
             <Button
               variant="outline"
@@ -182,11 +183,11 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
                   await sendEmailVerification(unverified, {
                     url: `${location.origin}/account`,
                   });
-                  setNotice("Verification email sent. Check your inbox.");
+                  setNotice(translate("mf4193da7febb"));
                 })
               }
             >
-              Resend email
+              {translate("m4f44603ef678")}{" "}
             </Button>
             <Button
               variant="ghost"
@@ -199,7 +200,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
                 })
               }
             >
-              Use another account
+              {translate("mfdce40f79716")}{" "}
             </Button>
           </div>
         </div>
@@ -207,14 +208,14 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
         <>
           <h2 className="text-xl font-semibold">
             {mode === "register"
-              ? "Create an account"
+              ? translate("m86033f75a4c0")
               : mode === "reset"
-                ? "Reset your password"
-                : "Sign in"}
+                ? translate("m59fa4379be1f")
+                : translate("mbfd402b2f6f3")}
           </h2>
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{translate("m969ccbd3cf63")}</Label>
               <Input
                 id="email"
                 name="email"
@@ -227,7 +228,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
             </div>
             {mode !== "reset" && (
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{translate("me7cf3ef4f17c")}</Label>
                 <Input
                   id="password"
                   name="password"
@@ -242,19 +243,19 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
                 />
                 {mode === "register" && (
                   <p className="text-xs text-muted-foreground">
-                    Use at least 12 characters.
+                    {translate("m618b57689fc1")}{" "}
                   </p>
                 )}
               </div>
             )}
             <Button type="submit" disabled={pending}>
               {pending
-                ? "Please wait…"
+                ? translate("m4660a983366f")
                 : mode === "register"
-                  ? "Create account"
+                  ? translate("m798ca2ce18bf")
                   : mode === "reset"
-                    ? "Send reset link"
-                    : "Sign in"}
+                    ? translate("m708c5d67ba8e")
+                    : translate("mbfd402b2f6f3")}
             </Button>
           </form>
           {mode !== "reset" && (
@@ -278,7 +279,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
                 })
               }
             >
-              Continue with Google
+              {translate("mcce937e89144")}{" "}
             </Button>
           )}
           <div className="flex flex-wrap gap-2">
@@ -291,8 +292,8 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
               }}
             >
               {mode === "register"
-                ? "Already have an account? Sign in"
-                : "Create an account"}
+                ? translate("m0f5b1d1f5fc8")
+                : translate("m86033f75a4c0")}
             </Button>
             <Button
               variant="link"
@@ -302,7 +303,9 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
                 setNotice("");
               }}
             >
-              {mode === "reset" ? "Back to sign in" : "Forgot password?"}
+              {mode === "reset"
+                ? translate("m71fe31ccd37c")
+                : translate("m30c1d8d3e912")}
             </Button>
           </div>
         </>

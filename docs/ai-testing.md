@@ -21,7 +21,7 @@ The Create scenario disables its public Web App, imports/publishes exactly one n
 without duplicating it, then starts an owned zero-input Run, renders Generative UI,
 submits a choice and verifies MCP/result tracing. Python is not required for these fixtures.
 `--orchestrators --browser` exposes the fixture for desktop/mobile acceptance.
-Template acceptance verifies all three imports and retries, template-switch
+Template acceptance verifies all catalog imports and retries, template-switch
 rejection, Ready state, and invalid template IDs. Account tests cover strict MCP
 catalog/quote inputs and permission-filtered discovery/direct invocation. Embedded
 Python code was checked with actual tool outputs and both choices per scenario;
@@ -47,8 +47,10 @@ Run `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run check:
 `npm run check:skills`, `npm run test:integration`, `npm run test:payments`,
 `npm run test:health` and `npm run test:deployment` for repository checks. Quality
 checks are advisory; production compilation/bundling failures remain build errors.
-`npm run test:ai-pricing` exercises the same Runs HTTP suite; pricing modes are
-exhaustively covered by isolated credit/provider tests instead of legacy chat UI.
+`npm run test:ai-pricing` runs its own HTTP scenarios through the bundled worker:
+fixed, total-token, split-token, provider-cost and hybrid pricing; consent changes,
+maximum reservations, rounding, release, failure charging, missing usage and
+replay-safe settlement. It is separate from `test:ai` and the pure pricing tests.
 
 For CLI browser verification, use the Playwright skill against the owned fixture:
 `node --conditions=react-server --import tsx scripts/integration.mjs --ai --browser`.

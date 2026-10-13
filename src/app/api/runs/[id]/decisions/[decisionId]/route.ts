@@ -6,7 +6,7 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string; decisionId: string }> },
 ) {
-  return endpoint(async () => {
+  return endpoint(request, async () => {
     await checkMutation(request);
     const p = await context.params;
     return json(

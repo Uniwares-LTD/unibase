@@ -34,3 +34,9 @@ A localized low-risk change may omit this comparison.
 
 Stay read-only: never correct the diff, commit, push, publish, merge, close issues,
 or change project metadata.
+
+For repository reuse changes, review initializer source/destination isolation and
+secret exclusions, module admission versus visibility, accepted adapter versions,
+scoped pagination, quota/reference transactions and outbox replay behavior. For
+localized UI, include client navigation, dictionary completeness, RTL and document
+nonce behavior. Use the repository adapter's checks and current service contracts.

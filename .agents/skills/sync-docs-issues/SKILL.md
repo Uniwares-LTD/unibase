@@ -28,3 +28,8 @@ impact and the reviewed commit/PR when available. Use an evidence marker only wh
 the adapter defines one; inspect existing comments to avoid duplicates. Never rewrite the issue
 body, close the issue, change labels, assignment, or milestone, or mutate GitHub
 Project fields unless separately requested.
+
+For this repository, reconcile generated environment and translation inventories
+with their canonical sources. Distinguish the current JSON template catalog from
+retained historical YAML fixtures. Validate local links, anchors and actual package
+commands through the repository adapter; retain historical evidence as dated evidence.

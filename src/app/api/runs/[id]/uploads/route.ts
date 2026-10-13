@@ -6,7 +6,7 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  return endpoint(async () => {
+  return endpoint(request, async () => {
     await checkMutation(request);
     const form = await readUpload(request);
     const file = form.get("file");

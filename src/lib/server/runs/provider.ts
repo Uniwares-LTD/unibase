@@ -211,10 +211,18 @@ function fakeRun(job: AiJob, db: Db): WorkflowProvider {
       usage: {
         scope: "execution",
         id: runId,
-        inputTokens: 5,
-        outputTokens: 5,
-        totalTokens: 10,
-        cost: null,
+        inputTokens: String(job.inputs.prompt).includes("missing-usage")
+          ? null
+          : 5,
+        outputTokens: String(job.inputs.prompt).includes("missing-usage")
+          ? null
+          : 5,
+        totalTokens: String(job.inputs.prompt).includes("missing-usage")
+          ? null
+          : 10,
+        cost: String(job.inputs.prompt).includes("priced-usage")
+          ? { amount: "0.0025", currency: "USD", source: "provider" }
+          : null,
         elapsedMs: 100,
       },
     };

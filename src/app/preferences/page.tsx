@@ -1,3 +1,6 @@
+import { PageMessages } from "@/components/page-messages";
+import { LocalizationPreference } from "@/components/localization-preference";
+import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-patterns";
 import type { Metadata } from "next";
 import { ThemePreference } from "@/components/theme-preference";
@@ -12,37 +15,44 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-export const metadata: Metadata = { title: "Preferences" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("ui"))("m66962f72a088") };
+}
 
 export default async function PreferencesPage() {
+  const translate = await getTranslations("ui");
+
   const session = await getSession();
   const profile = session?.email_verified ? await getMyProfile() : null;
   return (
-    <div className="max-w-3xl page-stack">
-      <PageHeader
-        title="Preferences"
-        description="Choose your color mode and design style."
-      />
-      <Card className="shadow-none">
-        <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <CardDescription>
-            Choose the look you prefer, or let your device decide.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {profile ? (
-            <div className="space-y-6">
-              <AppearanceForm key={profile.uid} profile={profile} />
-            </div>
-          ) : (
-            <div className="space-y-8">
-              <StylePreference />
-              <ThemePreference />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <PageMessages path="/preferences">
+      {
+        <div className="max-w-3xl page-stack">
+          <PageHeader
+            title={translate("m66962f72a088")}
+            description={translate("m153b3363f9a5")}
+          />
+          <LocalizationPreference canSave={!!profile} />
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>{translate("m3907fa7f8072")}</CardTitle>
+              <CardDescription>{translate("me6ced602ea08")} </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {profile ? (
+                <div className="space-y-6">
+                  <AppearanceForm key={profile.uid} profile={profile} />
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  <StylePreference />
+                  <ThemePreference />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      }
+    </PageMessages>
   );
 }

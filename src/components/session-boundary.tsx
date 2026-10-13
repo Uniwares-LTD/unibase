@@ -1,10 +1,15 @@
 "use client";
+import { useTranslations } from "next-intl";
+
+import { namespace } from "@/lib/project";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { invalidateBrowserSession } from "@/lib/client/session-lifecycle";
 
 export function SessionBoundary({ children }: { children: ReactNode }) {
+  const translate = useTranslations("ui");
+
   const [invalid, setInvalid] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -14,7 +19,7 @@ export function SessionBoundary({ children }: { children: ReactNode }) {
       location.replace("/account");
     };
     const changed = (event: StorageEvent) => {
-      if (event.key === "unitale-session-event") reload();
+      if (event.key === namespace("session-event")) reload();
     };
     const hide = (event: PageTransitionEvent) => {
       // Do not save private content in a visible back-forward-cache snapshot.
@@ -36,7 +41,7 @@ export function SessionBoundary({ children }: { children: ReactNode }) {
   }, []);
   return (
     <div ref={root}>
-      {invalid ? <p role="status">Account changed. Reloading…</p> : children}
+      {invalid ? <p role="status">{translate("m023f771497a3")}</p> : children}
     </div>
   );
 }

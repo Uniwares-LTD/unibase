@@ -4,6 +4,8 @@ import { MongoClient } from "mongodb";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import {
   artifactRevisionDetails,
+  artifactRevisionPage,
+  artifactPage,
   type Artifact,
 } from "../../src/lib/server/runs/artifacts";
 
@@ -113,6 +115,90 @@ test("artifact images belong to their source revision after Run cleanup and reta
       ],
     );
     assert.equal(JSON.stringify(revisions).includes("Private story"), false);
+  } finally {
+    await client.close();
+    await repl.stop();
+  }
+});
+
+test("artifact keyset pages handle equal timestamps and final revision images across pages", async () => {
+  const repl = await MongoMemoryReplSet.create({
+    binary: { downloadDir: ".cache/mongodb-binaries" },
+    replSet: { count: 1 },
+  });
+  const client = new MongoClient(repl.getUri());
+  const db = client.db("artifact-pages");
+  try {
+    const createdAt = new Date();
+    await db.collection("artifacts").insertMany(
+      Array.from({ length: 106 }, (_, i) => ({
+        id: String(i).padStart(3, "0"),
+        uid: "owner",
+        title: "Example " + i,
+        revision: 106,
+        approvedRevision: null,
+        assets: ["image"],
+        createdAt,
+      })),
+    );
+    const seen = [];
+    let cursor;
+    do {
+      const page = await artifactPage(db, "owner", cursor);
+      assert.ok(page.rows.length <= 25);
+      seen.push(...page.rows.map((r) => r.id));
+      cursor = page.next ?? undefined;
+    } while (cursor);
+    assert.equal(seen.length, 106);
+    assert.equal(new Set(seen).size, 106);
+    const first = await artifactPage(db, "owner");
+    await assert.rejects(artifactPage(db, "other", first.next!), {
+      code: "INVALID_INPUT",
+    });
+    await assert.rejects(artifactPage(db, "owner", first.next!, "changed"), {
+      code: "INVALID_INPUT",
+    });
+    assert.equal(
+      (await artifactPage(db, "owner", undefined, ".*")).rows.length,
+      0,
+    );
+    const artifact: Artifact = {
+      id: "a",
+      uid: "owner",
+      title: "Example",
+      revision: 106,
+      approvedRevision: null,
+      assets: ["image"],
+      createdAt,
+    };
+    await db.collection("artifactRevisions").insertMany(
+      Array.from({ length: 106 }, (_, i) => ({
+        artifactId: "a",
+        uid: "owner",
+        revision: i + 1,
+        jobId: "same",
+        logicalId: "run",
+        text: "text",
+      })),
+    );
+    await db.collection("productAssets").insertOne({
+      uid: "owner",
+      _id: "image" as never,
+      jobId: "same",
+      state: "ready",
+      references: ["artifact:a"],
+    });
+    let images = 0,
+      count = 0;
+    cursor = undefined;
+    do {
+      const page = await artifactRevisionPage(db, artifact, cursor);
+      count += page.rows.length;
+      images += page.rows.reduce((n, r) => n + r.assets.length, 0);
+      cursor = page.next ?? undefined;
+    } while (cursor);
+    assert.equal(count, 106);
+    assert.equal(images, 1);
   } finally {
     await client.close();
     await repl.stop();

@@ -6,6 +6,10 @@ import {
   announceSessionChange,
 } from "./session-lifecycle";
 
+const unavailable = () =>
+  typeof document !== "undefined" && document.documentElement.lang === "ar"
+    ? "تعذر إكمال الطلب. يرجى المحاولة مجدداً."
+    : "The server returned an unexpected response.";
 export class ApiError extends Error {
   constructor(
     public code: string,
@@ -74,10 +78,7 @@ export async function api<T>(
   try {
     body = await response.json();
   } catch {
-    throw new ApiError(
-      "INVALID_RESPONSE",
-      "The server returned an unexpected response.",
-    );
+    throw new ApiError("INVALID_RESPONSE", unavailable());
   }
   signal.throwIfAborted();
   if (!response.ok) {
@@ -93,13 +94,9 @@ export async function api<T>(
         error.data.error.requestId,
       );
     }
-    throw new ApiError("REQUEST_FAILED", "The request could not be completed.");
+    throw new ApiError("REQUEST_FAILED", unavailable());
   }
   const result = schema.safeParse(body);
-  if (!result.success)
-    throw new ApiError(
-      "INVALID_RESPONSE",
-      "The server returned an unexpected response.",
-    );
+  if (!result.success) throw new ApiError("INVALID_RESPONSE", unavailable());
   return result.data;
 }

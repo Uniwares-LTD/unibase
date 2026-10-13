@@ -4,10 +4,10 @@ import { database } from "@/lib/server/mongo";
 import { endpoint } from "@/lib/server/http";
 export const dynamic = "force-dynamic";
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  return endpoint(async () => {
+  return endpoint(request, async () => {
     const actor = await requireSession();
     const { bytes, asset } = await readRunAsset(
       database(),

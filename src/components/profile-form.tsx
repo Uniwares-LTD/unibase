@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "next-intl";
+
 import { Notice } from "./page-patterns";
 import { useActionState } from "react";
 import { saveProfile } from "@/app/account/actions";
@@ -8,6 +10,8 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
 export function ProfileForm({ profile }: { profile: Profile }) {
+  const translate = useTranslations("ui");
+
   const [state, action, pending] = useActionState(
     saveProfile.bind(null, profile.uid),
     { message: "", saved: false },
@@ -23,7 +27,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       }}
     >
       <div className="space-y-2">
-        <Label htmlFor="displayName">Display name</Label>
+        <Label htmlFor="displayName">{translate("m2b7f6a84de91")}</Label>
         <Input
           id="displayName"
           name="displayName"
@@ -36,11 +40,13 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         />
       </div>
       <div className="space-y-2">
-        <Label>Email</Label>
-        <p className="break-all text-sm">{profile.email}</p>
+        <Label>{translate("m969ccbd3cf63")}</Label>
+        <p className="break-all text-sm">
+          <bdi>{profile.email}</bdi>
+        </p>
       </div>
       <Button type="submit" disabled={pending}>
-        {pending ? "Saving…" : "Save profile"}
+        {pending ? translate("m23e39291d613") : translate("m0c8209e72ec8")}
       </Button>
       {state.message && (
         <Notice

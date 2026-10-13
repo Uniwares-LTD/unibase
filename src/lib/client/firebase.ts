@@ -1,4 +1,5 @@
 "use client";
+import { namespace } from "@/lib/project";
 import { getApps, initializeApp } from "firebase/app";
 import {
   browserSessionPersistence,
@@ -19,8 +20,8 @@ export async function redirectCredential(config: FirebaseBrowserConfig) {
 }
 export function browserAuth(config: FirebaseBrowserConfig) {
   ready ??= (async () => {
-    const existing = getApps().find((app) => app.name === "unitale-browser");
-    const app = existing ?? initializeApp(config, "unitale-browser");
+    const existing = getApps().find((app) => app.name === namespace("browser"));
+    const app = existing ?? initializeApp(config, namespace("browser"));
     // Select persistence before Firebase processes a returning redirect.
     const auth = existing
       ? getAuth(app)

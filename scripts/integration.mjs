@@ -124,7 +124,11 @@ try {
         process.argv.includes("--orchestrators")
           ? "tests/integration/orchestrators.test.mjs"
           : process.argv.includes("--ai")
-            ? "tests/integration/ai.test.mjs"
+            ? process.argv.includes("--rate-limits")
+              ? "tests/integration/rate-limits.test.mjs"
+              : process.argv.includes("--ai-pricing")
+                ? "tests/integration/ai-pricing.test.mjs"
+                : "tests/integration/ai.test.mjs"
             : process.argv.includes("--stripe")
               ? "tests/integration/payments.test.mjs"
               : "tests/integration/auth.test.mjs",

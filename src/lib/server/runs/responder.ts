@@ -1,3 +1,4 @@
+import { enqueueNotification } from "../notifications";
 import "server-only";
 import type { Db } from "mongodb";
 import { randomUUID } from "node:crypto";
@@ -309,17 +310,37 @@ export async function processOneAutomaticDecision(
           "The responder could not provide a valid answer. Please answer or take over.",
         );
     } catch (error) {
-      await db.collection<Decision>("runDecisions").updateOne(
-        { _id: decision._id, status: "pending" },
-        {
-          $set: {
-            automaticError:
-              error instanceof AppError && error.code === "PERSONA_FALLBACK"
-                ? error.message
-                : "Automatic answering is unavailable. Please answer or take over.",
-          },
-        },
-      );
+      const session = db.client.startSession();
+      try {
+        await session.withTransaction(async () => {
+          const changed = await db
+            .collection<Decision>("runDecisions")
+            .updateOne(
+              { _id: decision._id, status: "pending" },
+              {
+                $set: {
+                  automaticError:
+                    error instanceof AppError &&
+                    error.code === "PERSONA_FALLBACK"
+                      ? error.message
+                      : "Automatic answering is unavailable. Please answer or take over.",
+                },
+              },
+              { session },
+            );
+          if (changed.modifiedCount && parent.run)
+            await enqueueNotification(
+              db,
+              parent.uid,
+              `decision-fallback:${decision._id}`,
+              "run-decision",
+              { runId: parent.run.logicalId },
+              session,
+            );
+        });
+      } finally {
+        await session.endSession();
+      }
       return true;
     }
   }

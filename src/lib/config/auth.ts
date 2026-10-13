@@ -1,3 +1,4 @@
+import { project } from "../project";
 import { z } from "zod";
 
 const schema = z.object({
@@ -23,7 +24,8 @@ export function parseAuthConfig(
   const result = schema.safeParse({
     mode,
     projectId:
-      input.FIREBASE_PROJECT_ID ?? (emulator ? "demo-unitale" : undefined),
+      input.FIREBASE_PROJECT_ID ??
+      (emulator ? `demo-${project.slug}` : undefined),
     apiKey: input.FIREBASE_API_KEY ?? (emulator ? "demo-api-key" : undefined),
     appId: input.FIREBASE_APP_ID ?? (emulator ? "demo-app-id" : undefined),
     origin,

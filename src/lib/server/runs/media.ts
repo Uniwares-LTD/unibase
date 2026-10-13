@@ -200,7 +200,7 @@ export async function attachResult(db: Db, job: AiJob, session: ClientSession) {
       { $set: { state: "published" } },
       { session },
     );
-  const { queueResultApplication } = await import("./artifacts");
+  const { queueResultApplication } = await import("../domain-results");
   const current = await aiJobs(db).findOne(
     { _id: job._id, uid: job.uid },
     { session },

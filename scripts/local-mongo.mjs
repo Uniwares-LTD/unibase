@@ -1,3 +1,4 @@
+import manifest from "../project.config.json" with { type: "json" };
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { MongoClient } from "mongodb";
 import { mkdirSync } from "node:fs";
@@ -14,11 +15,15 @@ const mongo = await MongoMemoryReplSet.create({
       storageEngine: "wiredTiger",
     },
   ],
-  replSet: { count: 1, name: "unitale-local", storageEngine: "wiredTiger" },
+  replSet: {
+    count: 1,
+    name: `${manifest.slug}-local`,
+    storageEngine: "wiredTiger",
+  },
 });
 const client = new MongoClient(mongo.getUri());
 await client
-  .db("unitale_local")
+  .db(`${manifest.slug.replaceAll("-", "_")}_local`)
   .collection("profiles")
   .createIndex({ uid: 1 }, { unique: true, name: "unique_firebase_uid" });
 await client.close();

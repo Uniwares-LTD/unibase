@@ -1,0 +1,18 @@
+{
+  "en": {
+    "failure": "We couldn’t load your space.",
+    "retryHelp": "Please try again. If the problem continues, come back in a moment.",
+    "retry": "Try again",
+    "home": "Back to home",
+    "offline": "You’re offline.",
+    "offlineHelp": "Reconnect to use the application. Your account and profile are not stored for offline access."
+  },
+  "ar": {
+    "failure": "تعذر تحميل مساحتك.",
+    "retryHelp": "يرجى المحاولة مجدداً. إذا استمرت المشكلة، عُد بعد قليل.",
+    "retry": "حاول مجدداً",
+    "home": "العودة إلى الرئيسية",
+    "offline": "أنت غير متصل بالإنترنت.",
+    "offlineHelp": "أعد الاتصال لاستخدام التطبيق. لا يُخزّن حسابك وملفك الشخصي للاستخدام دون اتصال."
+  }
+}

@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { useId } from "react";
 import type { personaChoices } from "@/lib/server/runs/personas";
@@ -22,16 +23,18 @@ export function AnswererSelect({
   onChange: (value: string) => void;
   disabled?: boolean;
 }) {
+  const translate = useTranslations("ui");
+
   const id = useId();
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>Answer questions as</Label>
+      <Label htmlFor={id}>{translate("mbe4cc95114f3")}</Label>
       <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger id={id}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="user">User</SelectItem>
+          <SelectItem value="user">{translate("mb512d97e7cbf")}</SelectItem>
           {personas.map((p) => (
             <SelectItem key={p.id} value={p.id}>
               {p.name}

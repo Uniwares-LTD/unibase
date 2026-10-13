@@ -41,3 +41,7 @@ When a user provides a file or pattern argument:
 
 If no files are specified, infer relevant UI files from the requested screen or
 diff. Ask only when the audit target cannot be determined from repository context.
+
+For this repository, exercise English and Arabic at desktop and 390px widths.
+Review logical layout properties, Radix direction, bidirectional identifiers,
+keyboard focus and translated recovery copy without translating user/model content.

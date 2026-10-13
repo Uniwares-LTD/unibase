@@ -1,4 +1,5 @@
 import "server-only";
+import { rateReady } from "./rate-limit";
 import { readFile } from "node:fs/promises";
 import { createPrivateKey } from "node:crypto";
 import { probeReadiness } from "../readiness";
@@ -39,6 +40,7 @@ async function credentialsAvailable(signal: AbortSignal) {
 export async function isReady() {
   return probeReadiness([
     credentialsAvailable,
+    rateReady,
     async () => {
       await database().command({ ping: 1 }, { timeoutMS: 4000 });
     },

@@ -1,4 +1,5 @@
 import "server-only";
+import { requireModule } from "./modules";
 import { database } from "./mongo";
 import { requireSession } from "./session";
 import {
@@ -14,6 +15,7 @@ import { adjustmentSchema } from "../contracts/credits";
 import { AppError } from "../auth-policy";
 
 async function currentActor() {
+  requireModule("credits");
   const session = await requireSession();
   return { uid: session.uid, authTime: session.auth_time };
 }

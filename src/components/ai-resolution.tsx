@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -26,6 +27,8 @@ export function AiResolution({
   jobId: string;
   canAccept: boolean;
 }) {
+  const translate = useTranslations("ui");
+
   const id = useId();
   const router = useRouter();
   const [reason, setReason] = useState("");
@@ -44,12 +47,10 @@ export function AiResolution({
         },
       );
       router.refresh();
-      setMessage("Resolution recorded.");
+      setMessage(translate("m157fea7c0bc1"));
     } catch (error) {
       setMessage(
-        error instanceof ApiError
-          ? error.message
-          : "Could not confirm the resolution. Refresh before retrying.",
+        error instanceof ApiError ? error.message : translate("m2371ba76283f"),
       );
     } finally {
       setBusy(false);
@@ -57,14 +58,14 @@ export function AiResolution({
   }
   return (
     <div className="space-y-3">
-      <Label htmlFor={id}>Resolution explanation (optional)</Label>
+      <Label htmlFor={id}>{translate("m777b71247907")}</Label>
       <Textarea
         id={id}
         value={reason}
         onChange={(event) => setReason(event.target.value)}
         maxLength={500}
         disabled={busy}
-        placeholder="Record the evidence and reason for this decision."
+        placeholder={translate("mc69dce41d50b")}
       />
       <div className="flex flex-wrap gap-2">
         {canAccept && (
@@ -74,34 +75,32 @@ export function AiResolution({
               void resolve("accept");
             }}
           >
-            Accept saved result and settle its calculated charge
+            {translate("me404048f0463")}{" "}
           </Button>
         )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="outline" disabled={busy}>
-              Resolve attempt and release credits
+              {translate("m2f4de33927e0")}{" "}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Release the user’s credits?</AlertDialogTitle>
+              <AlertDialogTitle>{translate("m25929b7a63f6")}</AlertDialogTitle>
               <AlertDialogDescription>
-                This records an audited credit waiver. It does not stop a
-                provider execution whose state is uncertain; provider costs may
-                still accrue. This explicitly resolves the attempt and permits a
-                new attempt; it can duplicate work if the provider is still
-                running.
+                {translate("m9f8a061314b8")}{" "}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Keep reserved</AlertDialogCancel>
+              <AlertDialogCancel>
+                {translate("md0d1f332872a")}
+              </AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => {
                   void resolve("release");
                 }}
               >
-                Release credits
+                {translate("m068930c9fe98")}{" "}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

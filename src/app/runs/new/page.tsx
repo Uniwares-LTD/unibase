@@ -1,3 +1,5 @@
+import { PageMessages } from "@/components/page-messages";
+import { getTranslations } from "next-intl/server";
 import { RunLanding } from "@/components/runs/run-start";
 import { orchestrators } from "@/lib/server/runs/orchestrators";
 import { listRuns } from "@/lib/server/runs/service";
@@ -14,6 +16,8 @@ export default async function Page({
 }: {
   searchParams: Promise<{ artifactId?: string }>;
 }) {
+  const translate = await getTranslations("ui");
+
   const actor = await requireSession();
   const query = await searchParams;
   const parsed = query.artifactId
@@ -39,29 +43,35 @@ export default async function Page({
         : Promise.resolve(null),
     ]);
   const artifactRows =
-    initialArtifact && !savedArtifacts.some((a) => a.id === initialArtifact.id)
-      ? [initialArtifact, ...savedArtifacts]
-      : savedArtifacts;
+    initialArtifact &&
+    !savedArtifacts.rows.some((a) => a.id === initialArtifact.id)
+      ? [initialArtifact, ...savedArtifacts.rows]
+      : savedArtifacts.rows;
   return (
-    <div className="page-stack">
-      <PageHeader
-        title="Start a run"
-        description="Choose a workflow, pick who answers, and create something new."
-      />
-      <RunLanding
-        key={artifactId ?? "new"}
-        choices={choices}
-        personas={personas}
-        artifactId={artifactId}
-        artifacts={artifactRows.map(({ id, title, revision }) => ({
-          id,
-          title,
-          revision,
-        }))}
-        unfinished={runs.rows.filter(
-          (r) => !["succeeded", "failed", "cancelled"].includes(r.status),
-        )}
-      />
-    </div>
+    <PageMessages path="/runs/new">
+      {
+        <div className="page-stack">
+          <PageHeader
+            title={translate("m9f88e18da1c5")}
+            description={translate("mbe8f030087bf")}
+          />
+          <RunLanding
+            key={artifactId ?? "new"}
+            choices={choices}
+            personas={personas}
+            artifactId={artifactId}
+            artifactsNext={savedArtifacts.next}
+            artifacts={artifactRows.map(({ id, title, revision }) => ({
+              id,
+              title,
+              revision,
+            }))}
+            unfinished={runs.rows.filter(
+              (r) => !["succeeded", "failed", "cancelled"].includes(r.status),
+            )}
+          />
+        </div>
+      }
+    </PageMessages>
   );
 }

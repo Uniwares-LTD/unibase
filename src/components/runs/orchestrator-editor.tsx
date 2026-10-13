@@ -1,4 +1,7 @@
 "use client";
+import { useTranslations } from "next-intl";
+
+import { project, namespace } from "@/lib/project";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -55,6 +58,8 @@ export function OrchestratorEditor({
   initialError?: string;
   templates: OrchestratorTemplateSummary[];
 }) {
+  const translate = useTranslations("ui");
+
   const router = useRouter();
   const [apps, setApps] = useState(initial.apps);
   const [message, setMessage] = useState(initialError ?? "");
@@ -77,24 +82,26 @@ export function OrchestratorEditor({
       router.refresh();
       setMessage(
         action === "disable"
-          ? "Disabled for new Runs. Existing Runs are preserved."
-          : "Unregistered from Unibase. Dify and Run history are preserved.",
+          ? translate("m5ce0eb98b66b")
+          : translate("mcc5093b51d29"),
       );
     } catch (error) {
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not change this orchestrator.",
+        error instanceof Error ? error.message : translate("m2dc39274d477"),
       );
     } finally {
       setChanging(null);
     }
   }
   async function create(template: OrchestratorTemplateSummary) {
-    const storageKey =
+    const legacyKey =
       template.id === "document-summary"
         ? "unibase-starter-creation"
         : `unibase-orchestrator-creation:${template.id}`;
+    const storageKey =
+      project.slug === "unitale"
+        ? legacyKey
+        : namespace("orchestrator-creation:" + template.id);
     setCreating(true);
     setMessage(`Creating ${template.title}...`);
     try {
@@ -141,9 +148,7 @@ export function OrchestratorEditor({
       )
         localStorage.removeItem(storageKey);
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Creation could not be confirmed. Retry to resume setup.",
+        error instanceof Error ? error.message : translate("ma54503c46774"),
       );
     } finally {
       setCreating(false);
@@ -229,7 +234,7 @@ export function OrchestratorEditor({
       );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Could not load Dify apps.",
+        error instanceof Error ? error.message : translate("m01b850c3158c"),
       );
     } finally {
       setRefreshing(false);
@@ -244,7 +249,7 @@ export function OrchestratorEditor({
           ? {
               ...app,
               status: "registering",
-              stage: "Checking workflow",
+              stage: translate("m7117750980a2"),
               message: undefined,
             }
           : app,
@@ -272,8 +277,8 @@ export function OrchestratorEditor({
                 status: "ready",
                 registered: true,
                 orchestratorId: result.orchestratorId,
-                stage: "Ready",
-                message: "Ready for users.",
+                stage: translate("m5fa7aac5375c"),
+                message: translate("mf22c4dc94df3"),
               }
             : app,
         ),
@@ -283,9 +288,7 @@ export function OrchestratorEditor({
       router.refresh();
     } catch (error) {
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Registration could not be confirmed.";
+        error instanceof Error ? error.message : translate("m7c5bb3f95e38");
       try {
         const state = await api(
           "/api/admin/orchestrators/manage",
@@ -296,12 +299,12 @@ export function OrchestratorEditor({
           prior.map((app) => (app.id === appId ? { ...app, ...state } : app)),
         );
         if (state.status === "registering") {
-          setMessage("Setup is still running. Its progress will update here.");
+          setMessage(translate("md74509f83832"));
           return;
         }
         if (state.status === "ready") {
           await refresh();
-          setMessage("Registration completed. The orchestrator is ready.");
+          setMessage(translate("mad8d6095dc84"));
           setActive((current) => (current === appId ? null : current));
           router.refresh();
           return;
@@ -324,13 +327,15 @@ export function OrchestratorEditor({
     <section className="space-y-4" aria-labelledby="dify-apps-heading">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="dify-apps-heading" className="text-xl font-semibold">
-          Dify workflows
+          {translate("md940356f831e")}{" "}
         </h2>
         <div className="flex flex-wrap gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button disabled={creating || !!active || !!changing}>
-                {creating ? "Creating..." : "Create orchestrator"}
+                {creating
+                  ? translate("mdef70944c9bb")
+                  : translate("mf4bb36ce0b8b")}
                 <ChevronDown aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
@@ -359,13 +364,14 @@ export function OrchestratorEditor({
             disabled={refreshing || !!changing || creating}
             onClick={() => void refresh()}
           >
-            {refreshing ? "Loading..." : "Refresh apps"}
+            {refreshing
+              ? translate("m47d2a515ef2f")
+              : translate("m9650d7541bbf")}
           </Button>
         </div>
       </div>
       <p className="text-sm text-muted-foreground">
-        Create a ready-to-run starter with MCP and a human choice, or register
-        an existing published workflow.
+        {translate("m74b3f6c29768")}{" "}
       </p>
       {message && (
         <p role="status" className="break-words text-sm">
@@ -376,8 +382,8 @@ export function OrchestratorEditor({
         <Card>
           <CardContent className="pt-4">
             {initialError
-              ? "Connect Dify, then refresh the app list."
-              : "No Workflow apps were found in this Dify workspace."}
+              ? translate("m9139166c5259")
+              : translate("mcee513ff2d0e")}
           </CardContent>
         </Card>
       )}
@@ -399,20 +405,20 @@ export function OrchestratorEditor({
                 }
               >
                 {app.status === "ready"
-                  ? "Ready"
+                  ? translate("m5fa7aac5375c")
                   : app.status === "registering"
-                    ? "Registering"
+                    ? translate("m962b94daba0c")
                     : app.status === "failed"
-                      ? "Registration failed"
+                      ? translate("md40e3b08ef50")
                       : app.status === "disabled"
-                        ? "Disabled"
+                        ? translate("m75081b593d15")
                         : app.status === "unavailable"
-                          ? "Unavailable in Dify"
-                          : "Not registered"}
+                          ? translate("m25be08e2e249")
+                          : translate("mca374c23ed92")}
               </Badge>
               {app.status === "registering" && (
                 <p role="status" className="text-sm">
-                  {app.stage ?? "Preparing workflow"}...
+                  {app.stage ?? translate("m88aeae0a1af7")}...
                 </p>
               )}
               {["failed", "disabled", "unavailable"].includes(app.status) && (
@@ -432,14 +438,14 @@ export function OrchestratorEditor({
                 onClick={() => void register(app.id)}
               >
                 {app.status === "ready"
-                  ? "Registered"
+                  ? translate("m2351ee992626")
                   : app.status === "registering"
-                    ? "Registering..."
+                    ? translate("m9ef767a32782")
                     : app.status === "failed"
-                      ? "Retry registration"
+                      ? translate("m04048ff7f268")
                       : app.status === "disabled"
-                        ? "Enable"
-                        : "Register"}
+                        ? translate("m5342e09f2729")
+                        : translate("mbb7234ec1245")}
               </Button>
               {app.registered && app.orchestratorId && (
                 <>
@@ -452,7 +458,7 @@ export function OrchestratorEditor({
                           void change("disable", app.orchestratorId!)
                         }
                       >
-                        Disable
+                        {translate("mb7e3e4aa4257")}{" "}
                       </Button>
                     )}
                   <Button
@@ -463,10 +469,10 @@ export function OrchestratorEditor({
                     }
                   >
                     {changing === app.orchestratorId
-                      ? "Updating..."
+                      ? translate("m0a4e0b71b7f3")
                       : app.status === "unavailable" && !app.available
-                        ? "Delete registration"
-                        : "Unregister"}
+                        ? translate("m986831784abc")
+                        : translate("mbe01aa28a44c")}
                   </Button>
                 </>
               )}

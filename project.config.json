@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "slug": "unitale",
+  "displayName": "Base",
+  "defaultStyle": "classic",
+  "modules": [
+    "credits",
+    "payments",
+    "runs",
+    "mcp",
+    "files",
+    "notifications",
+    "artifacts"
+  ],
+  "locales": ["en", "ar"],
+  "defaultLocale": "en",
+  "examples": true
+}

@@ -1,3 +1,4 @@
+import { project } from "@/lib/project";
 import "server-only";
 import documentSummary from "./document-summary.json";
 import catalogPicker from "./catalog-picker.json";
@@ -42,15 +43,23 @@ const templates: {
 ];
 
 export function orchestratorTemplates() {
-  return templates.map(({ id, title, description }) => ({
-    id: id as OrchestratorTemplateId,
-    title,
-    description,
-  }));
+  return templates
+    .filter(
+      (template) => project.examples || template.id === "persona-responder",
+    )
+    .map(({ id, title, description }) => ({
+      id: id as OrchestratorTemplateId,
+      title,
+      description,
+    }));
 }
 
 export function orchestratorTemplate(id: OrchestratorTemplateId) {
-  const template = templates.find((template) => template.id === id);
+  const template = templates.find(
+    (template) =>
+      template.id === id &&
+      (project.examples || template.id === "persona-responder"),
+  );
   if (!template) throw new Error("Unknown orchestrator template");
   return {
     ...template,

@@ -1,4 +1,5 @@
 import "server-only";
+import { requireModule } from "./modules";
 import Stripe from "stripe";
 import { AppError } from "../auth-policy";
 import { parseStripeConfig } from "../config/payments";
@@ -37,6 +38,7 @@ export function stripeClient() {
   });
 }
 export async function startStripeCheckout(packId: string, key: string) {
+  requireModule("payments");
   const config = await runtimeCreditConfig();
   if (config.mode !== "stripe")
     throw new AppError(

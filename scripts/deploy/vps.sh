@@ -11,14 +11,16 @@ commit=${5:-}
 case "$action" in setup|deploy|check|rollback) ;; *) echo 'Use setup|deploy|check|rollback staging|production [--apply] [digest commit]' >&2; exit 2 ;; esac
 case "$target" in staging|production) ;; *) echo 'Invalid target' >&2; exit 2 ;; esac
 case "$mode" in ''|--apply) ;; *) echo 'Invalid mode' >&2; exit 2 ;; esac
-root=/opt/unitale
-config=/etc/unitale
-state=/var/lib/unitale
-project=unitale-$target
-base=$root/$target
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+slug=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["slug"])' "$script_dir/../../project.config.json")
+[[ "$slug" =~ ^[a-z][a-z0-9-]{2,39}$ ]] || { echo 'Invalid project identity' >&2; exit 1; }
+root=/opt/$slug
+config=/etc/$slug
+state=/var/lib/$slug
+project=$slug-$target
+base=$root/$target
 if [[ "$mode" != --apply ]]; then
-  printf 'Preview: %s %s; only /opt/unitale, /etc/unitale, /var/lib/unitale and project %s\n' "$action" "$target" "$project"
+  printf 'Preview: %s %s; only %s, %s, %s and project %s\n' "$action" "$target" "$root" "$config" "$state" "$project"
   exit 0
 fi
 [[ $(id -u) == 0 ]] || { echo 'Apply requires the configured privileged operator' >&2; exit 1; }
@@ -103,11 +105,20 @@ else
   cp "$script_dir/../../deploy/compose.yml" "$candidate/compose.yml"
   cp "$config/$target/runtime.env" "$candidate/runtime.env"
   cp "$config/$target/firebase.json" "$candidate/firebase.json"
+  python3 -c 'from pathlib import Path; import sys; Path(sys.argv[2]).write_text(Path(sys.argv[1]).read_text().replace("INGRESS_SUBNET", sys.argv[3]))' "$script_dir/../../deploy/nginx.conf" "$candidate/nginx.conf" "${settings[6]}"
+  chmod 0444 "$candidate/nginx.conf"
+  cp "$config/$target/redis-password" "$candidate/redis-password"
+  chown 1001:1001 "$candidate/redis-password"
+  chmod 0400 "$candidate/redis-password"
   cp "$config/$target/tunnel-token" "$candidate/tunnel-token"
   chown 1001:1001 "$candidate/firebase.json" "$candidate/tunnel-token"
   chmod 0400 "$candidate/firebase.json" "$candidate/tunnel-token"
   printf 'DEPLOY_ENV=%s\nIMAGE_DIGEST=%s\nRELEASE_COMMIT=%s\nAPP_PORT=%s\nTUNNEL_IMAGE=%s\n' \
     "$target" "$image" "$commit" "${settings[1]}" "${settings[2]}" > "$candidate/compose.env"
+  printf 'PROJECT_SLUG=%s\n' "$slug" >> "$candidate/compose.env"
+  ingress_subnet=${settings[6]}
+  printf 'REDIS_IMAGE=%s\nNGINX_IMAGE=%s\nINGRESS_SUBNET=%s\n' "${settings[4]}" "${settings[5]}" "$ingress_subnet" >> "$candidate/compose.env"
+
 fi
 # Pull/configure before replacing the existing instance. No DB mutations occur.
 compose "$candidate" config --quiet

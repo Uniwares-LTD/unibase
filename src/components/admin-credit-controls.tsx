@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "next-intl";
+
 import { Notice } from "./page-patterns";
 import { useActionState, useId, useRef, useState } from "react";
 import { adjustUserCredits } from "@/app/admin/users/credit-actions";
@@ -28,6 +30,8 @@ export function AdminCreditControls({
   actorUid: string;
   initialKey: string;
 }) {
+  const translate = useTranslations("ui");
+
   const id = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const [key, setKey] = useState(initialKey);
@@ -44,14 +48,16 @@ export function AdminCreditControls({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Credit adjustment</CardTitle>
+        <CardTitle>{translate("m392bb77ad9bf")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form id={id} ref={formRef} action={action} className="space-y-5">
           <input type="hidden" name="key" value={key} />
           <input type="hidden" name="confirmed" value="yes" />
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">Adjustment</legend>
+            <legend className="text-sm font-medium">
+              {translate("mc416069b7f61")}
+            </legend>
             <RadioGroup
               name="direction"
               value={direction}
@@ -59,8 +65,8 @@ export function AdminCreditControls({
               disabled={pending}
             >
               {[
-                ["grant", "Grant promotional credits"],
-                ["deduct", "Deduct available credits"],
+                ["grant", translate("mb2874ddcc6cd")],
+                ["deduct", translate("ma9fb5476cc11")],
               ].map(([value, label]) => (
                 <div key={value} className="flex items-center gap-2">
                   <RadioGroupItem value={value} id={`${id}-${value}`} />
@@ -70,7 +76,7 @@ export function AdminCreditControls({
             </RadioGroup>
           </fieldset>
           <div className="space-y-2">
-            <Label htmlFor={`${id}-amount`}>Credit amount</Label>
+            <Label htmlFor={`${id}-amount`}>{translate("m0917222b9166")}</Label>
             <Input
               type="number"
               id={`${id}-amount`}
@@ -83,7 +89,9 @@ export function AdminCreditControls({
             />
           </div>
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">Grant expiry</legend>
+            <legend className="text-sm font-medium">
+              {translate("mfc4224acbacd")}
+            </legend>
             <RadioGroup
               name="expiry"
               value={expiry}
@@ -91,9 +99,9 @@ export function AdminCreditControls({
               disabled={pending || direction !== "grant"}
             >
               {[
-                ["default", "Default: 90 days"],
-                ["perpetual", "No expiry"],
-                ["custom", "Specific date (UTC)"],
+                ["default", translate("m5499359c8cbe")],
+                ["perpetual", translate("mfe06351db8da")],
+                ["custom", translate("m87a565572d6d")],
               ].map(([value, label]) => (
                 <div key={value} className="flex items-center gap-2">
                   <RadioGroupItem value={value} id={`${id}-${value}`} />
@@ -105,7 +113,7 @@ export function AdminCreditControls({
           {direction === "grant" && expiry === "custom" && (
             <div className="space-y-2">
               <Label htmlFor={`${id}-expires`}>
-                Expiry date and time (UTC)
+                {translate("m69ac01f0a993")}{" "}
               </Label>
               <Input
                 type="datetime-local"
@@ -118,7 +126,7 @@ export function AdminCreditControls({
           )}
           <div className="space-y-2">
             <Label htmlFor={`${id}-reason`}>
-              Credit adjustment reason (optional)
+              {translate("m7019eb977268")}{" "}
             </Label>
             <Input
               id={`${id}-reason`}
@@ -128,31 +136,33 @@ export function AdminCreditControls({
               autoComplete="off"
             />
             <p className="text-xs text-muted-foreground">
-              Recorded in the ledger and admin audit; visible to the account
-              owner. Do not enter secrets.
+              {translate("m693900292adb")}{" "}
             </p>
           </div>
           <p className="text-sm text-muted-foreground">
-            Requires sign-in within 30 minutes. Deductions cannot consume held
-            credits or create debt. Grants cover existing debt first.
+            {translate("me12e1f257817")}{" "}
           </p>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button type="button" disabled={pending}>
-                {pending ? "Saving…" : "Review credit adjustment"}
+                {pending
+                  ? translate("m23e39291d613")
+                  : translate("m9882a78b6a80")}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Confirm credit adjustment</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {translate("m4809e4db7cb4")}
+                </AlertDialogTitle>
                 <AlertDialogDescription>
-                  This immediately changes this account’s credits and records
-                  your reason. Check the amount, direction and grant expiry
-                  before confirming.
+                  {translate("m7f1e0ccdb520")}{" "}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>
+                  {translate("m19766ed6ccb2")}
+                </AlertDialogCancel>
                 <AlertDialogAction asChild>
                   <Button
                     type="submit"
@@ -162,7 +172,7 @@ export function AdminCreditControls({
                         event.preventDefault();
                     }}
                   >
-                    Confirm adjustment
+                    {translate("m402f34285a9b")}{" "}
                   </Button>
                 </AlertDialogAction>
               </AlertDialogFooter>

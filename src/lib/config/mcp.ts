@@ -1,13 +1,7 @@
 import { z } from "zod";
 
-export const mcpPermissions = [
-  "server:read",
-  "reference:read",
-  "demo:read",
-  "run:read",
-  "artifact:read",
-  "artifact:write",
-] as const;
+import { environmentCatalog, validateEnvironmentNames } from "./environment";
+export const mcpPermissions = environmentCatalog.mcpPermissions;
 const clientsSchema = z
   .array(
     z.strictObject({
@@ -32,6 +26,9 @@ export function parseMcpConfig(
   env: Record<string, string | undefined>,
   origin: string,
 ): McpConfig {
+  validateEnvironmentNames(env);
+  if (!/^[a-z][a-z0-9-]{0,63}$/.test(env.RUN_MCP_CLIENT_ID ?? "dify"))
+    throw new Error("Invalid Run MCP client selection.");
   if (env.MCP_ENABLED === undefined || env.MCP_ENABLED === "false")
     return { enabled: false };
   try {
@@ -58,6 +55,11 @@ export function parseMcpConfig(
     if (
       new Set(clients.map((c) => c.id)).size !== clients.length ||
       new Set(clients.map((c) => c.token)).size !== clients.length
+    )
+      throw new Error();
+    if (
+      env.RUN_MCP_CLIENT_ID &&
+      !clients.some((c) => c.id === env.RUN_MCP_CLIENT_ID)
     )
       throw new Error();
     return {

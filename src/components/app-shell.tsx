@@ -1,4 +1,7 @@
 "use client";
+import { useTranslations, useLocale } from "next-intl";
+
+import { moduleEnabled, moduleForPath } from "@/lib/project";
 import { BookOpen, Sparkles, Home, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -15,12 +18,19 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-const routes = [
-  { href: "/", label: "Home", Icon: Home },
-  { href: "/runs/new", label: "Start run", Icon: Sparkles },
-  { href: "/runs", label: "Runs", Icon: BookOpen },
-  { href: "/artifacts", label: "Saved artifacts", Icon: BookOpen },
-];
+function useRoutes() {
+  const translate = useTranslations("ui");
+  return [
+    { href: "/", label: translate("m3a78695388b3"), Icon: Home },
+    { href: "/runs/new", label: translate("mcdffd2693a0c"), Icon: Sparkles },
+    { href: "/runs", label: translate("m848f54e89660"), Icon: BookOpen },
+    { href: "/files", label: translate("mabc7e9892806"), Icon: BookOpen },
+    { href: "/artifacts", label: translate("m068c9472b061"), Icon: BookOpen },
+  ].filter((route) => {
+    const id = moduleForPath(route.href);
+    return !id || moduleEnabled(id);
+  });
+}
 
 function matchesRoute(pathname: string, href: string) {
   if (href === "/runs" && pathname === "/runs/new") return false;
@@ -28,10 +38,11 @@ function matchesRoute(pathname: string, href: string) {
 }
 
 function Brand({ name }: { name: string }) {
+  const common = useTranslations("common");
   return (
     <Link
       href="/"
-      aria-label={`${name} home`}
+      aria-label={common("home", { name })}
       className="flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
     >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
@@ -51,6 +62,7 @@ function Navigation({
   label: string;
   onNavigate?: () => void;
 }) {
+  const routes = useRoutes();
   const pathname = usePathname();
   return (
     <nav aria-label={label} className="space-y-1.5">
@@ -88,42 +100,46 @@ export function AppShell({
   children: React.ReactNode;
   accountMenu: React.ReactNode;
 }) {
+  const translate = useTranslations("ui");
+  const direction = useLocale() === "ar" ? "right" : "left";
+
+  const routes = useRoutes();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const title =
     [
       ...routes,
-      { href: "/account", label: "Account" },
-      { href: "/credits", label: "Credits" },
-      { href: "/preferences", label: "Preferences" },
+      { href: "/account", label: translate("m7e1b0d5641f2") },
+      { href: "/credits", label: translate("m2a6b24ad2872") },
+      { href: "/preferences", label: translate("m66962f72a088") },
     ].find((route) => matchesRoute(pathname, route.href))?.label ??
     (pathname.startsWith("/admin")
-      ? "Administration"
+      ? translate("m4b42c6690ebe")
       : pathname === "/design-system"
-        ? "Design system"
+        ? translate("m4a866105af15")
         : appName);
   return (
     <div className="min-h-svh">
       <a
         href="#main-content"
-        className="sr-only fixed top-3 left-3 z-[100] rounded-md bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only"
+        className="sr-only fixed top-3 start-3 z-[100] rounded-md bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only"
       >
-        Skip to content
+        {translate("mac576a66d456")}{" "}
       </a>
-      <aside className="shell-surface fixed inset-y-0 left-0 hidden w-64 flex-col border-r bg-sidebar p-6 text-sidebar-foreground md:flex">
+      <aside className="shell-surface fixed inset-y-0 start-0 hidden w-64 flex-col border-e bg-sidebar p-6 text-sidebar-foreground md:flex">
         <Brand name={appName} />
         <p className="mt-12 mb-4 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Your space
+          {translate("m478e47e459be")}{" "}
         </p>
-        <Navigation label="Main navigation" />
+        <Navigation label={translate("meb355944b92d")} />
         <div className="mt-auto">
           <Separator className="mb-5" />
           <p className="px-3 text-xs leading-relaxed text-muted-foreground">
-            Your ideas, with room to grow.
+            {translate("m4e1311bf9513")}{" "}
           </p>
         </div>
       </aside>
-      <div className="md:pl-64">
+      <div className="md:ps-64">
         <header className="shell-surface flex h-20 items-center justify-between gap-4 border-b bg-background px-5 sm:px-8 lg:px-12">
           <div className="flex min-w-0 items-center gap-3">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -132,23 +148,23 @@ export function AppShell({
                   variant="ghost"
                   size="icon"
                   className="size-11 md:hidden"
-                  aria-label="Open navigation"
+                  aria-label={translate("m0ed77fd2619b")}
                 >
                   <Menu aria-hidden="true" />
                 </Button>
               </SheetTrigger>
               <SheetContent
-                side="left"
+                side={direction}
                 className="w-72 overflow-y-auto overscroll-contain bg-sidebar p-6"
               >
                 <SheetHeader className="px-0 pt-6">
                   <SheetTitle>{appName}</SheetTitle>
                   <SheetDescription>
-                    Find your way around your space.
+                    {translate("m8e1a07e2f468")}{" "}
                   </SheetDescription>
                 </SheetHeader>
                 <Navigation
-                  label="Mobile navigation"
+                  label={translate("m806f228ffbd4")}
                   onNavigate={() => setMobileOpen(false)}
                 />
               </SheetContent>
@@ -167,7 +183,7 @@ export function AppShell({
           {children}
         </main>
         <footer className="shell-footer mx-auto max-w-6xl px-5 pb-8 text-xs text-muted-foreground sm:px-8 lg:px-12">
-          {appName} · Make it yours.
+          {appName} {translate("ma6941f410dee")}{" "}
         </footer>
       </div>
     </div>

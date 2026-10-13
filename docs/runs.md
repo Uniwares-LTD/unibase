@@ -348,3 +348,25 @@ bounds the download, then uses the existing decode/pixel/normalization limits.
 Retries reuse staged owned bytes instead of depending on an expiring download
 link. Public results contain local asset IDs/names and existing private read
 checks; signed provider links never reach browser DTOs.
+
+
+## Reusable domain and file contracts
+
+Run admissions accept an owned typed `target: {kind,id}`. The registered
+orchestrator selects the server-registered adapter ID/version; callers cannot
+select executable handlers, collections or owners. Accepted attempts snapshot the
+adapter version and owned target. Legacy `artifactId` remains readable, and
+conflicting legacy/new targets are rejected. Keep old adapter versions registered
+while accepted work exists. Artifact workflows are optional examples; the second
+fixture adapter verifies that result application does not require artifact fields
+in the generic worker.
+
+Run inputs may select a managed private file. Provider upload references are
+cached per file/binding without double-counting storage. Legacy provider-only
+uploads retain existing Run compatibility but do not invent downloadable source
+bytes. See [reusable services](services.md).
+
+History reads return scoped `{rows,next}` pages of 25 rows. Pending actionable
+decisions have their own cursor, independently of historical pages. Artifact
+pickers search and page owned records; revision images remain associated with the
+correct revision even when that revision is outside the current page.

@@ -13,7 +13,9 @@ Read [the implementation plan](docs/implementation-plan.md) and the relevant cod
 - One Next.js App Router application serves web and, later, an Android TWA. Do not add Expo or a separate backend.
 - Prefer Server Components. Use Client Components only for interaction or browser APIs; keep providers narrowly scoped. Server reads call server modules directly, not our own HTTP endpoints.
 - Place server-only access in `src/lib/server` with `server-only` imports. Explicitly allowlist public configuration. Never serialize process.env, credentials, or private configuration to the browser.
-- Firebase Auth, MongoDB Atlas, and VPS deployment belong to their planned milestones. M1 must run without cloud credentials.
+- Local operation must remain possible without cloud credentials. Live provider activation and deployment require separate session authorization.
+- Project identity, modules, locales and examples come from `project.config.json`; preserve existing namespaces and accepted Run/accounting records. Read [reusable service contracts](docs/services.md) before changing ownership, quotas, domain adapters, limits or notification transactions.
+- Keep translated UI in typed catalogs, use page-scoped client dictionaries and logical RTL styles, and preserve document CSP nonces during client navigation.
 - Reuse shadcn components through the CLI. Compose application UI from those primitives; do not create alternative buttons, dialogs, menus, or form controls when shadcn provides them.
 - Use semantic CSS variables for themes. Verify desktop/mobile navigation, keyboard focus, and hydration after UI changes.
 

@@ -6,7 +6,7 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  return endpoint(async () => {
+  return endpoint(request, async () => {
     await checkMutation(request);
     return json(
       await resolveManagedAiJob(

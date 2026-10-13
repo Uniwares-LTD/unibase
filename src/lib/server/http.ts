@@ -1,4 +1,8 @@
 import "server-only";
+import { moduleForPath } from "../project";
+import { requireModule } from "./modules";
+import { limitRequest, requestPolicy, RateLimitError } from "./rate-limit";
+import { namespace } from "../project";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -17,7 +21,7 @@ export function cookieOptions() {
   };
 }
 export function cookieName(kind: "session" | "csrf") {
-  return `${cookieOptions().secure ? "__Host-" : ""}unitale-${kind}`;
+  return `${cookieOptions().secure ? "__Host-" : ""}${namespace(kind)}`;
 }
 export function json(data: unknown, status = 200) {
   return NextResponse.json(data, {
@@ -28,10 +32,32 @@ export function json(data: unknown, status = 200) {
     },
   });
 }
-export async function endpoint(action: () => Promise<Response>) {
+export async function endpoint(
+  request: Request,
+  action: () => Promise<Response>,
+): Promise<Response>;
+export async function endpoint(
+  action: () => Promise<Response>,
+): Promise<Response>;
+export async function endpoint(
+  requestOrAction: Request | (() => Promise<Response>),
+  suppliedAction?: () => Promise<Response>,
+) {
+  const request =
+    typeof requestOrAction === "function" ? undefined : requestOrAction;
+  const action =
+    typeof requestOrAction === "function" ? requestOrAction : suppliedAction!;
+
   const requestId = randomUUID();
   const started = performance.now();
   try {
+    if (request) {
+      const id = moduleForPath(new URL(request.url).pathname);
+      if (id) requireModule(id);
+      if (request.method !== "GET") await checkMutation(request);
+      const actor = await (await import("./session")).requireSession(false);
+      await limitRequest("account:" + actor.uid, requestPolicy(request));
+    }
     const response = await action();
     response.headers.set("X-Request-ID", requestId);
     logOperation("request", started, response.status, requestId);
@@ -47,10 +73,22 @@ export async function endpoint(action: () => Promise<Response>) {
             503,
           );
     const response = json(
-      { error: { code: safe.code, message: safe.message, requestId } },
+      {
+        error: {
+          code: safe.code,
+          message: await (
+            await import("./error-message")
+          )
+            .errorMessage(safe)
+            .catch(() => safe.message),
+          requestId,
+        },
+      },
       safe.status,
     );
     response.headers.set("X-Request-ID", requestId);
+    if (error instanceof RateLimitError)
+      response.headers.set("Retry-After", String(error.retryAfter));
     logOperation("request", started, response.status, requestId);
     return response;
   }

@@ -1,18 +1,62 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { moduleEnabled, moduleForPath } from "./lib/project";
 
-// Return the status before App Router streaming starts. The page also guards
-// its content; this proxy only applies to the development showcase path.
-export function proxy() {
-  if (process.env.NODE_ENV !== "development") {
+export function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const feature = moduleForPath(path);
+  if (
+    (path.startsWith("/design-system") &&
+      process.env.NODE_ENV !== "development") ||
+    (feature && !moduleEnabled(feature))
+  )
     return new NextResponse("Not found", {
       status: 404,
-      headers: {
-        "Cache-Control": "no-store",
-        "Content-Type": "text/plain; charset=utf-8",
-      },
+      headers: { "Cache-Control": "no-store" },
     });
-  }
-  return NextResponse.next();
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const local = !process.env.APP_ENV || process.env.APP_ENV === "local";
+  const dev = process.env.NODE_ENV === "development";
+  const helper = path.startsWith("/__/auth/");
+  const csp = [
+    "default-src 'self'",
+    helper
+      ? "script-src 'self' https://apis.google.com https://www.gstatic.com 'unsafe-inline'"
+      : path === "/offline.html"
+        ? "script-src 'self'"
+        : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
+    helper || path === "/offline.html" || dev
+      ? "style-src 'self' 'unsafe-inline'"
+      : `style-src 'self' 'nonce-${nonce}'`,
+    "style-src-attr 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self'",
+    "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com" +
+      (local ? " http://127.0.0.1:9099 http://localhost:9099" : "") +
+      (dev ? " ws: wss:" : ""),
+    "frame-src 'self' https://accounts.google.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self' https://accounts.google.com",
+    helper ? "frame-ancestors 'self'" : "frame-ancestors 'none'",
+    ...(!local ? ["upgrade-insecure-requests"] : []),
+  ].join("; ");
+  const forwarded = new Headers(request.headers);
+  forwarded.set("x-nonce", nonce);
+  forwarded.set("x-pathname", path);
+  forwarded.set("Content-Security-Policy", csp);
+  const response = NextResponse.next({ request: { headers: forwarded } });
+  response.headers.set("Content-Security-Policy", csp);
+  response.headers.set("X-Frame-Options", helper ? "SAMEORIGIN" : "DENY");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
+  return response;
 }
-
-export const config = { matcher: "/design-system/:path*" };
+export const config = {
+  matcher: [
+    "/((?!api|_next/static|_next/image|sw.js|icons/|icon.svg|favicon.ico).*)",
+  ],
+};

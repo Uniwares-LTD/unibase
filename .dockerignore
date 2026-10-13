@@ -20,3 +20,11 @@
 !dify/orchestrators/
 !dify/workflows/
 !dify/examples/
+
+!project.config.json
+!scripts/deploy/
+!scripts/deploy/environment-catalog.json
+
+!messages/
+!messages/**
+!scripts/i18n-assets.mjs

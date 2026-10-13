@@ -46,6 +46,7 @@ export type AiFile = {
   createdAt: Date;
   updatedAt: Date;
   cleanedAt?: Date;
+  managedFileId?: string;
 };
 export const aiFiles = (db: Db) => db.collection<AiFile>("aiFiles");
 export function validateAiFile(file: {
@@ -129,6 +130,7 @@ export async function uploadOwnedAiFile(
     file: File,
     user: string,
   ) => Promise<ProviderOutcome<{ id: string }>>,
+  managedFileId?: string,
 ) {
   const type = validateAiFile(file);
   const policy = (await readSettings(db)).settings.runs;
@@ -167,28 +169,36 @@ export async function uploadOwnedAiFile(
         saved = prior;
         return;
       }
-      const owned = await aiFiles(db)
-        .find(
-          { uid: actor.uid, cleanedAt: { $exists: false } },
-          { session, projection: { bytes: 1 } },
+      if (managedFileId) {
+        const managed = await (
+          await import("../private-files")
+        ).ownedFile(db, actor.uid, managedFileId, session);
+        if (managed.state !== "ready" || managed.digest !== sha256)
+          throw new AppError(
+            "FILE_NOT_FOUND",
+            "Managed file unavailable.",
+            404,
+          );
+      } else {
+        const usage = await (
+          await import("../private-files")
+        ).fileUsage(db, actor.uid, session);
+        if (
+          usage.count >= policy.filesPerAccount ||
+          usage.bytes + bytes.length > policy.uploadBytesPerAccount
         )
-        .limit(101)
-        .toArray();
-      if (
-        owned.length >= policy.filesPerAccount ||
-        owned.reduce((sum, item) => sum + item.bytes, 0) + bytes.length >
-          policy.uploadBytesPerAccount
-      )
-        throw new AppError(
-          "AI_FILE_QUOTA",
-          "Your AI upload allowance is full. Contact an administrator.",
-          409,
-        );
+          throw new AppError(
+            "AI_FILE_QUOTA",
+            "Your upload allowance is full.",
+            409,
+          );
+      }
       const now = new Date();
       saved = {
         _id: id,
         uid: actor.uid,
         binding,
+        ...(managedFileId ? { managedFileId } : {}),
         name: file.name,
         mimeType: file.type,
         type,
@@ -241,7 +251,7 @@ export async function resolveOwnedAiFile(
   allowed: readonly AiFileType[],
 ) {
   if (!/^[a-f0-9]{64}$/.test(id))
-    throw new AppError("AI_FILE_NOT_FOUND", "AI file was not found.", 404);
+    throw new AppError("INVALID_INPUT", "Invalid file identifier.", 400);
   const file = await aiFiles(db).findOne({
     _id: id,
     uid,

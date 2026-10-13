@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "next-intl";
+
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useSyncExternalStore } from "react";
@@ -7,28 +9,30 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 const subscribe = () => () => {};
 const clientSnapshot = () => true;
 const serverSnapshot = () => false;
-const choices = [
-  {
-    value: "light",
-    label: "Light",
-    description: "A bright, clear canvas.",
-    Icon: Sun,
-  },
-  {
-    value: "dark",
-    label: "Dark",
-    description: "A softer view after hours.",
-    Icon: Moon,
-  },
-  {
-    value: "system",
-    label: "System",
-    description: "Follow your device settings.",
-    Icon: Monitor,
-  },
-];
 
 export function ThemePreference() {
+  const translate = useTranslations("ui");
+  const choices = [
+    {
+      value: "light",
+      label: translate("mdbcd5e7bb7a0"),
+      description: translate("m050f41d569ea"),
+      Icon: Sun,
+    },
+    {
+      value: "dark",
+      label: translate("m60acc53f13a5"),
+      description: translate("m9b817c6aee43"),
+      Icon: Moon,
+    },
+    {
+      value: "system",
+      label: translate("m6725e7bbcd28"),
+      description: translate("mf07f0ce5b4d1"),
+      Icon: Monitor,
+    },
+  ];
+
   const { theme, setTheme } = useTheme();
   const hydrated = useSyncExternalStore(
     subscribe,
@@ -37,9 +41,11 @@ export function ThemePreference() {
   );
   return (
     <fieldset>
-      <legend className="mb-4 text-sm font-medium">Color mode</legend>
+      <legend className="mb-4 text-sm font-medium">
+        {translate("m9f1e7d7d98b2")}
+      </legend>
       <RadioGroup
-        aria-label="Color mode"
+        aria-label={translate("m9f1e7d7d98b2")}
         value={hydrated ? (theme ?? "system") : ""}
         onValueChange={setTheme}
         disabled={!hydrated}
@@ -72,9 +78,7 @@ export function ThemePreference() {
         ))}
       </RadioGroup>
       <p className="mt-5 text-sm text-muted-foreground" aria-live="polite">
-        {hydrated
-          ? "Your preference is saved in this browser."
-          : "Loading your appearance preference…"}
+        {hydrated ? translate("m77c9c9700543") : translate("mbd1b173b26a7")}
       </p>
     </fieldset>
   );

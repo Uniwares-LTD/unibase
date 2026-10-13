@@ -1,3 +1,4 @@
+import { project } from "../src/lib/project";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { createServer } from "node:http";
 import { TwaGenerator, TwaManifest, ConsoleLog } from "@bubblewrap/core";
@@ -8,7 +9,11 @@ async function main() {
   loadEnvConfig(process.cwd(), false);
   const config = parseAndroidConfig(
     JSON.parse(await readFile("android/config.json", "utf8")),
-    process.env,
+    {
+      ...process.env,
+      ANDROID_PACKAGE_NAME:
+        process.env.ANDROID_PACKAGE_NAME || project.android?.packageName,
+    },
     process.argv.includes("--release"),
   );
   // Bubblewrap fetches icons: serve only our two versioned public images locally,
@@ -40,8 +45,8 @@ async function main() {
     const manifest = new TwaManifest({
       packageId: config.packageId,
       host: config.host,
-      name: "Unitale",
-      launcherName: "Unitale",
+      name: project.displayName,
+      launcherName: project.displayName,
       display: "standalone",
       themeColor: "#98492f",
       navigationColor: "#fff9f3",
@@ -52,7 +57,7 @@ async function main() {
       splashScreenFadeOutDuration: 0,
       iconUrl: `${base}/icon.png`,
       maskableIconUrl: `${base}/maskable.png`,
-      signingKey: { path: "upload.keystore", alias: "unitale" },
+      signingKey: { path: "upload.keystore", alias: project.slug },
       appVersionCode: config.versionCode,
       appVersion: config.versionName,
       generatorApp: "bubblewrap-1.25.0",
@@ -66,7 +71,7 @@ async function main() {
     await new TwaGenerator().createTwaProject(
       "android/project",
       manifest,
-      new ConsoleLog("unitale"),
+      new ConsoleLog(project.slug),
     );
     manifest.iconUrl = `https://${config.host}/icons/icon-512.png`;
     manifest.maskableIconUrl = `https://${config.host}/icons/maskable-512.png`;

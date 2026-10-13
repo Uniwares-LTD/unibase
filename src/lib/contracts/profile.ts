@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { localeSchema, timeZoneSchema } from "../locale";
 import { stylePreferenceSchema } from "../appearance";
 
 export const profileUpdateSchema = z
@@ -18,6 +19,8 @@ export const appearanceUpdateSchema = profileUpdateSchema
 
 export const profileSchema = profileUpdateSchema.extend({
   style: stylePreferenceSchema.default("default"),
+  locale: localeSchema.default("en"),
+  timeZone: timeZoneSchema.default("UTC"),
   uid: z.string().min(1),
   email: z.string().email(),
   updatedAt: z.string().datetime(),

@@ -1,4 +1,7 @@
 "use client";
+import { StateLabel } from "./localized-value";
+import { useTranslations } from "next-intl";
+
 import { useActionState, useEffect, useEffectEvent } from "react";
 import { useTheme } from "next-themes";
 import { saveAppearance } from "@/app/account/actions";
@@ -11,6 +14,8 @@ import { Label } from "./ui/label";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 export function AppearanceForm({ profile }: { profile: Profile }) {
+  const translate = useTranslations("ui");
+
   const [state, action, pending] = useActionState(
     saveAppearance.bind(null, profile.uid),
     { message: "", saved: false },
@@ -37,7 +42,9 @@ export function AppearanceForm({ profile }: { profile: Profile }) {
       }}
     >
       <fieldset className="space-y-3">
-        <legend className="text-sm font-medium">Color mode</legend>
+        <legend className="text-sm font-medium">
+          {translate("m9f1e7d7d98b2")}
+        </legend>
         <RadioGroup
           name="theme"
           defaultValue={profile.theme}
@@ -48,19 +55,18 @@ export function AppearanceForm({ profile }: { profile: Profile }) {
             <div key={theme} className="flex items-center gap-2">
               <RadioGroupItem id={`profile-${theme}`} value={theme} />
               <Label htmlFor={`profile-${theme}`} className="capitalize">
-                {theme}
+                <StateLabel value={theme} />
               </Label>
             </div>
           ))}
         </RadioGroup>
         <p className="text-sm text-muted-foreground">
-          Changes apply immediately in this browser. Save preferences to
-          remember this color mode on your account too.
+          {translate("m4121fec7f306")}{" "}
         </p>
       </fieldset>
       <StylePreference account disabled={pending} />
       <Button type="submit" disabled={pending}>
-        {pending ? "Saving…" : "Save preferences"}
+        {pending ? translate("m23e39291d613") : translate("m089e57e38f93")}
       </Button>
       {state.message && (
         <Notice

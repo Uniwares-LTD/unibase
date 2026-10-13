@@ -1,3 +1,8 @@
+import {
+  processOneNotification,
+  pruneNotifications,
+} from "../src/lib/server/notifications";
+import { processOneFileDeletion } from "../src/lib/server/private-files";
 import { loadEnvConfig } from "@next/env";
 import { MongoClient } from "mongodb";
 import Stripe from "stripe";
@@ -74,6 +79,13 @@ async function main() {
       let cycleState: "ok" | "error" = "ok";
       try {
         await readSettings(db);
+        await pruneNotifications(db);
+        worked = (await processOneFileDeletion(db)) || worked;
+        for (let n = 0; n < 10; n++) {
+          if (!(await processOneNotification(db))) break;
+          worked = true;
+        }
+
         if (stripe) {
           for (let n = 0; n < 1 && !stopping; n++) {
             try {

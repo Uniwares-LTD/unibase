@@ -6,7 +6,7 @@ execution. Record results against the actual commit/diff and environment tested.
 
 ## Start here before cloning a derived project
 
-Documentation reconciled with the working tree on 2026-10-10. This is the master
+Documentation reconciled with the working tree on 2026-10-13. This is the master
 acceptance checklist; linked guides supply detailed setup and troubleshooting.
 Earlier recorded passes are historical evidence, not your new acceptance run.
 
@@ -14,7 +14,7 @@ Run this in four sessions:
 
 1. **Local foundation:** setup, accounts, all appearance presets, admin, credit
    adjustments, simulated purchases and reports (sections 1-6).
-2. **AI and pricing:** workflow/chat/file examples, cancellation/recovery, each
+2. **AI and pricing:** orchestrator Runs and managed files, cancellation/recovery, each
    pricing mode, ledger reconciliation and debt (section 6a).
 3. **Production-like local regression:** automated checks and PWA/offline behavior
    (section 7). Stop dev before building; keep emulators running.
@@ -33,7 +33,7 @@ No real money/model calls are needed for the first three sessions.
 | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | Shell, themes, accounts, profiles, diagnostics, PWA                        | Local emulators; repeat identity/offline flows on HTTPS staging                   |
 | Admin dashboard, users, reports, wallet, ledger, simulation                | Local emulators and isolated automated tests                                      |
-| Dify workflow/chat/files, durable jobs, usage and all credit pricing modes | Fake provider locally; separate owned Dify test-instance acceptance               |
+| Dify Runs/personas/files, durable jobs, usage and all credit pricing modes | Fake provider locally; separate owned Dify test-instance acceptance               |
 | Stripe payments and maintenance worker                                     | Isolated fixture tests now; own Stripe sandbox for provider acceptance            |
 | VPS release, health and rollback                                           | Isolated deployment tests now; authorized staging release for external acceptance |
 | Android TWA                                                                | Generated project available; signed build and installed-device acceptance pending |
@@ -289,7 +289,7 @@ Use Stripe's documented sandbox methods; never real cards or live-mode secrets.
 
 For Dify, use an owned test instance and explicit spending limits. Test a model-free
 workflow first, then bounded paid calls only when you intend to spend. Bind the
-capabilities described in [AI live setup](ai-testing.md#live-configuration).
+capabilities described in [AI live setup](runs.md#administration-and-setup).
 
 | ID      | Steps                                                                                    | Expected result                                                                                                                  |
 | ------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -473,3 +473,35 @@ Escape/focus restoration, cancellation without a new card, and saves with blank 
 across admin contracts and retains cleanup/AI release confirmation checks. Account
 tests also exercise empty-note cleanup and AI resolution, and omitted-note credit
 adjustment with the existing atomic audits.
+
+
+## Reuse and service-hardening acceptance
+
+Use a reviewed commit and the current manifest. Historical passes in the milestone
+plan do not substitute for these checks on the new project.
+
+- Run `npm run test:initializer` for immutable source, private-file exclusions and
+  unsafe target rejection. `npm run test:initialized-projects` creates a private
+  synthetic source commit and independently installs/builds two application-mode
+  projects; it does not commit or change refs in the working repository.
+- Run `npm run test:limits` for two-process Redis limits, expiry, spoofed headers,
+  failure and namespace isolation. Run `npm run test:deployment` for ingress,
+  readiness, environment isolation and retained-release rollback tooling.
+- Run `npm run test:ai-pricing` independently of `npm run test:ai`. Verify wallet
+  settlement and permanent retry evidence, including failed and missing usage.
+- Exercise more than 100 artifacts/revisions and long histories, equal timestamps,
+  separately paged pending decisions and searchable Start Run targets.
+- Verify anonymous multipart requests are rejected before body reads; exercise
+  size/overhead/deadline/disconnect bounds and competing uploads.
+- Files: owned listing/download/deletion, quota races, retry deduplication,
+  abandoned stages, referenced-file rejection, terminal cleanup and provider reuse.
+- Notifications: source rollback, duplicated events, consumer restart, preferences,
+  unread/read-all, expiry, owned links and cross-tab logout.
+- English/Arabic: browser/account/header precedence, saved timezone, independent
+  appearance changes, unchanged URLs, translated errors/notifications, desktop and
+  390px RTL, keyboard focus, hydration, document CSP and offline recovery.
+- Run `npm run check:docs`, `npm run check:i18n`, `npm run check:skills` and
+  `npm run check:env`. Run a production web/worker build after affected changes.
+
+Live providers, VPS activation and Android/device acceptance require their own
+owned environments and explicit session authorization.

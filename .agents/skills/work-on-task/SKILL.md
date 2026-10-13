@@ -66,3 +66,7 @@ Never merge, deploy, release the consumer application, close an issue, change it
 labels, assignment, or milestone, or change a GitHub Project field without an
 explicit request covering that action. Quality warnings remain advisory under
 the repository adapter; compilation and operational failures retain real outcomes.
+
+For reuse changes, inspect the adapter's runtime-contract links before choosing a
+new abstraction. Configuration visibility cannot replace backend authorization.
+Check namespace compatibility and accepted work before changing module defaults.

@@ -1,3 +1,4 @@
+import { project } from "../project";
 import { z } from "zod";
 
 const packSchema = z
@@ -79,7 +80,8 @@ export function parsePaymentMode(
 ) {
   const simulationAllowed = environment === "local" && authMode === "emulator";
   const mode =
-    input.PAYMENTS_MODE ?? (simulationAllowed ? "simulation" : "disabled");
+    input.PAYMENTS_MODE ??
+    (simulationAllowed && project.examples ? "simulation" : "disabled");
   if (
     !["disabled", "simulation", "stripe"].includes(mode) ||
     (mode === "simulation" && !simulationAllowed)

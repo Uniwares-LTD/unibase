@@ -1,3 +1,5 @@
+import { localizationSchema } from "../locale";
+import { parseInput } from "../input";
 import "server-only";
 import { MongoServerError } from "mongodb";
 import {
@@ -78,7 +80,13 @@ export async function updateMyAppearance(input: unknown) {
   return persistProfileFields(parsed.data);
 }
 
-async function persistProfileFields(fields: Partial<ProfileUpdate>) {
+export async function updateMyLocalization(input: unknown) {
+  return persistProfileFields(parseInput(localizationSchema, input));
+}
+
+async function persistProfileFields(
+  fields: Partial<ProfileUpdate> & { locale?: "en" | "ar"; timeZone?: string },
+) {
   const { session, collection } = await currentProfile();
   const document = await collection.findOneAndUpdate(
     { uid: session.uid },

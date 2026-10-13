@@ -1,3 +1,4 @@
+import { PageMessages } from "@/components/page-messages";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-patterns";
@@ -26,13 +27,17 @@ export async function generateMetadata({
 export default function DesignSystemPage() {
   if (process.env.NODE_ENV !== "development") notFound();
   return (
-    <div className="page-stack">
-      <PageHeader
-        title="Design system"
-        eyebrow="Design reference"
-        description="A reference for changing and testing visual tokens, components and page patterns."
-      />
-      <DesignShowcase />
-    </div>
+    <PageMessages path="/design-system">
+      {
+        <div className="page-stack">
+          <PageHeader
+            title="Design system"
+            eyebrow="Design reference"
+            description="A reference for changing and testing visual tokens, components and page patterns."
+          />
+          <DesignShowcase />
+        </div>
+      }
+    </PageMessages>
   );
 }

@@ -1,3 +1,4 @@
+import { collectionEnabled } from "../src/lib/project";
 import { loadEnvConfig } from "@next/env";
 import { MongoClient } from "mongodb";
 import { parseConfig } from "../src/lib/config/schema";
@@ -36,9 +37,20 @@ async function main() {
     await createAiIndexes(client.db(config.database));
     await createAiFileIndexes(client.db(config.database));
     await createOperationsIndexes(client.db(config.database));
+    if (collectionEnabled("notifications"))
+      await client
+        .db(config.database)
+        .collection("notifications")
+        .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
     for (const [name, keys] of [
-      ["runEvents", { uid: 1, logicalId: 1, timestamp: 1 }],
-      ["runDecisions", { uid: 1, logicalId: 1, jobId: 1 }],
+      ["runEvents", { uid: 1, logicalId: 1, timestamp: -1, _id: -1 }],
+      ["runDecisions", { uid: 1, logicalId: 1, createdAt: -1, _id: -1 }],
+      ["notifications", { uid: 1, createdAt: -1, _id: -1 }],
+      ["notifications", { uid: 1, read: 1, expiresAt: 1 }],
+      ["notificationOutbox", { state: 1, nextAt: 1 }],
+      ["notificationOutbox", { state: 1, expiresAt: 1 }],
+      ["privateFiles", { uid: 1, createdAt: -1, _id: -1 }],
+      ["privateFiles", { state: 1, nextDeleteAt: 1 }],
       ["runAssets", { uid: 1, jobId: 1 }],
       ["runAssetStages", { state: 1, nextDeleteAt: 1 }],
       ["orchestratorVersions", { orchestratorId: 1, revision: -1 }],
@@ -49,7 +61,8 @@ async function main() {
       ["productAssets", { uid: 1, references: 1, state: 1 }],
       ["resultApplications", { status: 1, nextAttemptAt: 1 }],
     ] as const)
-      await client.db(config.database).collection(name).createIndex(keys);
+      if (collectionEnabled(name))
+        await client.db(config.database).collection(name).createIndex(keys);
     await client
       .db(config.database)
       .collection("aiJobs")
@@ -65,7 +78,7 @@ async function main() {
     await client
       .db(config.database)
       .collection("artifacts")
-      .createIndex({ uid: 1, deleted: 1, createdAt: -1 });
+      .createIndex({ uid: 1, deleted: 1, createdAt: -1, id: -1 });
     await client
       .db(config.database)
       .collection("aiJobs")

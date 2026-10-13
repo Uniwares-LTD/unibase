@@ -1,5 +1,8 @@
 import "server-only";
+import { requireModule } from "../modules";
+import { PAGE_SIZE, pageCursor, readCursor } from "../pagination";
 import type { Db, ClientSession, Document } from "mongodb";
+import { parseInput } from "@/lib/input";
 import { z } from "zod";
 import { AppError } from "@/lib/auth-policy";
 import {
@@ -46,6 +49,7 @@ export async function ownedArtifact(
   id: string,
   session?: ClientSession,
 ) {
+  parseInput(z.string().uuid(), id);
   const row = await db
     .collection<Artifact>("artifacts")
     .findOne({ id, uid, deleted: { $ne: true } }, { session });
@@ -53,18 +57,70 @@ export async function ownedArtifact(
     throw new AppError("ARTIFACT_NOT_FOUND", "Artifact unavailable.", 404);
   return row;
 }
-export async function listArtifacts() {
+export async function listArtifacts(cursor?: string, search = "") {
   const actor = await requireSession();
-  return database()
+  return artifactPage(database(), actor.uid, cursor, search);
+}
+export async function artifactPage(
+  db: Db,
+  uid: string,
+  cursor?: string,
+  search = "",
+) {
+  const query = parseInput(z.string().trim().max(100), search);
+  const scope = ["artifacts", uid, query];
+  const after = readCursor(cursor, scope);
+  if (
+    after &&
+    (typeof after.value !== "string" ||
+      !Number.isFinite(Date.parse(after.value)))
+  )
+    throw new AppError("INVALID_INPUT", "Invalid page cursor.");
+  const rows = await db
     .collection<Artifact>("artifacts")
-    .find({ uid: actor.uid, deleted: { $ne: true } })
-    .sort({ createdAt: -1 })
-    .limit(100)
+    .find({
+      uid,
+      deleted: { $ne: true },
+      ...(query
+        ? {
+            title: {
+              $regex: query.replace(/[.*+?^$\{\}()|[\]\\]/g, "\\$&"),
+              $options: "i",
+            },
+          }
+        : {}),
+      ...(after
+        ? {
+            $or: [
+              { createdAt: { $lt: new Date(after.value) } },
+              { createdAt: new Date(after.value), id: { $lt: after.id } },
+            ],
+          }
+        : {}),
+    })
+    .sort({ createdAt: -1, id: -1 })
+    .limit(PAGE_SIZE + 1)
     .toArray();
+  const shown = rows.slice(0, PAGE_SIZE);
+  const last = shown.at(-1);
+  return {
+    rows: shown.map(({ id, title, revision, approvedRevision, createdAt }) => ({
+      id,
+      title,
+      revision,
+      approvedRevision,
+      createdAt: createdAt.toISOString(),
+    })),
+    next:
+      rows.length > PAGE_SIZE && last
+        ? pageCursor(scope, last.createdAt.toISOString(), last.id)
+        : null,
+  };
 }
 export async function createArtifact(input: unknown) {
+  requireModule("artifacts");
   const actor = await requireSession();
-  const data = artifactCreateSchema.parse(input);
+  const data = parseInput(artifactCreateSchema, input);
   await readWallet(database(), actor.uid, {
     actor: { uid: actor.uid, authTime: actor.auth_time },
     persist: async (session) => {
@@ -98,7 +154,7 @@ export async function createArtifact(input: unknown) {
   });
   return { id: data.id };
 }
-export async function artifactDetail(id: string) {
+export async function artifactDetail(id: string, cursor?: string) {
   const actor = await requireSession();
   const row = await ownedArtifact(database(), actor.uid, id);
   return {
@@ -107,16 +163,32 @@ export async function artifactDetail(id: string) {
     revision: row.revision,
     approvedRevision: row.approvedRevision,
     assets: row.assets,
-    revisions: await artifactRevisionDetails(database(), row),
+    revisions: await artifactRevisionPage(database(), row, cursor),
   };
 }
 export async function artifactRevisionDetails(db: Db, artifact: Artifact) {
+  return (await artifactRevisionPage(db, artifact)).rows;
+}
+export async function artifactRevisionPage(
+  db: Db,
+  artifact: Artifact,
+  cursor?: string,
+) {
+  const scope = ["revisions", artifact.uid, artifact.id];
+  const after = readCursor(cursor, scope);
+  if (after && typeof after.value !== "number")
+    throw new AppError("INVALID_INPUT", "Invalid page cursor.");
+
   const [revisions, images] = await Promise.all([
     db
       .collection<Revision>("artifactRevisions")
-      .find({ artifactId: artifact.id, uid: artifact.uid })
+      .find({
+        artifactId: artifact.id,
+        uid: artifact.uid,
+        ...(after ? { revision: { $lt: Number(after.value) } } : {}),
+      })
       .sort({ revision: -1 })
-      .limit(100)
+      .limit(PAGE_SIZE + 1)
       .toArray(),
     db
       .collection<ProductAsset>("productAssets")
@@ -131,14 +203,26 @@ export async function artifactRevisionDetails(db: Db, artifact: Artifact) {
       .toArray(),
   ]);
   const imageJobs = new Map(images.map((image) => [image._id, image.jobId]));
-  const assignedJobs = new Set<string>();
-  return revisions.map((r) => {
-    // A completed attempt's images belong to its final saved revision. The
-    // retained product metadata keeps this association after Run cleanup.
-    const assets = assignedJobs.has(r.jobId)
-      ? []
-      : artifact.assets.filter((id) => imageJobs.get(id) === r.jobId);
-    assignedJobs.add(r.jobId);
+  const finalRevisions = await db
+    .collection<Revision>("artifactRevisions")
+    .aggregate<{ _id: string; revision: number }>([
+      {
+        $match: {
+          artifactId: artifact.id,
+          uid: artifact.uid,
+          jobId: { $in: revisions.map((r) => r.jobId) },
+        },
+      },
+      { $group: { _id: "$jobId", revision: { $max: "$revision" } } },
+    ])
+    .toArray();
+  const finals = new Map(finalRevisions.map((r) => [r._id, r.revision]));
+  const shown = revisions.slice(0, PAGE_SIZE);
+  const rows = shown.map((r) => {
+    const assets =
+      finals.get(r.jobId) === r.revision
+        ? artifact.assets.filter((id) => imageJobs.get(id) === r.jobId)
+        : [];
     return {
       revision: r.revision,
       text: r.text,
@@ -148,6 +232,13 @@ export async function artifactRevisionDetails(db: Db, artifact: Artifact) {
       assets,
     };
   });
+  return {
+    rows,
+    next:
+      revisions.length > PAGE_SIZE
+        ? pageCursor(scope, shown.at(-1)!.revision)
+        : null,
+  };
 }
 export async function deleteArtifact(id: string) {
   const actor = await requireSession();
@@ -351,35 +442,6 @@ export async function artifactOperation(
   return result!;
 }
 
-type Application = {
-  _id: string;
-  uid: string;
-  jobId: string;
-  artifactId: string;
-  status: "pending" | "applying" | "applied" | "failed";
-  nextAttemptAt: Date;
-  lease?: string;
-};
-export async function queueResultApplication(
-  db: Db,
-  job: AiJob,
-  session: ClientSession,
-) {
-  if (!job.run?.artifactId) return;
-  await db.collection<Application>("resultApplications").updateOne(
-    { _id: fingerprint([job._id, "artifact", "1"]) },
-    {
-      $setOnInsert: {
-        uid: job.uid,
-        jobId: job._id,
-        artifactId: job.run.artifactId,
-        status: "pending",
-        nextAttemptAt: new Date(),
-      },
-    },
-    { upsert: true, session },
-  );
-}
 // This typed handler is the reference extension point; downstream handlers validate their own domain association.
 export type ProductResultHandler = (
   db: Db,
@@ -422,55 +484,8 @@ export const applyArtifactResult: ProductResultHandler = async (
       { session },
     );
 };
-export async function processOneResultApplication(
-  db: Db,
-  apply: ProductResultHandler = applyArtifactResult,
-) {
-  const records = db.collection<Application>("resultApplications");
-  const lease = crypto.randomUUID();
-  const intent = await records.findOneAndUpdate(
-    {
-      status: { $in: ["pending", "applying"] },
-      nextAttemptAt: { $lte: new Date() },
-    },
-    {
-      $set: {
-        status: "applying",
-        lease,
-        nextAttemptAt: new Date(Date.now() + 180000),
-      },
-    },
-    { returnDocument: "after" },
-  );
-  if (!intent) return false;
-  try {
-    const job = await aiJobs(db).findOne({
-      _id: intent.jobId,
-      uid: intent.uid,
-      status: "succeeded",
-    });
-    if (!job) throw new Error();
-    await readWallet(db, intent.uid, {
-      actor: { uid: intent.uid, authTime: job.authTime },
-      persist: async (session) => {
-        const fenced = await records.findOne(
-          { _id: intent._id, lease, status: "applying" },
-          { session },
-        );
-        if (!fenced) throw new Error();
-        await apply(db, intent, session);
-        await records.updateOne(
-          { _id: intent._id, lease },
-          { $set: { status: "applied" }, $unset: { lease: "" } },
-          { session },
-        );
-      },
-    });
-  } catch {
-    await records.updateOne(
-      { _id: intent._id, lease },
-      { $set: { status: "failed" }, $unset: { lease: "" } },
-    );
-  }
-  return true;
-}
+
+export {
+  queueResultApplication,
+  processOneResultApplication,
+} from "../domain-results";

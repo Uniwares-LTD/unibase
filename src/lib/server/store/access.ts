@@ -1,3 +1,4 @@
+import { enqueueNotification } from "../notifications";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import type { Db, ClientSession } from "mongodb";
@@ -215,6 +216,15 @@ export async function changeAccess(
         },
         { session },
       );
+      if (before.role !== updated.role || before.status !== updated.status)
+        await enqueueNotification(
+          db,
+          targetUid,
+          `access:${updated.revision}`,
+          "account-access",
+          { role: updated.role, status: updated.status },
+          session,
+        );
       return updated;
     },
     authTime,

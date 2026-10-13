@@ -1,3 +1,5 @@
+import { requiredModuleConfigurations as requirements } from "../src/lib/project";
+import { rateConfig } from "../src/lib/config/rate-limits";
 import { loadEnvConfig } from "@next/env";
 import { parseConfig } from "../src/lib/config/schema";
 import { parseAuthConfig } from "../src/lib/config/auth";
@@ -13,21 +15,27 @@ loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 
 try {
   const config = parseConfig(process.env);
-  parseMcpConfig(process.env, config.server.origin);
+  rateConfig(process.env);
+  if (requirements.has("mcp"))
+    parseMcpConfig(process.env, config.server.origin);
   parseDatabaseConfig(process.env, config.server.environment);
   const auth = parseAuthConfig(
     process.env,
     config.server.environment,
     config.server.origin,
   );
-  const credits = parseCreditConfig(
-    process.env,
-    config.server.environment,
-    auth.server.mode,
-  );
-  parseStripeConfig(process.env, credits.mode === "stripe");
-  parseDifyConfig(process.env);
-  parseAssetConfig(process.env);
+  const credits = requirements.has("credits")
+    ? parseCreditConfig(
+        process.env,
+        config.server.environment,
+        auth.server.mode,
+      )
+    : null;
+  if (requirements.has("payments"))
+    parseStripeConfig(process.env, credits?.mode === "stripe");
+  if (requirements.has("runs")) parseDifyConfig(process.env);
+  if (requirements.has("assets") || requirements.has("runs"))
+    parseAssetConfig(process.env);
   assetLinks(
     process.env.ANDROID_PACKAGE_NAME,
     process.env.ANDROID_SHA256_FINGERPRINTS,

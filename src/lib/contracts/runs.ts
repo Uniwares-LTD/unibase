@@ -3,6 +3,14 @@ import { generatedCardSchema, cardRegistry, parseCard } from "../runs/cards";
 import { aiPricingSchema } from "../config/ai-pricing";
 import { answererSchema } from "./personas";
 
+export const domainTargetSchema = z.strictObject({
+  kind: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
+  id: z.string().min(1).max(128),
+});
+export const domainAdapterSchema = z.strictObject({
+  id: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
+  version: z.string().regex(/^[a-zA-Z0-9.-]{1,32}$/),
+});
 export const runIdSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const inputFieldSchema = z.strictObject({
   name: z.string().regex(/^[a-z][a-z0-9_]{0,63}$/),
@@ -26,6 +34,7 @@ export const orchestratorSchema = z
       .regex(/^[a-f0-9]{64}$/)
       .optional(),
     enabled: z.boolean(),
+    domainAdapter: domainAdapterSchema.optional(),
     purpose: z.enum(["run", "responder"]).optional(),
     privateTools: z.array(z.string().max(128)).max(20).optional(),
     contextInput: z.boolean().optional(),
@@ -75,6 +84,7 @@ export const runStartSchema = z.strictObject({
   inputs: z.record(z.string(), z.json()),
   answerer: answererSchema.optional(),
   artifactId: z.string().uuid().optional(),
+  target: domainTargetSchema.optional(),
 });
 export const runCommandSchema = z.strictObject({
   key: z.string().uuid(),

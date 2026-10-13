@@ -16,7 +16,10 @@ test("worker caches only public fallback and never stores or substitutes API/aut
   let offline = false;
   runInNewContext(readFileSync("public/sw.js", "utf8"), {
     self: {
-      location: { origin: "https://unitale.test" },
+      location: {
+        origin: "https://unitale.test",
+        href: "https://unitale.test/sw.js?namespace=unitale",
+      },
       clients: { claim: async () => {} },
       addEventListener: (
         type: string,
@@ -39,7 +42,7 @@ test("worker caches only public fallback and never stores or substitutes API/aut
       }),
       keys: async () => [
         "unitale-offline-old",
-        "unitale-offline-v1",
+        "unitale-offline-v2",
         "another-app",
       ],
       delete: async (key: string) => {
@@ -65,7 +68,10 @@ test("worker caches only public fallback and never stores or substitutes API/aut
     },
   });
   await pending;
-  assert.deepEqual(added, ["https://unitale.test/offline.html"]);
+  assert.deepEqual(added, [
+    "https://unitale.test/offline.html",
+    "https://unitale.test/offline-locale.js",
+  ]);
   handlers.activate({
     waitUntil: (promise: Promise<unknown>) => {
       pending = promise;
@@ -90,5 +96,5 @@ test("worker caches only public fallback and never stores or substitutes API/aut
   assert.equal(await navigate("/__/auth/handler?code=secret"), null);
   assert.equal(await navigate("/account?_rsc=123", "cors"), null);
   assert.equal(await navigate("/account", "navigate", "POST"), null);
-  assert.equal(added.length, 1);
+  assert.equal(added.length, 2);
 });

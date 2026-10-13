@@ -1,4 +1,11 @@
 "use client";
+import { StateLabel } from "@/components/localized-value";
+
+import { useTranslations } from "next-intl";
+
+import { DomainTargetPicker } from "@/components/domain-target-picker";
+import { ManagedFilePicker } from "@/components/managed-file-picker";
+import { moduleEnabled } from "@/lib/project";
 
 import { useId, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -6,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { api, ApiError } from "@/lib/client/api";
 import { maximumCredits } from "@/lib/config/ai-pricing";
-import { pricingDescription } from "@/lib/ai-pricing";
+import { PricingDescription } from "@/components/pricing-description";
 import type { personaChoices } from "@/lib/server/runs/personas";
 import type { orchestrators } from "@/lib/server/runs/orchestrators";
 import type { runStartSchema } from "@/lib/contracts/runs";
@@ -61,13 +68,21 @@ export function RunLanding({
   personas = [],
   artifacts: initialArtifacts = [],
   artifactId,
+  artifactsNext = null,
 }: {
   choices: Choice[];
   unfinished: { id: string; name: string; status: string }[];
   personas?: Awaited<ReturnType<typeof personaChoices>>;
   artifacts?: ArtifactOption[];
   artifactId?: string;
+  artifactsNext?: string | null;
 }) {
+  const translate = useTranslations("ui");
+
+  const [domainTarget, setDomainTarget] = useState<{
+    kind: string;
+    id: string;
+  } | null>(null);
   const router = useRouter();
   const prefix = useId();
   const [selected, setSelected] = useState(
@@ -88,6 +103,43 @@ export function RunLanding({
   const [selectedArtifact, setSelectedArtifact] = useState(
     artifactId ?? initialArtifacts[0]?.id ?? "",
   );
+  const [artifactSearch, setArtifactSearch] = useState("");
+  const [artifactNext, setArtifactNext] = useState(artifactsNext);
+  const [artifactSearching, setArtifactSearching] = useState(false);
+  async function findArtifacts(more = false) {
+    setArtifactSearching(true);
+    try {
+      const query = new URLSearchParams({ search: artifactSearch });
+      if (more && artifactNext) query.set("cursor", artifactNext);
+      const page = await api(
+        `/api/artifacts?${query}`,
+        z.object({
+          rows: z.array(
+            z.object({
+              id: z.string(),
+              title: z.string(),
+              revision: z.number(),
+            }),
+          ),
+          next: z.string().nullable(),
+        }),
+      );
+      setArtifacts((old) => {
+        const retained = more
+          ? old
+          : old.filter((a) => a.id === selectedArtifact);
+        return [
+          ...retained,
+          ...page.rows.filter((a) => !retained.some((r) => r.id === a.id)),
+        ];
+      });
+      setArtifactNext(page.next);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : translate("m95d19ac52e89"));
+    } finally {
+      setArtifactSearching(false);
+    }
+  }
   const [title, setTitle] = useState("");
   const [phase, setPhase] = useState<"idle" | "artifact" | "run" | "upload">(
     "idle",
@@ -123,15 +175,11 @@ export function RunLanding({
           `${prefix}-${missing.name}`,
         );
       if (choice.requiresArtifact && artifactMode === "existing" && !artifact)
-        return invalid(
-          "Choose a saved artifact before starting.",
-          `${prefix}-artifact`,
-        );
+        return invalid(translate("m50adc9ae2617"), `${prefix}-artifact`);
       if (choice.requiresArtifact && artifactMode === "new" && !title.trim())
-        return invalid(
-          "Enter a title for your new artifact.",
-          `${prefix}-title`,
-        );
+        return invalid(translate("m665823bb1053"), `${prefix}-title`);
+      if (choice.domainTarget && !choice.requiresArtifact && !domainTarget)
+        return invalid(translate("m39c4bb954fb7"), "domain-target-search");
       const create =
         choice.requiresArtifact && artifactMode === "new"
           ? { id: crypto.randomUUID(), title: title.trim() }
@@ -143,6 +191,9 @@ export function RunLanding({
           orchestratorId: choice.id,
           configurationKey: choice.configurationKey,
           inputs: { ...values },
+          ...(domainTarget && !choice.requiresArtifact
+            ? { target: domainTarget }
+            : {}),
           answerer: persona
             ? {
                 type: "persona",
@@ -184,11 +235,7 @@ export function RunLanding({
       navigating = true;
       router.push(`/runs/${result.id}`);
     } catch (e) {
-      setError(
-        e instanceof ApiError
-          ? e.message
-          : "The request could not be confirmed. Retry with this setup, or check Runs for its current state.",
-      );
+      setError(e instanceof ApiError ? e.message : translate("m7d5febc83f9b"));
       if (e instanceof ApiError && editableErrors.has(e.code)) {
         submission.current = null;
         setLocked(false);
@@ -213,11 +260,7 @@ export function RunLanding({
       if (result.status !== "ready") throw new Error();
       setValues((v) => ({ ...v, [name]: result.id }));
     } catch (e) {
-      setError(
-        e instanceof ApiError
-          ? e.message
-          : "The file could not be uploaded. Please try again.",
-      );
+      setError(e instanceof ApiError ? e.message : translate("mf745841a4086"));
     } finally {
       setPhase("idle");
     }
@@ -227,16 +270,13 @@ export function RunLanding({
     <Card>
       <CardHeader>
         <CardTitle>
-          <h2>No workflows available</h2>
+          <h2>{translate("ma22a3795f07a")}</h2>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p>
-          Ask an administrator to enable a workflow, then return here to start a
-          Run.
-        </p>
+        <p>{translate("m90bf6d210a70")} </p>
         <Button asChild variant="outline" className="mt-4">
-          <Link href="/runs">View your Runs</Link>
+          <Link href="/runs">{translate("m171aba14962f")}</Link>
         </Button>
       </CardContent>
     </Card>
@@ -255,28 +295,39 @@ export function RunLanding({
           <Card className="min-w-0">
             <CardHeader>
               <CardTitle>
-                <h2>Set up your Run</h2>
+                <h2>{translate("mc2fe29ab435d")}</h2>
               </CardTitle>
-              <CardDescription>
-                Choose what to create and where to save it.
-              </CardDescription>
+              <CardDescription>{translate("m80aedcc89540")} </CardDescription>
             </CardHeader>
             <CardContent>
               <fieldset disabled={frozen} className="space-y-6">
-                <legend className="sr-only">Run setup</legend>
+                <legend className="sr-only">
+                  {translate("m5066259b6cb8")}
+                </legend>
+                {choice?.domainTarget && !choice.requiresArtifact && (
+                  <DomainTargetPicker
+                    key={choice.id}
+                    metadata={choice.domainTarget}
+                    disabled={frozen}
+                    onSelected={setDomainTarget}
+                  />
+                )}
                 <div className="space-y-2">
-                  <Label htmlFor={`${prefix}-workflow`}>Workflow</Label>
+                  <Label htmlFor={`${prefix}-workflow`}>
+                    {translate("m2e2d5c5649b7")}
+                  </Label>
                   <Select
                     value={selected}
                     disabled={frozen}
                     onValueChange={(id) => {
                       setSelected(id);
                       setValues({});
+                      setDomainTarget(null);
                       setError("");
                     }}
                   >
                     <SelectTrigger id={`${prefix}-workflow`} className="w-full">
-                      <SelectValue placeholder="Choose a workflow" />
+                      <SelectValue placeholder={translate("mb900afa8e97c")} />
                     </SelectTrigger>
                     <SelectContent>
                       {choices.map((c) => (
@@ -324,7 +375,9 @@ export function RunLanding({
                           id={`${prefix}-${field.name}`}
                           className="w-full"
                         >
-                          <SelectValue placeholder="Choose an option" />
+                          <SelectValue
+                            placeholder={translate("maef4076f194a")}
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {field.options.map((option) => (
@@ -339,7 +392,10 @@ export function RunLanding({
                         id={`${prefix}-${field.name}`}
                         name={field.name}
                         autoComplete="off"
-                        required={field.required}
+                        required={
+                          field.required &&
+                          !(field.kind === "file" && values[field.name])
+                        }
                         disabled={frozen}
                         type={
                           field.kind === "file"
@@ -372,9 +428,19 @@ export function RunLanding({
                         }}
                       />
                     )}
+                    {field.kind === "file" && moduleEnabled("files") && (
+                      <ManagedFilePicker
+                        orchestratorId={selected}
+                        disabled={frozen}
+                        onBusy={(busy) => setPhase(busy ? "upload" : "idle")}
+                        onSelected={(id) =>
+                          setValues((v) => ({ ...v, [field.name]: id }))
+                        }
+                      />
+                    )}
                     {field.kind === "file" && values[field.name] && (
                       <p className="text-sm text-muted-foreground">
-                        File ready.
+                        {translate("m3b785af06b03")}{" "}
                       </p>
                     )}
                   </div>
@@ -390,18 +456,17 @@ export function RunLanding({
                         id={`${prefix}-save-heading`}
                         className="font-semibold"
                       >
-                        Save your results
+                        {translate("m600dd253a092")}{" "}
                       </h2>
                       <p className="text-sm text-muted-foreground">
-                        An artifact keeps your content, images, and revision
-                        history.
+                        {translate("m15806ddb33a4")}{" "}
                       </p>
                     </div>
                     <RadioGroup
                       value={artifactMode}
                       onValueChange={setArtifactMode}
                       disabled={frozen}
-                      aria-label="Save results to"
+                      aria-label={translate("m071149f031fd")}
                       className="grid gap-3 sm:grid-cols-2"
                     >
                       <Label
@@ -409,7 +474,7 @@ export function RunLanding({
                         className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 has-[[aria-checked=true]]:border-primary has-[[aria-checked=true]]:bg-accent/50"
                       >
                         <RadioGroupItem id={`${prefix}-new`} value="new" />
-                        Create a new artifact
+                        {translate("m9b7560405862")}{" "}
                       </Label>
                       <Label
                         htmlFor={`${prefix}-existing`}
@@ -420,13 +485,13 @@ export function RunLanding({
                           value="existing"
                           disabled={!artifacts.length}
                         />
-                        Use an existing artifact
+                        {translate("m3f1e4c236b23")}{" "}
                       </Label>
                     </RadioGroup>
                     {artifactMode === "new" ? (
                       <div className="space-y-2">
                         <Label htmlFor={`${prefix}-title`}>
-                          Artifact title (required)
+                          {translate("m96ccf50319c0")}{" "}
                         </Label>
                         <Input
                           id={`${prefix}-title`}
@@ -435,17 +500,54 @@ export function RunLanding({
                           required
                           maxLength={100}
                           value={title}
-                          placeholder="e.g. Firefly adventure"
+                          placeholder={translate("m6ed7be7c4f6a")}
                           onChange={(e) => setTitle(e.target.value)}
                         />
                         <p className="text-sm text-muted-foreground">
-                          Created when you start this Run.
+                          {translate("mdb47707c45f4")}{" "}
                         </p>
                       </div>
                     ) : (
                       <div className="space-y-2">
+                        <Label htmlFor={`${prefix}-artifact-search`}>
+                          {translate("mc71436cce0eb")}{" "}
+                        </Label>
+                        <Input
+                          id={`${prefix}-artifact-search`}
+                          disabled={artifactSearching}
+                          value={artifactSearch}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              if (!artifactSearching) void findArtifacts();
+                            }
+                          }}
+                          maxLength={100}
+                          onChange={(e) => {
+                            setArtifactSearch(e.target.value);
+                            setArtifactNext(null);
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={artifactSearching}
+                          onClick={() => void findArtifacts()}
+                        >
+                          {translate("m49c266baaaa7")}{" "}
+                        </Button>
+                        {artifactNext && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={artifactSearching}
+                            onClick={() => void findArtifacts(true)}
+                          >
+                            {translate("m17ef296818cd")}{" "}
+                          </Button>
+                        )}
                         <Label htmlFor={`${prefix}-artifact`}>
-                          Saved artifact
+                          {translate("ma4a34f6cfd5c")}{" "}
                         </Label>
                         <Select
                           value={selectedArtifact}
@@ -456,19 +558,22 @@ export function RunLanding({
                             id={`${prefix}-artifact`}
                             className="w-full"
                           >
-                            <SelectValue placeholder="Choose a saved artifact" />
+                            <SelectValue
+                              placeholder={translate("m69e0720012f2")}
+                            />
                           </SelectTrigger>
                           <SelectContent>
                             {artifacts.map((a) => (
                               <SelectItem key={a.id} value={a.id}>
-                                {a.title} · Revision {a.revision}
+                                {a.title} {translate("m8d8560f759ff")}{" "}
+                                {a.revision}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         {artifact && (
                           <p className="text-sm text-muted-foreground">
-                            Results will be saved as a new revision of{" "}
+                            {translate("m9e691d2303d1")}{" "}
                             <Link
                               href={`/artifacts/${artifact.id}`}
                               className="underline underline-offset-4"
@@ -482,7 +587,7 @@ export function RunLanding({
                     )}
                     {!artifacts.length && (
                       <p className="text-sm text-muted-foreground">
-                        No saved artifacts yet. Create your first one here.
+                        {translate("me6b5a40f17cd")}{" "}
                       </p>
                     )}
                   </section>
@@ -493,7 +598,7 @@ export function RunLanding({
           <Card className="min-w-0 lg:sticky lg:top-24">
             <CardHeader>
               <CardTitle>
-                <h2>Review and start</h2>
+                <h2>{translate("m642a3c41d846")}</h2>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -506,50 +611,56 @@ export function RunLanding({
               <p className="text-sm text-muted-foreground">
                 {persona
                   ? `${persona.name} will answer questions automatically. You can take over during the Run.`
-                  : "You’ll answer questions when the workflow needs your input."}
+                  : translate("m29cda917e844")}
               </p>
               <Separator />
               <dl className="space-y-3 text-sm">
                 <div>
-                  <dt className="text-muted-foreground">Workflow</dt>
+                  <dt className="text-muted-foreground">
+                    {translate("m2e2d5c5649b7")}
+                  </dt>
                   <dd className="break-words font-medium">{choice?.name}</dd>
                 </div>
                 {choice?.requiresArtifact && (
                   <div>
-                    <dt className="text-muted-foreground">Save to</dt>
+                    <dt className="text-muted-foreground">
+                      {translate("m1daa7df740ac")}
+                    </dt>
                     <dd className="break-words font-medium">
                       {artifactMode === "new"
-                        ? title.trim() || "New artifact"
-                        : artifact?.title || "Choose an artifact"}
+                        ? title.trim() || translate("mf14a9c499dfa")
+                        : artifact?.title || translate("ma9dc34945059")}
                     </dd>
                   </div>
                 )}
                 <div>
-                  <dt className="text-muted-foreground">Maximum reserved</dt>
+                  <dt className="text-muted-foreground">
+                    {translate("m012bc7eea71e")}
+                  </dt>
                   <dd className="font-medium">
                     {maximum} {maximum === 1 ? "credit" : "credits"}
                   </dd>
                 </div>
               </dl>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>{pricingDescription(pricing)}</p>
+                <p>
+                  <PricingDescription pricing={pricing} />
+                </p>
                 {persona && (
                   <p>
-                    Persona: up to {persona.maxCalls} answers, {persona.maximum}{" "}
-                    credits maximum. Completed valid answers are charged even if
-                    the Run fails or you take over.
+                    {translate("m7d007ec06761")} {persona.maxCalls}{" "}
+                    {translate("m72390859c9ec")} {persona.maximum}{" "}
+                    {translate("mbc6ad7bdc5d6")}{" "}
                   </p>
                 )}
                 <p>
                   {choice?.failureCharging === "verified-usage"
-                    ? "Verified usage may be charged after failure or cancellation."
-                    : "The main workflow costs zero credits on confirmed failure or cancellation."}
+                    ? translate("mc6dda04924f2")
+                    : translate("m2790bb24347a")}
                 </p>
               </div>
               {!choice?.ready && (
-                <p role="status">
-                  This workflow is not ready. Ask an administrator to check it.
-                </p>
+                <p role="status">{translate("m5ba6fd0ba107")} </p>
               )}
               {error && (
                 <p role="alert" className="text-sm text-destructive">
@@ -558,9 +669,9 @@ export function RunLanding({
               )}
               {locked && !busy && (
                 <p className="text-sm text-muted-foreground">
-                  Your setup is kept for a safe retry. You can also{" "}
+                  {translate("m4d0bdaa2f2b6")}{" "}
                   <Link href="/runs" className="underline">
-                    check your Runs
+                    {translate("m7939b61ddc05")}{" "}
                   </Link>
                   .
                 </p>
@@ -571,16 +682,16 @@ export function RunLanding({
                 className="h-auto w-full whitespace-normal py-3"
               >
                 {phase === "artifact"
-                  ? "Creating artifact…"
+                  ? translate("md903c89eccc6")
                   : phase === "upload"
-                    ? "Uploading file…"
+                    ? translate("m7cdfb59cd1d3")
                     : phase === "run"
-                      ? "Starting Run…"
+                      ? translate("m3ffaa0a06314")
                       : locked
-                        ? "Retry start"
+                        ? translate("m5ffcb43525ac")
                         : choice?.requiresArtifact && artifactMode === "new"
-                          ? "Create artifact and start Run"
-                          : "Start Run"}
+                          ? translate("mf6bc33eab003")
+                          : translate("m0b01328f236c")}
               </Button>
             </CardContent>
           </Card>
@@ -588,7 +699,9 @@ export function RunLanding({
       )}
       {unfinished.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-xl font-semibold">Continue a Run</h2>
+          <h2 className="text-xl font-semibold">
+            {translate("m53845582bd6c")}
+          </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {unfinished.map((run) => (
               <Link
@@ -599,7 +712,9 @@ export function RunLanding({
                 <span className="min-w-0 break-words font-medium">
                   {run.name}
                 </span>
-                <Badge variant="secondary">{run.status}</Badge>
+                <Badge variant="secondary">
+                  <StateLabel value={run.status} />
+                </Badge>
               </Link>
             ))}
           </div>

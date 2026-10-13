@@ -23,19 +23,11 @@ Before proposing commands, check whether `npx` is available (the wrapper depends
 command -v npx >/dev/null 2>&1
 ```
 
-If it is not available, pause and ask the user to install Node.js/npm (which provides `npx`). Provide these steps verbatim:
-
-```bash
-# Verify Node/npm are installed
-node --version
-npm --version
-
-# If missing, install Node.js/npm, then:
-npm install -g @playwright/cli@latest
-playwright-cli --help
-```
-
-Once `npx` is present, proceed with the wrapper script. A global install of `playwright-cli` is optional.
+On Windows use `Get-Command npx.cmd` for this check. If Node/npm is missing, report
+that dependency and the repository's pinned versions. Installing the CLI globally
+is unnecessary: use the vendored wrapper or `npx.cmd --package @playwright/cli`.
+Reuse an already installed local CLI when available. Follow the repository adapter
+for local browser caches, named sessions, RTL and document-CSP verification.
 
 ## Skill path (set once)
 

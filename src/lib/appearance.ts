@@ -1,3 +1,4 @@
+import { namespace } from "@/lib/project";
 import { z } from "zod";
 
 export const designStyleSchema = z.enum(["classic", "glass", "soft-blue"]);
@@ -7,7 +8,7 @@ export const stylePreferenceSchema = z.enum([
 ]);
 export type DesignStyle = z.infer<typeof designStyleSchema>;
 export type StylePreference = z.infer<typeof stylePreferenceSchema>;
-export const STYLE_COOKIE = "unitale-style";
+export const STYLE_COOKIE = namespace("style");
 
 export function parseStylePreference(value: unknown): StylePreference {
   const result = stylePreferenceSchema.safeParse(value);

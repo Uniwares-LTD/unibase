@@ -1,5 +1,7 @@
 "use client";
-import { useEffect } from "react";
+import recovery from "../../messages/recovery.json";
+import { localeCookie, resolveLocale } from "@/lib/locale";
+import { useEffect, useSyncExternalStore } from "react";
 import { diagnostics } from "@/lib/client/diagnostics";
 import { Button } from "@/components/ui/button";
 import "./globals.css";
@@ -9,27 +11,37 @@ export default function GlobalError({
   error: Error & { digest?: string };
   retry: () => void;
 }) {
+  const locale = useSyncExternalStore<"en" | "ar">(
+    () => () => {},
+    () =>
+      resolveLocale(
+        document.cookie
+          .split("; ")
+          .find((v) => v.startsWith(localeCookie + "="))
+          ?.split("=")[1],
+        undefined,
+        navigator.language,
+      ),
+    () => "en",
+  );
+  const text = recovery[locale];
   useEffect(() => {
     diagnostics.record("global-error");
   }, []);
   return (
-    <html lang="en">
+    <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
       <body className="bg-background font-sans text-foreground">
         <main className="mx-auto flex min-h-svh max-w-lg flex-col justify-center px-6 py-12">
-          <h1 className="font-heading text-3xl">
-            We couldn’t load your space.
-          </h1>
-          <p className="mt-4 text-muted-foreground">
-            Please try again. If the problem continues, come back in a moment.
-          </p>
+          <h1 className="font-heading text-3xl">{text.failure}</h1>
+          <p className="mt-4 text-muted-foreground">{text.retryHelp}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button onClick={retry} className="h-11">
-              Try again
+              {text.retry}
             </Button>
             <Button variant="outline" asChild className="h-11">
               {/* A full document navigation recovers even if the root layout failed. */}
               {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-              <a href="/">Back to home</a>
+              <a href="/">{text.home}</a>
             </Button>
           </div>
         </main>

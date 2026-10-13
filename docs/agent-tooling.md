@@ -38,3 +38,21 @@ Documentation naming was generalized for Base on 2026-10-06. The five affected
 skill Markdown resources changed only project terminology; source identities,
 licenses and upstream hashes remain unchanged. Local hashes were refreshed after
 review and all nine skills plus two supporting contracts passed integrity checks.
+
+
+## Reuse-contract reconciliation (2026-10-13)
+
+All nine repository-owned skill entrypoints and their bundled resource/link
+inventories were reviewed against the adapter. Eight entrypoints received focused
+runtime-contract, locale/CSP or Windows workflow guidance; learning capture and the
+bundled framework examples remained applicable. Licenses, source revisions,
+upstream records and explicit publication authority are preserved. Local hashes
+were refreshed only after reviewing the intentional edits. System-owned skills
+were not changed. The link checker covers local skill references as well as docs;
+framework examples remain examples rather than repository command requirements.
+
+The adapter links current service and JSON template contracts. Use `npm.cmd` and
+`npx.cmd` on Windows instead of changing execution policy. Next.js compilation and
+worker bundling are distinct from `npm run typecheck`; inspect both results.
+Browser state and cache directories are local ignored fixtures. Historical test
+passes are dated evidence, not instructions or acceptance of a new clone.

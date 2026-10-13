@@ -32,3 +32,27 @@ Skills do not authorize commits, pushes, pull requests, issue comments, merges, 
 Imported skills remain pinned to the reviewed source. This adapter overrides their generic workflow defaults: no mandatory issue for accepted work, no automatic publication or issue evidence comments, no mandatory stop after a fixed number of correction cycles, and no quality-warning release gates. Continue safely within the authorized scope.
 
 Playwright's Bash examples are portable examples. On Windows use npx.cmd with the same CLI, a workspace-local npm cache, and headless operation unless an interactive window is requested. This local browser verification needs no cloud credentials or permission ceremony.
+
+
+## Reusable runtime contracts
+
+Read [service contracts](../docs/services.md), [locale architecture](../docs/architecture.md#locale-and-direction)
+and the current JSON [template catalog](../src/lib/server/runs/templates/README.md)
+for affected work. Project identity/modules/examples are setup decisions in
+`project.config.json`; credentials remain private runtime configuration. Retain
+accepted adapter versions, owner-bound cursors, reference fences, permanent
+accounting/idempotency evidence and notification transaction coupling.
+
+Use `npm.cmd` / `npx.cmd` on Windows when PowerShell wrappers are blocked; do not
+change machine execution policy. Read complete check output: the advisory build
+configuration does not run type checking. Use `npm run typecheck` separately.
+Check translated client navigation and English/Arabic 390px layouts after UI work.
+CSP tests must inject into a served document; privileged Playwright evaluation is
+not evidence that document CSP permits an injected script. Keep auth/browser state
+under ignored output directories and stop only fixtures started by the task.
+
+After relevant edits, run `npm run check:docs`, `npm run check:i18n` and
+`npm run check:skills`. Refresh generated catalogs/assets or skill hashes only
+for reviewed changes. Historical verification stays separate from current setup.
+Initializer tests may create synthetic Git objects inside disposable fixtures;
+they must never mutate the working repository's index, refs or history.

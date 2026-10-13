@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "next-intl";
+
 import { Notice } from "./page-patterns";
 import { useActionState, useId, useState } from "react";
 import { applySimulation, startSimulation } from "@/app/credits/actions";
@@ -9,6 +11,8 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 
 function Order({ order, uid }: { order: PublicOrder; uid: string }) {
+  const translate = useTranslations("ui");
+
   const [state, action, pending] = useActionState(
     applySimulation.bind(null, uid, order.id),
     { message: "", saved: false },
@@ -16,18 +20,18 @@ function Order({ order, uid }: { order: PublicOrder; uid: string }) {
   const options =
     order.status === "pending"
       ? [
-          ["success", "Success"],
-          ["pending", "Keep pending"],
-          ["failure", "Fail"],
-          ["cancel", "Cancel"],
+          ["success", translate("mc88a0b907419")],
+          ["pending", translate("mf1b702d2fadd")],
+          ["failure", translate("m09230b3dbc35")],
+          ["cancel", translate("m19766ed6ccb2")],
         ]
       : order.status === "paid"
         ? [
-            ["refund", "Refund all"],
-            ["replay", "Replay success"],
+            ["refund", translate("me20747accf61")],
+            ["replay", translate("m9d8dd935b5ea")],
           ]
         : order.status === "refunded"
-          ? [["replay", "Replay success"]]
+          ? [["replay", translate("m9d8dd935b5ea")]]
           : [];
   return (
     <Card>
@@ -38,8 +42,9 @@ function Order({ order, uid }: { order: PublicOrder; uid: string }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="break-all text-xs text-muted-foreground">
-          Simulation {order.id.slice(0, 12)} ·{" "}
-          {order.createdAt.slice(0, 16).replace("T", " ")} UTC
+          {translate("m45314e97b0c2")} {order.id.slice(0, 12)} ·{" "}
+          {order.createdAt.slice(0, 16).replace("T", " ")}{" "}
+          {translate("m7e5f76c94a63")}{" "}
         </p>
         <form action={action} className="flex flex-wrap gap-2">
           {options.map(([event, label]) => (
@@ -76,6 +81,8 @@ export function PurchaseSimulator({
   uid: string;
   initialKey: string;
 }) {
+  const translate = useTranslations("ui");
+
   const id = useId();
   const [key, setKey] = useState(initialKey);
   const [state, action, pending] = useActionState(
@@ -89,11 +96,10 @@ export function PurchaseSimulator({
   return (
     <section className="space-y-4" aria-labelledby={`${id}-heading`}>
       <h2 id={`${id}-heading`} className="text-xl font-semibold">
-        Local purchase simulation
+        {translate("m061fcef1b9a2")}{" "}
       </h2>
-      <Notice title="No real money is charged">
-        Fixture packs for local testing. No real payment or provider account is
-        involved. Simulation is unavailable in staging and production.
+      <Notice title={translate("m14228c03b90c")}>
+        {translate("m7736681e7fd8")}{" "}
       </Notice>
       <Card>
         <CardContent className="py-6">
@@ -101,7 +107,7 @@ export function PurchaseSimulator({
             <input type="hidden" name="key" value={key} />
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">
-                Simulated credit pack
+                {translate("me15ea8da07f3")}{" "}
               </legend>
               <RadioGroup
                 name="packId"
@@ -117,7 +123,9 @@ export function PurchaseSimulator({
               </RadioGroup>
             </fieldset>
             <Button type="submit" disabled={pending}>
-              {pending ? "Creating…" : "Create simulated purchase"}
+              {pending
+                ? translate("mc79ed9492e3c")
+                : translate("m89c54d05fbee")}
             </Button>
             {state.message && (
               <Notice
@@ -129,7 +137,7 @@ export function PurchaseSimulator({
         </CardContent>
       </Card>
       <p className="text-sm text-muted-foreground">
-        Latest 25 simulated purchases.
+        {translate("mce1133187be7")}{" "}
       </p>
       <div className="space-y-4">
         {orders.map((order) => (

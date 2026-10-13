@@ -155,3 +155,7 @@ See [debug-tricks.md](./debug-tricks.md) for:
 - MCP endpoint for AI-assisted debugging
 - Rebuild specific routes with `--debug-build-paths`
 
+
+For this repository's localization and CSP, use the runtime-contract references in
+the repository adapter. Keep client dictionaries scoped to the shell/page and
+available across RSC navigation; preserve the document nonce across refreshes.

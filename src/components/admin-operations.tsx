@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "next-intl";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
@@ -31,6 +33,9 @@ import {
 } from "./ui/alert-dialog";
 
 export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
+  const translate = useTranslations("ui");
+  const common = useTranslations("common");
+
   const router = useRouter();
   const [days, setDays] = useState(String(defaultDays));
   const [limit, setLimit] = useState("50");
@@ -58,14 +63,16 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
       router.refresh();
       setMessage(
         execute
-          ? `Cleanup approved: ${saved.changed} changed or queued, ${saved.skipped} skipped after rechecking eligibility. ${saved.storagePending} storage removals pending. Refresh reports for completion.`
-          : "Preview ready. Nothing has been removed. Preview expires in 15 minutes.",
+          ? common("cleanupResult", {
+              changed: saved.changed,
+              skipped: saved.skipped,
+              pending: saved.storagePending,
+            })
+          : translate("m542774327097"),
       );
     } catch (error) {
       setMessage(
-        error instanceof ApiError
-          ? error.message
-          : "Could not confirm the operation. Refresh reports before retrying.",
+        error instanceof ApiError ? error.message : translate("mce7eacc0c6ea"),
       );
     } finally {
       setBusy(false);
@@ -73,16 +80,11 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
   }
   return (
     <div className="space-y-4">
-      <p>
-        Remove local prompts/results from old terminal executions, or reclaim
-        the local quota of failed uploads, or remove abandoned application-owned
-        private uploads. Active and uncertain executions are excluded. Provider
-        files, billing, usage, audit and retry records remain.
-      </p>
+      <p>{translate("m35792baf7fcd")} </p>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
-          <Label htmlFor="cleanup-days">Older than (days)</Label>
+          <Label htmlFor="cleanup-days">{translate("m9615621f3aab")}</Label>
           <Input
             id="cleanup-days"
             type="number"
@@ -97,7 +99,7 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cleanup-limit">Maximum records</Label>
+          <Label htmlFor="cleanup-limit">{translate("m45d76d00c4e3")}</Label>
           <Input
             id="cleanup-limit"
             type="number"
@@ -112,7 +114,7 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cleanup-scope">Content</Label>
+          <Label htmlFor="cleanup-scope">{translate("m47bd29075f8b")}</Label>
           <Select
             value={scope}
             disabled={busy}
@@ -125,14 +127,14 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="jobs">Completed AI content</SelectItem>
+              <SelectItem value="jobs">{translate("m927295b89ae4")}</SelectItem>
               <SelectItem value="failed-files">
-                Failed upload references
+                {translate("m75f3eb58d023")}{" "}
               </SelectItem>
-              <SelectItem value="both">Both</SelectItem>
+              <SelectItem value="both">{translate("mb6c1d862f9f7")}</SelectItem>
 
               <SelectItem value="abandoned-uploads">
-                Abandoned private uploads
+                {translate("m2b9345e24621")}{" "}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -150,21 +152,18 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
         }
         onClick={() => void run(false)}
       >
-        Preview cleanup
+        {translate("m44dd7c57aa6f")}{" "}
       </Button>
       {report && (
         <div className="space-y-3">
           <p>
-            {report.jobs} executions · {report.files} failed uploads ·{" "}
-            {report.abandonedUploads} abandoned private uploads · cutoff{" "}
-            {report.cutoff.slice(0, 10)} UTC
+            {report.jobs} {translate("m9846d894263b")} {report.files}{" "}
+            {translate("mfa279f78ec54")} {report.abandonedUploads}{" "}
+            {translate("m60f631a63ef0")} {report.cutoff.slice(0, 10)}{" "}
+            {translate("m7e5f76c94a63")}{" "}
           </p>
 
-          <p className="text-sm">
-            This is one bounded batch. Generate another preview for remaining
-            eligible content. Changed records are skipped rather than replaced
-            with new targets.
-          </p>
+          <p className="text-sm">{translate("mb2926688070e")} </p>
           <Button
             variant="outline"
             onClick={() => {
@@ -180,12 +179,12 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
               setTimeout(() => URL.revokeObjectURL(url), 1000);
             }}
           >
-            Download report
+            {translate("m6c68ad180780")}{" "}
           </Button>
           {report.state === "preview" && (
             <>
               <Label htmlFor="cleanup-reason">
-                Cleanup explanation (optional)
+                {translate("mdc2a867b85b6")}{" "}
               </Label>
               <Textarea
                 id="cleanup-reason"
@@ -203,26 +202,24 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
                       report.jobs + report.files + report.abandonedUploads === 0
                     }
                   >
-                    Execute previewed cleanup
+                    {translate("m32a06aa8e2b4")}{" "}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Remove the previewed local content?
+                      {translate("mad6d7832fb38")}{" "}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      This cannot be undone here. Only the IDs in this preview
-                      are considered. Billing and audit records remain, and
-                      AI-provider files are not deleted. Approved abandoned
-                      private uploads are removed from application storage by
-                      the maintenance worker.
+                      {translate("mb419ef9fb491")}{" "}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>
+                      {translate("m19766ed6ccb2")}
+                    </AlertDialogCancel>
                     <AlertDialogAction onClick={() => void run(true)}>
-                      Confirm cleanup
+                      {translate("m2c456b847520")}{" "}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -237,6 +234,9 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
 }
 
 export function PaymentReview({ enabled }: { enabled: boolean }) {
+  const translate = useTranslations("ui");
+  const common = useTranslations("common");
+
   const router = useRouter();
   const [orderId, setOrderId] = useState("");
   const [sessionId, setSessionId] = useState("");
@@ -264,16 +264,12 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
           },
         },
       );
-      setMessage(
-        `Verification: ${result.state}. Review the order and provider evidence before another attempt.`,
-      );
+      setMessage(common("verification", { state: result.state }));
       setKey(null);
       router.refresh();
     } catch (error) {
       setMessage(
-        error instanceof ApiError
-          ? error.message
-          : "Outcome uncertain. Retry unchanged fields to retrieve this attempt's report.",
+        error instanceof ApiError ? error.message : translate("m8800cc777df4"),
       );
     } finally {
       setBusy(false);
@@ -281,15 +277,9 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
   }
   return (
     <div className="space-y-3">
-      <p>
-        Recheck an existing order against Stripe. Verified payments, refunds and
-        disputes update credits through the existing ledger. This does not issue
-        a refund or invent a payment outcome.
-      </p>
-      {!enabled && (
-        <p>Stripe reconciliation is disabled in this environment.</p>
-      )}
-      <Label htmlFor="payment-order">Order ID</Label>
+      <p>{translate("m6da46287930a")} </p>
+      {!enabled && <p>{translate("me00023c11aff")}</p>}
+      <Label htmlFor="payment-order">{translate("md89d8487ce82")}</Label>
       <Input
         id="payment-order"
         value={orderId}
@@ -299,9 +289,7 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
           setKey(null);
         }}
       />
-      <Label htmlFor="payment-session">
-        Verified Checkout session ID (optional recovery)
-      </Label>
+      <Label htmlFor="payment-session">{translate("mce0713af4770")} </Label>
       <Input
         id="payment-session"
         value={sessionId}
@@ -311,7 +299,7 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
           setKey(null);
         }}
       />
-      <Label htmlFor="payment-reason">Review explanation (optional)</Label>
+      <Label htmlFor="payment-reason">{translate("m5b00de00b264")}</Label>
       <Textarea
         id="payment-reason"
         value={reason}
@@ -326,7 +314,7 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
         disabled={!enabled || busy || !/^[a-f0-9]{64}$/.test(orderId)}
         onClick={() => void reconcile()}
       >
-        Verify payment and reconcile credits
+        {translate("m60f56b618433")}{" "}
       </Button>
       {message && <p role="status">{message}</p>}
     </div>

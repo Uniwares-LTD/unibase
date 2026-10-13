@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "next-intl";
+
 import { useEffect } from "react";
 import { diagnostics } from "@/lib/client/diagnostics";
 import Link from "next/link";
@@ -11,25 +13,27 @@ export default function ErrorPage({
   error: Error & { digest?: string };
   retry: () => void;
 }) {
+  const translate = useTranslations("ui");
+
   useEffect(() => {
     diagnostics.record("route-error");
   }, []);
   return (
     <section className="reading-surface mx-auto max-w-lg py-12">
-      <h1 className="mb-6 font-heading text-3xl">Let’s try that again.</h1>
+      <h1 className="mb-6 font-heading text-3xl">
+        {translate("m5d23895023bf")}
+      </h1>
       <Alert>
         <AlertCircle aria-hidden="true" />
-        <AlertTitle>This page couldn’t load</AlertTitle>
-        <AlertDescription>
-          Try again in a moment, or return to your home page.
-        </AlertDescription>
+        <AlertTitle>{translate("ma4bc99766fde")}</AlertTitle>
+        <AlertDescription>{translate("m88781c9f0966")} </AlertDescription>
       </Alert>
       <div className="mt-6 flex flex-wrap gap-3">
         <Button onClick={retry} className="h-11">
-          Try again
+          {translate("md8b8392e2c54")}{" "}
         </Button>
         <Button variant="outline" asChild className="h-11">
-          <Link href="/">Back to home</Link>
+          <Link href="/">{translate("m76c5505ff2e2")}</Link>
         </Button>
       </div>
     </section>

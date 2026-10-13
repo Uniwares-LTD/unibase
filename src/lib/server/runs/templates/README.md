@@ -19,8 +19,8 @@ ID in `src/lib/contracts/orchestrator-templates.ts`, and add its MCP requirement
 Use supported node/output contracts and verify the embedded Code with actual tool
 outputs and the Unibase answer format. Refresh Dify tool metadata before creation.
 
-- `persona-responder.json`: bounded persona/question/context ? structured LLM ? normalized answer. Configure the Dify model/provider before use; no MCP binding is needed.
-- `saved-artifact.json`: private Run context ? owned draft read/save ? revision-bound approval/decline ? synthetic retained image. Start this from an owned artifact.
+- `persona-responder.json`: bounded persona/question/context → structured LLM → normalized answer. Configure the Dify model/provider before use; no MCP binding is needed.
+- `saved-artifact.json`: private Run context → owned draft read/save → revision-bound approval/decline → synthetic retained image. Start this from an owned artifact.
 - `story-panel.json`: Story idea → AI story → requested changes → AI revision and character description → revision-bound approval → real generated panel. Start from an owned artifact. Configure the LLM nodes and authorize OpenAI Tools in Dify. Decline retains the draft without generating an image.
 
 Private tools bind the server-filled `unibase_context` directly; never send that
@@ -34,3 +34,10 @@ configured Dify origin and retains validated bytes privately. Tool form settings
 are plain values, while dynamic tool parameters use variable bindings. The
 responder's Code node normalizes unambiguous single-text answers and value-free
 null acknowledgements; every answer still passes the server's full validation.
+
+`project.config.json.examples` controls sample visibility and creation. Application
+mode exposes the reusable Persona responder template; example mode explicitly
+exposes all six. Accepted work retains its handler/binding snapshots. The JSON
+catalog is the current source; `dify/` YAML files are historical compatibility
+fixtures. Adding an ID also requires translation of its administrative presentation
+and verification of its tool permissions, owned target and provider prerequisites.

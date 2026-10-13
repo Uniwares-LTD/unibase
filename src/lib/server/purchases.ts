@@ -1,4 +1,5 @@
 import "server-only";
+import { requireModule } from "./modules";
 import { AppError } from "../auth-policy";
 import type { PublicOrder, PublicPack } from "../contracts/credits";
 import { runtimeCreditConfig } from "./credit-config";
@@ -12,6 +13,7 @@ import {
 } from "./store/simulation";
 
 async function requireSimulation() {
+  requireModule("payments");
   const config = await runtimeCreditConfig();
   if (config.mode !== "simulation")
     throw new AppError(

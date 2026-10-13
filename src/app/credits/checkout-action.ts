@@ -1,4 +1,6 @@
 "use server";
+import { errorMessage } from "@/lib/server/error-message";
+import { limitRequest } from "@/lib/server/rate-limit";
 import { headers } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { AppError, requireSameOrigin } from "@/lib/auth-policy";
@@ -16,6 +18,7 @@ export async function checkoutCredits(
   try {
     requireSameOrigin(await headers(), getConfig().server.origin);
     const actor = await requireSession();
+    await limitRequest("account:" + actor.uid, "mutation");
     if (actor.uid !== expectedUid)
       throw new AppError(
         "ACCOUNT_CHANGED",
@@ -37,10 +40,15 @@ export async function checkoutCredits(
       error instanceof AppError ? error.status : 503,
     );
     return {
-      message:
+      message: await errorMessage(
         error instanceof AppError
-          ? error.message
-          : "Checkout is temporarily unavailable. Retry with the same purchase request.",
+          ? error
+          : new AppError(
+              "SERVICE_UNAVAILABLE",
+              "Checkout is temporarily unavailable.",
+              503,
+            ),
+      ),
     };
   }
   redirect(url);

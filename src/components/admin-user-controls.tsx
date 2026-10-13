@@ -1,4 +1,7 @@
 "use client";
+import { StateLabel } from "./localized-value";
+import { useTranslations } from "next-intl";
+
 import { Notice } from "./page-patterns";
 import { useActionState, useId, useRef } from "react";
 import { changeUser } from "@/app/admin/users/actions";
@@ -34,6 +37,8 @@ function ChangeForm({
   user: ManagedUser;
   actorUid: string;
 }) {
+  const translate = useTranslations("ui");
+
   const id = useId();
   const form = useRef<HTMLFormElement>(null);
   const [state, action, pending] = useActionState(
@@ -44,7 +49,9 @@ function ChangeForm({
     <Card>
       <CardHeader>
         <CardTitle>
-          {kind === "access" ? "Role and access" : "Application profile"}
+          {kind === "access"
+            ? translate("mfacc8e750d37")
+            : translate("m57af318d79ea")}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -52,7 +59,7 @@ function ChangeForm({
           <input type="hidden" name="confirmed" value="yes" />
           {kind === "profile" ? (
             <div className="space-y-2">
-              <Label htmlFor={`${id}-name`}>Display name</Label>
+              <Label htmlFor={`${id}-name`}>{translate("m2b7f6a84de91")}</Label>
               <Input
                 id={`${id}-name`}
                 name="displayName"
@@ -73,7 +80,7 @@ function ChangeForm({
               ).map((group) => (
                 <fieldset key={group.name} className="space-y-2">
                   <legend className="text-sm font-medium capitalize">
-                    {group.name}
+                    <StateLabel value={group.name} />
                   </legend>
                   <RadioGroup
                     name={group.name}
@@ -87,7 +94,7 @@ function ChangeForm({
                           htmlFor={`${id}-${option}`}
                           className="capitalize"
                         >
-                          {option}
+                          <StateLabel value={option} />
                         </Label>
                       </div>
                     ))}
@@ -97,7 +104,7 @@ function ChangeForm({
             </>
           )}
           <div className="space-y-2">
-            <Label htmlFor={`${id}-reason`}>Reason (optional)</Label>
+            <Label htmlFor={`${id}-reason`}>{translate("m0f7d4664a9bc")}</Label>
             <Input
               id={`${id}-reason`}
               name="reason"
@@ -106,28 +113,33 @@ function ChangeForm({
               autoComplete="off"
             />
             <p className="text-xs text-muted-foreground">
-              Recorded in the administrator audit history. Do not enter
-              passwords or other secrets.
+              {translate("m55aae024034e")}{" "}
             </p>
           </div>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button type="button" disabled={pending}>
-                {pending ? "Saving…" : "Review change"}
+                {pending
+                  ? translate("m23e39291d613")
+                  : translate("mda59c55382da")}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Confirm account change</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {translate("m8accb43f940d")}
+                </AlertDialogTitle>
                 <AlertDialogDescription>
                   {kind === "access"
-                    ? "Access changes take effect immediately. Reactivation requires a new sign-in."
-                    : "This changes the application display name."}{" "}
-                  The change and your reason will be audited.
+                    ? translate("mea2566c4c00e")
+                    : translate("m8b84d40526a0")}{" "}
+                  {translate("mcbc1ff7ddf4c")}{" "}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>
+                  {translate("m19766ed6ccb2")}
+                </AlertDialogCancel>
                 <AlertDialogAction asChild>
                   <Button
                     type="submit"
@@ -137,7 +149,7 @@ function ChangeForm({
                         event.preventDefault();
                     }}
                   >
-                    Confirm change
+                    {translate("m704ac1d7acd8")}{" "}
                   </Button>
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -161,11 +173,12 @@ export function AdminUserControls({
   user: ManagedUser;
   actorUid: string;
 }) {
+  const translate = useTranslations("ui");
+
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Changes require a sign-in within the last 30 minutes. You cannot remove
-        your own administrator access.
+        {translate("mbd90f64a0b40")}{" "}
       </p>
       <ChangeForm kind="access" user={user} actorUid={actorUid} />
       <ChangeForm kind="profile" user={user} actorUid={actorUid} />

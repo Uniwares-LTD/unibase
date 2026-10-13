@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { useId } from "react";
 import { useStyle } from "./style-provider";
@@ -13,36 +14,41 @@ export function StylePreference({
   account?: boolean;
   disabled?: boolean;
 }) {
+  const translate = useTranslations("ui");
+  const common = useTranslations("common");
+
   const id = useId();
   const { preference, defaultStyle, setPreference } = useStyle();
   const choices = [
     {
       value: "default",
-      label: "Application default",
-      description: `Follow the application's ${defaultStyle} style.`,
+      label: translate("m7c40d0132c82"),
+      description: common("followStyle", { style: defaultStyle }),
     },
     {
       value: "classic",
-      label: "Classic",
-      description: "Warm paper, terracotta accents and book-like headings.",
+      label: translate("mae25d6481fc1"),
+      description: translate("m2c6fcf59cf32"),
     },
     {
       value: "glass",
-      label: "Glass",
-      description: "Pearlescent backgrounds, frosted surfaces and soft light.",
+      label: translate("m82c268188cd6"),
+      description: translate("m6e472a5c3c85"),
     },
     {
       value: "soft-blue",
-      label: "Soft Blue",
-      description: "Cobalt actions, pale lavender surfaces and rounded panels.",
+      label: translate("m66075117b4a0"),
+      description: translate("m021086bacd4b"),
     },
   ];
   return (
     <fieldset className="space-y-4">
-      <legend className="text-sm font-medium">Design style</legend>
+      <legend className="text-sm font-medium">
+        {translate("mf0702a028b19")}
+      </legend>
       <RadioGroup
         name={account ? "style" : undefined}
-        aria-label="Design style"
+        aria-label={translate("mf0702a028b19")}
         value={preference}
         onValueChange={(value) => setPreference(parseStylePreference(value))}
         disabled={disabled}
@@ -71,10 +77,8 @@ export function StylePreference({
         ))}
       </RadioGroup>
       <p id={`${id}-help`} className="text-sm text-muted-foreground">
-        Changes apply immediately and are remembered in this browser.
-        {account
-          ? " Save preferences to remember this style on your account too."
-          : " Light, dark and system mode are separate settings."}
+        {translate("mcda29bef33e3")}{" "}
+        {account ? translate("m432aa8c5e499") : translate("mb1fc543247a5")}
       </p>
     </fieldset>
   );

@@ -1,3 +1,4 @@
+import { namespace } from "../src/lib/project";
 import { loadEnvConfig } from "@next/env";
 import {
   initializeApp,
@@ -35,7 +36,7 @@ async function main() {
         ? { credential: applicationDefault() }
         : {}),
     },
-    "unitale-bootstrap",
+    namespace("bootstrap"),
   );
   const client = new MongoClient(databaseConfig.mongoUri, {
     serverSelectionTimeoutMS: 5000,

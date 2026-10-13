@@ -1,3 +1,4 @@
+import { project, moduleEnabled } from "@/lib/project";
 import "server-only";
 import { z } from "zod";
 import { demoScenarioTools } from "./demo-scenarios";
@@ -31,7 +32,7 @@ const reference = {
   body: "The fictional Cedar Observatory opens at 19:30 on Fridays. Its visitor password is silver-lantern. Admission includes a telescope demonstration. This is synthetic test data, not a real venue.",
 };
 
-export const tools: readonly RegisteredTool[] = [
+const registeredTools: readonly RegisteredTool[] = [
   {
     name: "get_server_info_v1",
     description:
@@ -64,3 +65,11 @@ export const tools: readonly RegisteredTool[] = [
   ...demoScenarioTools,
   ...privateTools,
 ];
+
+export const tools = registeredTools.filter(
+  (tool) =>
+    (project.examples ||
+      !["reference:read", "demo:read"].includes(tool.permission)) &&
+    (!tool.permission.startsWith("artifact:") || moduleEnabled("artifacts")) &&
+    (!tool.permission.startsWith("run:") || moduleEnabled("runs")),
+);

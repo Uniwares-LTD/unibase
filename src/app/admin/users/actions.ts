@@ -1,4 +1,7 @@
 "use server";
+import { getTranslations } from "next-intl/server";
+import { errorMessage } from "@/lib/server/error-message";
+import { limitRequest } from "@/lib/server/rate-limit";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
@@ -24,6 +27,7 @@ export async function changeUser(
   try {
     requireSameOrigin(await headers(), getConfig().server.origin);
     const actor = await requireAdmin(true);
+    await limitRequest("account:" + actor.uid, "mutation");
     if (actor.uid !== expectedActor)
       throw new AppError(
         "ACCOUNT_CHANGED",
@@ -55,7 +59,10 @@ export async function changeUser(
     revalidatePath("/account");
     revalidatePath("/preferences");
     logOperation(event, started, 200);
-    return { message: "Change saved and audited.", saved: true };
+    return {
+      message: (await getTranslations("actions"))("m01f2d087f576"),
+      saved: true,
+    };
   } catch (error) {
     unstable_rethrow(error);
     logOperation(
@@ -64,10 +71,11 @@ export async function changeUser(
       error instanceof AppError ? error.status : 503,
     );
     return {
-      message:
+      message: await errorMessage(
         error instanceof AppError
-          ? error.message
-          : "Couldn’t save this change. Please try again.",
+          ? error
+          : new AppError("SERVICE_UNAVAILABLE", "Please try again.", 503),
+      ),
       saved: false,
     };
   }

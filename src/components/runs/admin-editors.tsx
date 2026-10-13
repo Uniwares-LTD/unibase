@@ -1,4 +1,9 @@
 "use client";
+import { DateLabel } from "@/components/localized-value";
+
+import { StateLabel } from "@/components/localized-value";
+import { useTranslations } from "next-intl";
+
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
@@ -19,12 +24,15 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 type Json = z.infer<ReturnType<typeof z.json>>;
-function errorMessage(e: unknown) {
+function errorMessage(
+  e: unknown,
+  translate: ReturnType<typeof useTranslations<"ui">>,
+) {
   return e instanceof ApiError
     ? e.message
     : e instanceof Error
       ? e.message
-      : "Could not confirm the request.";
+      : translate("me0dcb8fe5e54");
 }
 const modes: Record<string, string[]> = {
   defaultStyle: ["classic", "glass", "soft-blue"],
@@ -64,8 +72,11 @@ export function SettingsField({
   value: Json;
   onChange: (value: Json) => void;
 }) {
+  const translate = useTranslations("ui");
+
   const id = useId();
-  const label = name.replace(/([A-Z])/g, " $1");
+  const fields = useTranslations("fields");
+  const label = fields.has(name as never) ? fields(name as never) : name;
   if (Array.isArray(value))
     return (
       <div className="space-y-2">
@@ -78,13 +89,12 @@ export function SettingsField({
               onChange(JSON.parse(e.target.value));
               e.target.setCustomValidity("");
             } catch {
-              e.target.setCustomValidity("Enter a valid JSON list.");
+              e.target.setCustomValidity(translate("m6b761165184a"));
             }
           }}
         />
         <p className="text-sm text-muted-foreground">
-          Credit pack definitions: ID, label, credits, and optional payment
-          product references.
+          {translate("md3d289611706")}{" "}
         </p>
       </div>
     );
@@ -155,7 +165,7 @@ export function SettingsField({
               <SelectContent>
                 {modes[name].map((mode) => (
                   <SelectItem key={mode} value={mode}>
-                    {mode}
+                    <StateLabel value={mode} />
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -184,6 +194,8 @@ export function BaseSettingsEditor({
 }: {
   initial: Awaited<ReturnType<typeof settingsView>>;
 }) {
+  const translate = useTranslations("ui");
+
   const [settings, setSettings] = useState(initial.settings);
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
@@ -196,10 +208,10 @@ export function BaseSettingsEditor({
         method: "POST",
         body: { revision: initial.revision, reason, settings },
       });
-      setMessage("Settings saved.");
+      setMessage(translate("mae493e21cd43"));
       router.refresh();
     } catch (e) {
-      setMessage(errorMessage(e));
+      setMessage(errorMessage(e, translate));
     } finally {
       setBusy(false);
     }
@@ -207,44 +219,46 @@ export function BaseSettingsEditor({
   return (
     <div className="space-y-5">
       <SettingsField
-        name="Base settings"
+        name="settings"
         value={settings}
         onChange={(value) => setSettings(value as typeof settings)}
       />
-      <Label htmlFor="settings-reason">Change reason (optional)</Label>
+      <Label htmlFor="settings-reason">{translate("mfcbdbd5d879b")}</Label>
       <Input
         id="settings-reason"
         value={reason}
         onChange={(e) => setReason(e.target.value)}
       />
       <Button disabled={busy} onClick={() => void save()}>
-        Save settings
+        {translate("m7f3a3b142814")}{" "}
       </Button>
       <p role="status">{message}</p>
       <Card>
         <CardHeader>
-          <CardTitle>Configuration status</CardTitle>
+          <CardTitle>{translate("m580e5a99ca05")}</CardTitle>
         </CardHeader>
         <CardContent>
           <p>
-            Dify: {initial.configuration.difyMode} · Management:{" "}
+            {translate("m7c0005e0f339")} {initial.configuration.difyMode}{" "}
+            {translate("mde102711acfa")}{" "}
             {initial.configuration.managementConfigured
               ? "configured"
               : "disabled"}{" "}
-            · Storage: {initial.configuration.storage} · Payments:{" "}
-            {initial.configuration.payments}
+            {translate("mbb0c41ff1192")} {initial.configuration.storage}{" "}
+            {translate("m352a594e91f2")} {initial.configuration.payments}
           </p>
-          <p>
-            Credentials and connection settings are configured on the server.
-          </p>
+          <p>{translate("m32e4874ab38a")} </p>
         </CardContent>
       </Card>
       <section>
-        <h2 className="font-semibold">Revision history</h2>
-        <p>Current revision: {initial.revision}</p>
+        <h2 className="font-semibold">{translate("m5ae0d3d186c7")}</h2>
+        <p>
+          {translate("mad84843ce0c9")} {initial.revision}
+        </p>
         {initial.history.map((row) => (
           <p key={row.revision}>
-            Revision {row.revision} · {row.updatedAt}
+            {translate("m2e516d68f42f")} {row.revision} ·{" "}
+            <DateLabel value={row.updatedAt} />
           </p>
         ))}
       </section>

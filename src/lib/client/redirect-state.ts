@@ -1,4 +1,5 @@
-export const GOOGLE_REDIRECT_KEY = "unitale-google-redirect";
+import { namespace } from "@/lib/project";
+export const GOOGLE_REDIRECT_KEY = namespace("google-redirect");
 
 // A restored SDK user is usable only during a recent, explicitly started Google
 // flow. Visiting the sign-in page must never revive an unrelated old SDK login.

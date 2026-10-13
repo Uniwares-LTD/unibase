@@ -23,3 +23,8 @@ outcome, scope, acceptance criteria, validation, dependencies, and explicit
 exclusions. Do not add production hardening or project-management machinery unless
 requested. Save the spec only when the user asked for a durable artifact. Stay
 read-only: do not implement, create or update issues, or publish changes.
+
+For extensions to this base, resolve project-module selection, owned domain/file
+references, notification transaction boundaries and locale/RTL behavior against
+the adapter's existing service contracts. Specify accepted-history compatibility
+and migration behavior instead of assuming a fresh database.

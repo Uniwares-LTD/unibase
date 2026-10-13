@@ -1,4 +1,6 @@
 import "server-only";
+import { moduleEnabled } from "../../project";
+import { limitRequest, RateLimitError } from "../rate-limit";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import {
   McpServer,
@@ -59,7 +61,7 @@ export async function handleMcp(
     });
   };
   const config = options.config;
-  if (!config.enabled) return respond(404);
+  if (!moduleEnabled("mcp") || !config.enabled) return respond(404);
   const host = request.headers.get("host") ?? new URL(request.url).host;
   const origin = request.headers.get("origin");
   if (
@@ -77,6 +79,17 @@ export async function handleMcp(
   if (!client) return respond(401);
   if (request.method !== "POST") return respond(405, client.id);
 
+  try {
+    await limitRequest("mcp:" + client.id, "mcp");
+  } catch (error) {
+    const response = respond(
+      error instanceof RateLimitError ? 429 : 503,
+      client.id,
+    );
+    if (error instanceof RateLimitError)
+      response.headers.set("Retry-After", String(error.retryAfter));
+    return response;
+  }
   const server = new McpServer({ name: "unibase", version: catalogVersion });
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,

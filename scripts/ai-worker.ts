@@ -18,7 +18,7 @@ import {
   processOneAutomaticDecision,
   responderAnswer,
 } from "../src/lib/server/runs/responder";
-import { processOneResultApplication } from "../src/lib/server/runs/artifacts";
+import { processOneResultApplication } from "../src/lib/server/domain-results";
 
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 let stopping = false;

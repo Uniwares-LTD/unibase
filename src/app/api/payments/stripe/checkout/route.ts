@@ -5,7 +5,7 @@ const schema = z
   .object({ packId: z.string().max(64), key: z.string().min(1).max(128) })
   .strict();
 export async function POST(request: Request) {
-  return endpoint(async () => {
+  return endpoint(request, async () => {
     await checkMutation(request);
     const input = await readJson(request, schema);
     return json(await startStripeCheckout(input.packId, input.key));

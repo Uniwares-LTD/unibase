@@ -30,7 +30,7 @@
         "computedHash": "6eb42d774a921197d17876592d60de23f54b789e3d8a001449e8d1259d7ae134"
       },
       "files": {
-        ".agents/skills/compile-feature-spec/SKILL.md": "08b53748e9cc8e4d9f249ca27b982e71b55d43a1696de51b236cfb616656e612",
+        ".agents/skills/compile-feature-spec/SKILL.md": "401671dbc19bda70cb0d3fd3c026260b4c46dcc96a9bcc0a32b59253179bf6e9",
         ".agents/skills/compile-feature-spec/agents/openai.yaml": "4294ee2e6f4fa0ea97df363330f9dee8b07c490d5679477224c7acf97aa869a9"
       }
     },
@@ -45,7 +45,7 @@
         "computedHash": "db85045827ebeb83ac8dbc992b69188755eeb74dcf01cbf5e694d58aa494a106"
       },
       "files": {
-        ".agents/skills/next-best-practices/SKILL.md": "07ae009a5c8644e0e05301bbc4675b2e5e256238e8d2310e5c211280c93005a2",
+        ".agents/skills/next-best-practices/SKILL.md": "0c2e1a6b84f12949903e051d8613a5e5229b735d0541c161aa50690b9ee6f906",
         ".agents/skills/next-best-practices/async-patterns.md": "3a5e4a91d8399f0922c4a3b15b3490fbeb7396f976139a92311ea34cfa300584",
         ".agents/skills/next-best-practices/bundling.md": "5496b337073985068c61527e0a89fbf7088faa47b9f92d2dd09a7d070cb48a7c",
         ".agents/skills/next-best-practices/data-patterns.md": "538c8e24cd60eded9825a9461f2c644f5e6e5203d95aa4bf7c9486412bcc7aa1",
@@ -80,7 +80,7 @@
       "files": {
         ".agents/skills/playwright/LICENSE.txt": "c16f8dcf1a368b83be78d826ea23de4079fe1b4469a0ab9ee20563f37ff3d44b",
         ".agents/skills/playwright/NOTICE.txt": "417d5d3372914ecfd9fe102ac1d7dc2119253209f9718d6c222f616876c1904b",
-        ".agents/skills/playwright/SKILL.md": "7bb8813591d21a69b5d4cb3b6f076547ecd1ffafdde817fba700b90719058b8e",
+        ".agents/skills/playwright/SKILL.md": "07dddcee24a6dc2e83a3312773d50d971071b5cca9b5321b06b043dfcadae7c5",
         ".agents/skills/playwright/agents/openai.yaml": "ddda43720fc566fffa45264be8f17f7745a3cee28d5245d41d3b963bc9967230",
         ".agents/skills/playwright/assets/playwright-small.svg": "f1d213c0f76735d8272c3d3e9fbf71fe7b894e2d1588907044c780f2c33a9732",
         ".agents/skills/playwright/assets/playwright.png": "521669f088c838196c6c852ccc9abdd7234d8f37fc9a8a7a9af7db2d50193381",
@@ -101,7 +101,7 @@
         "computedHash": "4b5459cb948348b950785eedbd530dacccd26cac83bc36b5c6633bed76aa7fd1"
       },
       "files": {
-        ".agents/skills/review-change/SKILL.md": "e5ada3713306dde6f6dfd7c7a51b0a3220824c8ce8a1654dc2f263e199220427",
+        ".agents/skills/review-change/SKILL.md": "b028e5a124b2255d2babe849b2610bd0605b2873f30bf910ec722452ef2bf908",
         ".agents/skills/review-change/agents/openai.yaml": "a89e4bc18623e21f2fe83121b268e208a8ab85bd3a2f10d200806cb9092a57ec"
       }
     },
@@ -117,7 +117,7 @@
         "computedHash": "e81070870cde72ede433dfa063dc303276c2ebb0437a7410bc82be91300d4e8f"
       },
       "files": {
-        ".agents/skills/sync-docs-issues/SKILL.md": "c2ce0f65d870fc34e708b910587b18951194b2bc2591a9ad482c38fa08ccc371",
+        ".agents/skills/sync-docs-issues/SKILL.md": "6fb54f9af1e1d4489b5c4200c1daee3c0bbfbd8f2b60d28801eb024496d5ac2c",
         ".agents/skills/sync-docs-issues/agents/openai.yaml": "a70469432fe0b50814a8387931d9c91d44264d798479418f35ed6c0c5e09fcbf"
       }
     },
@@ -134,7 +134,7 @@
       "files": {
         ".agents/skills/vercel-react-best-practices/AGENTS.md": "1fe182a457585dc5d1f532beef4c956f2d071d452a1fa243602297c97b7eb7e4",
         ".agents/skills/vercel-react-best-practices/README.md": "9eafb2123d3b8b2aef41fba0db2648a3f4f49996f8c7c8bb2c86263befd8b48a",
-        ".agents/skills/vercel-react-best-practices/SKILL.md": "3259bf8e30322457147bdc04f94ed780d2f9fb89f655c4b56c9b23448f07fe84",
+        ".agents/skills/vercel-react-best-practices/SKILL.md": "19860b80c56cc93e5b7d0084407bcda75f2ba59fe13d475db68b940a8ccdfc75",
         ".agents/skills/vercel-react-best-practices/metadata.json": "c4e18bac3290fbe1b471a605867d4df68b03144ea26b8befdbe8f9d8fd124354",
         ".agents/skills/vercel-react-best-practices/rules/_sections.md": "01c59969e4e867f0708c8f8ef9c6d87fab9a07d0586244f429ff84013db8a115",
         ".agents/skills/vercel-react-best-practices/rules/_template.md": "99df2a3ea088c6c22de2484ddc7e964d0e9923846f44c63380343ecc64455442",
@@ -221,7 +221,7 @@
         "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
       },
       "files": {
-        ".agents/skills/web-design-guidelines/SKILL.md": "8daa17d65d81dc20ea7c8f06dac76b729ed6f786916c51b7c586374334e16bc3"
+        ".agents/skills/web-design-guidelines/SKILL.md": "7b71c0ee3f797734ed91ded26811a505b5ea119556fb2ca5ec6ca7fb554e8512"
       }
     },
     "work-on-task": {
@@ -236,7 +236,7 @@
         "computedHash": "5752a54a720c7c75875a07ff6504669ab4b2449ec8ab09d5298106445c518337"
       },
       "files": {
-        ".agents/skills/work-on-task/SKILL.md": "c0844af8e892f0c7f1f05b2180e483bce2a22c8c7be502f181f398b9d8d5ad42",
+        ".agents/skills/work-on-task/SKILL.md": "85fed1929e5be78759e38b7356719492a779ca0bd9072a2fea9c1c52d1c26e92",
         ".agents/skills/work-on-task/agents/openai.yaml": "fd46b629795ad6275ad1dfcfe6ab07e897b4857727639a75d8235c2b72dfdf92"
       }
     }

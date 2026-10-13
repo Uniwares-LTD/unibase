@@ -14,7 +14,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: unitale-vps-operation
+  group: ${{ github.repository }}-vps-operation
   cancel-in-progress: false
 jobs:
   operate:
@@ -54,7 +54,8 @@ jobs:
         env:
           OPERATION_STATUS: ${{ job.status }}
         run: |
-          rm -rf "$RUNNER_TEMP/unitale-access"
+          source scripts/deploy/identity.sh
+          rm -rf "$RUNNER_TEMP/${project_slug}-access"
           case "$ACTION" in setup|check|rollback) action=$ACTION ;; *) action=unknown ;; esac
           case "$TARGET" in staging|production) target=$TARGET ;; *) target=unknown ;; esac
           printf 'Operation result=%s action=%s environment=%s workflow-commit=%s apply=%s\n' "$OPERATION_STATUS" "$action" "$target" "$GITHUB_SHA" "$APPLY" >> "$GITHUB_STEP_SUMMARY"

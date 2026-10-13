@@ -3,16 +3,25 @@
 The application uses one non-root Next.js standalone image. `/api/health/live`
 reports process availability without dependency checks. `/api/health/ready`
 checks runtime configuration, availability of the mounted Firebase service-account
-file for the configured project, and a MongoDB ping under a shared five-second
+file for the configured project, a MongoDB ping and configured Redis availability under a shared five-second
 deadline. It returns 503 with no internal error details on failure. Credential
 availability does not prove real OAuth or email delivery; exercise those during
 staging acceptance. Probes are uncached. Releases supply `RELEASE_COMMIT` so checks
 can distinguish the expected application from a stale release.
 
-Before cloning this deployment onto a shared VPS, revise the retained host paths,
-Compose names, lock/SSH aliases and database prefixes for the new application;
-`APP_NAME` does not isolate infrastructure. Follow the [identity inventory](../README.md#start-a-derived-project)
-and rerun deployment tests against the renamed scripts before applying anything.
+Use the [initializer](../README.md#start-a-derived-project) to derive project
+namespaces. `project.config.json` is bundled with operations; its slug determines
+host paths, locks, Compose projects and database prefixes. Existing Unibase keeps
+its current `unitale` values. Display names do not select infrastructure identity.
+
+Nginx is the sole ingress. Redis is private and authenticated, shared by web
+processes, and required for protected operations outside local development.
+Pin Nginx, Redis and tunnel images by digest. Review the environment-specific
+private tunnel ingress subnets and host ports against existing host allocations.
+Only this dedicated ingress network may supply trusted client-IP headers. Nginx
+preserves streaming and applies body/read deadlines; application multipart limits
+remain authoritative. Redis outages return safe 503 responses on protected
+operations while liveness and public recovery stay available.
 
 ## Host inputs
 
@@ -28,7 +37,7 @@ using [the example](../deploy/config.example.json). Retained host paths and nami
 constraints are defined in `scripts/deploy/vps.sh` and `scripts/deploy/config.py`.
 This documentation change does not rename host resources.
 Replace every placeholder, including the Base GHCR image repository, tunnel
-UUIDs and a verified immutable cloudflared image digest. Origins must be canonical
+UUIDs and a verified immutable cloudflared, Redis and Nginx image digests. Origins must be canonical
 `https://hostname` values without a trailing slash or explicit port.
 Staging and production require distinct HTTPS origins, loopback ports, Firebase
 projects, Atlas database names/users and Cloudflare tunnel UUIDs. Both sets of identities must be
@@ -42,6 +51,7 @@ Each `staging` and `production` subdirectory under that configuration root needs
   AUTH_MODE=firebase. Remove emulator settings and ANDROID_HOST; only documented
   application settings are accepted. Atlas database/user names must match the prefix enforced by `scripts/deploy/config.py`;
   inspect that validator before creating resources.
+- `redis-password`: a separate 43-256 character base64url secret for this environment. Set matching `REDIS_URL=redis://default:<password>@redis:6379` in `runtime.env`; Redis has no published host port. Do not reuse a production secret in staging.
 - `firebase.json`: a service-account credential belonging to that Firebase project.
 - `tunnel-token`: the environment's Cloudflare Tunnel token. Its encoded tunnel ID
   must match the configured UUID; copying a production token to staging is rejected
