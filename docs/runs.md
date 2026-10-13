@@ -42,6 +42,7 @@ only template names/descriptions reach the browser. Available scenarios:
 | Quote approval    | Calculate a synthetic quote, then approve or decline    | `calculate_demo_quote_v1`                         |
 | Persona responder | Noninteractive LLM answers with validated action/fields | None                                              |
 | Saved artifact    | Owned draft, approval/decline, persistent image         | Run context and artifact read/save/approval tools |
+| Story to panel    | AI story, changes, character approval, generated panel  | Run context and artifact read/save/approval tools |
 
 Grant `demo:read` to the intended MCP client for catalog/quote scenarios, restart
 the web process, then refresh that provider's tools in Dify. Quotes create no order
@@ -264,6 +265,12 @@ select and registered Generative UI responses share human validation. File
 questions, malformed answers, unavailable forms and exceeded limits pause for the
 user. Unknown responder outcomes require reconciliation rather than redispatch.
 
+The responder template also normalizes plain prose into the card ID when there is
+exactly one text question. A top-level null answer becomes null values only when
+every card is a summary/issue. Multi-question prose, booleans or approval strings
+for acknowledgement cards remain invalid. The server still checks all fields and
+offered actions; these adaptations do not bypass human-required approval.
+
 `take-over` switches remaining decisions to User and cancels unfinished responder
 executions; submitted/uncertain decisions reconcile before another answer. History
 records persona ID/revision separately from human decisions. Optional structured
@@ -289,9 +296,45 @@ operations save a deterministic draft with a stable operation key and expected
 revision, then approve only its exact persisted decision target. Decline keeps
 the draft unapproved. Terminal sample results include a synthetic validated image.
 
+Artifact revisions are expandable, newest first, with the latest revision open
+by default. Retained images appear inside the revision from their source attempt.
+When an attempt saves several revisions, its terminal images appear once, in its
+final saved revision. Expanding history leaves the latest revision open.
+
 Result application is a separately journaled typed server handler, keyed by
 attempt and handler version. The worker promotes images and updates product
 references transactionally. A failed application appears as **Product save:
 failed** with **Retry product save**; retry creates no generation or extra charge.
 Deletion releases product references. Run history retains its own object until
 cleanup, and retained product images remain accessible after that cleanup.
+
+### Real story-to-panel workflow
+
+`story-panel` uses the same owned artifact and private MCP tools. Its required
+Story idea input feeds an LLM story writer. The first decision asks for requested
+changes, including "keep it as is"; an LLM revises the story and another creates
+the main character's description. The combined story and character are saved as
+one revision. The second decision approves or declines that exact revision.
+Approval records its human/persona source before the image tool runs. Decline
+returns a partial result, retains the unapproved draft, and never calls the image
+tool. The selected answerer handles both decisions; personas can approve this
+template (`requireHuman: false`). There is one revision pass and one character
+approval per attempt, rather than an unbounded revision loop.
+
+Configure the three LLM nodes and the separate OpenAI Tools provider in Dify;
+the template uses `gpt-4.1-mini` and `gpt_image_generate` with `gpt-image-1`.
+[The tool's parameters](https://github.com/langgenius/dify-official-plugins/blob/main/tools/openai/tools/gpt_image_generate.yaml)
+are plain `tool_configurations` values; the prompt is a variable binding. Model
+credentials stay in Dify. Install/authorize the image plugin before running it,
+and re-register any changed publication. The saved-artifact synthetic sample is
+retained for validation without generation providers.
+
+An approved End returns the ordinary version-1 result envelope plus
+`unibase_images`, a nonempty list of native Dify `tool_file` image references.
+The server requires a successful structured result, at most ten total images,
+and signed image paths on the exact `DIFY_BASE_URL` origin with a matching file
+UUID. It rejects remote URLs, credentials, redirects and unsupported MIME types,
+bounds the download, then uses the existing decode/pixel/normalization limits.
+Retries reuse staged owned bytes instead of depending on an expiring download
+link. Public results contain local asset IDs/names and existing private read
+checks; signed provider links never reach browser DTOs.

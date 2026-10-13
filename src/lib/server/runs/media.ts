@@ -10,6 +10,7 @@ import { validatedImage } from "./image";
 import { s3ObjectStore, type ObjectReference } from "./object-store";
 import { aiJobs, fingerprint, type AiJob } from "../ai/jobs";
 import type { ProviderExecution } from "../ai/types";
+import { providerImages, downloadProviderImage } from "./provider-images";
 
 export type RunAsset = {
   _id: string;
@@ -37,19 +38,50 @@ export async function prepareResult(
   const result = parseResult(execution.outputs);
   const config = parseAssetConfig(process.env);
   const ids = new Map<string, string>();
-  for (const image of result.images) {
+  const files = providerImages(execution.outputs);
+  if (
+    files.length &&
+    (job.binding.mode !== "live" || result.outcome !== "success")
+  )
+    throw new AppError("INVALID_RESULT", "Unexpected generated image output.");
+  if (result.images.length + files.length > 10)
+    throw new AppError("INVALID_RESULT", "Too many generated images.");
+  const images = [
+    ...result.images.map((image) => ({ ...image, file: null })),
+    ...files.map((file) => ({
+      id: file.related_id,
+      name: "Generated panel",
+      base64: "",
+      file,
+    })),
+  ];
+  for (const image of images) {
     if (ids.has(image.id))
       throw new AppError("INVALID_RESULT", "Duplicate generated image.");
     const id = uuid(fingerprint([job._id, image.id]));
     ids.set(image.id, id);
+    const collection = db.collection<RunAsset>("runAssets");
+    const prior = await collection.findOne({ _id: id });
+    if (image.file && prior) {
+      if (prior.uid !== job.uid || prior.jobId !== job._id)
+        throw new AppError("INVALID_RESULT", "Result image ownership changed.");
+      continue;
+    }
+    const base64 = image.file
+      ? (
+          await downloadProviderImage(
+            image.file,
+            process.env.DIFY_BASE_URL!,
+            job.run.imageBytes,
+          )
+        ).toString("base64")
+      : image.base64;
     const normalized = await validatedImage(
-      image.base64,
+      base64,
       job.run.imageBytes,
       job.run.imagePixels,
     );
     const digest = createHash("sha256").update(normalized.bytes).digest("hex");
-    const collection = db.collection<RunAsset>("runAssets");
-    const prior = await collection.findOne({ _id: id });
     if (prior) {
       if (prior.digest !== digest || prior.uid !== job.uid)
         throw new AppError("INVALID_RESULT", "Result image changed.");
@@ -138,7 +170,7 @@ export async function prepareResult(
     }
   const safe = {
     ...result,
-    images: result.images.map((image) => ({
+    images: images.map((image) => ({
       id: ids.get(image.id)!,
       name: image.name,
     })),

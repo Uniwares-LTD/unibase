@@ -16,6 +16,7 @@ import { readWallet } from "../store/credits";
 import { promoteAsset, releaseAssetReference } from "./assets";
 import { authorizedRun } from "./capabilities";
 import type { Decision } from "./service";
+import type { ProductAsset } from "./assets";
 
 export type Artifact = {
   id: string;
@@ -100,26 +101,53 @@ export async function createArtifact(input: unknown) {
 export async function artifactDetail(id: string) {
   const actor = await requireSession();
   const row = await ownedArtifact(database(), actor.uid, id);
-  const revisions = await database()
-    .collection<Revision>("artifactRevisions")
-    .find({ artifactId: id, uid: actor.uid })
-    .sort({ revision: -1 })
-    .limit(100)
-    .toArray();
   return {
     id: row.id,
     title: row.title,
     revision: row.revision,
     approvedRevision: row.approvedRevision,
     assets: row.assets,
-    revisions: revisions.map((r) => ({
+    revisions: await artifactRevisionDetails(database(), row),
+  };
+}
+export async function artifactRevisionDetails(db: Db, artifact: Artifact) {
+  const [revisions, images] = await Promise.all([
+    db
+      .collection<Revision>("artifactRevisions")
+      .find({ artifactId: artifact.id, uid: artifact.uid })
+      .sort({ revision: -1 })
+      .limit(100)
+      .toArray(),
+    db
+      .collection<ProductAsset>("productAssets")
+      .find({
+        _id: { $in: artifact.assets },
+        uid: artifact.uid,
+        state: "ready",
+        references: `artifact:${artifact.id}`,
+        jobId: { $exists: true },
+      })
+      .project<Pick<ProductAsset, "_id" | "jobId">>({ _id: 1, jobId: 1 })
+      .toArray(),
+  ]);
+  const imageJobs = new Map(images.map((image) => [image._id, image.jobId]));
+  const assignedJobs = new Set<string>();
+  return revisions.map((r) => {
+    // A completed attempt's images belong to its final saved revision. The
+    // retained product metadata keeps this association after Run cleanup.
+    const assets = assignedJobs.has(r.jobId)
+      ? []
+      : artifact.assets.filter((id) => imageJobs.get(id) === r.jobId);
+    assignedJobs.add(r.jobId);
+    return {
       revision: r.revision,
       text: r.text,
       logicalId: r.logicalId,
       contentHash: r.contentHash,
       approvalSource: r.approvalSource ?? null,
-    })),
-  };
+      assets,
+    };
+  });
 }
 export async function deleteArtifact(id: string) {
   const actor = await requireSession();

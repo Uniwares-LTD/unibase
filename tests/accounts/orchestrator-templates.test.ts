@@ -11,7 +11,7 @@ import { tools } from "../../src/lib/server/mcp/tools";
 
 test("Template catalog exposes metadata only; templates bind isolated graphs and supported tools/forms", () => {
   const summaries = orchestratorTemplates();
-  assert.equal(new Set(summaries.map((t) => t.id)).size, 5);
+  assert.equal(new Set(summaries.map((t) => t.id)).size, 6);
   for (const summary of summaries) {
     assert.deepEqual(Object.keys(summary).sort(), [
       "description",
@@ -27,7 +27,9 @@ test("Template catalog exposes metadata only; templates bind isolated graphs and
       fit.inputs.map((f) => f.name),
       summary.id === "persona-responder"
         ? ["persona", "question", "context"]
-        : [],
+        : summary.id === "story-panel"
+          ? ["prompt"]
+          : [],
     );
     assert.deepEqual(
       fit.mcpTools.map((tool) => tool.toolName),
@@ -36,10 +38,10 @@ test("Template catalog exposes metadata only; templates bind isolated graphs and
     for (const node of dsl.workflow.graph.nodes) {
       if (
         node.data.type === "human-input" &&
-        !node.data.form_content!.includes("{{#form.form#}}")
+        node.data.form_content!.includes("```unibase-ui")
       )
         parseUiForm(node.data.form_content!);
-      if (node.data.type === "tool") {
+      if (node.data.type === "tool" && node.data.provider_type === "mcp") {
         assert.equal(node.data.provider_id, "authorized-provider");
         const tool = tools.find((tool) => tool.name === node.data.tool_name);
         assert(tool);
@@ -49,7 +51,8 @@ test("Template catalog exposes metadata only; templates bind isolated graphs and
             input!.value,
           ]),
         );
-        if (summary.id !== "saved-artifact") tool.input.parse(parameters);
+        if (!["saved-artifact", "story-panel"].includes(summary.id))
+          tool.input.parse(parameters);
       }
     }
     dsl.app.name = "mutated";

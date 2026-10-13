@@ -6,6 +6,7 @@ import type { OrchestratorTemplateId } from "@/lib/contracts/orchestrator-templa
 
 import personaResponder from "./persona-responder.json";
 import savedArtifact from "./saved-artifact.json";
+import storyPanel from "./story-panel.json";
 type NodeData = {
   type: string;
   title: string;
@@ -37,6 +38,7 @@ const templates: {
   quoteApproval,
   personaResponder,
   savedArtifact,
+  storyPanel,
 ];
 
 export function orchestratorTemplates() {

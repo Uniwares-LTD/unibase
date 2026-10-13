@@ -1,0 +1,1080 @@
+{
+  "id": "story-panel",
+  "title": "Story to panel",
+  "description": "AI story → requested changes → AI character approval → generated comic panel.",
+  "requiredTools": [
+    "get_run_context_v1",
+    "read_artifact_v1",
+    "save_artifact_draft_v1",
+    "approve_artifact_v1"
+  ],
+  "dsl": {
+    "version": "0.6.0",
+    "kind": "app",
+    "dependencies": [],
+    "app": {
+      "name": "Unibase story to panel",
+      "description": "AI story → requested changes → AI character approval → generated comic panel.",
+      "mode": "workflow",
+      "icon_type": "emoji",
+      "icon": "🧪",
+      "icon_background": "#FFEAD5",
+      "use_icon_as_answer_icon": false
+    },
+    "workflow": {
+      "conversation_variables": [],
+      "environment_variables": [],
+      "features": {
+        "file_upload": {
+          "enabled": false
+        },
+        "opening_statement": "",
+        "suggested_questions": [],
+        "suggested_questions_after_answer": {
+          "enabled": false
+        },
+        "speech_to_text": {
+          "enabled": false
+        },
+        "text_to_speech": {
+          "enabled": false
+        }
+      },
+      "graph": {
+        "nodes": [
+          {
+            "id": "start",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "start",
+              "title": "Start",
+              "variables": [
+                {
+                  "variable": "unibase_context",
+                  "label": "Private Run context",
+                  "type": "text-input",
+                  "required": true,
+                  "max_length": 256
+                },
+                {
+                  "variable": "prompt",
+                  "label": "Story idea",
+                  "type": "paragraph",
+                  "required": true,
+                  "max_length": 1500
+                }
+              ]
+            },
+            "position": {
+              "x": 30,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "runcontext",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "tool",
+              "title": "Read Run context",
+              "provider_type": "mcp",
+              "provider_id": "__UNIBASE_MCP_PROVIDER__",
+              "provider_name": "__UNIBASE_MCP_PROVIDER__",
+              "tool_name": "get_run_context_v1",
+              "tool_label": "get_run_context_v1",
+              "tool_configurations": {},
+              "tool_parameters": {
+                "runContext": {
+                  "type": "variable",
+                  "value": ["start", "unibase_context"]
+                }
+              },
+              "is_team_authorization": true
+            },
+            "position": {
+              "x": 330,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "read",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "tool",
+              "title": "read_artifact_v1",
+              "provider_type": "mcp",
+              "provider_id": "__UNIBASE_MCP_PROVIDER__",
+              "provider_name": "__UNIBASE_MCP_PROVIDER__",
+              "tool_name": "read_artifact_v1",
+              "tool_label": "read_artifact_v1",
+              "tool_configurations": {},
+              "tool_parameters": {
+                "runContext": {
+                  "type": "variable",
+                  "value": ["start", "unibase_context"]
+                }
+              },
+              "is_team_authorization": true
+            },
+            "position": {
+              "x": 630,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "reference",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "code",
+              "title": "Read story context",
+              "code_language": "python3",
+              "code": "def main(reference: list) -> dict:\n    a = next(x for x in reference if isinstance(x, dict) and 'artifactId' in x)\n    return {'revision': a['revision'], 'title': a['title']}\n",
+              "variables": [
+                {
+                  "variable": "reference",
+                  "value_selector": ["read", "json"]
+                }
+              ],
+              "outputs": {
+                "revision": {
+                  "type": "number",
+                  "children": null
+                },
+                "title": {
+                  "type": "string",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 930,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "story",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "llm",
+              "title": "Write the story",
+              "model": {
+                "provider": "langgenius/openai/openai",
+                "name": "gpt-4.1-mini",
+                "mode": "chat",
+                "completion_params": {
+                  "temperature": 0.7,
+                  "max_tokens": 600
+                }
+              },
+              "prompt_template": [
+                {
+                  "role": "system",
+                  "text": "Write an original, vivid, age-appropriate short adventure for readers aged 8–13. Use the supplied idea as creative material. Output only the story, under 100 words and 1200 characters. Include one main character and a scene that can be illustrated as a single comic panel."
+                },
+                {
+                  "role": "user",
+                  "text": "Title: {{#reference.title#}}\nIdea: {{#start.prompt#}}"
+                }
+              ],
+              "context": {
+                "enabled": false,
+                "variable_selector": []
+              },
+              "vision": {
+                "enabled": false
+              },
+              "structured_output_enabled": false
+            },
+            "position": {
+              "x": 1230,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "story_form",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "code",
+              "title": "Ask for story changes",
+              "code_language": "python3",
+              "code": "import json\ndef main(story: str) -> dict:\n    if not story.strip() or len(story) > 1200: raise ValueError('Story exceeds question bounds')\n    ui = {'version':1,'cards':[{'id':'changes','content':{'type':'question','version':1,'data':{'kind':'text','title':'What would you change in this story?','explanation':story + '\\n\\nDescribe your changes, or say keep it as is.','options':[]}}}]}\n    return {'form':chr(96)*3+'unibase-ui\\n'+json.dumps(ui)+'\\n'+chr(96)*3}\n",
+              "variables": [
+                {
+                  "variable": "story",
+                  "value_selector": ["story", "text"]
+                }
+              ],
+              "outputs": {
+                "form": {
+                  "type": "string",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 1530,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "story_decision",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "human-input",
+              "title": "Modify the story",
+              "form_content": "{{#story_form.form#}}\n{{#$output.response#}}",
+              "inputs": [
+                {
+                  "type": "paragraph",
+                  "output_variable_name": "response",
+                  "default": {
+                    "type": "constant",
+                    "selector": [],
+                    "value": ""
+                  }
+                }
+              ],
+              "user_actions": [
+                {
+                  "id": "revise",
+                  "title": "Apply changes",
+                  "button_style": "primary"
+                }
+              ],
+              "delivery_methods": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000021",
+                  "type": "webapp",
+                  "enabled": true,
+                  "config": {}
+                }
+              ],
+              "timeout": 24,
+              "timeout_unit": "hour"
+            },
+            "position": {
+              "x": 1830,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "feedback",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "code",
+              "title": "Read requested changes",
+              "code_language": "python3",
+              "code": "import json\ndef main(response: str) -> dict:\n    changes = json.loads(response).get('changes')\n    if not isinstance(changes, str) or not changes.strip() or len(changes) > 4000: raise ValueError('Invalid story changes')\n    return {'changes': changes}\n",
+              "variables": [
+                {
+                  "variable": "response",
+                  "value_selector": ["story_decision", "response"]
+                }
+              ],
+              "outputs": {
+                "changes": {
+                  "type": "string",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 2130,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "revised_story",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "llm",
+              "title": "Revise the story",
+              "model": {
+                "provider": "langgenius/openai/openai",
+                "name": "gpt-4.1-mini",
+                "mode": "chat",
+                "completion_params": {
+                  "temperature": 0.7,
+                  "max_tokens": 600
+                }
+              },
+              "prompt_template": [
+                {
+                  "role": "system",
+                  "text": "Revise the short adventure using the requested changes. Preserve the core story unless changes request otherwise. If asked to keep it, preserve the story. Output only the revised story, under 100 words and 1200 characters."
+                },
+                {
+                  "role": "user",
+                  "text": "Original story: {{#story.text#}}\nRequested changes: {{#feedback.changes#}}"
+                }
+              ],
+              "context": {
+                "enabled": false,
+                "variable_selector": []
+              },
+              "vision": {
+                "enabled": false
+              },
+              "structured_output_enabled": false
+            },
+            "position": {
+              "x": 2430,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "character",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "llm",
+              "title": "Create the character",
+              "model": {
+                "provider": "langgenius/openai/openai",
+                "name": "gpt-4.1-mini",
+                "mode": "chat",
+                "completion_params": {
+                  "temperature": 0.7,
+                  "max_tokens": 600
+                }
+              },
+              "prompt_template": [
+                {
+                  "role": "system",
+                  "text": "Design the main character from the supplied revised story. Output a concise character description: name, age, appearance, clothing, distinctive colors, personality, and role in this scene. Keep it under 80 words and 900 characters. This character will be reviewed before a comic panel is generated."
+                },
+                {
+                  "role": "user",
+                  "text": "Revised story: {{#revised_story.text#}}"
+                }
+              ],
+              "context": {
+                "enabled": false,
+                "variable_selector": []
+              },
+              "vision": {
+                "enabled": false
+              },
+              "structured_output_enabled": false
+            },
+            "position": {
+              "x": 2730,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "draft",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "code",
+              "title": "Prepare story and character",
+              "code_language": "python3",
+              "code": "def main(story: str, character: str, revision: int) -> dict:\n    if not story.strip() or len(story) > 1200 or not character.strip() or len(character) > 900: raise ValueError('Content exceeds review bounds')\n    return {'text':'Story\\n'+story+'\\n\\nCharacter\\n'+character, 'revision':revision, 'prompt':'Create one polished, colorful comic panel for readers aged 8–13. Illustrate the key scene in the story using exactly the approved character description. No captions, speech bubbles, text, or watermarks.\\nStory: '+story+'\\nCharacter: '+character}\n",
+              "variables": [
+                {
+                  "variable": "story",
+                  "value_selector": ["revised_story", "text"]
+                },
+                {
+                  "variable": "character",
+                  "value_selector": ["character", "text"]
+                },
+                {
+                  "variable": "revision",
+                  "value_selector": ["reference", "revision"]
+                }
+              ],
+              "outputs": {
+                "text": {
+                  "type": "string",
+                  "children": null
+                },
+                "revision": {
+                  "type": "number",
+                  "children": null
+                },
+                "prompt": {
+                  "type": "string",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 3030,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "save",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "tool",
+              "title": "save_artifact_draft_v1",
+              "provider_type": "mcp",
+              "provider_id": "__UNIBASE_MCP_PROVIDER__",
+              "provider_name": "__UNIBASE_MCP_PROVIDER__",
+              "tool_name": "save_artifact_draft_v1",
+              "tool_label": "save_artifact_draft_v1",
+              "tool_configurations": {},
+              "tool_parameters": {
+                "runContext": {
+                  "type": "variable",
+                  "value": ["start", "unibase_context"]
+                },
+                "operationKey": {
+                  "type": "mixed",
+                  "value": "story-character"
+                },
+                "expectedRevision": {
+                  "type": "variable",
+                  "value": ["draft", "revision"]
+                },
+                "text": {
+                  "type": "variable",
+                  "value": ["draft", "text"]
+                }
+              },
+              "is_team_authorization": true
+            },
+            "position": {
+              "x": 3330,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "form",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "code",
+              "title": "Prepare character approval",
+              "code_language": "python3",
+              "code": "import json\ndef main(reference: list, text: str) -> dict:\n    a = next(x for x in reference if isinstance(x, dict) and \"contentHash\" in x)\n    ui = {\"version\":1,\"approval\":{\"artifactId\":a[\"artifactId\"],\"revision\":a[\"revision\"],\"contentHash\":a[\"contentHash\"],\"action\":\"approve\",\"requireHuman\":False},\"cards\":[{\"id\":\"draft\",\"content\":{\"type\":\"summary\",\"version\":1,\"data\":{\"title\":\"Approve this character and story?\",\"body\":text}}}]}\n    return {\"form\":\"```unibase-ui\\n\"+json.dumps(ui)+\"\\n```\", \"revision\":a[\"revision\"],\"contentHash\":a[\"contentHash\"]}\n",
+              "variables": [
+                {
+                  "variable": "reference",
+                  "value_selector": ["save", "json"]
+                },
+                {
+                  "variable": "text",
+                  "value_selector": ["draft", "text"]
+                }
+              ],
+              "outputs": {
+                "form": {
+                  "type": "string",
+                  "children": null
+                },
+                "revision": {
+                  "type": "number",
+                  "children": null
+                },
+                "contentHash": {
+                  "type": "string",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 3630,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "decision",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "human-input",
+              "title": "Approve the character",
+              "form_content": "{{#form.form#}}\n{{#$output.response#}}",
+              "inputs": [
+                {
+                  "type": "paragraph",
+                  "output_variable_name": "response",
+                  "default": {
+                    "type": "constant",
+                    "selector": [],
+                    "value": ""
+                  }
+                }
+              ],
+              "user_actions": [
+                {
+                  "id": "approve",
+                  "title": "Approve and generate panel",
+                  "button_style": "primary"
+                },
+                {
+                  "id": "decline",
+                  "title": "Decline character",
+                  "button_style": "primary"
+                }
+              ],
+              "delivery_methods": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000022",
+                  "type": "webapp",
+                  "enabled": true,
+                  "config": {}
+                }
+              ],
+              "timeout": 24,
+              "timeout_unit": "hour"
+            },
+            "position": {
+              "x": 3930,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "approve",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "tool",
+              "title": "approve_artifact_v1",
+              "provider_type": "mcp",
+              "provider_id": "__UNIBASE_MCP_PROVIDER__",
+              "provider_name": "__UNIBASE_MCP_PROVIDER__",
+              "tool_name": "approve_artifact_v1",
+              "tool_label": "approve_artifact_v1",
+              "tool_configurations": {},
+              "tool_parameters": {
+                "runContext": {
+                  "type": "variable",
+                  "value": ["start", "unibase_context"]
+                },
+                "operationKey": {
+                  "type": "mixed",
+                  "value": "approval"
+                },
+                "revision": {
+                  "type": "variable",
+                  "value": ["form", "revision"]
+                },
+                "contentHash": {
+                  "type": "variable",
+                  "value": ["form", "contentHash"]
+                }
+              },
+              "is_team_authorization": true
+            },
+            "position": {
+              "x": 4230,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "panel",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "tool",
+              "title": "Generate the panel image",
+              "provider_type": "builtin",
+              "provider_id": "langgenius/openai_tool/openai",
+              "provider_name": "langgenius/openai_tool/openai",
+              "tool_name": "gpt_image_generate",
+              "tool_label": "GPT Image Generate",
+              "tool_configurations": {
+                "model": "gpt-image-1",
+                "size": "1536x1024",
+                "quality": "medium",
+                "n": 1,
+                "background": "opaque",
+                "output_format": "png",
+                "moderation": "auto"
+              },
+              "tool_parameters": {
+                "prompt": {
+                  "type": "variable",
+                  "value": ["draft", "prompt"]
+                }
+              },
+              "is_team_authorization": true
+            },
+            "position": {
+              "x": 4530,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "finish",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "code",
+              "title": "Save panel result",
+              "code_language": "python3",
+              "code": "import json\ndef main(text: str) -> dict:\n    return {'result':json.dumps({'version':1,'outcome':'success','text':text,'cards':[],'images':[]})}\n",
+              "variables": [
+                {
+                  "variable": "text",
+                  "value_selector": ["draft", "text"]
+                }
+              ],
+              "outputs": {
+                "result": {
+                  "type": "string",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 4830,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "end",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "end",
+              "title": "Result",
+              "outputs": [
+                {
+                  "variable": "result",
+                  "value_selector": ["finish", "result"]
+                },
+                {
+                  "variable": "unibase_images",
+                  "value_selector": ["panel", "files"]
+                }
+              ]
+            },
+            "position": {
+              "x": 5130,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "declined",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "code",
+              "title": "Keep declined character without an image",
+              "code_language": "python3",
+              "code": "import json\ndef main(text: str) -> dict:\n    return {'result':json.dumps({'version':1,'outcome':'partial','text':text+'\\n\\nCharacter declined. No panel was generated.','cards':[],'images':[]})}\n",
+              "variables": [
+                {
+                  "variable": "text",
+                  "value_selector": ["draft", "text"]
+                }
+              ],
+              "outputs": {
+                "result": {
+                  "type": "string",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 5430,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "declined_end",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "end",
+              "title": "Declined result",
+              "outputs": [
+                {
+                  "variable": "result",
+                  "value_selector": ["declined", "result"]
+                }
+              ]
+            },
+            "position": {
+              "x": 5730,
+              "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          }
+        ],
+        "edges": [
+          {
+            "id": "start-source-runcontext",
+            "source": "start",
+            "target": "runcontext",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "start",
+              "targetType": "tool",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "runcontext-source-read",
+            "source": "runcontext",
+            "target": "read",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "tool",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "read-source-reference",
+            "source": "read",
+            "target": "reference",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "reference-source-story",
+            "source": "reference",
+            "target": "story",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "code",
+              "targetType": "llm",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "story-source-story_form",
+            "source": "story",
+            "target": "story_form",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "llm",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "story_form-source-story_decision",
+            "source": "story_form",
+            "target": "story_decision",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "code",
+              "targetType": "human-input",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "story_decision-revise-feedback",
+            "source": "story_decision",
+            "target": "feedback",
+            "sourceHandle": "revise",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "human-input",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "feedback-source-revised_story",
+            "source": "feedback",
+            "target": "revised_story",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "code",
+              "targetType": "llm",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "revised_story-source-character",
+            "source": "revised_story",
+            "target": "character",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "llm",
+              "targetType": "llm",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "character-source-draft",
+            "source": "character",
+            "target": "draft",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "llm",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "draft-source-save",
+            "source": "draft",
+            "target": "save",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "code",
+              "targetType": "tool",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "save-source-form",
+            "source": "save",
+            "target": "form",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "form-source-decision",
+            "source": "form",
+            "target": "decision",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "code",
+              "targetType": "human-input",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "decision-approve-approve",
+            "source": "decision",
+            "target": "approve",
+            "sourceHandle": "approve",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "human-input",
+              "targetType": "tool",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "approve-source-panel",
+            "source": "approve",
+            "target": "panel",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "tool",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "panel-source-finish",
+            "source": "panel",
+            "target": "finish",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "finish-source-end",
+            "source": "finish",
+            "target": "end",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "code",
+              "targetType": "end",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "decision-decline-declined",
+            "source": "decision",
+            "target": "declined",
+            "sourceHandle": "decline",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "human-input",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "declined-source-declined_end",
+            "source": "declined",
+            "target": "declined_end",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "code",
+              "targetType": "end",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          }
+        ]
+      }
+    }
+  }
+}

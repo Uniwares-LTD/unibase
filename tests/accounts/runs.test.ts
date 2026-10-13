@@ -87,6 +87,97 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
       taskId: randomUUID(),
     });
     await t.test(
+      "native images are retained privately and replay does not depend on expired provider links",
+      async () => {
+        const nativeJob = {
+          ...job,
+          _id: randomUUID(),
+          binding: { ...job.binding, mode: "live" as const },
+        };
+        const imageId = randomUUID();
+        const oldFetch = globalThis.fetch;
+        const oldBase = process.env.DIFY_BASE_URL;
+        let downloads = 0;
+        process.env.DIFY_BASE_URL = "https://dify.example.test/v1";
+        const { sampleImage } =
+          await import("../../src/lib/server/runs/sample");
+        globalThis.fetch = async () => {
+          downloads++;
+          return new Response(Buffer.from(sampleImage, "base64"), {
+            headers: { "content-type": "image/png" },
+          });
+        };
+        const execution: ProviderExecution = {
+          runId,
+          workflowId: null,
+          status: "succeeded",
+          usage: {
+            scope: "execution",
+            id: runId,
+            inputTokens: 1,
+            outputTokens: 1,
+            totalTokens: 2,
+            cost: null,
+            elapsedMs: 1,
+          },
+          outputs: {
+            result: {
+              version: 1,
+              outcome: "success",
+              text: "Story and character",
+              cards: [],
+              images: [],
+            },
+            unibase_images: [
+              {
+                type: "image",
+                transfer_method: "tool_file",
+                related_id: imageId,
+                url: `/files/tools/${imageId}.png?timestamp=123&nonce=n&sign=s`,
+              },
+            ],
+          },
+        };
+        try {
+          await prepareResult(db, nativeJob, execution);
+          const result = await db
+            .collection<{ _id: string; result: { images: { id: string }[] } }>(
+              "runResults",
+            )
+            .findOne({ _id: nativeJob._id });
+          assert.equal(result?.result.images.length, 1);
+          assert.equal(JSON.stringify(result).includes("sign=s"), false);
+          globalThis.fetch = async () => {
+            throw new Error("Expired provider link");
+          };
+          await prepareResult(db, nativeJob, execution);
+          assert.equal(downloads, 1);
+          const session = client.startSession();
+          try {
+            await session.withTransaction(async () =>
+              attachResult(db, nativeJob, session),
+            );
+          } finally {
+            await session.endSession();
+          }
+          const asset = await readRunAsset(
+            db,
+            actor.uid,
+            result!.result.images[0].id,
+          );
+          assert.equal(asset.bytes.length > 0, true);
+          await assert.rejects(
+            readRunAsset(db, "another-user", result!.result.images[0].id),
+            /unavailable/,
+          );
+        } finally {
+          globalThis.fetch = oldFetch;
+          if (oldBase === undefined) delete process.env.DIFY_BASE_URL;
+          else process.env.DIFY_BASE_URL = oldBase;
+        }
+      },
+    );
+    await t.test(
       "snapshots deduplicate stages and parallel or repeated checkpoints remain separate",
       async () => {
         for (let n = 0; n < 2; n++)

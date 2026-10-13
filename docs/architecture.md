@@ -419,6 +419,13 @@ artifact handler independently of generation/billing and retries with a fenced
 lease. Downstream code supplies typed result handlers and validates its own owned
 association; there is no arbitrary model-driven collection access.
 
+Artifact detail keeps the page and content server-rendered and composes a shadcn
+accordion for expansion. Revisions are newest first, with the latest open by
+default. Images are grouped by the retained product asset's source attempt and
+shown inside that attempt's final saved revision; owner, artifact reference and
+ready-state checks filter metadata. This association survives Run cleanup and
+uses existing records without a schema migration.
+
 Dify execution failures are classified into bounded, fixed diagnostic summaries
 before persistence. Raw provider errors, dependency URLs, prompts and credentials
 do not reach Run history or browser DTOs. Terminal executions retain their safe
@@ -429,6 +436,20 @@ were recorded. They do not keep displaying a waiting message.
 Persona actions normalize omitted summary/issue acknowledgements to JSON null.
 Explicit invalid acknowledgement values, missing choices/fields, unoffered actions
 and file responses remain invalid; human-only approvals still require a User.
+
+The responder template maps plain prose only to a single text-question card and
+maps top-level null only to summary/issue acknowledgements. All normalized output
+still passes the shared server validation. The story-to-panel template uses two
+sequential decisions (story changes and character approval), three LLM calls, and
+an approval-only image-tool branch. It saves the combined story/character as an
+ordinary artifact revision without adding a separate story domain or worker.
+
+Native Dify tool images opt in through the `unibase_images` End output alongside a
+successful structured result. Server-only ingestion accepts signed, matching-UUID
+image file paths on the configured Dify origin, bounds the download without
+service credentials or redirects, and reuses existing private normalization,
+staging and product promotion. Reconciliation reuses staged owned bytes after
+provider links expire. Browser results never include provider download links.
 
 `productAssets` promotes validated Run images and tracks domain references,
 reusing the existing MongoDB bytes or private S3 object. Promotion, reference

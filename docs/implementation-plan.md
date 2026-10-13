@@ -792,3 +792,46 @@ tool-service HTTP 502/503/504 errors without exposing raw provider text. All 13
 affected Dify tests, typecheck, lint and production web/worker build pass. Local
 web/proxy discovery returned 200 while the configured expired tunnel still
 reported Tunnel not found; remote MCP connectivity remains unresolved.
+
+### Real story-to-panel workflow - 2026-10-13
+
+The user authorized a real-generation sample with story feedback, character
+approval and a generated panel. Start selects User or a persona for both
+decisions. The new Story to panel template uses three LLM nodes, an owned
+story/character revision, exact revision-bound approval and the OpenAI image
+tool; declining returns a partial result without image generation. The original
+synthetic sample and accepted Run histories remain compatible.
+
+The responder template normalizes plain prose only for one text question and
+top-level null only for summary/issue acknowledgements, retaining full server
+validation. Native Dify tool images use bounded first-party signed downloads and
+the existing private image staging/promotion rather than browser provider URLs.
+
+Verified: production web/worker build, typecheck and lint pass. All 41 affected
+account/provider checks pass; the 16 template/creation/embedded-code checks were
+rerun after the final image configuration correction. Live User feedback changed
+the generated story and character; decline generated no image. The real persona
+answered both questions, approved the revision, generated a 1536×1024 panel and
+completed product application for three credits (one main, two persona). Browser
+checks verify desktop/mobile, approved content/image after reload, and no page
+errors or overflow. A separate read-only source review found no remaining
+implementation defect. Setup and native-output contracts are in README and Runs.
+
+The authorized Dify image-plugin installation and new workflow publication/
+registration are complete; its image credential was configured by the user. Two
+earlier diagnostic pauses have cancellation requested but Dify has not confirmed
+termination, so their managed holds remain retained pending reconciliation.
+
+### Artifact revision presentation - 2026-10-13
+
+Saved artifacts now use expandable shadcn revision sections, newest first with
+the latest open by default. Retained product images are matched to their source
+attempt's final saved revision, including existing artifacts and cleaned Run
+history. Ownership/reference/ready checks remain in server-only reads.
+
+The requested two-revision artifact was verified on desktop and 390px mobile:
+each image is in its own revision, expansion preserves the latest open section,
+Enter/Space/arrow navigation works, reload restores the default, and no browser
+errors or overflow occur. All 14 affected account/artifact tests, typecheck, lint
+and production web/worker build pass. A separate read-only review found no
+remaining actionable defect. No data migration is required.
