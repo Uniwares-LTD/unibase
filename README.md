@@ -67,14 +67,15 @@ For the reference product integration, grant `run:read`, `artifact:read`, and
 `artifact:write` explicitly to the dedicated MCP client and refresh its tools in
 Dify. Set `RUN_MCP_CLIENT_ID` to that client's ID (default `dify`), and configure
 `DIFY_CREDENTIAL_ENCRYPTION_KEY` or the existing management-key derivation on both
-web and AI workers. Create **Saved artifact**, then create an artifact under
-**Saved artifacts** and start its associated Run. Approve/decline its deterministic
+web and AI workers. Create **Saved artifact**, then choose it on **Start run**.
+Create a new artifact there or select an existing one; you can also start from
+**Saved artifacts** with that artifact already selected. Approve/decline its deterministic
 draft; the validated sample image is retained independently of execution cleanup.
 This sample requires the Dify code sandbox and reachable MCP, but no generation
 model. Persona mode additionally needs the responder model.
 
-For real generation, create **Story to panel** and start it from an owned saved
-artifact. Enter a story idea; the workflow writes a story, asks for changes,
+For real generation, create **Story to panel** and choose it on **Start run**.
+Create or select an owned artifact and enter a story idea; the workflow writes a story, asks for changes,
 revises it, creates a character description, requests approval, and generates one
 comic panel only after approval. **User** answers both questions manually; a
 selected persona answers both automatically, with Take over available. Declining

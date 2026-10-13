@@ -296,6 +296,15 @@ operations save a deterministic draft with a stable operation key and expected
 revision, then approve only its exact persisted decision target. Decline keeps
 the draft unapproved. Terminal sample results include a synthetic validated image.
 
+Start Run lists all available ordinary workflows. Workflows needing an artifact
+show a create/select section; others start without one. New artifacts are created
+with the same submission as the Run, using one button. Starting from an artifact
+preselects it and shows its title and revision. The review panel shows the answerer,
+destination and combined maximum reservation before submission. Required inputs
+are checked before creating an artifact. Uncertain responses retain an immutable
+request for safe retries using the same artifact ID and Run idempotency key;
+confirmed pre-admission validation errors allow editing again.
+
 Artifact revisions are expandable, newest first, with the latest revision open
 by default. Retained images appear inside the revision from their source attempt.
 When an attempt saves several revisions, its terminal images appear once, in its

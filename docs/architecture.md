@@ -458,3 +458,9 @@ referenced objects and defers content cleanup while product application is pendi
 or failed. The last product reference permits exact-object deletion after Run
 history releases its own reference. The existing maintenance worker handles S3
 removal retries; private asset reads continue checking the current owner session.
+
+The Start Run Server Component loads all ordinary workflow choices and owned
+artifact summaries, passing only ID, title and revision to the setup form. The
+client conditionally creates or selects an artifact, snapshots the complete Run
+request before submission and reuses its IDs after uncertain responses. Existing
+artifact and Run admission services retain ownership and idempotency authority.

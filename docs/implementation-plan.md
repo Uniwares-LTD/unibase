@@ -835,3 +835,21 @@ Enter/Space/arrow navigation works, reload restores the default, and no browser
 errors or overflow occur. All 14 affected account/artifact tests, typecheck, lint
 and production web/worker build pass. A separate read-only review found no
 remaining actionable defect. No data migration is required.
+
+### Complete Start Run entry point - 2026-10-13
+
+Start Run lists all ordinary workflows and conditionally offers creating a new
+artifact or selecting an existing owned artifact. Artifact-page entry preselects
+the destination without hiding other workflows. Setup and review show required
+inputs, answerer behavior, destination and combined credit maximum, with one
+create-and-start action and existing unfinished Run links. Uncertain responses
+preserve the exact submission for idempotent retries; confirmed pre-admission
+validation errors permit editing. Invalid/unowned artifact links use not-found.
+
+Disposable browser checks passed for required validation before creation,
+artifact and Run lost-response retries, one retained artifact, existing-artifact
+admission, editable validation errors, non-artifact admission, keyboard selection,
+390px mobile overflow and the custom not-found page. Real-account UI checks passed
+for direct Start, Test Booklet preselection, desktop/mobile and no page errors,
+without starting paid Runs. Typecheck, lint and final production web/worker build
+passed. A separate read-only review found no remaining actionable defect.

@@ -2,12 +2,8 @@
 import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { api, ApiError } from "@/lib/client/api";
-import { maximumCredits } from "@/lib/config/ai-pricing";
-import type { personaChoices } from "@/lib/server/runs/personas";
-import type { Answerer } from "@/lib/contracts/personas";
 import { pricingDescription } from "@/lib/ai-pricing";
 import { cardRegistry, type SavedCard } from "@/lib/runs/cards";
 import { uiPayloadSchema } from "@/lib/contracts/runs";
@@ -25,254 +21,16 @@ import {
 } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { orchestrators } from "@/lib/server/runs/orchestrators";
 import type { runDetail } from "@/lib/server/runs/service";
 
-type Choice = Awaited<ReturnType<typeof orchestrators>>[number];
+import { AnswererSelect } from "./answerer-select";
+
 type Detail = Awaited<ReturnType<typeof runDetail>>;
 const responseSchema = z.object({ id: z.string() });
 function message(error: unknown) {
   return error instanceof ApiError
     ? error.message
     : "The request could not be confirmed. Refresh its state before trying again.";
-}
-export function RunLanding({
-  choices,
-  unfinished,
-  personas = [],
-  artifactId,
-}: {
-  choices: Choice[];
-  personas?: Awaited<ReturnType<typeof personaChoices>>;
-  artifactId?: string;
-  unfinished: { id: string; name: string; status: string }[];
-}) {
-  const router = useRouter();
-  const prefix = useId();
-  const [selected, setSelected] = useState(choices[0]?.id ?? "");
-  const [values, setValues] = useState<Record<string, string | number>>({});
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [key] = useState(() => crypto.randomUUID());
-  const [answerer, setAnswerer] = useState("user");
-  const persona = personas.find((p) => p.id === answerer);
-  const selection: Answerer = persona
-    ? {
-        type: "persona",
-        id: persona.id,
-        revision: persona.revision,
-        configurationKey: persona.configurationKey,
-      }
-    : { type: "user" };
-  const choice = choices.find((c) => c.id === selected);
-  async function start() {
-    if (!choice) return;
-    setBusy(true);
-    setError("");
-    try {
-      const result = await api("/api/runs", responseSchema, {
-        method: "POST",
-        body: {
-          key,
-          orchestratorId: selected,
-          configurationKey: choice.configurationKey,
-          inputs: values,
-          answerer: selection,
-          artifactId,
-        },
-      });
-      router.push(`/runs/${result.id}`);
-    } catch (e) {
-      setError(message(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function upload(name: string, file: File) {
-    setBusy(true);
-    try {
-      const form = new FormData();
-      form.set("orchestratorId", selected);
-      form.set("key", crypto.randomUUID());
-      form.set("file", file);
-      const result = await api(
-        "/api/run-uploads",
-        z.object({ id: z.string(), status: z.string() }),
-        { method: "POST", body: form, timeoutMs: 120000 },
-      );
-      if (result.status !== "ready") throw new Error();
-      setValues((v) => ({ ...v, [name]: result.id }));
-    } catch (e) {
-      setError(message(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Start a run</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Label htmlFor={`${prefix}-orchestrator`}>Orchestrator</Label>
-          <Select
-            value={selected}
-            onValueChange={(id) => {
-              setSelected(id);
-              setValues({});
-            }}
-          >
-            <SelectTrigger id={`${prefix}-orchestrator`}>
-              <SelectValue placeholder="Select an orchestrator" />
-            </SelectTrigger>
-            <SelectContent>
-              {choices.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <AnswererSelect
-            personas={personas}
-            value={answerer}
-            onChange={setAnswerer}
-          />
-          {choice && (
-            <>
-              <p>{choice.description}</p>
-              {choice.inputs.map((field) => (
-                <div key={field.name} className="space-y-2">
-                  <Label htmlFor={`${prefix}-${field.name}`}>
-                    {field.label}
-                    {field.required ? " (required)" : ""}
-                  </Label>
-                  {field.kind === "paragraph" ? (
-                    <Textarea
-                      id={`${prefix}-${field.name}`}
-                      value={values[field.name] ?? ""}
-                      maxLength={field.maxLength ?? 4000}
-                      onChange={(e) =>
-                        setValues((v) => ({
-                          ...v,
-                          [field.name]: e.target.value,
-                        }))
-                      }
-                    />
-                  ) : field.kind === "select" ? (
-                    <Select
-                      value={String(values[field.name] ?? "")}
-                      onValueChange={(value) =>
-                        setValues((v) => ({ ...v, [field.name]: value }))
-                      }
-                    >
-                      <SelectTrigger id={`${prefix}-${field.name}`}>
-                        <SelectValue placeholder="Choose" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {field.options.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      id={`${prefix}-${field.name}`}
-                      type={
-                        field.kind === "file"
-                          ? "file"
-                          : field.kind === "number"
-                            ? "number"
-                            : "text"
-                      }
-                      maxLength={
-                        field.kind === "text"
-                          ? (field.maxLength ?? 4000)
-                          : undefined
-                      }
-                      disabled={busy}
-                      {...(field.kind === "file"
-                        ? {}
-                        : { value: values[field.name] ?? "" })}
-                      onChange={(e) => {
-                        if (field.kind === "file") {
-                          if (e.target.files?.[0])
-                            void upload(field.name, e.target.files[0]);
-                        } else
-                          setValues((v) => ({
-                            ...v,
-                            [field.name]:
-                              field.kind === "number"
-                                ? Number(e.target.value)
-                                : e.target.value,
-                          }));
-                      }}
-                    />
-                  )}
-                  {field.kind === "file" && values[field.name] && (
-                    <p>File ready.</p>
-                  )}
-                </div>
-              ))}
-              <p className="text-sm text-muted-foreground">
-                {pricingDescription(
-                  choice.pricing ?? { mode: "fixed", credits: 1 },
-                )}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {choice.failureCharging === "verified-usage"
-                  ? "Verified usage may be charged after failure or cancellation. The fixed base applies on success."
-                  : "The main workflow costs zero credits on confirmed failure or cancellation."}
-              </p>
-              {persona && (
-                <p className="text-sm">
-                  Main maximum{" "}
-                  {maximumCredits(
-                    choice.pricing ?? { mode: "fixed", credits: 1 },
-                  )}
-                  ; persona maximum {persona.maximum} ({persona.maxCalls}{" "}
-                  answers); combined maximum{" "}
-                  {maximumCredits(
-                    choice.pricing ?? { mode: "fixed", credits: 1 },
-                  ) + persona.maximum}{" "}
-                  credits. Completed valid persona answers are charged even if
-                  the main Run fails or is cancelled.
-                </p>
-              )}
-              <Button
-                disabled={busy || !choice.ready}
-                onClick={() => void start()}
-              >
-                {busy ? "Starting…" : "Run orchestrator"}
-              </Button>
-            </>
-          )}
-          {!choices.length && (
-            <p>
-              No orchestrators are available. An administrator can enable one.
-            </p>
-          )}
-          <p role="status">{error}</p>
-        </CardContent>
-      </Card>
-      {unfinished.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-xl font-semibold">Continue a run</h2>
-          {unfinished.map((run) => (
-            <p key={run.id}>
-              <Link className="underline" href={`/runs/${run.id}`}>
-                {run.name}
-              </Link>{" "}
-              · {run.status}
-            </p>
-          ))}
-        </section>
-      )}
-    </div>
-  );
 }
 function savedCard(
   card: z.infer<typeof uiPayloadSchema>["cards"][number],
@@ -903,36 +661,6 @@ export function RunDetail({ initial }: { initial: Detail }) {
           </CardContent>
         </Card>
       )}
-    </div>
-  );
-}
-
-function AnswererSelect({
-  personas,
-  value,
-  onChange,
-}: {
-  personas: Awaited<ReturnType<typeof personaChoices>>;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const id = useId();
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>Answer questions as</Label>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger id={id}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="user">User</SelectItem>
-          {personas.map((p) => (
-            <SelectItem key={p.id} value={p.id}>
-              {p.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
     </div>
   );
 }

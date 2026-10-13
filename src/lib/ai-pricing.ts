@@ -103,7 +103,7 @@ export function calculateAiCharge(
 
 export function pricingDescription(pricing: AiPricing): string {
   if (pricing.mode === "fixed")
-    return `${pricing.credits} credits per successful attempt`;
+    return `${pricing.credits} ${pricing.credits === 1 ? "credit" : "credits"} per successful attempt`;
   const rule = pricing.mode === "hybrid" ? pricing.usage : pricing;
   const usage =
     rule.mode === "provider-cost"
