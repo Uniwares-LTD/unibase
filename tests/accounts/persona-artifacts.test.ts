@@ -59,6 +59,78 @@ import {
 } from "../../src/lib/server/runs/personas";
 import { appointFirstAdmin } from "../../src/lib/server/store/access";
 
+test("persona actions normalize only missing value-free acknowledgements", () => {
+  const cards = [
+    {
+      id: "draft",
+      content: {
+        type: "summary",
+        version: 1,
+        data: { title: "Draft", body: "Synthetic draft" },
+      },
+    },
+    {
+      id: "notice",
+      content: {
+        type: "issue",
+        version: 1,
+        data: {
+          title: "Notice",
+          severity: "info",
+          details: ["Synthetic notice"],
+        },
+      },
+    },
+  ];
+  const job = (cards: unknown[]) => ({
+    inputs: {
+      question: JSON.stringify({
+        form_content:
+          "```unibase-ui\n" +
+          JSON.stringify({ version: 1, cards }) +
+          "\n```\n{{#$output.response#}}",
+        inputs: [],
+        user_actions: [{ id: "approve", title: "Approve" }],
+        resolved_default_values: {},
+      }),
+    },
+  });
+  const output = (answers: unknown, action = "approve") => ({
+    answer: JSON.stringify({ action, answers }),
+  });
+  const read = (cards: unknown[], answers: unknown, action = "approve") =>
+    responderAnswer(job(cards), output(answers, action));
+  assert.deepEqual(read(cards, {}), {
+    action: "approve",
+    answers: { draft: null, notice: null },
+  });
+  assert.throws(() => read(cards, { draft: true }));
+  assert.throws(() => read(cards, { unknown: null }));
+  assert.throws(() => read(cards, {}, "unoffered"));
+  const question = {
+    id: "choice",
+    content: {
+      type: "question",
+      version: 1,
+      data: {
+        kind: "single",
+        title: "Choose",
+        explanation: "",
+        options: [
+          { id: "a", label: "A" },
+          { id: "b", label: "B" },
+        ],
+      },
+    },
+  };
+  assert.throws(() => read([...cards, question], {}));
+  assert.deepEqual(read([...cards, question], { choice: "b" }).answers, {
+    choice: "b",
+    draft: null,
+    notice: null,
+  });
+});
+
 test("Personas, private callbacks and product assets use durable owned boundaries", async (t) => {
   const repl = await MongoMemoryReplSet.create({
     binary: { downloadDir: ".cache/mongodb-binaries" },

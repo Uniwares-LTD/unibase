@@ -219,6 +219,14 @@ work; Administration states this when resolving. Diagnostic testing is admin-onl
 and requires the orchestrator's declared diagnostic entry point. Unsupported
 stages require a full run. Failed/partial results and previous attempts remain.
 
+Failed executions show a safe diagnostic summary from Dify, including known MCP
+connection, tool-service HTTP 502/503/504, tool-output, authentication,
+model/provider and timeout failures.
+Raw provider error text stays private. Older failures without retained diagnostics
+say that no error details were saved. Terminal Runs without stage history say that
+no stage details were recorded. A business partial result keeps its partial status and
+is not given a generic execution-failure message.
+
 ## Pinned API evidence
 
 The integration targets [Dify 1.17.1 admin authentication](https://github.com/langgenius/dify/blob/1.17.1/api/extensions/ext_login.py),
@@ -248,7 +256,9 @@ Use Dify to configure the actual model and re-register after edits.
 
 Unibase sends rendered questions, constraints, allowed actions, explicit card
 answer contracts, initial inputs and previous decisions. Summary/issue cards use
-null acknowledgements. It excludes service credentials, form tokens and Run
+null acknowledgements; when a persona chooses an offered action, omitted
+acknowledgement keys are normalized to null. Invalid supplied values and missing
+choices/form fields still fail validation. It excludes service credentials, form tokens and Run
 capabilities. The parent workflow receives only ordinary answers. Native text,
 select and registered Generative UI responses share human validation. File
 questions, malformed answers, unavailable forms and exceeded limits pause for the

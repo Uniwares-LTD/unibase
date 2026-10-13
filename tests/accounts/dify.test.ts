@@ -291,6 +291,57 @@ test("provider error bodies stay private; retrieval failure never proves failed 
   });
 });
 
+test("failed Dify executions retain a safe diagnosis through streaming and retrieval", async () => {
+  const cases = [
+    [
+      "The variable name 'text' is reserved. private-secret https://private.example",
+      "reserved tool output name 'text'",
+    ],
+    [
+      "private-secret https://private.example unibase_context=secret-canary",
+      "workflow failed in Dify",
+    ],
+    [
+      "Tool execution failed. Request ID: secret-canary",
+      "MCP tool could not complete",
+    ],
+    [null, "workflow failed in Dify"],
+    [
+      "Failed to connect to MCP server: 502 https://private.example private-secret",
+      "could not connect to the MCP server",
+    ],
+    [
+      "Failed to invoke tool unibase_starter: Failed to invoke tool: 503 Service Unavailable private-secret https://private.example",
+      "tool service is unavailable (HTTP 503)",
+    ],
+  ];
+  for (const [error, expected] of cases) {
+    const failed = { ...detail, status: "failed", outputs: null, error };
+    for (const streaming of [true, false]) {
+      const provider = createDifyWorkflow(live, live.bindings[0], async () =>
+        streaming
+          ? sse(started, { event: "workflow_finished", data: failed })
+          : Response.json(failed),
+      );
+      const events: ProviderEvent[] = [];
+      const result = streaming
+        ? await provider.start(input, async (event) => {
+            events.push(event);
+          })
+        : await provider.retrieve(runId);
+      assert.equal(result.kind, "ok");
+      if (result.kind !== "ok")
+        throw new Error("Failed execution was discarded");
+      assert.equal(result.value.status, "failed");
+      assert.ok(result.value.failure?.includes(String(expected)));
+      assert.ok(!JSON.stringify([result, events]).includes("private-secret"));
+      assert.ok(!JSON.stringify([result, events]).includes("secret-canary"));
+      assert.ok(!JSON.stringify([result, events]).includes("private.example"));
+      assert.equal(result.value.usage.totalTokens, detail.total_tokens);
+    }
+  }
+});
+
 test("mismatched publication or execution identity cannot complete a job", async () => {
   for (const badDetail of [
     { ...detail, workflow_id: taskId },

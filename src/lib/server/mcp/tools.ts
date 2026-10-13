@@ -3,7 +3,7 @@ import { z } from "zod";
 import { demoScenarioTools } from "./demo-scenarios";
 import { privateTools } from "./private-tools";
 
-export const catalogVersion = "1.2.0";
+export const catalogVersion = "1.2.1";
 export type ToolContext = {
   clientId: string;
   appName: string;

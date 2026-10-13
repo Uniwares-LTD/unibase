@@ -750,3 +750,45 @@ persistence after reload, dialog focus restoration and 390px mobile layouts with
 no console/hydration errors. The separate read-only review found no further
 actionable defect after correcting empty Add-form initialization. Existing
 deployment/tooling and registry-audit availability warnings remain advisory.
+
+### Saved-artifact live compatibility and diagnostics - 2026-10-12
+
+- [x] Return `draftText` from the private artifact read tool instead of Dify's
+  reserved top-level `text` output; refresh the existing Dify MCP tool catalog.
+- [x] Persist fixed, safe provider failure summaries and show explicit fallbacks
+  for historical failures; terminal Runs no longer display a waiting trace message.
+- [x] Normalize omitted persona summary/issue acknowledgements to null while
+  retaining validation for supplied values, choices, fields and offered actions.
+- [x] Rebuild and restart the local worker so persona execution and product image
+  application use the current implementation.
+- [ ] Complete live persona approval and takeover acceptance through a healthy
+  MCP connection. The existing temporary tunnel repeatedly disconnected over
+  QUIC and subsequently reported that its tunnel no longer exists. The user
+  authorized replacement with an MCP-only HTTP/2 tunnel. Global and US-region
+  attempts failed Cloudflare's TCP connectivity checks: outbound tunnel access
+  on port 7844 is blocked or unreachable. Dify's URL remains unchanged until a
+  healthy connection exists; live acceptance awaits network access or an existing
+  reachable MCP endpoint.
+
+Verification: 53 pure tests, 139 account/provider tests (with test concurrency
+bounded to two) and the Runs HTTP regression pass. Typecheck, lint, configuration,
+pinned-skill integrity and production web/worker builds pass. An unconstrained
+account run during a concurrent build hit local Mongo fixture startup deadlines;
+the bounded-concurrency rerun passed all tests. HTTP acceptance verifies retained
+diagnostics, historical fallback and partial-result compatibility.
+
+Live human approval, decline, cancellation, correct credits and saved image
+application passed using isolated local emulator accounts. The live persona model
+returns an answer accepted by the corrected summary contract. Browser checks
+verify the approved revision/image after reload, desktop/mobile layouts, keyboard
+focus, no overflow/errors, and the terminal empty-trace display. Full live persona
+and takeover flows remain unverified because of the external MCP tunnel failure;
+the new diagnostics identify that failure and failed attempts charge zero.
+The separate read-only source review found no further actionable code defect.
+No application commit, publication or deployment was performed.
+
+Tool-service diagnostic follow-up: the fixed-message classifier recognizes Dify
+tool-service HTTP 502/503/504 errors without exposing raw provider text. All 13
+affected Dify tests, typecheck, lint and production web/worker build pass. Local
+web/proxy discovery returned 200 while the configured expired tunnel still
+reported Tunnel not found; remote MCP connectivity remains unresolved.

@@ -703,7 +703,18 @@ export function RunDetail({ initial }: { initial: Detail }) {
               {e.event.elapsedMs !== null ? ` · ${e.event.elapsedMs} ms` : ""}
             </p>
           ))}
-        {!data.events.length && <p>Waiting for execution evidence.</p>}
+        {!data.events.some((e) => e.event.type === "stage") && (
+          <p>
+            {[
+              "succeeded",
+              "failed",
+              "cancelled",
+              "partially completed",
+            ].includes(current.status)
+              ? "No workflow stage details were recorded for this attempt."
+              : "Waiting for execution evidence."}
+          </p>
+        )}
       </section>
       {data.decisions.map((decision) => (
         <Decision
@@ -724,9 +735,12 @@ export function RunDetail({ initial }: { initial: Detail }) {
             <Badge>{attempt.status}</Badge>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p>
-              {attempt.createdAt} · {attempt.failure ?? ""}
-            </p>
+            <p>{attempt.createdAt}</p>
+            {attempt.failure && (
+              <p role="alert" className="break-words text-destructive">
+                {attempt.failure}
+              </p>
+            )}
             {attempt.result && (
               <>
                 <p className="whitespace-pre-wrap break-words">

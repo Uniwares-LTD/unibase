@@ -587,7 +587,13 @@ export async function runDetail(id: string) {
       id: job._id,
       number: job.run!.attempt,
       status: status(job, results.find((r) => r._id === job._id)?.result),
-      failure: job.failure,
+      failure:
+        job.failure ??
+        job.execution?.failure ??
+        (status(job, results.find((r) => r._id === job._id)?.result) ===
+        "failed"
+          ? "The workflow failed. No error details were saved for this attempt."
+          : null),
       createdAt: job.createdAt.toISOString(),
       updatedAt: job.updatedAt.toISOString(),
       credits: job.credits,

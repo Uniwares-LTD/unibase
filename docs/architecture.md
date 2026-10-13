@@ -419,6 +419,17 @@ artifact handler independently of generation/billing and retries with a fenced
 lease. Downstream code supplies typed result handlers and validates its own owned
 association; there is no arbitrary model-driven collection access.
 
+Dify execution failures are classified into bounded, fixed diagnostic summaries
+before persistence. Raw provider errors, dependency URLs, prompts and credentials
+do not reach Run history or browser DTOs. Terminal executions retain their safe
+summary through settlement; historical failures without saved details show an
+explicit fallback. Terminal Runs without stage events report that no stage details
+were recorded. They do not keep displaying a waiting message.
+
+Persona actions normalize omitted summary/issue acknowledgements to JSON null.
+Explicit invalid acknowledgement values, missing choices/fields, unoffered actions
+and file responses remain invalid; human-only approvals still require a User.
+
 `productAssets` promotes validated Run images and tracks domain references,
 reusing the existing MongoDB bytes or private S3 object. Promotion, reference
 removal and cleanup share transactional lifecycle checks. Run cleanup preserves

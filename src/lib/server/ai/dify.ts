@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { DifyConfig } from "@/lib/config/dify";
 import { readSse } from "./sse";
+import { workflowFailure } from "./provider-errors";
 import type {
   ProviderEvent,
   ProviderExecution,
@@ -27,6 +28,7 @@ const executionSchema = z.object({
     "stopped",
   ]),
   outputs: z.record(z.string(), z.json()).nullable().optional(),
+  error: z.unknown().optional(),
   total_tokens: count.nullable().optional(),
   elapsed_time: z.number().finite().nonnegative().nullable().optional(),
 });
@@ -91,6 +93,9 @@ function execution(value: unknown): ProviderExecution {
     workflowId: data.workflow_id,
     status: data.status,
     outputs: data.outputs ?? null,
+    ...(["failed", "partial-succeeded"].includes(data.status)
+      ? { failure: workflowFailure(data.error) }
+      : {}),
     usage: {
       ...parseUsage(value, "execution", data.id),
       totalTokens: data.total_tokens ?? null,

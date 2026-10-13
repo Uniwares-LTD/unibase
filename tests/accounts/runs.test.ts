@@ -269,6 +269,7 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
               workflowId: null,
               status: "failed",
               outputs: null,
+              failure: "A workflow dependency timed out.",
               usage: {
                 scope: "execution",
                 id: providerId,
@@ -282,6 +283,10 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
           });
           await settleAiJob(db, claimed, "failed");
           await settleAiJob(db, claimed, "failed");
+          assert.equal(
+            (await aiJobs(db).findOne({ _id: saved._id }))?.failure,
+            "A workflow dependency timed out.",
+          );
           assert.equal((await readWallet(db, uid)).balance, n === 0 ? 10 : 9);
           assert.equal((await readWallet(db, uid)).reserved, 0);
         }

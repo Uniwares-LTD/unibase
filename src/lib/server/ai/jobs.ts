@@ -489,7 +489,20 @@ export async function persistAiEvent(
           await patchAiJob(
             db,
             job,
-            { execution: event.execution },
+            {
+              execution: event.execution,
+              ...(["failed", "partial-succeeded"].includes(
+                event.execution.status,
+              )
+                ? {
+                    failure:
+                      event.execution.failure ??
+                      "The workflow failed. No error details were supplied by the provider.",
+                  }
+                : event.execution.status === "succeeded"
+                  ? { failure: null }
+                  : {}),
+            },
             now,
             session,
           );

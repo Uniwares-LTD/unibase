@@ -12,6 +12,73 @@ import { handleMcp } from "../../src/lib/server/mcp/handler";
 import { runtimeRecord } from "../../src/lib/log-policy";
 import { tools, type RegisteredTool } from "../../src/lib/server/mcp/tools";
 
+test("MCP discovery avoids Dify's reserved structured output names", async () => {
+  const config = parseMcpConfig(
+    {
+      ...env,
+      MCP_CLIENTS_JSON: JSON.stringify([
+        {
+          id: "dify",
+          tokenEnv: "MCP_TOKEN_DIFY",
+          permissions: [
+            "server:read",
+            "reference:read",
+            "demo:read",
+            "run:read",
+            "artifact:read",
+            "artifact:write",
+          ],
+        },
+      ]),
+    },
+    "http://localhost:3000",
+  );
+  const response = await handleMcp(
+    new Request("http://localhost:3000/api/mcp", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.MCP_TOKEN_DIFY}`,
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/list",
+        params: {},
+      }),
+    }),
+    { config, appName: "Fixture", log() {} },
+  );
+  assert.equal(response.status, 200);
+  const discovered = z
+    .object({
+      result: z.object({
+        tools: z.array(
+          z.object({
+            name: z.string(),
+            outputSchema: z.object({
+              properties: z.record(z.string(), z.unknown()),
+            }),
+          }),
+        ),
+      }),
+    })
+    .parse(await response.json()).result.tools;
+  assert.ok(discovered.some((tool) => tool.name === "read_artifact_v1"));
+  for (const tool of discovered) {
+    for (const name of Object.keys(tool.outputSchema.properties))
+      assert.ok(
+        !["text", "json", "files"].includes(name),
+        `${tool.name} exposes reserved output ${name}`,
+      );
+  }
+  const read = discovered.find((tool) => tool.name === "read_artifact_v1");
+  z.object({ type: z.literal("string") }).parse(
+    read?.outputSchema.properties.draftText,
+  );
+});
+
 const token = "a".repeat(43);
 const otherToken = "b".repeat(43);
 const env = {

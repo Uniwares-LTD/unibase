@@ -16,7 +16,7 @@ import {
 } from "./service";
 
 export function responderAnswer(
-  job: AiJob,
+  job: Pick<AiJob, "inputs">,
   outputs: Record<string, unknown> | null,
 ) {
   if (!outputs) throw new Error("Missing responder output");
@@ -31,9 +31,19 @@ export function responderAnswer(
     throw new Error("Invalid action");
   if (form.inputs.some((f) => f.type === "file" || f.type === "file-list"))
     throw new Error("Files need a human");
-  if (form.form_content.includes("```unibase-ui"))
-    validateAnswers(parseUiForm(form.form_content), answer.answers);
-  else {
+  if (form.form_content.includes("```unibase-ui")) {
+    const ui = parseUiForm(form.form_content);
+    // These cards have no answer value. An offered action acknowledges them;
+    // models commonly omit their keys rather than spelling out JSON null.
+    // Never invent a choice, field value, file or human approval.
+    for (const card of ui.cards)
+      if (
+        ["summary", "issue"].includes(card.content.type) &&
+        !Object.hasOwn(answer.answers, card.id)
+      )
+        answer.answers[card.id] = null;
+    validateAnswers(ui, answer.answers);
+  } else {
     if (
       Object.keys(answer.answers).some(
         (k) => !form.inputs.some((f) => f.output_variable_name === k),

@@ -283,6 +283,11 @@ self-hosted Dify 1.17.1 and configure the connection/key references in
 `npm run worker:ai`. Keep web and workers on the same database and private provider
 configuration. No database is reset or migrated automatically.
 
+Restart the AI worker after rebuilding it or changing its private configuration.
+The worker runs the bundled `dist/ai-worker.cjs` loaded when its process starts;
+rebuilding the file alone does not update a running process. Keep its bundle in
+sync with the web server, especially when adding persona or artifact features.
+
 Administration ? Base settings initializes defaults once, then saved policies
 control web/worker behavior. Branding is explicitly allowlisted; management/encryption secrets,
 connection/origin settings and Android build identity stay in environment

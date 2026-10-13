@@ -32,6 +32,8 @@ export type ProviderExecution = {
   workflowId: string | null;
   status: ProviderStatus;
   outputs: Record<string, Json> | null;
+  // Safe, fixed diagnostic summary, never the raw provider error.
+  failure?: string | null;
   usage: UsageObservation;
 };
 export type ProviderEvent =

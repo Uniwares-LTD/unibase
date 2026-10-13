@@ -290,6 +290,18 @@ test("Runs HTTP: durable decisions, owned history, recovery, settings, and exact
   assert.equal(detail.status, "failed");
   assert.ok(detail.canRestart);
   assert.equal(detail.attempts[0].chargedCredits, 0);
+  assert.ok(detail.attempts[0].failure);
+  // Historical failed attempts may have no recorded provider diagnosis.
+  await db
+    .collection("aiJobs")
+    .updateOne(
+      { _id: failure.attemptId },
+      { $set: { failure: null }, $unset: { "execution.failure": "" } },
+    );
+  const historical = await (
+    await owner.request(`/api/runs/${failure.id}`)
+  ).json();
+  assert.match(historical.attempts[0].failure, /No error details were saved/);
   const recover = {
     key: randomUUID(),
     action: "recover",
@@ -308,10 +320,11 @@ test("Runs HTTP: durable decisions, owned history, recovery, settings, and exact
   assert.equal(detail.attempts.length, 2);
   const partial = await start("partial");
   await runWorker();
-  assert.equal(
-    (await (await owner.request(`/api/runs/${partial.id}`)).json()).status,
-    "partially completed",
-  );
+  const partialDetail = await (
+    await owner.request(`/api/runs/${partial.id}`)
+  ).json();
+  assert.equal(partialDetail.status, "partially completed");
+  assert.equal(partialDetail.attempts[0].failure, null);
   const pending = await start("hello");
   const update = {
     revision: settings.revision,

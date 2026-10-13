@@ -201,6 +201,13 @@ Temporary tunnels depend on their local proxy and tunnel processes. Expose only
 `/api/mcp`; all other paths must return 404. Use a stable reachable endpoint for
 ongoing use. General deployment/plugin acceptance remains installation-specific.
 
+Cloudflare Tunnel requires outbound port 7844: UDP for QUIC or TCP for HTTP/2.
+If QUIC disconnects repeatedly, test `--protocol http2`; TCP connectivity must
+still pass. Cloudflare API access over HTTPS port 443 does not prove tunnel edge
+connectivity. Check cloudflared's startup connectivity results before updating a
+Dify provider URL; keep the same authenticated MCP-only proxy behind the tunnel.
+See [Cloudflare tunnel firewall requirements](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/configure-tunnels/tunnel-with-firewall/).
+
 References: [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk),
 [Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http),
 [Dify tool configuration](https://docs.dify.ai/en/cloud/use-dify/workspace/tools).
@@ -212,6 +219,14 @@ Catalog 1.2.0 adds `get_run_context_v1` (`run:read`), `read_artifact_v1`
 (`artifact:write`). Explicit grants are required; public-only clients retain their
 previous catalog. Writes use the same request/output/time bounds and cancellation
 signal, and their discovery annotations reflect mutation behavior.
+
+Catalog 1.2.1 returns `draftText` from `read_artifact_v1`, alongside `artifactId`,
+`title` and `revision`. Artifact storage and the draft-save input still use `text`.
+Dify reserves the top-level structured tool output names `text`, `json` and
+`files`; use other field names or nest those values. After changing a tool output
+schema, restart the web server if it uses a production build and refresh the MCP
+provider's tools in Dify. Existing sample graph bindings use `read.json` and its
+revision, so this correction does not require republishing the workflow.
 
 Set `RUN_MCP_CLIENT_ID` (default `dify`) to the dedicated trusted Dify client. Run
 capabilities use the existing encryption-secret configuration, with a separate

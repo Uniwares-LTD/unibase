@@ -51,7 +51,7 @@ export const privateTools: readonly RegisteredTool[] = [
       artifactId: z.string(),
       title: z.string(),
       revision: z.number().int(),
-      text: z.string().max(8000),
+      draftText: z.string().max(8000),
     }),
     async run(input, context) {
       const db = database();
@@ -76,7 +76,7 @@ export const privateTools: readonly RegisteredTool[] = [
         artifactId: artifact.id,
         title: artifact.title,
         revision: artifact.revision,
-        text: draft?.text ?? "",
+        draftText: draft?.text ?? "",
       };
     },
   },
