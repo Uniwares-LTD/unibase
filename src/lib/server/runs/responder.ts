@@ -3,7 +3,12 @@ import "server-only";
 import type { Db } from "mongodb";
 import { randomUUID } from "node:crypto";
 import { personaAnswerSchema } from "@/lib/contracts/personas";
-import { parseUiForm, validateAnswers } from "@/lib/contracts/runs";
+import { formCardSchema } from "@/lib/runs/cards";
+import {
+  parseUiForm,
+  validateAnswers,
+  publicRunInputs,
+} from "@/lib/contracts/runs";
 import { AppError } from "@/lib/auth-policy";
 import { calculateAiCharge } from "@/lib/ai-pricing";
 import { aiJobs, createAiJob, type AiJob } from "../ai/jobs";
@@ -25,15 +30,41 @@ export function responderAnswer(
     typeof outputs.answer === "string"
       ? JSON.parse(outputs.answer)
       : outputs.answer;
-  const answer = personaAnswerSchema.parse(value);
   const question = JSON.parse(String(job.inputs.question));
   const form = formSchema.parse(question);
+  // A raw answer map is unambiguous only when exactly one action is offered.
+  // Explicit envelopes must still satisfy the original contract in full.
+  const rawAnswers =
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    !Object.hasOwn(value, "action") &&
+    !Object.hasOwn(value, "answers");
+  const answer = personaAnswerSchema.parse(
+    rawAnswers && form.user_actions.length === 1
+      ? { action: form.user_actions[0].id, answers: value }
+      : value,
+  );
   if (!form.user_actions.some((a) => a.id === answer.action))
     throw new Error("Invalid action");
   if (form.inputs.some((f) => f.type === "file" || f.type === "file-list"))
     throw new Error("Files need a human");
   if (form.form_content.includes("```unibase-ui")) {
     const ui = parseUiForm(form.form_content);
+    // Models commonly express an unanswered optional field as JSON null.
+    // Omit only declared optional fields; required and unknown fields still fail.
+    for (const card of ui.cards) {
+      const values = answer.answers[card.id];
+      if (
+        card.content.type === "form" &&
+        values !== null &&
+        typeof values === "object" &&
+        !Array.isArray(values)
+      )
+        for (const field of formCardSchema.parse(card.content.data).fields)
+          if (!field.required && values[field.id] === null)
+            delete values[field.id];
+    }
     // These cards have no answer value. An offered action acknowledges them;
     // models commonly omit their keys rather than spelling out JSON null.
     // Never invent a choice, field value, file or human approval.
@@ -199,11 +230,7 @@ export async function processOneAutomaticDecision(
               ),
         });
         const context = JSON.stringify({
-          inputs: Object.fromEntries(
-            Object.entries(parent.inputs).filter(
-              ([k]) => !k.startsWith("unibase_"),
-            ),
-          ),
+          inputs: publicRunInputs(parent.inputs, parent.run!.orchestrator),
           decisions: previous.map((d) => ({
             title: d.title,
             action: d.intent?.action ?? d.confirmedAction,

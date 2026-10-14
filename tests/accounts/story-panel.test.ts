@@ -134,105 +134,6 @@ test("story review offers approval and changes together, with persona-compatible
   );
 });
 
-test("responder normalizes plain prose only for one unambiguous text question", () => {
-  const responder = orchestratorTemplate("persona-responder").build("fixture");
-  // The story template now uses a form. Retain coverage of the responder's
-  // generic single-text normalization with a standalone question fixture.
-  const storyForm =
-    "```unibase-ui\n" +
-    JSON.stringify({
-      version: 1,
-      cards: [
-        {
-          id: "changes",
-          content: {
-            type: "question",
-            version: 1,
-            data: {
-              kind: "text",
-              title: "Requested changes",
-              explanation: "A robot finds a firefly.",
-              options: [],
-            },
-          },
-        },
-      ],
-    }) +
-    "\n```";
-  const question = JSON.stringify({ form_content: storyForm });
-  const answer = { action: "revise", answers: "Give the robot a blue scarf." };
-  assert.deepEqual(
-    JSON.parse(code("compose", { answer, question }, responder).answer),
-    { action: "revise", answers: { changes: answer.answers } },
-  );
-  const objectAnswer = {
-    action: "revise",
-    answers: JSON.stringify({ changes: "Keep it as is." }),
-  };
-  assert.deepEqual(
-    JSON.parse(
-      code("compose", { answer: objectAnswer, question }, responder).answer,
-    ).answers,
-    { changes: "Keep it as is." },
-  );
-  const other = (cards: unknown[]) =>
-    JSON.stringify({
-      form_content:
-        "```unibase-ui\n" + JSON.stringify({ version: 1, cards }) + "\n```",
-    });
-  const textCard = {
-    id: "first",
-    content: { type: "question", version: 1, data: { kind: "text" } },
-  };
-  for (const cards of [
-    [],
-    [textCard, { ...textCard, id: "second" }],
-    [{ id: "approval", content: { type: "summary", version: 1, data: {} } }],
-    [
-      {
-        id: "choice",
-        content: { type: "question", version: 1, data: { kind: "single" } },
-      },
-    ],
-  ])
-    assert.throws(() =>
-      code("compose", { answer, question: other(cards) }, responder),
-    );
-  const summary = {
-    id: "draft",
-    content: {
-      type: "summary",
-      version: 1,
-      data: { title: "Review", body: "Character" },
-    },
-  };
-  const nullAnswer = { action: "approve", answers: "null" };
-  assert.deepEqual(
-    JSON.parse(
-      code(
-        "compose",
-        { answer: nullAnswer, question: other([summary]) },
-        responder,
-      ).answer,
-    ),
-    { action: "approve", answers: { draft: null } },
-  );
-  for (const invalid of ["true", '"approved"'])
-    assert.throws(() =>
-      code(
-        "compose",
-        {
-          answer: { action: "approve", answers: invalid },
-          question: other([summary]),
-        },
-        responder,
-      ),
-    );
-  assert.throws(() =>
-    code("compose", { answer: nullAnswer, question }, responder),
-  );
-});
-
 test("only the approved branch reaches real panel generation", () => {
   const edges = template.workflow.graph.edges;
   function reachable(start: string) {
@@ -313,10 +214,13 @@ test("LLMs receive raw tool context and review answers without Python extraction
     (p) => p.role === "user",
   )!.text;
   assert(reviewPrompt.includes("{{#story_decision.response#}}"));
-  const responder = orchestratorTemplate("persona-responder").build("fixture");
   const question = JSON.stringify({
-    form_content: code("story_form", { story: "A robot finds a firefly." })
-      .form,
+    form_content:
+      code("story_form", { story: "A robot finds a firefly." }).form +
+      "\n{{#$output.response#}}",
+    inputs: [],
+    user_actions: [{ id: "continue", title: "Continue" }],
+    resolved_default_values: {},
   });
   for (const review of [
     { decision: "approved" },
@@ -324,7 +228,10 @@ test("LLMs receive raw tool context and review answers without Python extraction
   ]) {
     const answer = { action: "continue", answers: { review } };
     assert.deepEqual(
-      JSON.parse(code("compose", { answer, question }, responder).answer),
+      responderAnswer(
+        { inputs: { question } },
+        { answer: JSON.stringify(answer) },
+      ),
       answer,
     );
     const rendered = reviewPrompt.replace(

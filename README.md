@@ -67,13 +67,25 @@ replace its milestone scope with the new product's accepted work.
 Create **Persona responder** in Administration > Orchestrators, configure its
 LLM provider/model in Dify, then use **Re-register** and select **Saved draft**
 to publish the edited draft, or choose an existing published version. The template
-uses a suggested OpenAI model; it needs your Dify provider plugin/credentials and
-code sandbox, and can be changed to another structured-output model. Under
+uses a suggested OpenAI model; it needs your Dify provider plugin/credentials.
+Its flow is Start → LLM → End, with raw answer text and no Python or enforced
+output schema. Questions can contain text or serialized data; the model uses the
+requested response format. For automatic Run decisions it returns ordinary JSON
+`{action,answers}`, with native values inside `answers` rather than a JSON-encoded
+string. Unibase checks the target form and permissions before submission. Under
 Administration > Personas, edit an example or create a persona, select the
 registered responder, configure pricing/answer limits, and enable it. Start Run
 then offers **User** or an available persona. Completed valid responder answers
 remain chargeable if the main workflow fails or the user takes over. Review the
 combined maximum before starting. No model credentials are added to Unibase.
+
+New private-MCP workflows use a server-filled **context** Start input, bound
+directly to tool `runContext` arguments. It remains hidden from public inputs and
+LLM prompts. The persona workflow's `context` is ordinary public question context,
+not a private capability. Existing `unibase_context` publications and accepted Run
+snapshots remain compatible; no migration is required. Editing template JSON does
+not replace a registered Dify graph: create from the updated template or update
+the existing Dify draft, then Re-register the intended version.
 
 In **Administration > Orchestrators**, **Register**, **Re-register**, and **Enable**
 open a version selector. Choose a published version and **Register selected version**

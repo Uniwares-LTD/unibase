@@ -38,6 +38,7 @@ export const orchestratorSchema = z
     purpose: z.enum(["run", "responder"]).optional(),
     privateTools: z.array(z.string().max(128)).max(20).optional(),
     contextInput: z.boolean().optional(),
+    contextInputName: z.enum(["context", "unibase_context"]).optional(),
     // Only existing workflows may declare these deprecated application fields.
     // Omission preserves accepted snapshots created before native-ID registration.
     legacyInputs: z
@@ -75,8 +76,46 @@ export const orchestratorSchema = z
   .refine((definition) => !definition.credentialId || !!definition.appId, {
     message: "A managed credential requires its Dify app ID.",
     path: ["appId"],
-  });
+  })
+  .refine(
+    (definition) =>
+      (!definition.contextInputName || definition.contextInput === true) &&
+      (!definition.contextInput ||
+        !definition.inputs.some(
+          (field) => field.name === privateContextInputName(definition),
+        )),
+    {
+      message:
+        "Private context must be server-filled and excluded from public inputs.",
+      path: ["contextInputName"],
+    },
+  );
 export type OrchestratorDefinition = z.infer<typeof orchestratorSchema>;
+
+export function privateContextInputName(definition: {
+  contextInput?: boolean;
+  contextInputName?: "context" | "unibase_context";
+}) {
+  // Accepted snapshots predating the rename contain only contextInput: true.
+  return definition.contextInput
+    ? (definition.contextInputName ?? "unibase_context")
+    : null;
+}
+
+export function publicRunInputs<T>(
+  inputs: Record<string, T>,
+  definition: {
+    contextInput?: boolean;
+    contextInputName?: "context" | "unibase_context";
+  },
+) {
+  const privateName = privateContextInputName(definition);
+  return Object.fromEntries(
+    Object.entries(inputs).filter(
+      ([name]) => !name.startsWith("unibase_") && name !== privateName,
+    ),
+  );
+}
 export const runStartSchema = z.strictObject({
   key: z.string().uuid(),
   orchestratorId: orchestratorSchema.shape.id,

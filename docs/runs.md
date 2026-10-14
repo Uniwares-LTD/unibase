@@ -276,9 +276,19 @@ Disabled/archived/unavailable personas cannot admit new attempts. Accepted attem
 
 Responder workflows declare exactly three required paragraph controls: `persona`,
 `question`, and `context`, each bounded to 4,000 characters, plus an End `answer`
-output containing JSON `{action,answers}`. They need an LLM and no Human Input or
+output containing JSON `{action,answers}` or a raw answer map for a single offered
+action. They need an LLM and no Human Input or
 external tool nodes. This contract derives registration purpose `responder`.
-The template uses structured LLM output and Code to normalize its answer object.
+The template is Start → LLM → End, passing the raw LLM text to `answer`, without
+Python or an enforced output schema. It accepts text or serialized questions of
+any shape and uses the requested response format. For automatic Run forms, its
+prompt requests `{action,answers}` with native JSON values keyed by card/field ID;
+`answers` is an object, not another JSON-encoded string.
+Unibase also accepts a raw object keyed by card/field ID when exactly one action
+is offered, assigning that action before shared validation. Multiple offered
+actions require the explicit envelope; incomplete envelopes remain invalid.
+For form cards, null values for declared optional fields are omitted before
+validation. Required fields, unknown fields and invalid supplied values still fail.
 Use Dify to configure the actual model and re-register after edits.
 
 Unibase sends rendered questions, constraints, allowed actions, explicit card
@@ -291,11 +301,12 @@ select and registered Generative UI responses share human validation. File
 questions, malformed answers, unavailable forms and exceeded limits pause for the
 user. Unknown responder outcomes require reconciliation rather than redispatch.
 
-The responder template also normalizes plain prose into the card ID when there is
-exactly one text question. A top-level null answer becomes null values only when
-every card is a summary/issue. Multi-question prose, booleans or approval strings
-for acknowledgement cards remain invalid. The server still checks all fields and
-offered actions; these adaptations do not bypass human-required approval.
+The current template performs no Dify-side normalization or validation. Older
+publications may retain their Python normalizer; accepted attempts keep their
+pinned version. Unibase still checks all fields and offered actions, and invalid
+model output falls back to User. The raw template output can represent strings,
+numbers, booleans, arrays, objects or null when used outside automatic Run
+submission; automatic decisions must use their offered form's answer contract.
 
 `take-over` switches remaining decisions to User and cancels unfinished responder
 executions; submitted/uncertain decisions reconcile before another answer. History

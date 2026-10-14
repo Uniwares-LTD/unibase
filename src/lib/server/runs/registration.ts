@@ -3,7 +3,11 @@ import { randomUUID } from "node:crypto";
 import type { Db, Document } from "mongodb";
 import { z } from "zod";
 import { AppError } from "@/lib/auth-policy";
-import { difyInitialInputs, orchestratorSchema } from "@/lib/contracts/runs";
+import {
+  difyInitialInputs,
+  orchestratorSchema,
+  privateContextInputName,
+} from "@/lib/contracts/runs";
 import { database } from "../mongo";
 import { accessTransaction } from "../store/access";
 import { fingerprint } from "../ai/jobs";
@@ -430,7 +434,11 @@ export async function registerDifyOrchestrator(
       inputs: fit.inputs,
       ...(fit.purpose ? { purpose: fit.purpose } : {}),
       ...(fit.contextInput
-        ? { contextInput: true, privateTools: fit.privateTools }
+        ? {
+            contextInput: true,
+            contextInputName: fit.contextInputName,
+            privateTools: fit.privateTools,
+          }
         : {}),
       legacyInputs: fit.legacyInputs,
       pricing: null,
@@ -464,7 +472,9 @@ export async function registerDifyOrchestrator(
             .json()
             .parse(
               loadedInputs.filter(
-                (field) => !field.name.startsWith("unibase_"),
+                (field) =>
+                  !field.name.startsWith("unibase_") &&
+                  field.name !== privateContextInputName(definition),
               ),
             ),
         ) !== fingerprint(z.json().parse(definition.inputs))

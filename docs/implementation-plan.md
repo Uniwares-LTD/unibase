@@ -1015,6 +1015,49 @@ with only the emulator port/import paths adjusted. No live Dify publication,
 provider execution, deployment or data migration was performed. Live installation
 acceptance remains separate from these fixture results.
 
+### Simple persona responder and private context rename - 2026-10-14
+
+The persona template is now Start → LLM → End, returning raw model text without
+Python normalization or an enforced output schema. Questions can contain text or
+serialized data of any shape. Automatic Run decisions request native JSON
+`{action,answers}`; Unibase retains its form, offered-action and approval checks
+before submission. Other uses of the template can request their own answer format.
+
+New private-MCP templates use `context` instead of `unibase_context`. Registration
+snapshots the actual private input name and hides it from public controls. Worker
+injection, public-history/restart/idempotency filtering and persona context use
+that name. Existing legacy publications and accepted boolean-only snapshots retain
+`unibase_context`; ordinary public persona/workflow context stays public. No
+credential, tool permission, accounting record or accepted workflow is migrated.
+
+Local verification: all 162 account/service tests and 62 pure tests pass, including
+raw typed form answers, template graph contracts, new/legacy registration and
+dispatch, private-context leak rejection and public-context preservation.
+Independent type checking, lint and production web/worker build pass. A separate
+read-only review found no remaining actionable defect. No UI component changed.
+Live Dify import/publication or model execution was not performed; existing Dify
+apps need an explicit draft update/re-registration or new template creation to use
+the changed graphs. Fixture results do not prove future model output compliance.
+
+The automatic-answer adapter also accepts raw answer maps for questions offering
+exactly one action, while retaining explicit envelopes for multiple actions and
+all shared answer/approval checks. The saved question and successful Dify output
+from Run `192ba7150d1d48fcaa92cad26d04b0d8637761cb6b3a7cfc83d8e41f05da5d75`
+pass read-only replay after this correction. All 18 affected tests, web/worker
+build, independent type checking, targeted lint, formatting, documentation, i18n
+and skill checks pass. Separate read-only review found no actionable defect.
+The existing failed child and paused decision were not changed or resubmitted;
+running workers must restart to load the rebuilt adapter.
+
+Optional form fields returned as null by a persona are now omitted before shared
+validation. Required nulls, unknown fields, invalid types and out-of-range values
+remain rejected. The saved question/output from Run
+`b3d317c640bc0ce1d56bcbcc67f0a14e19756b06d121dcd5970a9e842ef57d15`
+passes read-only replay. All 18 affected tests, production web/worker build,
+independent type checking, targeted lint, formatting, docs, i18n and skill checks
+pass. Separate read-only review found no actionable defect. No decision or
+provider execution was resubmitted during verification.
+
 ## Accepted environment configuration and provisioning extension ? 2026-10-14
 
 The accepted scope replaces maintained `unitale` resource defaults with fresh

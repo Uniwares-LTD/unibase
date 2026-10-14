@@ -171,6 +171,7 @@ test("Formless registration: draft validation, publication, retries, authorizati
       rejectParameters?: boolean;
       onPublishRead?: () => Promise<void>;
       onVersionRead?: () => void;
+      privateContextName?: "context" | "unibase_context";
     } = {},
   ) {
     const appId = randomUUID();
@@ -189,6 +190,30 @@ test("Formless registration: draft validation, publication, retries, authorizati
       ],
       environment_variables: [{ name: "secret", value: "private-secret" }],
     };
+    if (options.privateContextName) {
+      published.graph.nodes[0].data.variables!.push({
+        variable: options.privateContextName,
+        label: "Private context",
+        type: "text-input",
+        required: true,
+        max_length: 256,
+      });
+      published.graph.nodes.push({
+        id: "private-tool",
+        data: {
+          type: "tool",
+          provider_type: "mcp",
+          provider_id: "unibase",
+          tool_name: "get_run_context_v1",
+          tool_parameters: {
+            runContext: {
+              type: "variable",
+              value: ["start", options.privateContextName],
+            },
+          },
+        },
+      } as never);
+    }
     let keys = options.existing
       ? [{ id: randomUUID(), token: "app-existing-private-canary" }]
       : [];
@@ -308,7 +333,7 @@ test("Formless registration: draft validation, publication, retries, authorizati
           {
             id: "unibase",
             is_team_authorization: !options.rejectMcp,
-            tools: [{ name: "fetch" }],
+            tools: [{ name: "fetch" }, { name: "get_run_context_v1" }],
           },
         ];
       if (path === "/info") return { mode: "workflow" };
@@ -451,6 +476,33 @@ test("Formless registration: draft validation, publication, retries, authorizati
       assert.equal(f.counts.publishes, 0);
       assert.equal(f.counts.keys, 0);
     });
+    await t.test(
+      "registration snapshots the exact private context name and hides it from public controls",
+      async () => {
+        for (const privateContextName of [
+          "context",
+          "unibase_context",
+        ] as const) {
+          const f = fixture({ privateContextName });
+          const result = await registerDifyOrchestrator(
+            f.appId,
+            actor,
+            db,
+            f.request,
+            env,
+          );
+          const row = await db
+            .collection<Document & { _id: string }>("orchestrators")
+            .findOne({ _id: result.orchestratorId });
+          assert.equal(row!.definition.contextInput, true);
+          assert.equal(row!.definition.contextInputName, privateContextName);
+          assert.deepEqual(
+            row!.definition.inputs.map((field: { name: string }) => field.name),
+            ["prompt"],
+          );
+        }
+      },
+    );
     await t.test(
       "Re-register selects historical inputs without publishing or changing accepted snapshots",
       async () => {

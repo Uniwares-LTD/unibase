@@ -52,7 +52,7 @@
               "title": "Start",
               "variables": [
                 {
-                  "variable": "unibase_context",
+                  "variable": "context",
                   "label": "Private Run context",
                   "type": "text-input",
                   "required": true,
@@ -93,7 +93,7 @@
               "tool_parameters": {
                 "runContext": {
                   "type": "variable",
-                  "value": ["start", "unibase_context"]
+                  "value": ["start", "context"]
                 }
               },
               "is_team_authorization": true
@@ -124,7 +124,7 @@
               "tool_parameters": {
                 "runContext": {
                   "type": "variable",
-                  "value": ["start", "unibase_context"]
+                  "value": ["start", "context"]
                 }
               },
               "is_team_authorization": true
@@ -417,7 +417,7 @@
               "tool_parameters": {
                 "runContext": {
                   "type": "variable",
-                  "value": ["start", "unibase_context"]
+                  "value": ["start", "context"]
                 },
                 "operationKey": {
                   "type": "mixed",
@@ -556,7 +556,7 @@
               "tool_parameters": {
                 "runContext": {
                   "type": "variable",
-                  "value": ["start", "unibase_context"]
+                  "value": ["start", "context"]
                 },
                 "operationKey": {
                   "type": "mixed",

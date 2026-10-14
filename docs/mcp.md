@@ -233,12 +233,21 @@ capabilities use the existing encryption-secret configuration, with a separate
 HKDF purpose. Enable the same MCP permissions/configuration on the web and worker
 processes. Provision indexes before use; `runCapabilities.jobId` is unique.
 
-Workflows opt in with required text Start input `unibase_context`. Bind it directly
+New workflows opt in with required text Start input `context`. Bind it directly
 as a variable to private tools' `runContext` argument. Registration hides this
 system field from user controls and rejects using it in other nodes/arguments.
 No workflow graphs are rewritten. This bearer capability is visible to trusted
 Dify execution storage and must stay out of LLM prompts and shared DSL/log exports;
 Dify does not automatically forward an authenticated Unibase Run identity.
+
+Registration treats `context` as private when the graph calls private MCP tools,
+so ordinary/public persona context keeps its normal meaning. Each registration
+snapshots `contextInputName`; older `unibase_context` publications remain valid,
+and accepted snapshots with only `contextInput: true` continue using that legacy
+name. The worker injects only the snapshot's selected name. Public history,
+idempotency/restart inputs and persona context exclude the private field by that
+same name. Rename an existing Dify graph explicitly and re-register it; no
+published graphs or accepted Runs are migrated automatically.
 
 Each request needs both the service credential and capability. The capability
 resolves the accepted attempt, verified user, allowed client/operations, optional

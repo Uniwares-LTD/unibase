@@ -7,6 +7,8 @@ import { parseInput } from "@/lib/input";
 import { z } from "zod";
 import { AppError } from "@/lib/auth-policy";
 import {
+  privateContextInputName,
+  publicRunInputs,
   runStartSchema,
   runCommandSchema,
   runIdSchema,
@@ -173,11 +175,7 @@ async function createAttempt(
     uid: actor.uid,
   });
   if (replay?.run) {
-    const saved = Object.fromEntries(
-      Object.entries(replay.inputs).filter(
-        ([name]) => !name.startsWith("unibase_"),
-      ),
-    );
+    const saved = publicRunInputs(replay.inputs, replay.run.orchestrator);
     if (
       replay.run.orchestrator.id !== input.orchestratorId ||
       (replay.run.answerer?.id ?? null) !==
@@ -751,11 +749,7 @@ export async function runDetail(id: string, pages: RunPages = {}) {
             1000,
         ),
       ),
-      inputs: Object.fromEntries(
-        Object.entries(job.inputs).filter(
-          ([key]) => !key.startsWith("unibase_"),
-        ),
-      ),
+      inputs: publicRunInputs(job.inputs, job.run!.orchestrator),
       result: results.find((r) => r._id === job._id)?.result ?? null,
     })),
     actionable,
@@ -886,12 +880,7 @@ export async function runCommand(id: string, input: unknown) {
         ? { kind: jobTarget(job)!.kind, id: jobTarget(job)!.id }
         : undefined,
       inputs:
-        command.inputs ??
-        Object.fromEntries(
-          Object.entries(job.inputs).filter(
-            ([key]) => !key.startsWith("unibase_"),
-          ),
-        ),
+        command.inputs ?? publicRunInputs(job.inputs, job.run!.orchestrator),
     },
     job,
     recovery,
@@ -1145,9 +1134,10 @@ export async function uploadRunFile(
 }
 export async function prepareRunInputs(job: AiJob, db: Db = database()) {
   const inputs = { ...job.inputs };
-  if (job.run?.orchestrator.contextInput) {
+  const contextName = privateContextInputName(job.run!.orchestrator);
+  if (contextName) {
     const { capabilityForRun } = await import("./capabilities");
-    inputs.unibase_context = await capabilityForRun(db, job);
+    inputs[contextName] = await capabilityForRun(db, job);
   }
   for (const field of job.run!.orchestrator.inputs)
     if (field.kind === "file" && inputs[field.name]) {

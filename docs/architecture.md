@@ -412,7 +412,7 @@ remains reviewable and can receive an audited waiver. Parent pricing/failure rul
 are retained. Responder provider usage appears under `persona-responder` in the
 existing administrative usage report.
 
-Private MCP tools consume `unibase_context` only through direct Start-to-tool
+Private MCP tools consume `context` only through direct Start-to-tool
 argument bindings checked during registration. `runCapabilities` stores a token
 hash plus AES-GCM encrypted recovery, attempt/owner/client/operation scope and the
 accepted review deadline. Services verify account access and mutate under the
@@ -420,6 +420,12 @@ wallet/access transaction boundary. Dify's execution input/tool logs are private
 capabilities never enter LLM prompts or browser DTOs. `productOperations` journals
 payload-hashed idempotent writes; approval binds a persisted decision to an exact
 artifact revision and records its human/persona source.
+Registration hides `context` only for private-MCP graphs; the persona responder's
+ordinary `context` paragraph remains public. The accepted orchestrator snapshots
+`contextInputName`. Legacy publications can still bind `unibase_context`, and older
+snapshots without a name default to that legacy spelling. Injection and public
+input filtering share the snapshot's name; no live graph or accepted attempt is
+rewritten by a template edit.
 
 The sample `artifacts` and immutable `artifactRevisions` demonstrate domain
 persistence through shared services. `resultApplications` journals the versioned
@@ -445,9 +451,15 @@ Persona actions normalize omitted summary/issue acknowledgements to JSON null.
 Explicit invalid acknowledgement values, missing choices/fields, unoffered actions
 and file responses remain invalid; human-only approvals still require a User.
 
-The responder template maps plain prose only to a single text-question card and
-maps top-level null only to summary/issue acknowledgements. All normalized output
-still passes the shared server validation. The story-to-panel template uses two
+The responder template is Start → LLM → End with raw answer text, no Python and
+no enforced model output schema. It accepts serialized question shapes and
+requests the appropriate response format, including native typed JSON values
+inside `{action,answers}` for Run forms. For a single offered action, Unibase also
+accepts a raw answer map and assigns that action; multiple actions still require
+an explicit choice. Unibase's shared form validation remains
+the submission boundary. The persona adapter treats null optional form fields as
+omitted, preserving validation of required fields and supplied values. Dify does
+no normalization. The story-to-panel template uses two
 sequential decisions (story approval/changes in one form, then character approval), three LLM calls, and
 an approval-only image-tool branch. It saves the combined story/character as an
 ordinary artifact revision without adding a separate story domain or worker.
@@ -594,9 +606,11 @@ Application mode enables reusable modules with providers inactive and examples
 hidden. Example mode must be explicitly selected. Local fixture verification uses
 private synthetic commits and leaves working-repository refs/index/history alone.
 
-Protocol fields such as `unibase_context`, cryptographic derivation labels,
+Legacy protocol fields such as `unibase_context`, cryptographic derivation labels,
 accepted handler versions and permanent accounting records remain compatibility
-contracts. They are not browser/deployment namespaces and must not be blindly renamed.
+contracts. New private workflows use `context` with a snapshotted input name;
+legacy reads/dispatch remain supported. These are not browser/deployment namespaces
+and must not be blindly renamed.
 The fresh namespace installation does not migrate or reconnect legacy payment
 provider records; keep old deployments/databases isolated during an explicit handoff.
 See [reusable services](services.md) for quotas, references, limits and transactions.

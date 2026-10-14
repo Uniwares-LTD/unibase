@@ -52,7 +52,10 @@ import {
 } from "../../src/lib/server/store/cleanup";
 import { inspectDifyWorkflow } from "../../src/lib/server/runs/dify-capabilities";
 import { orchestratorTemplate } from "../../src/lib/server/runs/templates";
-import type { Decision } from "../../src/lib/server/runs/service";
+import {
+  prepareRunInputs,
+  type Decision,
+} from "../../src/lib/server/runs/service";
 import {
   seedPersonas,
   personaChoices,
@@ -723,6 +726,16 @@ test("Personas, private callbacks and product assets use durable owned boundarie
         );
         const token = await capabilityForRun(db, job);
         assert.equal(await capabilityForRun(db, job), token);
+        const legacyInputs = await prepareRunInputs(job, db);
+        assert.equal(legacyInputs.unibase_context, token);
+        assert.equal(legacyInputs.context, undefined);
+        const renamed = structuredClone(job);
+        renamed.run!.orchestrator.contextInputName = "context";
+        const newInputs = await prepareRunInputs(renamed, db);
+        assert.equal(newInputs.context, token);
+        assert.equal(newInputs.unibase_context, undefined);
+        assert.equal(job.inputs.context, undefined);
+        assert.equal(job.inputs.unibase_context, undefined);
         const stored = await db
           .collection("runCapabilities")
           .findOne({ jobId: job._id });
@@ -1045,7 +1058,7 @@ test("Personas, private callbacks and product assets use durable owned boundarie
           data: {
             type: "llm",
             title: "Leak",
-            prompt_template: "{{#start.unibase_context#}}",
+            prompt_template: "{{#start.context#}}",
           },
         });
         assert.throws(() => inspectDifyWorkflow(graph));

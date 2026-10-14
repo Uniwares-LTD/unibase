@@ -22,6 +22,28 @@ const graphSchema = z.object({
 });
 type McpTool = { providerId: string; toolName: string };
 
+function referencesInput(
+  value: unknown,
+  startId: string,
+  name: string,
+): boolean {
+  if (typeof value === "string")
+    return (
+      value.includes(`{{#${startId}.${name}#}}`) ||
+      value.includes(`{{#${startId}.${name}.`)
+    );
+  if (Array.isArray(value))
+    return (
+      (value[0] === startId && value[1] === name) ||
+      value.some((item) => referencesInput(item, startId, name))
+    );
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    Object.values(value).some((item) => referencesInput(item, startId, name))
+  );
+}
+
 // Inspect the publication only. Drafts, node bindings and provider secrets stay
 // in Dify; neither this module nor registration changes the graph.
 export function inspectDifyWorkflow(graph: unknown) {
@@ -37,6 +59,20 @@ export function inspectDifyWorkflow(graph: unknown) {
     .array(z.looseObject({ variable: z.string(), type: z.string() }))
     .max(100)
     .parse(starts[0].data.variables ?? []);
+  const hasPrivateTools = nodes.some(
+    ({ data }) =>
+      data.type === "tool" &&
+      data.provider_type === "mcp" &&
+      typeof data.tool_name === "string" &&
+      data.tool_name in privateToolPermissions,
+  );
+  // Persona responders and ordinary workflows may have a public context input.
+  // Treat context as private only when the graph invokes private MCP tools.
+  const contextInputName = fields.some((f) => f.variable === "unibase_context")
+    ? ("unibase_context" as const)
+    : hasPrivateTools
+      ? ("context" as const)
+      : undefined;
   const legacyInputs = orchestratorSchema.shape.legacyInputs.parse(
     fields
       .filter((field) =>
@@ -65,7 +101,11 @@ export function inspectDifyWorkflow(graph: unknown) {
     inputs = orchestratorSchema.shape.inputs.parse(
       difyInitialInputs({
         user_input_form: fields
-          .filter((field) => !field.variable.startsWith("unibase_"))
+          .filter(
+            (field) =>
+              !field.variable.startsWith("unibase_") &&
+              field.variable !== contextInputName,
+          )
           .map((field) => ({
             [field.type]: {
               ...field,
@@ -83,26 +123,28 @@ export function inspectDifyWorkflow(graph: unknown) {
     );
   }
   const mcpTools: McpTool[] = [];
-  const contextInput = fields.some((f) => f.variable === "unibase_context");
+  const contextInput = !!contextInputName;
   if (
     contextInput &&
-    !fields.some(
-      (f) =>
-        f.variable === "unibase_context" &&
-        f.type === "text-input" &&
-        f.required === true,
-    )
+    (fields.filter((f) => f.variable === contextInputName).length !== 1 ||
+      !fields.some(
+        (f) =>
+          f.variable === contextInputName &&
+          f.type === "text-input" &&
+          f.required === true,
+      ))
   )
     throw new AppError(
       "DIFY_CONTEXT_UNSUPPORTED",
-      "Private tools need a required unibase_context text input.",
+      "Private tools need a required context text input.",
       409,
     );
   const privateTools: string[] = [];
   for (const { data } of nodes) {
     if (
       data.type !== "start" &&
-      JSON.stringify(data).includes("unibase_context") &&
+      contextInputName &&
+      referencesInput(data, starts[0].id, contextInputName) &&
       !(
         data.type === "tool" &&
         data.provider_type === "mcp" &&
@@ -197,18 +239,23 @@ export function inspectDifyWorkflow(graph: unknown) {
           !contextInput ||
           !binding.success ||
           JSON.stringify(binding.data.value) !==
-            JSON.stringify([starts[0].id, "unibase_context"])
+            JSON.stringify([starts[0].id, contextInputName])
         )
           throw new AppError(
             "DIFY_CONTEXT_UNSUPPORTED",
-            "Bind private tool runContext directly to Start.unibase_context.",
+            "Bind private tool runContext directly to the private Start context input.",
             409,
           );
         if (
-          JSON.stringify({
-            ...data,
-            tool_parameters: { ...parameters, runContext: undefined },
-          }).includes("unibase_context")
+          contextInputName &&
+          referencesInput(
+            {
+              ...data,
+              tool_parameters: { ...parameters, runContext: undefined },
+            },
+            starts[0].id,
+            contextInputName,
+          )
         )
           throw new AppError(
             "DIFY_CONTEXT_UNSUPPORTED",
@@ -261,7 +308,11 @@ export function inspectDifyWorkflow(graph: unknown) {
     legacyInputs,
     mcpTools,
     ...(contextInput
-      ? { contextInput: true, privateTools: [...new Set(privateTools)] }
+      ? {
+          contextInput: true,
+          contextInputName,
+          privateTools: [...new Set(privateTools)],
+        }
       : {}),
     ...(purpose === "responder" ? { purpose } : {}),
   };
