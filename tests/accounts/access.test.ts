@@ -16,7 +16,7 @@ test("admin access is immediate, audited, transactional and safe under competing
   });
   const client = new MongoClient(mongo.getUri());
   try {
-    const db = client.db("unitale_access_test");
+    const db = client.db("unibase_access_test");
     const member = await accountAccess(db, "new-member");
     assert.equal(member.role, "member");
     assert.equal(accessPermitsSession(member, 100), true);

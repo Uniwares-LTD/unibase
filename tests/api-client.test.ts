@@ -4,7 +4,7 @@ import { z } from "zod";
 import { api, ApiError } from "../src/lib/client/api";
 
 Object.defineProperty(globalThis, "location", {
-  value: { origin: "https://unitale.example" },
+  value: { origin: "https://unibase.example" },
   configurable: true,
 });
 

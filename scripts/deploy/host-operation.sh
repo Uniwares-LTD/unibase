@@ -23,7 +23,7 @@ cleanup() {
   return "$result"
 }
 trap cleanup EXIT
-tar -czf "$archive" scripts/deploy deploy/compose.yml deploy/nginx.conf project.config.json
+tar -czf "$archive" scripts/deploy deploy/compose.yml deploy/nginx.conf deploy/environments project.config.json
 remote=$(ssh -F "$ssh_config" "${project_slug}-vps" "umask 077; mktemp -d /tmp/${project_slug}.XXXXXXXX")
 [[ "$remote" =~ ^/tmp/${project_slug}\.[a-zA-Z0-9]{8}$ ]] || { remote=''; echo 'Invalid remote staging directory' >&2; exit 1; }
 scp -F "$ssh_config" "$archive" "${project_slug}-vps:$remote/bundle.tar.gz"

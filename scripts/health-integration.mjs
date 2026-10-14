@@ -21,8 +21,8 @@ const filename = path.join(directory, "firebase.json");
 const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const credential = {
   type: "service_account",
-  project_id: "unitale-health-test",
-  client_email: "health@unitale-health-test.iam.gserviceaccount.com",
+  project_id: "unibase-health-test",
+  client_email: "health@unibase-health-test.iam.gserviceaccount.com",
   private_key: privateKey.export({ type: "pkcs8", format: "pem" }),
 };
 writeFileSync(filename, JSON.stringify(credential));
@@ -41,7 +41,7 @@ const env = {
   FIREBASE_APP_ID: "synthetic-public-app",
   GOOGLE_APPLICATION_CREDENTIALS: filename,
   MONGODB_URI: mongo.getUri(),
-  MONGODB_DATABASE: "unitale_health_test",
+  MONGODB_DATABASE: "unibase_health_test",
   ANDROID_HOST: "",
   ANDROID_PACKAGE_NAME: "",
   ANDROID_SHA256_FINGERPRINTS: "",

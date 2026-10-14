@@ -21,11 +21,11 @@ plugins {
 }
 
 def twaManifest = [
-    applicationId: 'invalid.example.unitale',
-    hostName: 'unitale.example.invalid', // The domain being opened in the TWA.
+    applicationId: 'invalid.example.unibase',
+    hostName: 'unibase.example.invalid', // The domain being opened in the TWA.
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
-    name: 'Unitale', // The application name.
-    launcherName: 'Unitale', // The name shown on the Android Launcher.
+    name: 'Unibase', // The application name.
+    launcherName: 'Unibase', // The name shown on the Android Launcher.
     themeColor: '#98492F', // The color used for the status bar.
     themeColorDark: '#000000', // The color used for the dark status bar.
     navigationColor: '#FFF9F3', // The color used for the navigation bar.
@@ -52,9 +52,9 @@ def twaManifest = [
 
 android {
     compileSdkVersion 36
-    namespace "invalid.example.unitale"
+    namespace "invalid.example.unibase"
     defaultConfig {
-        applicationId "invalid.example.unitale"
+        applicationId "invalid.example.unibase"
         minSdkVersion 23
         targetSdkVersion 36
         versionCode 1

@@ -17,7 +17,7 @@ import { once } from "node:events";
 const root = path.resolve(".");
 mkdirSync("output/start-tests", { recursive: true });
 const directory = mkdtempSync(path.resolve("output/start-tests/run-"));
-const canary = `Unitale startup ${randomUUID()}`;
+const canary = `Unibase startup ${randomUUID()}`;
 // Only build/assets are shared. This fixture owns its env file, never the user's.
 symlinkSync(
   path.join(root, ".next"),

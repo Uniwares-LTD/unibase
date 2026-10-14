@@ -1,5 +1,5 @@
 {
-  "name": "unitale",
+  "name": "unibase",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -8,11 +8,11 @@
   "packageManager": "npm@12.0.1",
   "scripts": {
     "test:mcp": "node --conditions=react-server --import tsx --test tests/accounts/mcp.test.ts",
-    "dev": "next dev",
-    "build": "next build && node scripts/build-worker.mjs",
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/with-environment.mjs node_modules/next/dist/bin/next build && node scripts/build-worker.mjs",
     "worker:build": "node scripts/build-worker.mjs",
-    "worker": "node dist/payment-worker.cjs",
-    "worker:ai": "node dist/ai-worker.cjs",
+    "worker": "node scripts/with-environment.mjs dist/payment-worker.cjs",
+    "worker:ai": "node scripts/with-environment.mjs dist/ai-worker.cjs",
     "test:ai-pricing": "node scripts/integration.mjs --ai --ai-pricing",
     "test:ai": "node scripts/integration.mjs --ai",
     "start": "node scripts/start.mjs",
@@ -20,7 +20,7 @@
     "lint": "eslint .",
     "test": "node --import tsx --test tests/*.test.ts",
     "test:accounts": "node --conditions=react-server --import tsx --test tests/accounts/*.test.ts",
-    "check:env": "node --import tsx scripts/check-env.ts",
+    "check:env": "node scripts/with-environment.mjs --import tsx scripts/check-env.ts",
     "check:skills": "node scripts/check-skills.mjs",
     "validate": "node scripts/validate.mjs",
     "audit:quality": "npm audit --json",
@@ -31,8 +31,8 @@
     "format:check": "prettier --check src scripts tests *.json *.mjs next.config.ts",
     "emulators:auth": "node scripts/auth-emulator.mjs",
     "emulators:mongo": "node scripts/local-mongo.mjs",
-    "db:indexes": "node --conditions=react-server --import tsx scripts/db-indexes.ts",
-    "admin:bootstrap": "node --conditions=react-server --import tsx scripts/admin-bootstrap.ts",
+    "db:indexes": "node scripts/with-environment.mjs --conditions=react-server --import tsx scripts/db-indexes.ts",
+    "admin:bootstrap": "node scripts/with-environment.mjs --conditions=react-server --import tsx scripts/admin-bootstrap.ts",
     "test:integration": "node scripts/integration.mjs",
     "test:payments": "node scripts/integration.mjs --stripe",
     "icons:generate": "node scripts/generate-icons.mjs",
@@ -44,7 +44,8 @@
     "project:create": "node --import tsx scripts/create-project.ts",
     "test:initializer": "node --import tsx --test tests/initializer.test.ts",
     "test:initialized-projects": "node --import tsx scripts/test-initialized-projects.ts",
-    "check:docs": "node scripts/check-docs.mjs && node scripts/environment-docs.mjs --check"
+    "check:docs": "node scripts/check-docs.mjs && node scripts/environment-docs.mjs --check",
+    "provision:preview": "python scripts/deploy/provision.py"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1147.0",

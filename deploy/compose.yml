@@ -1,4 +1,4 @@
-name: ${PROJECT_SLUG:-unitale}-${DEPLOY_ENV:?required}
+name: ${PROJECT_SLUG:-unibase}-${DEPLOY_ENV:?required}
 services:
   app:
     image: ${IMAGE_DIGEST:?required}
@@ -80,20 +80,6 @@ services:
       - /tmp:uid=1001,gid=1001,mode=1777
     mem_limit: 512m
     cpus: 0.5
-  tunnel:
-    image: ${TUNNEL_IMAGE:?required}
-    command: [tunnel, --no-autoupdate, run, --token-file, /run/secrets/tunnel-token]
-    restart: unless-stopped
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    user: "1001:1001"
-    volumes:
-      - ./tunnel-token:/run/secrets/tunnel-token:ro
-    depends_on: [ingress]
-    networks: [tunnel-ingress]
-    mem_limit: 256m
-
   redis:
     image: ${REDIS_IMAGE:?required}
     user: "1001:1001"
@@ -124,13 +110,10 @@ services:
       - "127.0.0.1:${APP_PORT:?required}:8080"
     networks:
       application:
-      tunnel-ingress:
-        aliases: [app]
     depends_on: [app]
     mem_limit: 128m
 networks:
   application:
-  tunnel-ingress:
     ipam:
       config:
         - subnet: ${INGRESS_SUBNET:?required}

@@ -17,8 +17,8 @@ test("worker caches only public fallback and never stores or substitutes API/aut
   runInNewContext(readFileSync("public/sw.js", "utf8"), {
     self: {
       location: {
-        origin: "https://unitale.test",
-        href: "https://unitale.test/sw.js?namespace=unitale",
+        origin: "https://unibase.test",
+        href: "https://unibase.test/sw.js?namespace=unibase",
       },
       clients: { claim: async () => {} },
       addEventListener: (
@@ -41,8 +41,8 @@ test("worker caches only public fallback and never stores or substitutes API/aut
         },
       }),
       keys: async () => [
-        "unitale-offline-old",
-        "unitale-offline-v2",
+        "unibase-offline-old",
+        "unibase-offline-v2",
         "another-app",
       ],
       delete: async (key: string) => {
@@ -53,7 +53,7 @@ test("worker caches only public fallback and never stores or substitutes API/aut
     // Worker-relative URLs are legal in browsers; adapt Node's Request base.
     Request: class extends Request {
       constructor(url: string, init: RequestInit) {
-        super(new URL(url, "https://unitale.test"), init);
+        super(new URL(url, "https://unibase.test"), init);
       }
     },
     fetch: async () => {
@@ -69,8 +69,8 @@ test("worker caches only public fallback and never stores or substitutes API/aut
   });
   await pending;
   assert.deepEqual(added, [
-    "https://unitale.test/offline.html",
-    "https://unitale.test/offline-locale.js",
+    "https://unibase.test/offline.html",
+    "https://unibase.test/offline-locale.js",
   ]);
   handlers.activate({
     waitUntil: (promise: Promise<unknown>) => {
@@ -78,11 +78,11 @@ test("worker caches only public fallback and never stores or substitutes API/aut
     },
   });
   await pending;
-  assert.deepEqual(deleted, ["unitale-offline-old"]);
+  assert.deepEqual(deleted, ["unibase-offline-old"]);
   const navigate = async (path: string, mode = "navigate", method = "GET") => {
     let response: Promise<Response> | undefined;
     handlers.fetch({
-      request: { url: `https://unitale.test${path}`, mode, method },
+      request: { url: `https://unibase.test${path}`, mode, method },
       respondWith: (promise: Promise<Response>) => {
         response = promise;
       },

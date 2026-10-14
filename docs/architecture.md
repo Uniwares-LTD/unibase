@@ -10,8 +10,7 @@ Client boundaries cover browser authentication, interactive forms, themes, navig
 
 The public display default is Base. `APP_NAME` feeds server-rendered metadata and
 the request-time install manifest as well as the shell; image builds do not freeze
-an environment's name. Internal cookie, database and deployment identifiers remain
-stable for compatibility; derived projects follow the [identity inventory](../README.md#start-a-derived-project).
+an environment's name. Internal cookie, database and deployment identifiers now use fresh `unibase` namespaces; old data and private overrides are untouched; derived projects follow the [identity inventory](../README.md#start-a-derived-project).
 
 ## Design system
 
@@ -255,7 +254,7 @@ Browser diagnostics default off in every document, retain at most 100 events in 
 
 The request-time manifest uses the allowlisted runtime application name. The SVG, PNG install icons and generated favicon describe the shared app. `public/sw.js` caches only the standalone public HTML fallback. Full document navigation uses the network and falls back on network failure, without writing fetched responses. API/auth-helper requests, RSC payloads, mutations and subresources are not intercepted. There is no offline account cache, mutation replay or automatic form-discarding refresh. Worker upgrades follow the browser's normal lifecycle.
 
-`ANDROID_HOST` and `ANDROID_PACKAGE_NAME` supply wrapper identity through `.env.local` or process environment; `android/config.json` owns only the version. The pinned Bubblewrap generator retains `android/project`, using local icons without a live deployment. Generated sources embed the selected identity and must be regenerated when settings change. CI supplies the same names through GitHub environment variables. Signing comes from environment variables outside the generated project. The manual Android workflow is independent of web deployment and Play publishing is explicitly opt-in. Digital Asset Links uses the server runtime package/certificate settings; the private signing key is never part of the website. See [Android delivery](android.md) and [M3 testing](m3-testing.md) for setup, boundaries and pending external verification.
+`ANDROID_HOST` and `ANDROID_PACKAGE_NAME` supply wrapper identity through `.env.local` or process environment; `android/config.json` owns only the version. The pinned Bubblewrap generator retains `android/project`, using local icons without a live deployment. Generated sources embed the selected identity and must be regenerated when settings change. CI supplies the same names from the tracked production environment document. Signing comes from environment variables outside the generated project. The manual Android workflow is independent of web deployment and Play publishing is explicitly opt-in. Digital Asset Links uses the server runtime package/certificate settings; the private signing key is never part of the website. See [Android delivery](android.md) and [M3 testing](m3-testing.md) for setup, boundaries and pending external verification.
 
 ## Orchestrator Runs
 
@@ -488,8 +487,7 @@ continues to enforce ownership.
 ### Shared request protection and project configuration
 
 The reviewed project manifest is build-time public configuration; it contains no
-credentials. Runtime Redis, database, Firebase and provider connections remain
-private. Namespace derivation preserves the current unitale installation.
+credentials. Credentials remain private. Public connection settings live in tracked environment documents; derived projects clear installation links unless an explicit shared profile is selected.
 Server module guards remain independent of navigation.
 
 Protected Route Handlers authenticate and apply one account-scoped Redis counter
@@ -500,8 +498,7 @@ project/environment scopes and a 60-second lifetime. Redis readiness participate
 in the existing readiness probe.
 
 Nginx strips incoming forwarded addresses, trusts CF-Connecting-IP only on the
-dedicated tunnel subnet, and preserves streaming. The application network is
-separate from the tunnel network; Redis has no published host port.
+Docker bridge host gateway, and preserves streaming. The existing host connector targets a loopback Nginx listener; no app-owned tunnel container exists. Redis has no published host port.
 
 
 ### Owned domains and managed files
@@ -585,6 +582,33 @@ hidden. Example mode must be explicitly selected. Local fixture verification use
 private synthetic commits and leaves working-repository refs/index/history alone.
 
 Protocol fields such as `unibase_context`, cryptographic derivation labels,
-accepted handler versions and permanent payment metadata remain compatibility
+accepted handler versions and permanent accounting records remain compatibility
 contracts. They are not browser/deployment namespaces and must not be blindly renamed.
+The fresh namespace installation does not migrate or reconnect legacy payment
+provider records; keep old deployments/databases isolated during an explicit handoff.
 See [reusable services](services.md) for quotas, references, limits and transactions.
+
+## Provisioning ownership
+
+Tracked environment JSON owns public application/deployment configuration.
+Local command wrappers load these defaults after private Next.js env files.
+Provisioning renders runtime settings by merging selected tracked values with
+private host credentials. Release snapshots that configuration and merges tracked
+runtime settings; rollback retains the previous snapshot without reading new config.
+
+`Provision environment` is separate from release, defaults to preview and runs on
+`main`. Google administration uses OIDC; scoped Atlas and GHCR credentials are
+transient inputs. Generated secrets persist privately before dependent resources
+are created. Reruns reuse them, and incompatible identities require explicit recovery.
+A disposable administration container installs indexes/bootstrap tooling outside
+production images. Maintenance and AI worker containers retain coordinated release
+and health behavior with the web application.
+
+Staging uses a shared Firebase identity pool with app-specific web registrations,
+databases and roles; production uses an app-specific Firebase project. Atlas cluster
+capacity remains externally owned. The existing shared Cloudflare connector and
+SSH Access application remain owned by `agentic-poc`, whose canonical Terraform
+registry/workflow writes all routes. App workflows select registered routes rather
+than supplying arbitrary endpoints. Dify Community remains owned there as well.
+The [deployment follow-ups](deployment.md#shared-ownership-follow-ups) record both
+ownership transfers without changing either service lifecycle now.

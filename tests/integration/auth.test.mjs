@@ -7,9 +7,9 @@ import { MongoClient } from "mongodb";
 
 assert.equal(process.env.APP_ORIGIN, "http://127.0.0.1:3101");
 assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST, "127.0.0.1:9099");
-assert.equal(process.env.FIREBASE_PROJECT_ID, "demo-unitale");
+assert.equal(process.env.FIREBASE_PROJECT_ID, "demo-unibase");
 assert.match(process.env.MONGODB_URI, /^mongodb:\/\/127\.0\.0\.1:\d+\//);
-assert.match(process.env.MONGODB_DATABASE, /^unitale_test_[a-f0-9]+$/);
+assert.match(process.env.MONGODB_DATABASE, /^unibase_test_[a-f0-9]+$/);
 const origin = process.env.APP_ORIGIN;
 test("design showcase is unavailable in production", async () => {
   const response = await fetch(`${origin}/design-system`);
@@ -40,10 +40,10 @@ test("runtime application name reaches metadata and the install manifest", async
 test("initial HTML resolves runtime style defaults and allowlisted browser cookies", async () => {
   for (const [cookie, expected] of [
     ["", "glass"],
-    ["unitale-style=classic", "classic"],
-    ["unitale-style=glass", "glass"],
-    ["unitale-style=soft-blue", "soft-blue"],
-    ["unitale-style=unknown", "glass"],
+    ["unibase-style=classic", "classic"],
+    ["unibase-style=glass", "glass"],
+    ["unibase-style=soft-blue", "soft-blue"],
+    ["unibase-style=unknown", "glass"],
   ]) {
     const response = await fetch(origin, { headers: { cookie } });
     assert.equal(response.status, 200);
@@ -66,7 +66,7 @@ test("health distinguishes a live process from healthy required dependencies", a
     commit: "a".repeat(40),
   });
 });
-const auth = getAuth(initializeApp({ projectId: "demo-unitale" }, "tests"));
+const auth = getAuth(initializeApp({ projectId: "demo-unibase" }, "tests"));
 const users = [];
 async function identity(method, body) {
   const response = await fetch(
@@ -118,7 +118,7 @@ test("real emulator sessions enforce ownership, verification, CSRF and revocatio
   assert.equal(
     (
       await request("/api/profile", {
-        headers: { cookie: "unitale-session=invalid-token" },
+        headers: { cookie: "unibase-session=invalid-token" },
       })
     ).status,
     401,
@@ -307,7 +307,7 @@ test("public PWA assets and debug headers preserve safe HTTP boundaries", async 
     headers: {
       "x-debug": "true",
       "x-request-id": "secret-injected-id",
-      cookie: "unitale-session=secret-cookie",
+      cookie: "unibase-session=secret-cookie",
     },
   });
   assert.equal(response.status, 401);
@@ -515,7 +515,7 @@ test("admin reports store sanitized request outcomes and reject stale permission
   assert.equal((await request("/api/admin/reports")).status, 401);
   const secretProbe = await request("/api/profile?token=runtime-secret-query", {
     headers: {
-      cookie: "unitale-session=runtime-secret-cookie",
+      cookie: "unibase-session=runtime-secret-cookie",
       "x-request-id": "runtime-secret-id",
       "x-debug": "true",
     },

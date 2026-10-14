@@ -8,15 +8,15 @@ import { getAuth } from "firebase-admin/auth";
 assert.equal(process.env.APP_ORIGIN, "http://127.0.0.1:3101");
 assert.equal(process.env.PAYMENTS_MODE, "stripe");
 assert.equal(process.env.STRIPE_SECRET_KEY, "sk_test_fixture");
-assert.match(process.env.MONGODB_DATABASE, /^unitale_test_[a-f0-9]+$/);
+assert.match(process.env.MONGODB_DATABASE, /^unibase_test_[a-f0-9]+$/);
 assert.match(process.env.MONGODB_URI, /^mongodb:\/\/127\.0\.0\.1:\d+\//);
 const origin = process.env.APP_ORIGIN;
 const sdk = new Stripe("sk_test_fixture"); // Only signs fixtures; no provider calls.
 test("verified member sees Stripe purchase UI without private configuration", async () => {
-  assert.equal(process.env.FIREBASE_PROJECT_ID, "demo-unitale");
+  assert.equal(process.env.FIREBASE_PROJECT_ID, "demo-unibase");
   assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST, "127.0.0.1:9099");
   const app = initializeApp(
-    { projectId: "demo-unitale" },
+    { projectId: "demo-unibase" },
     "owned-stripe-page-fixture",
   );
   const auth = getAuth(app);
@@ -54,7 +54,7 @@ test("verified member sees Stripe purchase UI without private configuration", as
     assert.equal(session.status, 200);
     const cookie = session.headers
       .getSetCookie()
-      .find((value) => value.startsWith("unitale-session="))
+      .find((value) => value.startsWith("unibase-session="))
       .split(";")[0];
     const page = await fetch(`${origin}/credits`, { headers: { cookie } });
     assert.equal(page.status, 200);

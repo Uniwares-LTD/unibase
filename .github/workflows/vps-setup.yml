@@ -1,4 +1,4 @@
-name: Prepare Unitale host directories
+name: Prepare Unibase host directories
 on:
   workflow_dispatch:
     inputs:
@@ -7,7 +7,7 @@ on:
         options: [staging, production]
         required: true
       apply:
-        description: Explicitly create Unitale host directories (otherwise preview)
+        description: Explicitly create Unibase host directories (otherwise preview)
         type: boolean
         default: false
 permissions:

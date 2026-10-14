@@ -12,6 +12,7 @@ async function main() {
           "--destination",
           "--manifest",
           "--mode",
+          "--infrastructure-profile",
         ].includes(args[i]) ||
         !args[i + 1] ||
         values[args[i]]
@@ -34,6 +35,9 @@ async function main() {
       destination: values["--destination"],
       manifest: JSON.parse(await readFile(values["--manifest"], "utf8")),
       mode: values["--mode"] as "application" | "examples",
+      infrastructureProfile: values["--infrastructure-profile"]
+        ? JSON.parse(await readFile(values["--infrastructure-profile"], "utf8"))
+        : undefined,
     });
     console.log(
       `Created ${result.slug} from ${result.revision}. Install dependencies and review .env.example before starting.`,

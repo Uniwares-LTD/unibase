@@ -1,15 +1,17 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import manifest from "../../project.config.json" with { type: "json" };
+const image = `${manifest.slug}-deployment-tests`;
 
 // Fixed, disposable Linux container. No VPS, host secrets or production services.
 for (const args of [
-  ["build", "-t", "unitale-deployment-tests", "tests/deploy"],
+  ["build", "-t", image, "tests/deploy"],
   [
     "run",
     "--rm",
     "--mount",
     `type=bind,source=${path.resolve(".")},target=/repo,readonly`,
-    "unitale-deployment-tests",
+    image,
   ],
 ]) {
   const result = spawnSync("docker", args, {

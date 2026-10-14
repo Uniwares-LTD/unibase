@@ -80,7 +80,7 @@ test("transactional credit accounting", async (t) => {
     replSet: { count: 1, ip: "127.0.0.1", storageEngine: "wiredTiger" },
   });
   const client = new MongoClient(mongo.getUri());
-  const db = client.db("unitale_credits_test");
+  const db = client.db("unibase_credits_test");
   try {
     await createCreditIndexes(db);
     await appointFirstAdmin(db, "admin", "Explicit synthetic administrator");

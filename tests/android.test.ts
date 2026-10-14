@@ -4,7 +4,7 @@ import { assetLinks } from "../src/lib/config/android";
 import { parseAndroidConfig } from "../scripts/android-config";
 test("Digital Asset Links require a complete valid identity and never reflect invalid settings", () => {
   assert.deepEqual(assetLinks(undefined, undefined), []);
-  assert.deepEqual(assetLinks("com.company.unitale", undefined), []);
+  assert.deepEqual(assetLinks("com.company.unibase", undefined), []);
   assert.throws(() => assetLinks(undefined, "AA"), /Invalid ANDROID_PACKAGE/);
   assert.throws(
     () => assetLinks("secret<script>", "token"),
@@ -12,10 +12,10 @@ test("Digital Asset Links require a complete valid identity and never reflect in
   );
   const fingerprint = Array(32).fill("ab").join(":");
   const links = assetLinks(
-    "com.company.unitale",
+    "com.company.unibase",
     `${fingerprint},${fingerprint}`,
   );
-  assert.equal(links[0].target.package_name, "com.company.unitale");
+  assert.equal(links[0].target.package_name, "com.company.unibase");
   assert.deepEqual(links[0].target.sha256_cert_fingerprints, [
     fingerprint.toUpperCase(),
   ]);
@@ -26,8 +26,8 @@ test("Android release rejects placeholders and unsafe interpolated values", () =
     versionName: "0.1.0",
   };
   const env = {
-    ANDROID_HOST: "unitale.example.invalid",
-    ANDROID_PACKAGE_NAME: "invalid.example.unitale",
+    ANDROID_HOST: "unibase.example.invalid",
+    ANDROID_PACKAGE_NAME: "invalid.example.unibase",
   };
   assert.throws(
     () => parseAndroidConfig(config, env, true),
@@ -48,7 +48,7 @@ test("Android release rejects placeholders and unsafe interpolated values", () =
       config,
       {
         ANDROID_HOST: "app.company.com",
-        ANDROID_PACKAGE_NAME: "com.company.unitale",
+        ANDROID_PACKAGE_NAME: "com.company.unibase",
       },
       true,
     ).host,

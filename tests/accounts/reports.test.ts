@@ -18,7 +18,7 @@ test("admin reports retain sanitized runtime records and permanent audit with st
     replSet: { count: 1, ip: "127.0.0.1", storageEngine: "wiredTiger" },
   });
   const client = new MongoClient(mongo.getUri());
-  const db = client.db("unitale_reports_test");
+  const db = client.db("unibase_reports_test");
   const actor = {
     uid: "reports-admin",
     authTime: Math.floor(Date.now() / 1000),

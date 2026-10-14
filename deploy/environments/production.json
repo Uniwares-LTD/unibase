@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "environment": "production",
+  "runtime": {
+    "APP_ENV": "production",
+    "APP_NAME": "Base",
+    "APP_STYLE": "classic",
+    "APP_ORIGIN": null,
+    "AUTH_MODE": "firebase",
+    "FIREBASE_PROJECT_ID": null,
+    "MONGODB_DATABASE": "unibase_production",
+    "DIFY_MODE": "disabled",
+    "PAYMENTS_MODE": "disabled",
+    "MCP_ENABLED": "false",
+    "ASSET_STORE": "mongo"
+  },
+  "deployment": {
+    "imageRepository": null,
+    "port": 35102,
+    "ingressSubnet": "172.29.242.0/24",
+    "redisImage": null,
+    "nginxImage": null,
+    "adminImage": null
+  },
+  "ssh": {
+    "host": null,
+    "user": null,
+    "cloudflaredVersion": null,
+    "cloudflaredSha256": null
+  },
+  "google": {
+    "projectId": null,
+    "parent": null,
+    "workloadIdentityProvider": null,
+    "provisionerServiceAccount": null,
+    "oauthClientId": null
+  },
+  "atlas": {
+    "projectId": null,
+    "clusterName": null,
+    "mongoUser": "unibase_production",
+    "vpsEgressCidr": null
+  },
+  "shared": {
+    "ownerRepository": null,
+    "ownerRef": null,
+    "routeWorkflow": "shared-app-routes.yml",
+    "tunnelId": null,
+    "cloudflareAccountId": null,
+    "cloudflareZoneId": null
+  },
+  "ghcr": {
+    "pullUser": null
+  },
+  "android": {
+    "host": null,
+    "packageName": null
+  }
+}

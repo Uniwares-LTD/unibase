@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Only fixed Unitale paths and Compose projects are managed. Never source env files.
+# Only fixed Unibase paths and Compose projects are managed. Never source env files.
 set -Eeuo pipefail
 set +x
 umask 077
@@ -28,13 +28,13 @@ for tool in docker python3 curl flock; do command -v "$tool" >/dev/null; done
 docker compose version >/dev/null
 install -d -m 0700 "$root" "$config" "$state"
 exec 9>"$state/operation.lock"
-flock -w 300 9 || { echo 'Unitale operation already running' >&2; exit 1; }
+flock -w 300 9 || { echo 'Unibase operation already running' >&2; exit 1; }
 if [[ "$action" == setup ]]; then
   install -d -m 0700 "$base/releases" "$config/$target" "$config/$target/docker"
-  echo 'Unitale directories ready; existing host services unchanged'
+  echo 'Unibase directories ready; existing host services unchanged'
   exit 0
 fi
-[[ -d "$base/releases" ]] || { echo 'Run Unitale setup first' >&2; exit 1; }
+[[ -d "$base/releases" ]] || { echo 'Run Unibase setup first' >&2; exit 1; }
 export DOCKER_CONFIG=$config/$target/docker
 compose() { docker compose --project-name "$project" --env-file "$1/compose.env" -f "$1/compose.yml" "${@:2}"; }
 report() {
@@ -98,23 +98,25 @@ if [[ "$action" == rollback ]]; then
 else
   [[ "$image" =~ ^ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$ ]] || { echo 'Immutable GHCR digest required' >&2; exit 1; }
   [[ "$commit" =~ ^[a-f0-9]{40}$ ]] || { echo 'Invalid commit' >&2; exit 1; }
+  python3 "$script_dir/check-tracked.py" "$config" "$target"
   values=$(python3 "$script_dir/config.py" "$config" "$target")
   mapfile -t settings <<< "$values"
-  [[ "$image" == "${settings[3]}@"* ]] || { echo 'Image repository does not match Unitale configuration' >&2; exit 1; }
+  [[ "$image" == "${settings[3]}@"* ]] || { echo 'Image repository does not match Unibase configuration' >&2; exit 1; }
   candidate=$(mktemp -d "$base/releases/$commit.XXXXXXXX")
   cp "$script_dir/../../deploy/compose.yml" "$candidate/compose.yml"
   cp "$config/$target/runtime.env" "$candidate/runtime.env"
+  python3 "$script_dir/render-runtime.py" "$target" "$candidate/runtime.env"
+  python3 "$script_dir/config.py" "$config" "$target" "$candidate/runtime.env" >/dev/null
   cp "$config/$target/firebase.json" "$candidate/firebase.json"
-  python3 -c 'from pathlib import Path; import sys; Path(sys.argv[2]).write_text(Path(sys.argv[1]).read_text().replace("INGRESS_SUBNET", sys.argv[3]))' "$script_dir/../../deploy/nginx.conf" "$candidate/nginx.conf" "${settings[6]}"
+  python3 -c 'from pathlib import Path; from ipaddress import ip_network; import sys; gateway=str(ip_network(sys.argv[3]).network_address+1); Path(sys.argv[2]).write_text(Path(sys.argv[1]).read_text().replace("INGRESS_GATEWAY", gateway))' "$script_dir/../../deploy/nginx.conf" "$candidate/nginx.conf" "${settings[6]}"
   chmod 0444 "$candidate/nginx.conf"
   cp "$config/$target/redis-password" "$candidate/redis-password"
   chown 1001:1001 "$candidate/redis-password"
   chmod 0400 "$candidate/redis-password"
-  cp "$config/$target/tunnel-token" "$candidate/tunnel-token"
-  chown 1001:1001 "$candidate/firebase.json" "$candidate/tunnel-token"
-  chmod 0400 "$candidate/firebase.json" "$candidate/tunnel-token"
-  printf 'DEPLOY_ENV=%s\nIMAGE_DIGEST=%s\nRELEASE_COMMIT=%s\nAPP_PORT=%s\nTUNNEL_IMAGE=%s\n' \
-    "$target" "$image" "$commit" "${settings[1]}" "${settings[2]}" > "$candidate/compose.env"
+  chown 1001:1001 "$candidate/firebase.json"
+  chmod 0400 "$candidate/firebase.json"
+  printf 'DEPLOY_ENV=%s\nIMAGE_DIGEST=%s\nRELEASE_COMMIT=%s\nAPP_PORT=%s\n' \
+    "$target" "$image" "$commit" "${settings[1]}" > "$candidate/compose.env"
   printf 'PROJECT_SLUG=%s\n' "$slug" >> "$candidate/compose.env"
   ingress_subnet=${settings[6]}
   printf 'REDIS_IMAGE=%s\nNGINX_IMAGE=%s\nINGRESS_SUBNET=%s\n' "${settings[4]}" "${settings[5]}" "$ingress_subnet" >> "$candidate/compose.env"

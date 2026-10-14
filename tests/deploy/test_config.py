@@ -1,6 +1,5 @@
 import importlib.util
 import json
-import base64
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,20 +9,15 @@ spec = importlib.util.spec_from_file_location("deployment_config", MODULE)
 config_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(config_module)
 
-def tunnel_token(tunnel_id, secret="synthetic-secret"):
-    return base64.b64encode(json.dumps({"a": "synthetic-account", "t": tunnel_id, "s": base64.b64encode(secret.encode()).decode()}).encode()).decode()
-
-
 def fixture(root):
-    config = {"imageRepository": "ghcr.io/test/unitale"}
-    for target, port in (("staging", 3100), ("production", 3102)):
+    config = {"imageRepository": "ghcr.io/test/unibase"}
+    for target, port in (("staging", 35101), ("production", 35102)):
         item = {"origin": f"https://{target}.example.test", "port": port,
-                "firebaseProject": f"unitale-{target}-test", "mongoDatabase": f"unitale_{target}",
-                "mongoUser": f"unitale_{target}", "tunnelImage": "cloudflare/cloudflared@sha256:" + "a" * 64}
-        item["tunnelId"] = "11111111-1111-4111-8111-111111111111" if target == "staging" else "22222222-2222-4222-8222-222222222222"
+                "firebaseProject": f"unibase-{target}-test", "mongoDatabase": f"unibase_{target}",
+                "mongoUser": f"unibase_{target}"}
         item["redisImage"] = "redis@sha256:" + "b" * 64
         item["nginxImage"] = "nginx@sha256:" + "c" * 64
-        item["ingressSubnet"] = "172.30.241.0/24" if target == "staging" else "172.30.242.0/24"
+        item["ingressSubnet"] = "172.29.241.0/24" if target == "staging" else "172.29.242.0/24"
         config[target] = item
         directory = root / target
         directory.mkdir(parents=True, exist_ok=True)
@@ -34,14 +28,13 @@ def fixture(root):
                "MONGODB_URI": f"mongodb+srv://{item['mongoUser']}:test-password@example.test"}
         (directory / "runtime.env").write_text("".join(f"{key}={value}\n" for key, value in env.items()))
         (directory / "firebase.json").write_text(json.dumps({"type": "service_account", "project_id": item["firebaseProject"], "private_key": "synthetic-fixture"}))
-        (directory / "tunnel-token").write_text(tunnel_token(item["tunnelId"]))
     (root / "config.json").write_text(json.dumps(config))
     return config
 
 
 class ConfigTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="unitale-deploy-test-")
+        self.temp = tempfile.TemporaryDirectory(prefix="unibase-deploy-test-")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.config = fixture(self.root)
@@ -99,7 +92,7 @@ class ConfigTests(unittest.TestCase):
                 config_module.validate(self.root, "staging")
 
     def test_each_shared_identity_is_rejected(self):
-        for field in ("origin", "port", "firebaseProject", "mongoDatabase", "mongoUser", "tunnelId"):
+        for field in ("origin", "port", "firebaseProject", "mongoDatabase", "mongoUser"):
             with self.subTest(field=field):
                 config = json.loads(json.dumps(self.config))
                 config["staging"][field] = config["production"][field]
@@ -126,14 +119,13 @@ class ConfigTests(unittest.TestCase):
 
     def test_atlas_user_must_match_selected_environment(self):
         env = self.root / "staging/runtime.env"
-        env.write_text(env.read_text().replace("mongodb+srv://unitale_staging:", "mongodb+srv://unitale_production:"))
+        env.write_text(env.read_text().replace("mongodb+srv://unibase_staging:", "mongodb+srv://unibase_production:"))
         with self.assertRaises(ValueError):
             config_module.validate(self.root, "staging")
 
-    def test_production_tunnel_token_cannot_be_used_for_staging(self):
-        (self.root / "staging/tunnel-token").write_bytes((self.root / "production/tunnel-token").read_bytes())
-        with self.assertRaises(ValueError):
-            config_module.validate(self.root, "staging")
+    def test_shared_tunnel_needs_no_environment_token(self):
+        config_module.validate(self.root, "staging")
+        self.assertFalse((self.root / "staging/tunnel-token").exists())
 
     def test_mcp_clients_hosts_and_run_selection(self):
         env = self.root / "staging/runtime.env"

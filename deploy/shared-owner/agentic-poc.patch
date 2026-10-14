@@ -1,0 +1,438 @@
+diff --git a/.github/workflows/infrastructure.yml b/.github/workflows/infrastructure.yml
+--- a/.github/workflows/infrastructure.yml
++++ b/.github/workflows/infrastructure.yml
+@@ -1,6 +1,11 @@
+ name: Infrastructure
+ on:
+-  push: { branches: [master], paths: ['infra/**', 'deploy/**', 'scripts/deploy/vps-deployment.sh', '.github/workflows/infrastructure.yml'] }
++  push: { branches: [master], paths: ['infra/**', 'deploy/**', 'scripts/shared-app-routes.py', 'scripts/deploy/vps-deployment.sh', '.github/workflows/infrastructure.yml'] }
++  workflow_call:
++    inputs:
++      apply:
++        type: boolean
++        default: false
+   workflow_dispatch: { inputs: { apply: { type: boolean, default: false } } }
+ permissions: { contents: read }
+ defaults: {run: {shell: bash}}
+diff --git a/.github/workflows/shared-app-routes.yml b/.github/workflows/shared-app-routes.yml
+new file mode 100644
+--- /dev/null
++++ b/.github/workflows/shared-app-routes.yml
+@@ -0,0 +1,57 @@
++name: Shared application routes
++run-name: Shared routes ${{ inputs.repository }} ${{ inputs.request_id }}
++on:
++  workflow_dispatch:
++    inputs:
++      repository:
++        type: string
++        required: true
++      slug:
++        type: string
++        required: true
++      environment:
++        type: choice
++        options: [staging, production]
++        required: true
++      request_id:
++        type: string
++        required: true
++      apply:
++        type: boolean
++        default: false
++permissions:
++  contents: read
++jobs:
++  validate:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
++      - name: Validate owner branch and registered caller
++        env:
++          CALLER_REPOSITORY: ${{ inputs.repository }}
++          CALLER_SLUG: ${{ inputs.slug }}
++          TARGET: ${{ inputs.environment }}
++        run: |
++          test "$GITHUB_REF" = refs/heads/master
++          python3 scripts/shared-app-routes.py --registry infra/config/shared-app-routes.json --config infra/config/vps.json --repository "$CALLER_REPOSITORY" --slug "$CALLER_SLUG" --environment "$TARGET"
++      - name: Summarize registry check
++        if: always()
++        env:
++          OUTCOME: ${{ job.status }}
++          TARGET: ${{ inputs.environment }}
++          REQUEST_ID: ${{ inputs.request_id }}
++        run: |
++          python3 - <<'PY'
++          import os
++          import re
++          request = os.environ['REQUEST_ID']
++          if not re.fullmatch(r'[a-f0-9-]{36}', request): request = 'invalid'
++          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as file:
++              file.write('Shared route registry: outcome=' + os.environ['OUTCOME'] + ' environment=' + os.environ['TARGET'] + ' request=' + request + '\n')
++          PY
++  reconcile:
++    needs: validate
++    uses: ./.github/workflows/infrastructure.yml
++    with:
++      apply: ${{ inputs.apply }}
++    secrets: inherit
+diff --git a/docs/architecture.md b/docs/architecture.md
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -783,3 +783,23 @@
+ ### Consolidated VPS deployment boundary
+ 
+ VPS deployment is owned by `scripts/deploy/vps-deployment.sh`. Setup discovers Cloudflare and host ownership and configures database-scoped Atlas users and the exact VPS allowlist. Finalize creates absent environment branches from the reviewed commit containing `infra/config/vps.json`. Terraform owns Cloudflare R2, Tunnel, DNS and cache/rate-limit resources. `_staging` and `_prod` are independent reviewed release lines and may diverge from `master`. GitHub Actions verify the current environment-branch commit, build public GHCR environment-tagged images, and deploy only their immutable digests through the restricted VPS command interface. Compose overlays hold non-secret configuration; root-only final overrides hold secrets, including staged rotation files. Preview is the default and mutations require `--apply`. TypeScript owns application initialization, readiness, drain, backup/restore, and staging-reset behavior.
++
++## Registered applications on the shared tunnel
++
++`infra/config/shared-app-routes.json` is the tracked registry for additional apps.
++The canonical infrastructure entrypoint validates it and supplies its enabled
++routes to Terraform on every plan/apply. Existing Booklet, SSH and Dify routes
++remain owned here. App repositories must not write the tunnel ingress list.
++
++Register the app repository, slug, environment, hostname and loopback port in a
++reviewed owner change. Fill the existing tunnel/account/zone identifiers and enable
++the entry only after allocation review. Disabled placeholders route nothing.
++`Shared application routes` accepts only an enabled registered app; it invokes the
++same serialized Infrastructure workflow and retains its plan/ownership safeguards.
++The workflow defaults to preview. Shared application DNS cannot be silently deleted.
++
++Follow-up: transfer shared tunnel ownership to a dedicated infrastructure owner,
++including Terraform state, route registry, SSH Access credentials, concurrency and
++preservation of every existing route. Transfer Dify Community ownership separately,
++including its pinned installation, private credentials, backups/state and service
++continuity. Neither ownership transfer nor Dify reinstallation is part of this change.
+diff --git a/docs/deployment/runbook.md b/docs/deployment/runbook.md
+--- a/docs/deployment/runbook.md
++++ b/docs/deployment/runbook.md
+@@ -224,3 +224,23 @@
+ Setup is additive and resumable. It does not delete resources, copy production data, or roll back automatically. Terraform runs from a private workspace outside the checkout and must not rewrite tracked files.
+ 
+ See [deployment contracts](contracts.md) for ownership, secrets, security boundaries, cost limits, and validation requirements.
++
++## Registered applications on the shared tunnel
++
++`infra/config/shared-app-routes.json` is the tracked registry for additional apps.
++The canonical infrastructure entrypoint validates it and supplies its enabled
++routes to Terraform on every plan/apply. Existing Booklet, SSH and Dify routes
++remain owned here. App repositories must not write the tunnel ingress list.
++
++Register the app repository, slug, environment, hostname and loopback port in a
++reviewed owner change. Fill the existing tunnel/account/zone identifiers and enable
++the entry only after allocation review. Disabled placeholders route nothing.
++`Shared application routes` accepts only an enabled registered app; it invokes the
++same serialized Infrastructure workflow and retains its plan/ownership safeguards.
++The workflow defaults to preview. Shared application DNS cannot be silently deleted.
++
++Follow-up: transfer shared tunnel ownership to a dedicated infrastructure owner,
++including Terraform state, route registry, SSH Access credentials, concurrency and
++preservation of every existing route. Transfer Dify Community ownership separately,
++including its pinned installation, private credentials, backups/state and service
++continuity. Neither ownership transfer nor Dify reinstallation is part of this change.
+diff --git a/infra/config/shared-app-routes.json b/infra/config/shared-app-routes.json
+new file mode 100644
+--- /dev/null
++++ b/infra/config/shared-app-routes.json
+@@ -0,0 +1,25 @@
++{
++  "version": 1,
++  "ownerRepository": "karpishe-experiments/agentic-poc",
++  "tunnelId": null,
++  "cloudflareAccountId": null,
++  "cloudflareZoneId": null,
++  "applications": [
++    {
++      "repository": "Uniwares-LTD/unibase",
++      "slug": "unibase",
++      "environment": "staging",
++      "hostname": null,
++      "port": 35101,
++      "enabled": false
++    },
++    {
++      "repository": "Uniwares-LTD/unibase",
++      "slug": "unibase",
++      "environment": "production",
++      "hostname": null,
++      "port": 35102,
++      "enabled": false
++    }
++  ]
++}
+diff --git a/infra/terraform/deployment.tftest.hcl b/infra/terraform/deployment.tftest.hcl
+--- a/infra/terraform/deployment.tftest.hcl
++++ b/infra/terraform/deployment.tftest.hcl
+@@ -47,3 +47,30 @@
+     error_message = "Enabled Dify routing must target only the loopback listener."
+   }
+ }
++
++run "registered_shared_routes" {
++  command = plan
++  variables {
++    shared_application_routes = {
++      "unibase-staging"    = { hostname = "unibase-staging.example.com", port = 35101 }
++      "unibase-production" = { hostname = "unibase.example.com", port = 35102 }
++    }
++  }
++  assert {
++    condition     = length(cloudflare_zero_trust_tunnel_cloudflared_config.vps.config.ingress) == 7 && cloudflare_zero_trust_tunnel_cloudflared_config.vps.config.ingress[2].service == "ssh://localhost:22" && cloudflare_zero_trust_tunnel_cloudflared_config.vps.config.ingress[3].service == "http_status:503" && cloudflare_zero_trust_tunnel_cloudflared_config.vps.config.ingress[6].service == "http_status:404" && length(cloudflare_dns_record.shared_application) == 2
++    error_message = "Shared routes must preserve SSH, Booklet, Dify and the final catch-all."
++  }
++}
++run "shared_routes_survive_later_owner_plan" {
++  command = plan
++  variables {
++    shared_application_routes = {
++      "unibase-staging"    = { hostname = "unibase-staging.example.com", port = 35101 }
++      "unibase-production" = { hostname = "unibase.example.com", port = 35102 }
++    }
++  }
++  assert {
++    condition     = length(cloudflare_zero_trust_tunnel_cloudflared_config.vps.config.ingress) == 7 && cloudflare_dns_record.shared_application["unibase-staging"].name == "unibase-staging.example.com"
++    error_message = "An ordinary owner plan must retain registered shared routes."
++  }
++}
+diff --git a/infra/terraform/main.tf b/infra/terraform/main.tf
+--- a/infra/terraform/main.tf
++++ b/infra/terraform/main.tf
+@@ -10,7 +10,7 @@
+ locals {
+   environments      = toset(["staging", "prod"])
+   buckets           = toset(flatten([for environment in local.environments : [for kind in ["assets", "diagnostics", "recovery"] : "${var.project}-${environment}-${kind}"]]))
+-  application_hosts = "http.host in {\"${var.staging_hostname}\" \"${var.prod_hostname}\"}"
++  application_hosts = "http.host in {${join(" ", [for host in concat([var.staging_hostname, var.prod_hostname], [for route in values(var.shared_application_routes) : route.hostname]) : jsonencode(host)])}}"
+ }
+ resource "cloudflare_r2_bucket" "bucket" {
+   for_each   = local.buckets
+@@ -35,13 +35,12 @@
+   account_id = var.cloudflare_account_id
+   tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.vps.id
+   config = {
+-    ingress = [
++    ingress = concat([
+       { hostname = var.staging_hostname, service = "http://localhost:3100" },
+       { hostname = var.prod_hostname, service = "http://localhost:3200" },
+       { hostname = var.deploy_hostname, service = "ssh://localhost:22" },
+       { hostname = var.dify_hostname, service = var.dify_public_enabled ? "http://localhost:3300" : "http_status:503" },
+-      { service = "http_status:404" }
+-    ]
++    ], [for route in values(var.shared_application_routes) : { hostname = route.hostname, service = "http://localhost:${route.port}" }], [{ service = "http_status:404" }])
+   }
+ }
+ resource "cloudflare_dns_record" "application" {
+@@ -104,3 +103,14 @@
+     }
+   }]
+ }
++
++resource "cloudflare_dns_record" "shared_application" {
++  for_each = var.shared_application_routes
++  zone_id  = var.cloudflare_zone_id
++  name     = each.value.hostname
++  type     = "CNAME"
++  content  = "${cloudflare_zero_trust_tunnel_cloudflared.vps.id}.cfargotunnel.com"
++  ttl      = 1
++  proxied  = true
++  lifecycle { prevent_destroy = true }
++}
+diff --git a/infra/terraform/variables.tf b/infra/terraform/variables.tf
+--- a/infra/terraform/variables.tf
++++ b/infra/terraform/variables.tf
+@@ -41,3 +41,13 @@
+     error_message = "Supply three distinct lowercase DNS hostnames without schemes, paths or wildcard characters."
+   }
+ }
++
++variable "shared_application_routes" {
++  type        = map(object({ hostname = string, port = number }))
++  default     = {}
++  description = "Approved shared app routes from the owner registry; no caller-supplied endpoints."
++  validation {
++    condition     = length(distinct([for route in values(var.shared_application_routes) : route.hostname])) == length(var.shared_application_routes) && length(distinct([for route in values(var.shared_application_routes) : route.port])) == length(var.shared_application_routes) && alltrue([for key, route in var.shared_application_routes : can(regex("^[a-z][a-z0-9-]{2,39}-(staging|production)$", key)) && can(regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", route.hostname)) && !contains([var.staging_hostname, var.prod_hostname, var.deploy_hostname, var.dify_hostname], route.hostname) && route.port >= 1024 && route.port <= 65535 && floor(route.port) == route.port && !contains([3100, 3200, 3300], route.port)])
++    error_message = "Shared app routes must have unique hostnames/ports and preserve existing app, SSH and Dify routes."
++  }
++}
+diff --git a/scripts/deploy/vps-deployment.sh b/scripts/deploy/vps-deployment.sh
+--- a/scripts/deploy/vps-deployment.sh
++++ b/scripts/deploy/vps-deployment.sh
+@@ -191,6 +191,10 @@
+   TF_VAR_dify_hostname="$(jq -er .dify_hostname "$CONFIG_FILE")"
+   TF_VAR_dify_backup_bucket="$(jq -er .dify_backup_bucket "$CONFIG_FILE")"
+   TF_VAR_dify_public_enabled="$(jq -er '.dify_public_enabled | if type == "boolean" then tostring else error("invalid Dify public switch") end' "$CONFIG_FILE")"
++  if [[ -f "$REPO_ROOT/infra/config/shared-app-routes.json" ]]; then
++    TF_VAR_shared_application_routes="$(python3 "$REPO_ROOT/scripts/shared-app-routes.py" --registry "$REPO_ROOT/infra/config/shared-app-routes.json" --config "$CONFIG_FILE" --export)" || die 'Invalid shared route registry'
++  else TF_VAR_shared_application_routes='{}'; fi
++  export TF_VAR_shared_application_routes
+   R2_STATE_BUCKET="$(jq -r .state_bucket "$CONFIG_FILE")"
+   export TF_VAR_cloudflare_account_id TF_VAR_cloudflare_zone_id TF_VAR_staging_hostname TF_VAR_prod_hostname TF_VAR_deploy_hostname TF_VAR_dify_hostname TF_VAR_dify_backup_bucket TF_VAR_dify_public_enabled R2_STATE_BUCKET
+   export R2_ENDPOINT="https://$TF_VAR_cloudflare_account_id.r2.cloudflarestorage.com"
+@@ -2584,6 +2588,11 @@
+   if grep -Fqx "$address" <<< "$state"; then [[ "$present" == true ]] || die "Terraform tracks missing R2 bucket $name"; else [[ "$present" == false ]] || die "R2 bucket $name exists outside Terraform state"; fi
+   cloudflare_get "accounts/$TF_VAR_cloudflare_account_id/cfd_tunnel?name=kids-booklet-vps&is_deleted=false"; present=false; [[ "$(jq '.result | length' "$CF_RESPONSE")" == 0 ]] || present=true
+   if grep -qx 'cloudflare_zero_trust_tunnel_cloudflared.vps' <<< "$state"; then [[ "$present" == true ]] || die 'Terraform tracks a missing Tunnel'; else [[ "$present" == false ]] || die 'The project Tunnel exists outside Terraform state'; fi
++  if [[ "$(jq 'length' <<< "$TF_VAR_shared_application_routes")" -gt 0 ]]; then
++    local shared_tunnel_id
++    shared_tunnel_id="$(jq -er .tunnelId "$REPO_ROOT/infra/config/shared-app-routes.json")"
++    jq -e --arg id "$shared_tunnel_id" '.result | length == 1 and .[0].id == $id' "$CF_RESPONSE" >/dev/null || die 'Shared route registry does not match the existing tunnel'
++  fi
+   cloudflare_get "accounts/$TF_VAR_cloudflare_account_id/access/apps"; present=false
+   [[ "$(jq --arg hostname "$TF_VAR_deploy_hostname" '[.result[]? | select(.domain==$hostname)] | length' "$CF_RESPONSE")" == 0 ]] || present=true
+   if grep -qx 'cloudflare_zero_trust_access_application.deployment' <<< "$state"; then [[ "$present" == true ]] || die 'Terraform tracks a missing deployment Access application'; else [[ "$present" == false ]] || die 'The deployment Access application exists outside Terraform state'; fi
+@@ -2593,6 +2602,17 @@
+     cloudflare_get "zones/$TF_VAR_cloudflare_zone_id/dns_records?name=$hostname"; present=false; [[ "$(jq '.result | length' "$CF_RESPONSE")" == 0 ]] || present=true
+     if grep -Fqx "$address" <<< "$state"; then [[ "$present" == true ]] || die "Terraform tracks missing DNS record $hostname"; else [[ "$present" == false ]] || die "DNS record $hostname exists outside Terraform state"; fi
+   done
++  while IFS= read -r key; do
++    hostname="$(jq -er --arg key "$key" '.[$key].hostname' <<< "$TF_VAR_shared_application_routes")"
++    address="cloudflare_dns_record.shared_application[\"$key\"]"
++    cloudflare_get "zones/$TF_VAR_cloudflare_zone_id/dns_records?name=$hostname"
++    [[ "$CF_STATUS" == 200 ]] || die 'Cannot verify registered shared DNS route'
++    if grep -Fqx "$address" <<< "$state"; then
++      [[ "$(jq '.result | length' "$CF_RESPONSE")" == 1 ]] || die 'Tracked shared DNS route is missing or ambiguous'
++    else
++      [[ "$(jq '.result | length' "$CF_RESPONSE")" == 0 ]] || die 'Registered shared DNS route exists outside owner Terraform state'
++    fi
++  done < <(jq -r 'keys[]' <<< "$TF_VAR_shared_application_routes")
+   for phase in http_request_cache_settings http_ratelimit; do
+     address=cloudflare_ruleset.cache; expected='["application_bypass","next_static"]'
+     if [[ "$phase" == http_ratelimit ]]; then address=cloudflare_ruleset.rate_limit; expected='["application_api_rate"]'; fi
+@@ -2725,6 +2745,7 @@
+ terraform_operation() {
+   local directory
+   need_command terraform; need_command jq
++  [[ -f "$REPO_ROOT/infra/config/shared-app-routes.json" && -f "$REPO_ROOT/scripts/shared-app-routes.py" ]] || die 'Shared infrastructure requires the reviewed route registry and validator'
+   load_config
+   load_terraform_configuration
+   verify_infrastructure_head
+diff --git a/scripts/shared-app-routes.py b/scripts/shared-app-routes.py
+new file mode 100644
+--- /dev/null
++++ b/scripts/shared-app-routes.py
+@@ -0,0 +1,68 @@
++"""Validate the owner's registry. Requests can select registered apps, not URLs."""
++import argparse
++import json
++import re
++import sys
++from pathlib import Path
++
++
++def validate(registry, config):
++    if registry.get("version") != 1 or registry.get("ownerRepository") != config["repository"]:
++        raise ValueError("Shared registry owner mismatch")
++    enabled = [entry for entry in registry.get("applications", []) if entry.get("enabled") is True]
++    if enabled:
++        if registry.get("cloudflareAccountId") != config["cloudflare_account_id"] or registry.get("cloudflareZoneId") != config["cloudflare_zone_id"]:
++            raise ValueError("Shared registry Cloudflare identities mismatch")
++        from uuid import UUID
++        if str(UUID(registry.get("tunnelId") or "")) != registry["tunnelId"]:
++            raise ValueError("Invalid existing tunnel identity")
++    hosts = {config["deploy_hostname"], config["dify_hostname"], *[value["APP_HOSTNAME"] for value in config["environments"].values()]}
++    ports = {22, 3100, 3200, 3300}
++    identities, results = set(), {}
++    for entry in registry.get("applications", []):
++        if type(entry.get("enabled")) is not bool:
++            raise ValueError("Registry entry needs an explicit enabled flag")
++        if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", entry.get("repository", "")) or not re.fullmatch(r"[a-z][a-z0-9-]{2,39}", entry.get("slug", "")) or entry.get("environment") not in ("staging", "production"):
++            raise ValueError("Invalid registered application identity")
++        identity = (entry["repository"].lower(), entry["slug"], entry["environment"])
++        if identity in identities:
++            raise ValueError("Duplicate registered application")
++        identities.add(identity)
++        if not entry["enabled"]:
++            continue
++        host, port = entry.get("hostname"), entry.get("port")
++        if not isinstance(host, str) or not re.fullmatch(r"[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+", host):
++            raise ValueError("Invalid registered hostname")
++        if type(port) is not int or not 1024 <= port <= 65535 or port in ports or host in hosts:
++            raise ValueError("Registered route conflicts with an allocated hostname/port")
++        key = entry["slug"] + "-" + entry["environment"]
++        if key in results:
++            raise ValueError("Registered application namespace collision")
++        hosts.add(host)
++        ports.add(port)
++        results[key] = {"hostname": host, "port": port}
++    return results
++
++
++if __name__ == "__main__":
++    try:
++        parser = argparse.ArgumentParser()
++        parser.add_argument("--registry", type=Path, required=True)
++        parser.add_argument("--config", type=Path, required=True)
++        parser.add_argument("--export", action="store_true")
++        parser.add_argument("--repository")
++        parser.add_argument("--slug")
++        parser.add_argument("--environment", choices=["staging", "production"])
++        args = parser.parse_args()
++        registry = json.loads(args.registry.read_text())
++        routes = validate(registry, json.loads(args.config.read_text()))
++        if not args.export:
++            selected = [entry for entry in registry["applications"] if entry["repository"] == args.repository and entry["slug"] == args.slug and entry["environment"] == args.environment and entry["enabled"]]
++            if len(selected) != 1:
++                raise ValueError("Requested app is not uniquely enabled in the owner's registry")
++            print("verified: registered shared application route")
++        else:
++            print(json.dumps(routes, separators=(",", ":")))
++    except Exception as error:
++        print(str(error) if isinstance(error, ValueError) else "Invalid shared route registry", file=sys.stderr)
++        sys.exit(1)
+diff --git a/tests/shared_routes_test.py b/tests/shared_routes_test.py
+new file mode 100644
+--- /dev/null
++++ b/tests/shared_routes_test.py
+@@ -0,0 +1,52 @@
++import copy
++import importlib.util
++import unittest
++from pathlib import Path
++
++spec = importlib.util.spec_from_file_location("shared_routes", Path(__file__).resolve().parents[1] / "scripts/shared-app-routes.py")
++module = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(module)
++
++
++class SharedRouteTests(unittest.TestCase):
++    def setUp(self):
++        self.config = {"repository": "fixture/owner", "cloudflare_account_id": "fixture-account", "cloudflare_zone_id": "fixture-zone",
++                       "deploy_hostname": "ssh.example.test", "dify_hostname": "dify.example.test", "environments": {
++                           "staging": {"APP_HOSTNAME": "booklet-staging.example.test"}, "prod": {"APP_HOSTNAME": "booklet.example.test"}}}
++        self.registry = {"version": 1, "ownerRepository": "fixture/owner", "cloudflareAccountId": "fixture-account",
++                         "cloudflareZoneId": "fixture-zone", "tunnelId": "11111111-1111-4111-8111-111111111111", "applications": [
++                             {"repository": "fixture/app", "slug": "unibase", "environment": "staging", "hostname": "unibase-staging.example.test", "port": 35101, "enabled": True},
++                             {"repository": "fixture/app", "slug": "unibase", "environment": "production", "hostname": "unibase.example.test", "port": 35102, "enabled": True}]}
++
++    def test_routes_have_stable_namespace_keys(self):
++        first = module.validate(self.registry, self.config)
++        self.assertEqual(first, module.validate(copy.deepcopy(self.registry), self.config))
++        self.assertEqual(set(first), {"unibase-staging", "unibase-production"})
++
++    def test_host_and_port_collisions_are_rejected(self):
++        for change in ({"port": 35101}, {"hostname": "unibase-staging.example.test"}, {"port": 3100},
++                       {"port": 3200}, {"port": 3300}, {"hostname": "ssh.example.test"}, {"hostname": "dify.example.test"}):
++            registry = copy.deepcopy(self.registry)
++            registry["applications"][1].update(change)
++            with self.assertRaises(ValueError):
++                module.validate(registry, self.config)
++
++    def test_duplicate_identity_and_namespace_are_rejected(self):
++        for repository in ("fixture/app", "another/app"):
++            registry = copy.deepcopy(self.registry)
++            item = copy.deepcopy(registry["applications"][0])
++            item.update(repository=repository, hostname="other.example.test", port=35103)
++            registry["applications"].append(item)
++            with self.assertRaises(ValueError):
++                module.validate(registry, self.config)
++
++    def test_disabled_placeholders_publish_nothing(self):
++        for item in self.registry["applications"]:
++            item.update(enabled=False, hostname=None)
++        self.registry.update(tunnelId=None, cloudflareAccountId=None, cloudflareZoneId=None)
++        self.assertEqual(module.validate(self.registry, self.config), {})
++
++    def test_account_mismatch_is_rejected(self):
++        self.registry["cloudflareAccountId"] = "other-account"
++        with self.assertRaises(ValueError):
++            module.validate(self.registry, self.config)

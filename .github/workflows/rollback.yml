@@ -1,4 +1,4 @@
-name: Restore previous Unitale release
+name: Restore previous Unibase release
 on:
   workflow_dispatch:
     inputs:

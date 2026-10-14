@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseDatabaseConfig } from "../src/lib/config/database";
 import { parseAuthConfig } from "../src/lib/config/auth";
+import { databasePrefix } from "../src/lib/project";
 
 test("database defaults remain local-only and explicit settings win", () => {
   assert.deepEqual(parseDatabaseConfig({}, "local"), {
     mongoUri: "mongodb://127.0.0.1:27017",
-    database: "unitale_local",
+    database: `${databasePrefix}_local`,
   });
   const configured = {
     MONGODB_URI: "mongodb+srv://fixture.example.test",
@@ -51,7 +52,7 @@ test("database validation reports only field names, never supplied values", () =
 
 test("database and authentication configuration are independent", () => {
   const database = parseDatabaseConfig({ AUTH_MODE: "invalid" }, "local");
-  assert.equal(database.database, "unitale_local");
+  assert.equal(database.database, `${databasePrefix}_local`);
   const auth = parseAuthConfig(
     {
       AUTH_MODE: "firebase",
@@ -61,7 +62,7 @@ test("database and authentication configuration are independent", () => {
       MONGODB_URI: "invalid",
     },
     "production",
-    "https://unitale.example",
+    "https://unibase.example",
   );
   assert.equal(auth.server.mode, "firebase");
   assert.ok(!("mongoUri" in auth.server));

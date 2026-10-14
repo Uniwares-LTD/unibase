@@ -6,21 +6,21 @@ import shutil
 import subprocess
 import unittest
 from pathlib import Path
-from test_config import fixture, tunnel_token
+from test_config import fixture
 
-ROOT = Path("/opt/unitale")
-CONFIG = Path("/etc/unitale")
-STATE = Path("/var/lib/unitale")
+ROOT = Path("/opt/unibase")
+CONFIG = Path("/etc/unibase")
+STATE = Path("/var/lib/unibase")
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts/deploy/vps.sh"
 
 
-@unittest.skipUnless(os.environ.get("UNITALE_DEPLOY_TEST_CONTAINER") == "1" and str(REPO) == "/repo", "Requires owned Linux test container")
+@unittest.skipUnless(os.environ.get("UNIBASE_DEPLOY_TEST_CONTAINER") == "1" and str(REPO) == "/repo", "Requires owned Linux test container")
 class HostTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         assert not ROOT.exists() and not CONFIG.exists() and not STATE.exists()
-        cls.bin = Path("/tmp/unitale-mock-bin")
+        cls.bin = Path("/tmp/unibase-mock-bin")
         cls.bin.mkdir()
         mocks = {
             "docker": '''#!/usr/bin/env python3
@@ -39,7 +39,7 @@ if args[:2]==['buildx','build']:
     sys.exit(0)
 if args==['compose','version']: print('Docker Compose version v2.35.0'); sys.exit(0)
 project=args[args.index('--project-name')+1]
-if project not in ('unitale-staging','unitale-production'): sys.exit(99)
+if project not in ('unibase-staging','unibase-production'): sys.exit(99)
 env=Path(args[args.index('--env-file')+1])
 if 'exec' in args:
     if 'worker-healthcheck.cjs' not in args: sys.exit(99)
@@ -64,8 +64,8 @@ url=sys.argv[-1]
 if url.startswith('https://github.com/cloudflare/cloudflared/releases/'):
     Path(sys.argv[sys.argv.index('--output')+1]).write_text('#!/bin/sh\\nexit 0\\n')
     sys.exit(0)
-target='staging' if ('3100' in url or 'staging.' in url) else 'production'
-active=Path('/tmp/active-unitale-'+target)
+target='staging' if ('35101' in url or 'staging.' in url) else 'production'
+active=Path('/tmp/active-unibase-'+target)
 if not active.exists(): sys.exit(22)
 env=dict(x.split('=',1) for x in active.read_text().splitlines())
 commit=env['RELEASE_COMMIT']
@@ -93,7 +93,7 @@ else: sys.exit(1)
 ''',
             "python3": '''#!/usr/bin/env bash
 if [[ ${1:-} == *private-package.py ]]; then
-  exec /usr/bin/python3 /tmp/unitale-mock-bin/package-api.py "$@"
+  exec /usr/bin/python3 /tmp/unibase-mock-bin/package-api.py "$@"
 fi
 exec /usr/bin/python3 "$@"
 ''',
@@ -103,7 +103,7 @@ bash -c "${!#}"
 ''',
             "scp": '''#!/usr/bin/env bash
 printf 'scp\\n' >> /tmp/host-contacts
-cp -- "$3" "${4#unitale-vps:}"
+cp -- "$3" "${4#unibase-vps:}"
 ''',
             "sudo": '''#!/usr/bin/env bash
 [[ ${1:-} != -n ]] || shift
@@ -136,7 +136,7 @@ runpy.run_path(filename,run_name='__main__')
     def run_host(cls, action, target="staging", commit=None, **extra):
         args = ["bash", str(SCRIPT), action, target, "--apply"]
         if commit:
-            args += ["ghcr.io/test/unitale@sha256:" + "b" * 64, commit]
+            args += ["ghcr.io/test/unibase@sha256:" + "b" * 64, commit]
         return subprocess.run(args, env=dict(cls.env, **extra), capture_output=True, text=True, timeout=20)
 
     def setUp(self):
@@ -145,7 +145,7 @@ runpy.run_path(filename,run_name='__main__')
                 (ROOT / target / link).unlink(missing_ok=True)
             shutil.rmtree(ROOT / target / "releases")
             (ROOT / target / "releases").mkdir()
-            Path("/tmp/active-unitale-" + target).unlink(missing_ok=True)
+            Path("/tmp/active-unibase-" + target).unlink(missing_ok=True)
         fixture(CONFIG)
         Path("/tmp/docker-operations").write_text("")
         Path("/tmp/docker-built").unlink(missing_ok=True)
@@ -167,7 +167,7 @@ runpy.run_path(filename,run_name='__main__')
         self.assertIn("result=restored", failed.stdout)
         self.assertEqual((ROOT / "staging/current").resolve(), previous)
         self.assertEqual((previous / "runtime.env").read_bytes(), snapshot)
-        self.assertIn("a" * 40, Path("/tmp/active-unitale-staging").read_text())
+        self.assertIn("a" * 40, Path("/tmp/active-unibase-staging").read_text())
 
     def test_external_https_failure_also_restores(self):
         previous = self.release("a" * 40)
@@ -178,13 +178,13 @@ runpy.run_path(filename,run_name='__main__')
 
     def test_rollback_retains_matching_credentials_without_data_operations(self):
         previous = self.release("a" * 40)
-        original = (previous / "tunnel-token").read_bytes()
-        (CONFIG / "staging/tunnel-token").write_text(tunnel_token("11111111-1111-4111-8111-111111111111", "rotated-synthetic-secret"))
+        original = (previous / "firebase.json").read_bytes()
+        (CONFIG / "staging/firebase.json").write_text((CONFIG / "staging/firebase.json").read_text().replace("synthetic-fixture", "rotated-synthetic-key"))
         self.release("b" * 40)
         result = self.run_host("rollback")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual((ROOT / "staging/current").resolve(), previous)
-        self.assertEqual((previous / "tunnel-token").read_bytes(), original)
+        self.assertEqual((previous / "firebase.json").read_bytes(), original)
         operations = Path("/tmp/docker-operations").read_text()
         for row in map(json.loads, operations.splitlines()):
             if "exec" in row:
@@ -210,7 +210,7 @@ runpy.run_path(filename,run_name='__main__')
         result = self.run_host("deploy", commit="b" * 40, FAIL_COMMIT="b" * 40)
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse((ROOT / "staging/current").exists())
-        self.assertFalse(Path("/tmp/active-unitale-staging").exists())
+        self.assertFalse(Path("/tmp/active-unibase-staging").exists())
 
     def test_staging_operations_never_touch_production_or_poc(self):
         result = self.run_host("deploy", target="production", commit="c" * 40)
@@ -220,7 +220,7 @@ runpy.run_path(filename,run_name='__main__')
         Path("/tmp/docker-operations").write_text("")
         self.release("a" * 40)
         operations = Path("/tmp/docker-operations").read_text()
-        self.assertNotIn("unitale-production", operations)
+        self.assertNotIn("unibase-production", operations)
         self.assertNotIn("kids-booklet", operations)
         self.assertEqual((production / "compose.env").read_bytes(), snapshot)
         (ROOT / "staging/previous").symlink_to(production)
@@ -230,20 +230,20 @@ runpy.run_path(filename,run_name='__main__')
 
     def test_guard_rejects_wrong_environment_branch_and_stale_commit(self):
         guard = REPO / "scripts/deploy/guard.sh"
-        env = dict(self.env, GITHUB_REPOSITORY="test/unitale", GITHUB_SHA="a" * 40, MOCK_REMOTE_SHA="a" * 40)
+        env = dict(self.env, GITHUB_REPOSITORY="test/unibase", GITHUB_SHA="a" * 40, MOCK_REMOTE_SHA="a" * 40)
         for target, branch, sha, expected in (("staging", "_staging", "a", 0), ("production", "_staging", "a", 1), ("staging", "_prod", "a", 1), ("staging", "_staging", "b", 1)):
             result = subprocess.run(["bash", guard, target], env=dict(env, GITHUB_REF="refs/heads/" + branch, MOCK_REMOTE_SHA=sha * 40), capture_output=True)
             self.assertEqual(result.returncode, expected)
 
     def run_release(self, **extra):
-        runner = Path("/tmp/unitale-release-runner")
+        runner = Path("/tmp/unibase-release-runner")
         if runner.exists():
             shutil.rmtree(runner)
         runner.mkdir()
-        env = dict(self.env, GITHUB_REPOSITORY="test/unitale", GITHUB_SHA="a" * 40,
+        env = dict(self.env, GITHUB_REPOSITORY="test/unibase", GITHUB_SHA="a" * 40,
                    GITHUB_REF="refs/heads/_staging", MOCK_REMOTE_SHA="a" * 40,
                    GITHUB_ACTOR="synthetic-operator", GH_TOKEN="synthetic-test-token",
-                   VPS_HOST="ssh.example.test", VPS_USER="unitale", RUNNER_TEMP=str(runner),
+                   VPS_HOST="ssh.example.test", VPS_USER="unibase", RUNNER_TEMP=str(runner),
                    CLOUDFLARED_VERSION="2026.1.0", CLOUDFLARED_SHA256=hashlib.sha256(b"#!/bin/sh\nexit 0\n").hexdigest(),
                    DEPLOY_SSH_PRIVATE_KEY="synthetic-private-key", DEPLOY_SSH_HOST_KEY="ssh-ed25519 synthetic-host-key",
                    CF_ACCESS_CLIENT_ID="synthetic-access-id", CF_ACCESS_CLIENT_SECRET="synthetic-access-secret",
@@ -255,7 +255,7 @@ runpy.run_path(filename,run_name='__main__')
         result = self.run_release()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("a" * 40, (ROOT / "staging/current/compose.env").read_text())
-        self.assertIn("Built successfully with quality warnings", Path("/tmp/unitale-release-runner/summary").read_text())
+        self.assertIn("Built successfully with quality warnings", Path("/tmp/unibase-release-runner/summary").read_text())
         self.assertIn("ssh", Path("/tmp/host-contacts").read_text())
 
     def test_failed_build_never_contacts_host(self):
@@ -278,7 +278,7 @@ runpy.run_path(filename,run_name='__main__')
 
     def test_host_lock_serializes_competing_releases(self):
         args = ["bash", str(SCRIPT), "deploy", "staging", "--apply",
-                "ghcr.io/test/unitale@sha256:" + "b" * 64, "a" * 40]
+                "ghcr.io/test/unibase@sha256:" + "b" * 64, "a" * 40]
         first = subprocess.Popen(args, env=dict(self.env, HOLD_UP="1"), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         import time
         try:
@@ -312,6 +312,15 @@ runpy.run_path(filename,run_name='__main__')
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn('"pull"', Path("/tmp/docker-operations").read_text())
         self.assertFalse((ROOT / "staging/current").exists())
+
+    def test_infrastructure_changes_require_provisioning_before_pull(self):
+        installed = json.loads((CONFIG / "config.json").read_text())
+        installed["staging"]["port"] = 35103
+        (CONFIG / "config.json").write_text(json.dumps(installed))
+        result = self.run_host("deploy", commit="a" * 40)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("provision", result.stderr)
+        self.assertNotIn('"pull"', Path("/tmp/docker-operations").read_text())
 
     def test_image_revision_mismatch_never_replaces_application(self):
         previous = self.release("a" * 40)

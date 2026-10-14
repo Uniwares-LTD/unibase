@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import path from "node:path";
+import manifest from "../project.config.json" with { type: "json" };
 
 const kind = process.argv[2];
 const scripts = readdirSync("scripts/deploy")
@@ -41,7 +42,7 @@ for (const [command, args] of commands) {
         `type=bind,source=${path.resolve(".")},target=/repo,readonly`,
         "--entrypoint",
         "shellcheck",
-        "unitale-deployment-tests",
+        `${manifest.slug}-deployment-tests`,
         "-x",
         ...scripts,
       ],

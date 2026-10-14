@@ -1,4 +1,4 @@
-name: Unitale host operation
+name: Unibase host operation
 on:
   workflow_call:
     inputs:
@@ -25,16 +25,14 @@ jobs:
       ACTION: ${{ inputs.action }}
       APPLY: ${{ inputs.apply }}
       GH_TOKEN: ${{ github.token }}
-      VPS_HOST: ${{ vars.VPS_HOST }}
-      VPS_USER: ${{ vars.VPS_USER }}
-      CLOUDFLARED_VERSION: ${{ vars.CLOUDFLARED_VERSION }}
-      CLOUDFLARED_SHA256: ${{ vars.CLOUDFLARED_SHA256 }}
       DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
       DEPLOY_SSH_HOST_KEY: ${{ secrets.DEPLOY_SSH_HOST_KEY }}
       CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
       CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Read tracked environment configuration
+        run: python3 scripts/deploy/environment.py "$TARGET" --github-env
       - name: Guard target and action
         run: |
           bash scripts/deploy/guard.sh "$TARGET"

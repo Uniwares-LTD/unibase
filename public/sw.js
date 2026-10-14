@@ -1,5 +1,5 @@
 /* Only the public fallback is stored. No API, account, RSC or navigation data. */
-const NAMESPACE = new URL(self.location.href).searchParams.get("namespace") || "unitale";
+const NAMESPACE = new URL(self.location.href).searchParams.get("namespace") || "unibase";
 const CACHE = NAMESPACE + "-offline-v2";
 const FALLBACK = "/offline.html";
 const SCRIPT="/offline-locale.js";

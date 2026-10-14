@@ -34,7 +34,7 @@ export async function processPaymentOrder(
         ? await stripe.checkout.sessions.retrieve(knownSessionId)
         : await ensureCheckout(stripe, order);
       if (
-        checkout.metadata?.unitaleOrder !== order._id ||
+        checkout.metadata?.unibaseOrder !== order._id ||
         checkout.client_reference_id !== order._id
       )
         throw new AppError(

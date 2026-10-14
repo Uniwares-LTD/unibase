@@ -52,10 +52,10 @@ test("older profiles inherit the app default and older mutations do not reset st
 });
 
 test("page covers accept image URLs and reject unsafe or mixed-content metadata", () => {
-  const base = "https://unitale.example/stories/one";
+  const base = "https://unibase.example/stories/one";
   assert.equal(
     resolvePageCover("/covers/one.jpg", base),
-    "https://unitale.example/covers/one.jpg",
+    "https://unibase.example/covers/one.jpg",
   );
   assert.equal(
     resolvePageCover("https://cdn.example/cover.jpg", base),

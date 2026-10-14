@@ -14,7 +14,7 @@ const mongo = await MongoMemoryReplSet.create({
   binary: { downloadDir: path.resolve(".cache/mongodb-binaries") },
   replSet: { count: 1, ip: "127.0.0.1", storageEngine: "wiredTiger" },
 });
-const database = `unitale_test_${randomUUID().replaceAll("-", "")}`;
+const database = `unibase_test_${randomUUID().replaceAll("-", "")}`;
 const client = new MongoClient(mongo.getUri());
 await client
   .db(database)
@@ -30,7 +30,7 @@ const env = {
   APP_NAME: "Base runtime fixture",
   APP_ORIGIN: "http://127.0.0.1:3101",
   AUTH_MODE: "emulator",
-  FIREBASE_PROJECT_ID: "demo-unitale",
+  FIREBASE_PROJECT_ID: "demo-unibase",
   FIREBASE_API_KEY: "demo-key",
   FIREBASE_APP_ID: "demo-app",
   FIREBASE_AUTH_EMULATOR_HOST: "127.0.0.1:9099",

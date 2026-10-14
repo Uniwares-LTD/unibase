@@ -8,7 +8,7 @@ import {
 } from "../src/lib/project";
 import { rateConfig } from "../src/lib/config/rate-limits";
 test("project manifests validate identities, dependencies and locale choices", () => {
-  assert.equal(namespace("session"), "unitale-session");
+  assert.equal(namespace("session"), `${project.slug}-session`);
   assert.equal(moduleForPath("/api/runs/example/uploads"), "runs");
   for (const changes of [
     { slug: "../escape" },

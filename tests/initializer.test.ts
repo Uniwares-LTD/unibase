@@ -12,22 +12,24 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     source = path.join(root, "source");
   await mkdir(source);
   const files: Record<string, string> = {
-    "package.json": JSON.stringify({ name: "unitale", private: true }),
+    "package.json": JSON.stringify({ name: "unibase", private: true }),
     "package-lock.json": JSON.stringify({
-      name: "unitale",
-      packages: { "": { name: "unitale" } },
+      name: "unibase",
+      packages: { "": { name: "unibase" } },
     }),
     "project.config.json": JSON.stringify(project),
     ".env.example":
-      "APP_NAME=Base\nFIREBASE_PROJECT_ID=demo-unitale\nMONGODB_DATABASE=unitale_local\n# PAYMENTS_MODE=disabled\n",
+      "APP_NAME=Base\nFIREBASE_PROJECT_ID=demo-unibase\nMONGODB_DATABASE=unibase_local\n# PAYMENTS_MODE=disabled\n",
     "deploy/config.example.json": JSON.stringify({
       staging: {},
       production: {},
     }),
     "scripts/i18n-assets.mjs": "// public generator",
-    "public/offline.html": "namespace=unitale",
-    "public/offline-locale.js": "unitale-offline-locale",
+    "public/offline.html": "namespace=unibase",
+    "public/offline-locale.js": "unibase-offline-locale",
     "README.md": "reviewed source",
+    ".github/workflows/deploy.yml":
+      "name: Release Unibase\non: workflow_dispatch\n",
     ".env.local": "PRIVATE_SENTINEL",
     "nested/.env.production": "PRIVATE_SENTINEL",
     "secrets/provider.json": "PRIVATE_SENTINEL",
@@ -36,6 +38,16 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     "android/project/app/build.gradle": "old identity",
     "output/browser.json": "PRIVATE_SENTINEL",
   };
+  for (const environment of ["local", "staging", "production"]) {
+    const config = JSON.parse(
+      await readFile(`deploy/environments/${environment}.json`, "utf8"),
+    );
+    config.ssh.host = "source-host.example.test";
+    config.shared.ownerRepository = "source/installation";
+    config.atlas.projectId = "source-atlas-id";
+    config.google.projectId = "source-firebase-id";
+    files[`deploy/environments/${environment}.json`] = JSON.stringify(config);
+  }
   for (const [name, content] of Object.entries(files)) {
     await mkdir(path.dirname(path.join(source, name)), { recursive: true });
     await writeFile(path.join(source, name), content);
@@ -79,6 +91,28 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     await readFile(path.join(destination, "README.md"), "utf8"),
     "reviewed source",
   );
+  assert.match(
+    await readFile(
+      path.join(destination, ".github/workflows/deploy.yml"),
+      "utf8",
+    ),
+    /name: "Release Alpha \$&"/,
+  );
+  const derivedStaging = JSON.parse(
+    await readFile(
+      path.join(destination, "deploy/environments/staging.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(derivedStaging.ssh.host, null);
+  assert.equal(derivedStaging.shared.ownerRepository, null);
+  assert.equal(derivedStaging.atlas.projectId, null);
+  assert.equal(derivedStaging.google.projectId, null);
+  assert.equal(
+    derivedStaging.runtime.MONGODB_DATABASE,
+    "fixture_alpha_staging",
+  );
+  assert.equal(derivedStaging.atlas.mongoUser, "fixture_alpha_staging");
   const copied = await readdir(destination, { recursive: true });
   for (const name of [
     ".git",
@@ -119,7 +153,31 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     destination: second,
     manifest: { ...manifest, slug: "fixture-beta", examples: true },
     mode: "examples",
+    infrastructureProfile: {
+      ssh: { host: "shared-host.example.test", user: "operator" },
+      google: { stagingProjectId: "shared-staging-fixture" },
+      atlas: { projectId: "a".repeat(24), clusterName: "shared" },
+    },
   });
+  const sharedStaging = JSON.parse(
+    await readFile(
+      path.join(second, "deploy/environments/staging.json"),
+      "utf8",
+    ),
+  );
+  const independentProduction = JSON.parse(
+    await readFile(
+      path.join(second, "deploy/environments/production.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(sharedStaging.ssh.host, "shared-host.example.test");
+  assert.equal(sharedStaging.google.projectId, "shared-staging-fixture");
+  assert.equal(
+    sharedStaging.runtime.FIREBASE_PROJECT_ID,
+    "shared-staging-fixture",
+  );
+  assert.equal(independentProduction.google.projectId, null);
   const a = JSON.parse(
       await readFile(
         path.join(destination, "deploy/config.example.json"),
@@ -135,6 +193,17 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
   assert.match(
     await readFile(path.join(second, ".env.example"), "utf8"),
     /DIFY_MODE=fake/,
+  );
+  await assert.rejects(
+    createProject({
+      source,
+      revision,
+      destination: path.join(root, "private-profile"),
+      manifest,
+      mode: "application",
+      infrastructureProfile: { ssh: { privateKey: "private-canary" } },
+    }),
+    /public connections/,
   );
   for (const bad of [source, root, path.join(source, "nested"), destination])
     await assert.rejects(

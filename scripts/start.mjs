@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process";
 import { prepareStandalone } from "./standalone.mjs";
-import nextEnv from "@next/env";
+import { loadLocalEnvironment } from "./environment.mjs";
 
 // The generated server changes cwd to .next/standalone. Load the repository's
 // production env files before spawning it, preserving normal npm start behavior.
-nextEnv.loadEnvConfig(process.cwd(), false);
+loadLocalEnvironment(false);
 
 const server = spawn(process.execPath, [prepareStandalone()], {
   stdio: "inherit",

@@ -99,7 +99,7 @@ export function OrchestratorEditor({
         ? "unibase-starter-creation"
         : `unibase-orchestrator-creation:${template.id}`;
     const storageKey =
-      project.slug === "unitale"
+      project.slug === "unibase"
         ? legacyKey
         : namespace("orchestrator-creation:" + template.id);
     setCreating(true);

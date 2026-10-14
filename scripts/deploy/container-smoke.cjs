@@ -52,7 +52,7 @@
   assert.equal((await fetch("http://127.0.0.1:3000/account")).status, 200);
   const offline = await fetch("http://127.0.0.1:3000/offline.html");
   assert.equal(offline.status, 200);
-  assert.match(await offline.text(), /<title>Offline<\/title>/);
+  assert.match(await offline.text(), /<title>You’re offline\.<\/title>/);
   console.log(
     "Non-root runtime, dependency exclusion, health boundaries and public assets passed.",
   );

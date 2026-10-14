@@ -112,11 +112,11 @@ test("Stripe durable orders reconcile duplicates, proportional refunds, disputes
           { price: "price_fixture", quantity: 1 },
         ]);
         assert.deepEqual(options, {
-          idempotencyKey: `unitale-checkout-${order._id}`,
+          idempotencyKey: `unibase-checkout-${order._id}`,
         });
         assert.equal(
-          (created as { metadata: { unitaleOrder: string } }).metadata
-            .unitaleOrder,
+          (created as { metadata: { unibaseOrder: string } }).metadata
+            .unibaseOrder,
           order._id,
         );
         assert.equal(
@@ -299,7 +299,7 @@ test("Stripe durable orders reconcile duplicates, proportional refunds, disputes
           mode: "payment",
           payment_status: "paid",
           client_reference_id: order._id,
-          metadata: { unitaleOrder: order._id },
+          metadata: { unibaseOrder: order._id },
           amount_total: 300,
           currency: "usd",
           payment_intent: "pi_fixture",
@@ -326,7 +326,7 @@ test("Stripe durable orders reconcile duplicates, proportional refunds, disputes
           paymentIntents: {
             retrieve: async () => ({
               id: "pi_fixture",
-              metadata: { unitaleOrder: order._id },
+              metadata: { unibaseOrder: order._id },
               status: "succeeded",
               amount_received: 300,
               currency: "usd",

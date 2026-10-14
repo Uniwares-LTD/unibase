@@ -1,27 +1,23 @@
 {
-  "imageRepository": "ghcr.io/replace-owner/replace-unitale-repository",
+  "imageRepository": "ghcr.io/replace-owner/replace-unibase-repository",
   "staging": {
     "origin": "https://staging.example.invalid",
-    "port": 3100,
+    "port": 35101,
     "firebaseProject": "replace-staging-project",
-    "mongoDatabase": "unitale_staging",
-    "mongoUser": "unitale_staging",
-    "tunnelId": "REPLACE_WITH_STAGING_TUNNEL_UUID",
-    "tunnelImage": "cloudflare/cloudflared@sha256:REPLACE_WITH_VERIFIED_DIGEST",
+    "mongoDatabase": "unibase_staging",
+    "mongoUser": "unibase_staging",
     "redisImage": "redis@sha256:REPLACE_WITH_VERIFIED_DIGEST",
     "nginxImage": "nginx@sha256:REPLACE_WITH_VERIFIED_DIGEST",
-    "ingressSubnet": "172.30.241.0/24"
+    "ingressSubnet": "172.29.241.0/24"
   },
   "production": {
     "origin": "https://example.invalid",
-    "port": 3102,
+    "port": 35102,
     "firebaseProject": "replace-production-project",
-    "mongoDatabase": "unitale_production",
-    "mongoUser": "unitale_production",
-    "tunnelId": "REPLACE_WITH_PRODUCTION_TUNNEL_UUID",
-    "tunnelImage": "cloudflare/cloudflared@sha256:REPLACE_WITH_VERIFIED_DIGEST",
+    "mongoDatabase": "unibase_production",
+    "mongoUser": "unibase_production",
     "redisImage": "redis@sha256:REPLACE_WITH_VERIFIED_DIGEST",
     "nginxImage": "nginx@sha256:REPLACE_WITH_VERIFIED_DIGEST",
-    "ingressSubnet": "172.30.242.0/24"
+    "ingressSubnet": "172.29.242.0/24"
   }
 }

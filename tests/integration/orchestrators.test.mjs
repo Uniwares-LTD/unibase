@@ -23,10 +23,10 @@ assert.equal(process.env.DIFY_MODE, "live");
 assert.equal(process.env.APP_ORIGIN, "http://127.0.0.1:3101");
 assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST, "127.0.0.1:9099");
 assert.match(process.env.MONGODB_URI, /^mongodb:\/\/127\.0\.0\.1:\d+\//);
-assert.match(process.env.MONGODB_DATABASE, /^unitale_test_[a-f0-9]+$/);
+assert.match(process.env.MONGODB_DATABASE, /^unibase_test_[a-f0-9]+$/);
 const origin = process.env.APP_ORIGIN;
 const auth = getAuth(
-  initializeApp({ projectId: "demo-unitale" }, `runs-${randomUUID()}`),
+  initializeApp({ projectId: "demo-unibase" }, `runs-${randomUUID()}`),
 );
 const mongo = new MongoClient(process.env.MONGODB_URI);
 const db = mongo.db(process.env.MONGODB_DATABASE);

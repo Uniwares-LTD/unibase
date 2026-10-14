@@ -16,10 +16,7 @@ export type WorkerHeartbeat = {
 };
 export const WORKER_MAX_AGE_MS = 300_000;
 const heartbeatPath = (kind: WorkerKind) =>
-  join(
-    tmpdir(),
-    `${project.slug === "unitale" ? "base" : project.slug}-${kind}-heartbeat.json`,
-  );
+  join(tmpdir(), `${project.slug}-${kind}-heartbeat.json`);
 export function healthyHeartbeat(
   value: Pick<WorkerHeartbeat, "updatedAt" | "state">,
   now = Date.now(),

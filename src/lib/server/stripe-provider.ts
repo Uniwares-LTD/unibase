@@ -1,4 +1,5 @@
 import "server-only";
+import { namespace } from "../project";
 import type Stripe from "stripe";
 import { AppError } from "../auth-policy";
 import type { PaymentOrder, PaymentNotice } from "./store/payments";
@@ -36,13 +37,13 @@ export async function ensureCheckout(stripe: Stripe, order: PaymentOrder) {
       mode: "payment",
       line_items: [{ price: order.priceId, quantity: 1 }],
       client_reference_id: order._id,
-      metadata: { unitaleOrder: order._id },
-      payment_intent_data: { metadata: { unitaleOrder: order._id } },
+      metadata: { unibaseOrder: order._id },
+      payment_intent_data: { metadata: { unibaseOrder: order._id } },
       success_url: `${order.origin}/credits?checkout=returned`,
       cancel_url: `${order.origin}/credits?checkout=cancelled`,
       expires_at: Math.floor(order.createdAt.getTime() / 1000) + 24 * 3600,
     },
-    { idempotencyKey: `unitale-checkout-${order._id}` },
+    { idempotencyKey: `${namespace("checkout")}-${order._id}` },
   );
 }
 export async function verifiedStripeState(stripe: Stripe, order: PaymentOrder) {
@@ -59,7 +60,7 @@ export async function verifiedStripeState(stripe: Stripe, order: PaymentOrder) {
   if (
     checkout.mode !== "payment" ||
     checkout.client_reference_id !== order._id ||
-    checkout.metadata?.unitaleOrder !== order._id ||
+    checkout.metadata?.unibaseOrder !== order._id ||
     checkout.amount_total !== order.amountMinor ||
     checkout.currency !== order.currency ||
     lines.has_more ||
@@ -80,7 +81,7 @@ export async function verifiedStripeState(stripe: Stripe, order: PaymentOrder) {
   const pi = await stripe.paymentIntents.retrieve(piId);
   const chargeId = id(pi.latest_charge);
   if (
-    pi.metadata.unitaleOrder !== order._id ||
+    pi.metadata.unibaseOrder !== order._id ||
     pi.status !== "succeeded" ||
     pi.amount_received !== order.amountMinor ||
     pi.currency !== order.currency ||
@@ -155,7 +156,7 @@ export function stripeNotice(event: Stripe.Event, live: boolean) {
 export async function noticeOrderId(stripe: Stripe, notice: PaymentNotice) {
   if (notice.type.startsWith("checkout.session.")) {
     const checkout = await stripe.checkout.sessions.retrieve(notice.objectId);
-    return { orderId: checkout.metadata?.unitaleOrder, sessionId: checkout.id };
+    return { orderId: checkout.metadata?.unibaseOrder, sessionId: checkout.id };
   }
   let piId: string | undefined;
   if (notice.type.startsWith("charge.dispute."))
@@ -166,7 +167,7 @@ export async function noticeOrderId(stripe: Stripe, notice: PaymentNotice) {
     piId = id((await stripe.charges.retrieve(notice.objectId)).payment_intent);
   return {
     orderId: piId
-      ? (await stripe.paymentIntents.retrieve(piId)).metadata.unitaleOrder
+      ? (await stripe.paymentIntents.retrieve(piId)).metadata.unibaseOrder
       : undefined,
     paymentIntentId: piId,
   };

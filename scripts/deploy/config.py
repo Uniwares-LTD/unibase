@@ -1,6 +1,5 @@
-"""Validate fixed Unitale host inputs without evaluating env files as shell code."""
+"""Validate fixed Unibase host inputs without evaluating env files as shell code."""
 import json
-import base64
 import re
 import sys
 from ipaddress import ip_network
@@ -52,7 +51,7 @@ def validate_mcp(env, catalog):
         raise ValueError("Run MCP client is not registered")
 
 
-def validate(root, target):
+def validate(root, target, runtime_file=None):
     manifest = json.loads((Path(__file__).resolve().parents[2] / "project.config.json").read_text())
     slug = manifest["slug"]
     if not re.fullmatch(r"[a-z][a-z0-9-]{2,39}", slug):
@@ -60,15 +59,13 @@ def validate(root, target):
     prefix = slug.replace("-", "_")
     config = json.loads((root / "config.json").read_text())
     if not re.fullmatch(r"ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+", config["imageRepository"]):
-        raise ValueError("Invalid Unitale image repository")
-    fields = ("origin", "port", "firebaseProject", "mongoDatabase", "mongoUser", "tunnelId")
+        raise ValueError("Invalid Unibase image repository")
+    fields = ("origin", "port", "firebaseProject", "mongoDatabase", "mongoUser")
     for key in fields:
-        if config["staging"][key] == config["production"][key]:
+        if config["staging"].get(key) is not None and config["staging"].get(key) == config["production"].get(key):
             raise ValueError("Environment identities must be distinct")
-    for name in ("staging", "production"):
+    for name in (target,):
         item = config[name]
-        if str(UUID(item["tunnelId"])) != item["tunnelId"] or UUID(item["tunnelId"]).int == 0:
-            raise ValueError("Invalid tunnel identity")
         url = urlsplit(item["origin"])
         if (url.scheme != "https" or not url.hostname or url.username or
                 item["origin"] != "https://" + url.hostname or url.query or url.fragment or
@@ -76,32 +73,32 @@ def validate(root, target):
             raise ValueError("Invalid application origin")
         if type(item["port"]) is not int or not 1024 <= item["port"] <= 65535:
             raise ValueError("Invalid application port")
-        if not re.fullmatch(r"cloudflare/cloudflared@sha256:[a-f0-9]{64}", item["tunnelImage"]):
-            raise ValueError("Tunnel image must use a digest")
         if not re.fullmatch(r"[a-z][a-z0-9-]{4,28}[a-z0-9]", item["firebaseProject"]):
             raise ValueError("Invalid Firebase project")
         if not re.fullmatch(re.escape(prefix) + r"_[A-Za-z0-9_]+", item["mongoDatabase"]):
-            raise ValueError("Database must be Unitale-specific")
+            raise ValueError("Database must be Unibase-specific")
         if not re.fullmatch(re.escape(prefix) + r"_[A-Za-z0-9_]+", item["mongoUser"]):
-            raise ValueError("Database user must be Unitale-specific")
-    for name in ("staging", "production"):
+            raise ValueError("Database user must be Unibase-specific")
+    for name in (target,):
         for key, image in (("redisImage", "redis"), ("nginxImage", "nginx")):
             if not re.fullmatch(image + r"@sha256:[a-f0-9]{64}", config[name].get(key, "")):
                 raise ValueError("Infrastructure images must use digests")
     networks = []
     for name in ("staging", "production"):
+        if not config[name].get("ingressSubnet"):
+            continue
         network = ip_network(config[name]["ingressSubnet"])
         if network.version != 4 or not network.subnet_of(ip_network("172.16.0.0/12")) or not 24 <= network.prefixlen <= 28:
             raise ValueError("Invalid isolated ingress subnet")
         networks.append(network)
-    if networks[0].overlaps(networks[1]):
+    if len(networks) == 2 and networks[0].overlaps(networks[1]):
         raise ValueError("Ingress networks must be distinct")
     item = config[target]
     directory = root / target
     env = {}
     catalog = json.loads((Path(__file__).parent / "environment-catalog.json").read_text())
     allowed = set(catalog["runtime"])
-    for line in (directory / "runtime.env").read_text().splitlines():
+    for line in (runtime_file or directory / "runtime.env").read_text().splitlines():
         if not line or line.startswith("#"):
             continue
         key, value = line.split("=", 1)
@@ -176,17 +173,12 @@ def validate(root, target):
     if (credential.get("project_id") != item["firebaseProject"] or
             credential.get("type") != "service_account" or not credential.get("private_key")):
         raise ValueError("Firebase credential project mismatch")
-    # cloudflared ParseToken uses standard-base64 JSON; validate the tunnel ID
-    # rather than comparing token strings, because secret rotation changes them.
-    token = json.loads(base64.b64decode((directory / "tunnel-token").read_text().strip(), validate=True))
-    if token.get("t") != item["tunnelId"] or not token.get("a") or not base64.b64decode(token["s"], validate=True):
-        raise ValueError("Tunnel token identity mismatch")
     # Output only non-secret, validated Compose inputs, one value per line.
-    return [item["origin"], str(item["port"]), item["tunnelImage"], config["imageRepository"], item["redisImage"], item["nginxImage"], item["ingressSubnet"]]
+    return [item["origin"], str(item["port"]), "shared-tunnel", config["imageRepository"], item["redisImage"], item["nginxImage"], item["ingressSubnet"]]
 
 
 if __name__ == "__main__":
     try:
-        print("\n".join(validate(Path(sys.argv[1]), sys.argv[2])))
+        print("\n".join(validate(Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3]) if len(sys.argv) == 4 else None)))
     except Exception:
-        sys.exit("Invalid Unitale deployment configuration (values suppressed)")
+        sys.exit("Invalid Unibase deployment configuration (values suppressed)")

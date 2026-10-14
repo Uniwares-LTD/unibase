@@ -28,3 +28,8 @@
 !messages/
 !messages/**
 !scripts/i18n-assets.mjs
+!scripts/environment.mjs
+!scripts/with-environment.mjs
+!deploy/
+!deploy/environments/
+!deploy/environments/local.json

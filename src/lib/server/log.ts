@@ -7,10 +7,10 @@ import { writeRuntimeRecord } from "./store/runtime";
 import { after } from "next/server";
 
 const globalWriter = globalThis as typeof globalThis & {
-  unitaleRuntimeWriter?: RuntimeWriter<RuntimeRecord>;
+  unibaseRuntimeWriter?: RuntimeWriter<RuntimeRecord>;
 };
 function writer() {
-  return (globalWriter.unitaleRuntimeWriter ??=
+  return (globalWriter.unibaseRuntimeWriter ??=
     new RuntimeWriter<RuntimeRecord>(
       (record, signal, timeoutMS) => {
         signal.throwIfAborted();

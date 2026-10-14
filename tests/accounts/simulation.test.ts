@@ -22,7 +22,7 @@ test("owned simulated purchases and wallet history", async (t) => {
     replSet: { count: 1, ip: "127.0.0.1", storageEngine: "wiredTiger" },
   });
   const client = new MongoClient(mongo.getUri());
-  const db = client.db("unitale_simulation_test");
+  const db = client.db("unibase_simulation_test");
   const actor = {
     uid: "simulation-owner",
     authTime: Math.floor(Date.now() / 1000),

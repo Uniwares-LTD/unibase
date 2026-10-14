@@ -22,6 +22,7 @@ type Options = {
   destination: string;
   manifest: unknown;
   mode: "application" | "examples";
+  infrastructureProfile?: unknown;
 };
 const excluded =
   /^(?:\.git(?:\/|$)|node_modules\/|\.next\/|\.cache\/|\.codex\/|\.aws\/|\.firebase\/|\.setup\/|output\/|dist\/|coverage\/|test-results\/|playwright-report\/|\.playwright-cli\/|android\/project\/|deploy\/config\.json$|\.env(?!\.example$)|.*(?:\/|^)(?:credentials|service-account)[^/]*\.json$)|\.(?:pem|key|keystore|jks|aab|apk|tsbuildinfo|log)$/i;
@@ -112,6 +113,7 @@ export async function createProject(options: Options) {
         throw new Error("Unsafe source path.");
       if (
         excluded.test(name) ||
+        /^deploy\/shared-owner\/.*\.patch$/.test(name) ||
         /(^|\/)(?:\.env(?!\.example$)[^/]*|\.npmrc|\.vscode|\.idea|secrets?|credentials?)(?:\/|$)|\.env$|(?:service[-_]?account|credentials?)[^/]*\.json$/i.test(
           name,
         )
@@ -132,6 +134,9 @@ export async function createProject(options: Options) {
     ".env.example",
     "deploy/config.example.json",
     "scripts/i18n-assets.mjs",
+    "deploy/environments/local.json",
+    "deploy/environments/staging.json",
+    "deploy/environments/production.json",
   ])
     if (!names.has(required))
       throw new Error(
@@ -222,6 +227,150 @@ export async function createProject(options: Options) {
       `172.${16 + Math.floor(subnet / 4096)}.${Math.floor(subnet / 16) % 256}.${(subnet % 16) * 16}/28`;
   }
   await json("deploy/config.example.json", deploy);
+  // Deployment connections are installation-owned. Only an explicit public
+  // profile can opt a derived app into shared services.
+  const profile = options.infrastructureProfile as
+    Record<string, Record<string, unknown>> | undefined;
+  const profileKeys: Record<string, string[]> = {
+    ssh: ["host", "user", "cloudflaredVersion", "cloudflaredSha256"],
+    shared: [
+      "ownerRepository",
+      "ownerRef",
+      "routeWorkflow",
+      "tunnelId",
+      "cloudflareAccountId",
+      "cloudflareZoneId",
+    ],
+    atlas: ["projectId", "clusterName", "vpsEgressCidr"],
+    google: [
+      "stagingProjectId",
+      "parent",
+      "workloadIdentityProvider",
+      "provisionerServiceAccount",
+    ],
+    deployment: ["redisImage", "nginxImage", "adminImage"],
+    ghcr: ["pullUser"],
+  };
+  if (profile) {
+    if (typeof profile !== "object" || Array.isArray(profile))
+      throw new Error("Invalid infrastructure profile.");
+    for (const [section, values] of Object.entries(profile)) {
+      if (
+        !profileKeys[section] ||
+        !values ||
+        typeof values !== "object" ||
+        Array.isArray(values)
+      )
+        throw new Error("Invalid infrastructure profile section.");
+      for (const [key, value] of Object.entries(values))
+        if (
+          !profileKeys[section].includes(key) ||
+          (value !== null &&
+            (typeof value !== "string" || /[\r\n\0]/.test(value)))
+        )
+          throw new Error(
+            "Infrastructure profiles contain allowlisted public connections only.",
+          );
+    }
+  }
+  for (const [i, environment] of ["local", "staging", "production"].entries()) {
+    const config = await readJson(`deploy/environments/${environment}.json`);
+    config.runtime.APP_NAME = manifest.displayName;
+    config.runtime.APP_STYLE = manifest.defaultStyle;
+    config.runtime.MONGODB_DATABASE = `${prefix}_${environment}`;
+    config.runtime.APP_ENV = environment;
+    config.runtime.APP_ORIGIN =
+      environment === "local" ? "http://localhost:3000" : null;
+    config.runtime.FIREBASE_PROJECT_ID =
+      environment === "local" ? `demo-${manifest.slug}` : null;
+    config.runtime.AUTH_MODE =
+      environment === "local" ? "emulator" : "firebase";
+    config.runtime.DIFY_MODE =
+      environment === "local" && options.mode === "examples"
+        ? "fake"
+        : "disabled";
+    config.runtime.PAYMENTS_MODE =
+      environment === "local" && options.mode === "examples"
+        ? "simulation"
+        : "disabled";
+    config.runtime.MCP_ENABLED = "false";
+    // Copy no source provider links, Android association or optional integrations.
+    for (const key of Object.keys(config.runtime))
+      if (
+        ![
+          "APP_NAME",
+          "APP_STYLE",
+          "MONGODB_DATABASE",
+          "APP_ENV",
+          "APP_ORIGIN",
+          "FIREBASE_PROJECT_ID",
+          "AUTH_MODE",
+          "DIFY_MODE",
+          "PAYMENTS_MODE",
+          "MCP_ENABLED",
+          "ASSET_STORE",
+          "MONGODB_URI",
+          "FIREBASE_AUTH_EMULATOR_HOST",
+        ].includes(key)
+      )
+        delete config.runtime[key];
+    config.runtime.ASSET_STORE = "mongo";
+    if (environment === "local") {
+      config.runtime.MONGODB_URI = "mongodb://127.0.0.1:27017";
+      config.runtime.FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099";
+    } else {
+      delete config.runtime.MONGODB_URI;
+      delete config.runtime.FIREBASE_AUTH_EMULATOR_HOST;
+    }
+    for (const section of Object.keys(profileKeys)) {
+      config[section] = Object.fromEntries(
+        Object.keys(config[section]).map((key) => [key, null]),
+      );
+      if (environment !== "local" && profile?.[section])
+        for (const [key, value] of Object.entries(profile[section]))
+          if (key !== "stagingProjectId") config[section][key] = value;
+    }
+    config.shared.routeWorkflow ??= "shared-app-routes.yml";
+    config.android = {
+      host: null,
+      packageName: manifest.android?.packageName ?? null,
+    };
+    config.atlas.mongoUser = `${prefix}_${environment}`;
+    config.deployment.imageRepository = `ghcr.io/replace-owner/${manifest.slug}`;
+    const deployIndex = Math.max(0, i - 1);
+    config.deployment.port = 20000 + (seed % 15000) * 2 + deployIndex;
+    const subnet = (seed % 32768) * 2 + deployIndex;
+    config.deployment.ingressSubnet = `172.${16 + Math.floor(subnet / 4096)}.${Math.floor(subnet / 16) % 256}.${(subnet % 16) * 16}/28`;
+    if (environment === "staging" && profile?.google?.stagingProjectId) {
+      config.google.projectId = profile.google.stagingProjectId;
+      config.runtime.FIREBASE_PROJECT_ID = profile.google.stagingProjectId;
+    }
+    await json(`deploy/environments/${environment}.json`, config);
+  }
+  for (const entry of entries.filter(
+    (entry) =>
+      entry.name.startsWith(".github/workflows/") ||
+      entry.name === "Dockerfile" ||
+      entry.name === "public/sw.js",
+  )) {
+    const file = path.join(staging, entry.name);
+    let content = (await readFile(file, "utf8")).replaceAll(
+      old.slug,
+      manifest.slug,
+    );
+    if (entry.name.startsWith(".github/workflows/"))
+      content = content.replace(
+        /^name: (.+)$/m,
+        (_, name: string) =>
+          "name: " +
+          JSON.stringify(
+            name
+              .replaceAll(old.displayName, () => manifest.displayName)
+              .replaceAll("Unibase", () => manifest.displayName),
+          ),
+      );
+    await writeFile(file, content);
+  }
   // The next build regenerates the public recovery assets from the new manifest.
   for (const file of ["public/offline.html", "public/offline-locale.js"]) {
     const content = await readFile(path.join(staging, file), "utf8");

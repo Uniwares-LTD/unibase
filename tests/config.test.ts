@@ -2,22 +2,26 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseConfig } from "../src/lib/config/schema";
 import { parsePublicConfig } from "../src/lib/config/public";
+import { project } from "../src/lib/project";
 
 test("local development needs no cloud credentials", () => {
   assert.deepEqual(parseConfig({}), {
-    public: { appName: "Base", defaultStyle: "classic" },
+    public: {
+      appName: project.displayName,
+      defaultStyle: project.defaultStyle,
+    },
     server: { environment: "local", origin: "http://localhost:3000" },
   });
 });
 
 test("public configuration explicitly discards private or unknown fields", () => {
   assert.deepEqual(
-    parsePublicConfig({ appName: "Unitale", password: "secret" }),
-    { appName: "Unitale", defaultStyle: "classic" },
+    parsePublicConfig({ appName: "Unibase", password: "secret" }),
+    { appName: "Unibase", defaultStyle: "classic" },
   );
   assert.deepEqual(
-    parseConfig({ APP_NAME: "My Unitale", PRIVATE_CANARY: "secret" }).public,
-    { appName: "My Unitale", defaultStyle: "classic" },
+    parseConfig({ APP_NAME: "My Unibase", PRIVATE_CANARY: "secret" }).public,
+    { appName: "My Unibase", defaultStyle: "classic" },
   );
 });
 

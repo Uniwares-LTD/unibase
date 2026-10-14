@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "environment": "local",
+  "runtime": {
+    "APP_ENV": "local",
+    "APP_NAME": "Base",
+    "APP_STYLE": "classic",
+    "APP_ORIGIN": "http://localhost:3000",
+    "AUTH_MODE": "emulator",
+    "FIREBASE_PROJECT_ID": "demo-unibase",
+    "MONGODB_DATABASE": "unibase_local",
+    "DIFY_MODE": "disabled",
+    "PAYMENTS_MODE": "disabled",
+    "MCP_ENABLED": "false",
+    "ASSET_STORE": "mongo",
+    "FIREBASE_AUTH_EMULATOR_HOST": "127.0.0.1:9099",
+    "MONGODB_URI": "mongodb://127.0.0.1:27017"
+  },
+  "deployment": {
+    "imageRepository": null,
+    "port": null,
+    "ingressSubnet": null,
+    "redisImage": null,
+    "nginxImage": null,
+    "adminImage": null
+  },
+  "ssh": {
+    "host": null,
+    "user": null,
+    "cloudflaredVersion": null,
+    "cloudflaredSha256": null
+  },
+  "google": {
+    "projectId": null,
+    "parent": null,
+    "workloadIdentityProvider": null,
+    "provisionerServiceAccount": null,
+    "oauthClientId": null
+  },
+  "atlas": {
+    "projectId": null,
+    "clusterName": null,
+    "mongoUser": null,
+    "vpsEgressCidr": null
+  },
+  "shared": {
+    "ownerRepository": null,
+    "ownerRef": null,
+    "routeWorkflow": "shared-app-routes.yml",
+    "tunnelId": null,
+    "cloudflareAccountId": null,
+    "cloudflareZoneId": null
+  },
+  "ghcr": {
+    "pullUser": null
+  },
+  "android": {
+    "host": null,
+    "packageName": null
+  }
+}

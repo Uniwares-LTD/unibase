@@ -21,20 +21,20 @@ test("session exchange requires recent authentication and issuance", () => {
 test("session mutations reject absent, foreign and sibling origins", () => {
   requireSameOrigin(
     new Headers({
-      origin: "https://unitale.example",
+      origin: "https://unibase.example",
       "sec-fetch-site": "same-origin",
     }),
-    "https://unitale.example",
+    "https://unibase.example",
   );
   for (const origin of [
     null,
     "https://evil.example",
     "null",
-    "https://sibling.unitale.example",
+    "https://sibling.unibase.example",
   ]) {
     const headers = new Headers();
     if (origin) headers.set("origin", origin);
-    assert.throws(() => requireSameOrigin(headers, "https://unitale.example"));
+    assert.throws(() => requireSameOrigin(headers, "https://unibase.example"));
   }
 });
 test("profile updates cannot submit ownership or private fields", () => {
@@ -55,13 +55,13 @@ test("profile updates cannot submit ownership or private fields", () => {
 });
 test("emulator configuration cannot be enabled outside a local demo project", () => {
   const config = parseAuthConfig({}, "local", "http://localhost:3000");
-  assert.equal(config.public.projectId, "demo-unitale");
+  assert.equal(config.public.projectId, "demo-unibase");
   assert.ok(!("mongoUri" in config.public));
   assert.throws(() =>
     parseAuthConfig(
       { AUTH_MODE: "emulator" },
       "production",
-      "https://unitale.example",
+      "https://unibase.example",
     ),
   );
   assert.throws(() =>

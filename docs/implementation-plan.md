@@ -969,3 +969,53 @@ licenses remain intact; system-owned skills were unchanged.
 Remaining acceptance requires real environment evidence: live Firebase/Cloudflare
 journeys, actual provider/S3/billing integration, live deployment/publication and
 Android/device verification. Local fixtures do not constitute that acceptance.
+
+## Accepted environment configuration and provisioning extension ? 2026-10-14
+
+The accepted scope replaces maintained `unitale` resource defaults with fresh
+`unibase` namespaces and leaves old local data/private configuration untouched.
+Public environment settings now live in tracked local/staging/production JSON,
+including Android CI inputs. Secrets remain private; local overrides still win.
+Derived projects clear source installation links unless an explicit public shared
+profile is selected. Workflow labels, private databases/users, host paths, browser
+namespaces, payment request prefixes and worker health files derive from identity.
+
+The manual Provision environment workflow runs on main and previews by default.
+It reuses the existing VPS/SSH Access and Atlas cluster, shares staging Firebase
+identities with isolated app data/roles, creates app-specific production Firebase
+projects, generates/reuses private runtime credentials, installs indexes/GHCR pulls,
+and optionally bootstraps a verified first-admin UID. Provider administration
+credentials remain outside administration-container source and runtime images.
+App and project-scoped Firebase locks serialize configuration changes. Application
+release stays separate, retains commit/branch guards, immutable private images,
+worker/readiness probes and previous image/configuration restoration.
+
+Shared application tunnel containers/tokens are removed. Existing host tunnel
+routes target loopback Nginx ports, with forwarded IP trust restricted to the bridge
+host gateway. The owner integration is prepared in output/agentic-poc and retained
+as deploy/shared-owner/agentic-poc.patch. agentic-poc remains the sole Terraform
+route writer; registered-route requests preserve existing SSH, Booklet and Dify
+routes. Tunnel and Dify Community ownership transfers are documented follow-ups.
+
+Local verification: 62 pure tests, 153 isolated account/payment/provider tests and
+41 Docker-isolated deployment/provisioning/transfer tests pass. Production web/worker
+build and independent type checking pass; lint, formatting, environment, i18n,
+workflow lint, Unibase ShellCheck, local documentation and pinned-skill checks pass.
+The owner registry's five unit tests and both Terraform roots' validation plus six
+mock plan checks pass. The owner patch matches its checkout. The owner shell-contract suite passes. The owner host suite hits its existing
+Dify runner missing-settings assertion; the unchanged baseline fails the same
+assertion, so it is recorded as existing advisory evidence, not a new regression.
+Existing owner ShellCheck findings remain advisory. The final credential-free image
+build and non-root/read-only smoke pass, including worker/tool exclusion and
+liveness 200/readiness 503 with deliberately unavailable dependencies. The separate
+read-only review covers the final diff and documented boundaries; no live acceptance
+is inferred from local fixtures.
+
+External acceptance remains pending: fill deployment connection/image/provider
+identifiers, configure GitHub secrets and Google OIDC trust, publish the reviewed
+owner integration, initialize Firebase Auth/OAuth where required, then provision
+and release staging and exercise actual HTTPS/authentication/scoped pulls/rollback.
+The public initializeAuth API is billing-only Identity Platform, so Firebase console
+initialization is reported explicitly rather than enabling it. No live provider,
+VPS, Cloudflare/Dify lifecycle or deployment mutation was performed. No commit,
+push, issue comment, publication or release occurred.
