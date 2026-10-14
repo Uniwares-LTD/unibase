@@ -58,7 +58,23 @@ Create immediately shows the confirmed app and refreshes discovery automatically
 New starters disable the public Dify Web App (`enable_site=false`). API access and
 the Human Input node's WebApp delivery stay enabled; they are separate settings.
 
-**Disable** stops new Runs. **Enable** performs registration checks again before
+**Register**, **Re-register**, and **Enable** open a version selector. Admins choose
+the version used by future Runs; ordinary users use the registered version.
+The selector shows the current Unibase workflow UUID, publication names/numbers
+when available, creation dates in the account timezone, and paginated history.
+It fetches ten Dify rows per page and excludes drafts from published choices.
+**Load more versions** fetches the next page. Fetch failures can be retried by
+closing and reopening the dialog.
+
+Choose a published version, then **Register selected version**. This validates
+that publication's graph, inputs, Human Input and MCP requirements without
+publishing or restoring the draft. **Saved draft — publish if changed** explicitly
+uses the saved Dify draft, publishing it when necessary. It does not upload local
+JSON changes. The current UUID identifies Unibase's choice, which can differ from
+Dify's latest publication. Version access/execution still depends on the connected
+Dify installation and its permissions.
+
+**Disable** stops new Runs. **Enable** validates the chosen version before
 allowing new Runs. **Unregister** removes the Unibase registration from Run choices;
 the workflow remains in Dify and can be registered again. Accepted Runs continue
 using their saved configuration and credential; results, tracing and history remain.
@@ -87,7 +103,7 @@ deleted in Dify, Unibase clears the browser's creation retry key and asks the ad
 to click Create again for a new workflow. Temporary failures retain the key;
 deleted apps are not silently recreated by a retry.
 
-Registration reads the saved draft, verifies supported inputs and declared Human
+Saved-draft registration reads the saved draft, verifies supported inputs and declared Human
 Input/MCP configuration, and publishes it when no publication exists or the draft
 has changed. It rechecks the draft before publishing and verifies the resulting
 publication. It then reuses or creates an encrypted execution key, checks API
@@ -96,6 +112,16 @@ adds inputs or imports DSL. Repeating registration preserves an
 unchanged definition. Incomplete registration is never enabled. Keys and active
 registration are serialized to avoid duplicate creation; no graph-mutation journal
 or Python sandbox adapter is required.
+
+Explicit-version registration reads only the selected app's published history page
+and derives its inputs from that exact graph. Dify's unversioned `/parameters`
+describes the current publication, so it is not used to validate historical inputs.
+The server verifies the app key and rechecks version membership/graph before
+enabling the registration. Missing, draft, foreign-app or moved-page selections
+fail without changing the prior definition; reload versions and choose again.
+Selection is audited with its workflow UUID and uses the existing registration
+lease, recent-admin checks and lifecycle fences. Accepted Run snapshots and
+execution URLs retain their earlier workflow UUID; no data migration is needed.
 
 A fit Workflow has a published Start/End graph and Service API access. Its Start
 controls must be text, paragraph, number, select or a single file; user text is

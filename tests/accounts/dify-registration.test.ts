@@ -14,6 +14,7 @@ import {
   registrationStatus,
 } from "../../src/lib/server/runs/registration";
 import type { difyJson } from "../../src/lib/server/runs/dify-console-client";
+import { difyWorkflowVersions } from "../../src/lib/server/runs/workflow-versions";
 
 const graph = () => ({
   nodes: [
@@ -169,6 +170,7 @@ test("Formless registration: draft validation, publication, retries, authorizati
       rejectMcp?: boolean;
       rejectParameters?: boolean;
       onPublishRead?: () => Promise<void>;
+      onVersionRead?: () => void;
     } = {},
   ) {
     const appId = randomUUID();
@@ -190,7 +192,33 @@ test("Formless registration: draft validation, publication, retries, authorizati
     let keys = options.existing
       ? [{ id: randomUUID(), token: "app-existing-private-canary" }]
       : [];
-    const counts = { keys: 0, reads: 0, publishes: 0, drafts: 0 };
+    const counts = {
+      keys: 0,
+      reads: 0,
+      publishes: 0,
+      drafts: 0,
+      parameters: 0,
+      versions: 0,
+    };
+    const historical = {
+      ...structuredClone(published),
+      id: randomUUID(),
+      version: "2026-10-01 12:00:00",
+      version_number: 1,
+      marked_name: "Original",
+      created_at: 1759310400,
+    };
+    historical.graph.nodes[0].data.variables![0].variable = "old_prompt";
+    const history = [
+      historical,
+      {
+        ...structuredClone(published),
+        version: "2026-10-14 12:00:00",
+        version_number: 2,
+        marked_name: "Current",
+        created_at: 1760443200,
+      },
+    ];
     if (options.rejectMcp)
       published.graph.nodes.push({
         id: "mcp",
@@ -217,6 +245,23 @@ test("Formless registration: draft validation, publication, retries, authorizati
           name: "Example",
           description: "Original description",
         };
+      if (path.startsWith(`/apps/${appId}/workflows?`)) {
+        assert.equal(
+          config.body,
+          undefined,
+          "Version selection must never publish",
+        );
+        counts.versions++;
+        options.onVersionRead?.();
+        const page = Number(
+          new URL(path, "https://fixture.test").searchParams.get("page"),
+        );
+        return {
+          items: page === 1 ? structuredClone(history) : [],
+          page,
+          has_more: false,
+        };
+      }
       if (path.endsWith("/api-keys")) {
         if (config.body !== undefined) {
           counts.keys++;
@@ -268,6 +313,7 @@ test("Formless registration: draft validation, publication, retries, authorizati
         ];
       if (path === "/info") return { mode: "workflow" };
       if (path === "/parameters") {
+        counts.parameters++;
         if (options.rejectParameters)
           throw new AppError("DIFY_REJECTED", "Parameters unavailable", 502);
         const variables = published.graph.nodes[0].data.variables ?? [];
@@ -277,7 +323,7 @@ test("Formless registration: draft validation, publication, retries, authorizati
       }
       throw new Error(`Unexpected fixture path ${path}`);
     };
-    return { appId, options, request, counts };
+    return { appId, options, request, counts, history };
   }
   try {
     await t.test(
@@ -405,6 +451,122 @@ test("Formless registration: draft validation, publication, retries, authorizati
       assert.equal(f.counts.publishes, 0);
       assert.equal(f.counts.keys, 0);
     });
+    await t.test(
+      "Re-register selects historical inputs without publishing or changing accepted snapshots",
+      async () => {
+        const f = fixture({ existing: true, draftEdited: true });
+        await registerDifyOrchestrator(f.appId, actor, db, f.request, env);
+        const id = `dify-${f.appId}`;
+        const prior = await db
+          .collection<Document & { _id: string }>("orchestrators")
+          .findOne({ _id: id });
+        await db.collection("aiJobs").insertOne({
+          _id: "accepted-version-fixture",
+          run: { orchestrator: prior!.definition },
+        } as never);
+        const before = { ...f.counts };
+        const selection = { workflowId: f.history[0].id, page: 1 };
+        const result = await registerDifyOrchestrator(
+          f.appId,
+          actor,
+          db,
+          f.request,
+          env,
+          selection,
+        );
+        const current = await db
+          .collection<Document & { _id: string }>("orchestrators")
+          .findOne({ _id: id });
+        assert.equal(result.workflowId, selection.workflowId);
+        assert.equal(current!.definition.workflowId, selection.workflowId);
+        assert.equal(current!.definition.inputs[0].name, "old_prompt");
+        assert.equal(current!.revision, prior!.revision + 1);
+        assert.equal(f.counts.publishes, before.publishes);
+        assert.equal(f.counts.drafts, before.drafts);
+        assert.equal(f.counts.parameters, before.parameters);
+        assert.equal(f.counts.keys, 0);
+        const accepted = await db
+          .collection("aiJobs")
+          .findOne({ _id: "accepted-version-fixture" } as never);
+        assert.deepEqual(accepted!.run.orchestrator, prior!.definition);
+        const versionPage = await difyWorkflowVersions(f.appId, 1, f.request);
+        const serialized = JSON.stringify(versionPage);
+        assert(
+          !serialized.includes("private-secret") &&
+            !serialized.includes("private-conversation") &&
+            !serialized.includes("graph"),
+        );
+        assert.equal(
+          (await discoverDifyOrchestrators(db, f.request, env)).apps.find(
+            (a) => a.id === f.appId,
+          )!.workflowId,
+          selection.workflowId,
+        );
+        await registerDifyOrchestrator(
+          f.appId,
+          actor,
+          db,
+          f.request,
+          env,
+          selection,
+        );
+        assert.equal(
+          (await db.collection("orchestrators").findOne({ _id: id } as never))!
+            .revision,
+          current!.revision,
+        );
+        assert(
+          await db
+            .collection("auditEvents")
+            .findOne({ appId: f.appId, workflowId: selection.workflowId }),
+        );
+      },
+    );
+    await t.test(
+      "Missing, draft, cross-app and concurrently deleted versions preserve the prior registration",
+      async () => {
+        const f = fixture({ existing: true });
+        await registerDifyOrchestrator(f.appId, actor, db, f.request, env);
+        const id = `dify-${f.appId}`;
+        const prior = await db
+          .collection("orchestrators")
+          .findOne({ _id: id } as never);
+        const foreign = fixture().history[0].id;
+        f.history.push({ ...f.history[0], id: randomUUID(), version: "draft" });
+        for (const workflowId of [
+          randomUUID(),
+          foreign,
+          f.history.at(-1)!.id,
+        ]) {
+          await assert.rejects(
+            registerDifyOrchestrator(f.appId, actor, db, f.request, env, {
+              workflowId,
+              page: 1,
+            }),
+            /Reload versions/,
+          );
+          assert.deepEqual(
+            await db.collection("orchestrators").findOne({ _id: id } as never),
+            prior,
+          );
+        }
+        f.options.onVersionRead = () => {
+          if (f.counts.versions === 5) f.history.splice(0, 1);
+        };
+        await assert.rejects(
+          registerDifyOrchestrator(f.appId, actor, db, f.request, env, {
+            workflowId: f.history[0].id,
+            page: 1,
+          }),
+          /Reload versions/,
+        );
+        assert.deepEqual(
+          await db.collection("orchestrators").findOne({ _id: id } as never),
+          prior,
+        );
+        assert.equal(f.counts.publishes, 0);
+      },
+    );
     await t.test("concurrent registration is serialized", async () => {
       let entered!: () => void;
       let release!: () => void;

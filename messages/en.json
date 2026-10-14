@@ -638,7 +638,21 @@
     "mb764cdc0eab7": "Unknown",
     "m3d68c1a96f89": "Reconciliation required",
     "m331551b0de41": "Pending",
-    "md495ec6cf125": "Dify apps could not be loaded. Check the Console connection and refresh."
+    "md495ec6cf125": "Dify apps could not be loaded. Check the Console connection and refresh.",
+    "m9959a4e4ca3f": "Re-register",
+    "m00e8b2d8315a": "Choose workflow version",
+    "m10a987df15bf": "Choose the version for future Runs. Accepted Runs keep their saved version.",
+    "m2db0073126bf": "Current Unibase version: {id}",
+    "m02b2218fdf03": "Workflow version",
+    "m549618280324": "Select a version",
+    "m10f515d80f01": "Saved draft — publish if changed",
+    "m9ce08f625aa4": "Current",
+    "mb6247af24de8": "This publishes the saved Dify draft if it has changed, then registers it for new Runs.",
+    "m8244e1ce0d56": "Loading versions…",
+    "m812bc445e642": "Versions could not be loaded. Close and reopen to retry.",
+    "m641365d3fb4d": "Close",
+    "m6b3446e28837": "Load more versions",
+    "m34c988995ae9": "Register selected version"
   },
   "locale": {
     "heading": "Language and region",

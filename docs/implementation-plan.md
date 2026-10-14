@@ -990,6 +990,31 @@ repository configuration changes. No live Dify import/publication or paid model
 execution occurred; actual LLM compliance and live graph execution remain unverified.
 Existing Dify workflows are unchanged by this local template edit.
 
+### Admin workflow version selection - 2026-10-14
+
+Register/Re-register/Enable now offer a published-version selector with current
+Unibase UUID, publication metadata and ten-row Dify history pages. A separate
+saved-draft option retains explicit publish-if-changed behavior. Historical
+registration validates the selected app's graph/inputs and rechecks membership
+before enabling, without publishing. Missing/draft/foreign/stale selections
+preserve the prior definition. Accepted Runs keep their pinned execution version.
+
+Verification: 62 pure tests, 34 affected version/registration/lifecycle/provider
+checks, independent type checking, lint and production web/worker build pass.
+The production HTTP regression verifies admin-only version access, old accepted
+Runs surviving registration changes and new Runs executing the chosen historical
+version. Disposable production browser checks pass for Re-register, selection,
+reload persistence, keyboard, English/Arabic 390px layout and hydration; paginated
+responses/outages were also simulated to verify load-more and reopen recovery.
+Browser findings corrected catalog encoding and scoped the dialog's RTL position.
+The separate read-only review found no remaining actionable defect.
+
+The existing emulator on port 9099 used another default project; isolated checks
+used an owned demo-unibase Auth server on 9199 and disposable test-runner copies
+with only the emulator port/import paths adjusted. No live Dify publication,
+provider execution, deployment or data migration was performed. Live installation
+acceptance remains separate from these fixture results.
+
 ## Accepted environment configuration and provisioning extension ? 2026-10-14
 
 The accepted scope replaces maintained `unitale` resource defaults with fresh

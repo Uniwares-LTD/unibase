@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 export const existingApp = "10000000-0000-4000-8000-000000000001";
 export const emptyApp = "10000000-0000-4000-8000-000000000002";
 export const workflowId = "20000000-0000-4000-8000-000000000001";
+export const previousWorkflowId = "20000000-0000-4000-8000-000000000003";
 export const existingToken = "app-existing-http-canary";
 export const createdToken = "app-created-http-canary";
 export async function difyKeysFixture() {
@@ -84,6 +85,28 @@ export async function difyKeysFixture() {
         hash: "initial-hash",
         conversation_variables: [],
       },
+    ]),
+  );
+  const history = new Map(
+    [...workflows].map(([appId, workflow]) => [
+      appId,
+      [
+        {
+          ...structuredClone(workflow),
+          version: "2026-10-14 12:00:00",
+          version_number: 2,
+          marked_name: "Current",
+          created_at: 1760443200,
+        },
+        {
+          ...structuredClone(workflow),
+          id: previousWorkflowId,
+          version: "2026-10-01 12:00:00",
+          version_number: 1,
+          marked_name: "Previous",
+          created_at: 1759310400,
+        },
+      ],
     ]),
   );
   const server = createServer(async (request, response) => {
@@ -203,6 +226,26 @@ export async function difyKeysFixture() {
         }
         return send(drafts.get(match[1]));
       }
+      if (match[2] === "/workflows" && request.method === "GET") {
+        const page = Number(
+          new URL(request.url, "http://localhost").searchParams.get("page"),
+        );
+        return send({
+          items:
+            page === 1
+              ? [
+                  {
+                    ...drafts.get(match[1]),
+                    version: "draft",
+                    created_at: 1759310400,
+                  },
+                  ...(history.get(match[1]) ?? []),
+                ]
+              : [],
+          page,
+          has_more: false,
+        });
+      }
       if (match[2] === "/workflows/publish") {
         if (request.method === "POST") {
           publishes++;
@@ -210,6 +253,16 @@ export async function difyKeysFixture() {
             ...structuredClone(drafts.get(match[1])),
             id: "20000000-0000-4000-8000-000000000002",
           });
+          history.set(match[1], [
+            {
+              ...structuredClone(workflows.get(match[1])),
+              version: "2026-10-14 13:00:00",
+              version_number: 3,
+              marked_name: "Published",
+              created_at: 1760446800,
+            },
+            ...(history.get(match[1]) ?? []),
+          ]);
           return send({ result: "success" });
         }
         return send(workflows.get(match[1]) ?? null);
@@ -246,7 +299,12 @@ export async function difyKeysFixture() {
               [field.type]: field,
             })),
         });
-      const workflow = workflows.get(selectedApp);
+      const requestedVersion = /^\/v1\/workflows\/([a-f0-9-]+)\/run$/.exec(
+        path,
+      )?.[1];
+      const workflow = requestedVersion
+        ? history.get(selectedApp)?.find((row) => row.id === requestedVersion)
+        : workflows.get(selectedApp);
       const formMatch = /^\/v1\/form\/human_input\/([a-f0-9-]+)$/.exec(path);
       if (formMatch) {
         const saved = forms.get(formMatch[1]);
@@ -292,7 +350,8 @@ export async function difyKeysFixture() {
         /^\/v1\/workflows\/[a-f0-9-]+\/run$/.test(path) &&
         request.method === "POST"
       ) {
-        if (path !== `/v1/workflows/${workflow.id}/run`) return send({}, 404);
+        if (!workflow || path !== `/v1/workflows/${workflow.id}/run`)
+          return send({}, 404);
         const chunks = [];
         for await (const chunk of request) chunks.push(chunk);
         const body = JSON.parse(Buffer.concat(chunks));

@@ -16,6 +16,12 @@ import {
   reconcileOrchestratorAvailability,
 } from "./orchestrator-lifecycle";
 
+import { selectedWorkflowVersion } from "./workflow-versions";
+import {
+  workflowVersionSelectionSchema,
+  type WorkflowVersionSelection,
+} from "@/lib/contracts/workflow-versions";
+
 type Env = Record<string, string | undefined>;
 type Actor = { uid: string; auth_time: number };
 type Registration = {
@@ -141,6 +147,7 @@ export async function discoverDifyOrchestrators(
     registered: boolean;
     available: boolean;
     orchestratorId?: string;
+    workflowId?: string;
     stage?: string;
     message?: string;
   }[] = [];
@@ -196,7 +203,12 @@ export async function discoverDifyOrchestrators(
         available: catalog.some(
           (item) => item.id === app.id && item.mode === "workflow",
         ),
-        ...(registered ? { orchestratorId: saved._id } : {}),
+        ...(registered
+          ? {
+              orchestratorId: saved._id,
+              workflowId: saved.definition.workflowId,
+            }
+          : {}),
         ...status,
         ...(warning && status.status === "ready"
           ? {
@@ -223,14 +235,18 @@ export async function registrationStatus(
   return publicStatus(state, db, env);
 }
 
-// Validate the current saved draft, publish when changed, then acquire its key.
+// Explicit versions never publish. Legacy/draft registration publishes when changed.
 export async function registerDifyOrchestrator(
   appId: string,
   actor: Actor,
   db: Db = database(),
   providerRequest: typeof difyJson = difyJson,
   env: Env = process.env,
+  selection?: WorkflowVersionSelection,
 ) {
+  selection = selection
+    ? workflowVersionSelectionSchema.parse(selection)
+    : undefined;
   appId = z.string().uuid().parse(appId).toLowerCase();
   const id = scope(appId, env);
   const owner = randomUUID();
@@ -257,7 +273,9 @@ export async function registerDifyOrchestrator(
             until: new Date(Date.now() + 180000),
             status: "registering",
             stage: "Checking workflow",
-            message: "Checking the saved workflow draft.",
+            message: selection
+              ? "Checking the selected published version."
+              : "Checking the saved workflow draft.",
           },
         },
         { session, upsert: true },
@@ -269,8 +287,10 @@ export async function registerDifyOrchestrator(
           actorUid: actor.uid,
           targetUid: actor.uid,
           appId,
-          reason:
-            "Validate the saved Dify draft, publish when needed, and connect the workflow",
+          ...(selection ? { workflowId: selection.workflowId } : {}),
+          reason: selection
+            ? "Validate and connect the selected published workflow version"
+            : "Validate the saved Dify draft, publish when needed, and connect the workflow",
           timestamp: new Date(),
         },
         { session },
@@ -326,52 +346,60 @@ export async function registerDifyOrchestrator(
       environment_variables: z.json().optional(),
       conversation_variables: z.json().optional(),
     });
-    const draft = draftSchema.parse(
-      await request(`/apps/${appId}/workflows/draft`, { management: true }),
-    );
-    const fit = inspectDifyWorkflow(draft.graph);
-    await verifyMcpTools(fit.mcpTools, request);
-    const publicationSchema = draftSchema.extend({ id: z.string().uuid() });
-    const current = await request(`/apps/${appId}/workflows/publish`, {
-      management: true,
-    });
-    const comparable = (value: z.infer<typeof draftSchema>) =>
-      fingerprint([
-        value.graph,
-        value.features ?? {},
-        value.environment_variables ?? [],
-        value.conversation_variables ?? [],
-      ]);
-    const published = current == null ? null : publicationSchema.parse(current);
-    let workflow = published;
-    if (!published || comparable(published) !== comparable(draft)) {
-      await stage("Publishing workflow");
-      const latestDraft = draftSchema.parse(
+    let workflow: (z.infer<typeof draftSchema> & { id: string }) | null;
+    if (selection) {
+      workflow = await selectedWorkflowVersion(appId, selection, request);
+    } else {
+      const draft = draftSchema.parse(
         await request(`/apps/${appId}/workflows/draft`, { management: true }),
       );
-      if (
-        comparable(latestDraft) !== comparable(draft) ||
-        (draft.hash && latestDraft.hash !== draft.hash)
-      )
-        throw new AppError(
-          "DIFY_DRAFT_CHANGED",
-          "The Dify draft changed during registration. Retry to publish the latest draft.",
-          409,
-        );
-      await stage("Publishing workflow");
-      await request(`/apps/${appId}/workflows/publish`, {
+      const draftFit = inspectDifyWorkflow(draft.graph);
+      await verifyMcpTools(draftFit.mcpTools, request);
+      const publicationSchema = draftSchema.extend({ id: z.string().uuid() });
+      const current = await request(`/apps/${appId}/workflows/publish`, {
         management: true,
-        body: {},
       });
-      workflow = publicationSchema.parse(
-        await request(`/apps/${appId}/workflows/publish`, { management: true }),
-      );
-      if (comparable(workflow) !== comparable(draft))
-        throw new AppError(
-          "DIFY_DRAFT_CHANGED",
-          "Dify published a different draft. Registration was not enabled; inspect it and retry.",
-          409,
+      const comparable = (value: z.infer<typeof draftSchema>) =>
+        fingerprint([
+          value.graph,
+          value.features ?? {},
+          value.environment_variables ?? [],
+          value.conversation_variables ?? [],
+        ]);
+      const published =
+        current == null ? null : publicationSchema.parse(current);
+      workflow = published;
+      if (!published || comparable(published) !== comparable(draft)) {
+        await stage("Publishing workflow");
+        const latestDraft = draftSchema.parse(
+          await request(`/apps/${appId}/workflows/draft`, { management: true }),
         );
+        if (
+          comparable(latestDraft) !== comparable(draft) ||
+          (draft.hash && latestDraft.hash !== draft.hash)
+        )
+          throw new AppError(
+            "DIFY_DRAFT_CHANGED",
+            "The Dify draft changed during registration. Retry to publish the latest draft.",
+            409,
+          );
+        await stage("Publishing workflow");
+        await request(`/apps/${appId}/workflows/publish`, {
+          management: true,
+          body: {},
+        });
+        workflow = publicationSchema.parse(
+          await request(`/apps/${appId}/workflows/publish`, {
+            management: true,
+          }),
+        );
+        if (comparable(workflow) !== comparable(draft))
+          throw new AppError(
+            "DIFY_DRAFT_CHANGED",
+            "Dify published a different draft. Registration was not enabled; inspect it and retry.",
+            409,
+          );
+      }
     }
     if (!workflow)
       throw new AppError(
@@ -379,6 +407,8 @@ export async function registerDifyOrchestrator(
         "Dify did not confirm workflow publication. Retry registration.",
         409,
       );
+    const fit = inspectDifyWorkflow(workflow.graph);
+    await verifyMcpTools(fit.mcpTools, request);
     await stage("Connecting app key");
     const credential = await acquireAppCredential(
       appId,
@@ -412,33 +442,50 @@ export async function registerDifyOrchestrator(
     z.object({ mode: z.literal("workflow") }).parse(
       await request("/info", { key }),
     );
-    const parameters = await request("/parameters", { key });
-    const loadedInputs = difyInitialInputs(parameters);
-    if (
-      fingerprint(
-        z
-          .json()
-          .parse(
-            loadedInputs.filter((field) => !field.name.startsWith("unibase_")),
-          ),
-      ) !== fingerprint(z.json().parse(definition.inputs))
-    )
-      throw new AppError(
-        "DIFY_REGISTRATION_INPUTS",
-        "Published Start inputs and the Service API disagree. Check the publication in Dify, then register again.",
-        409,
+    if (selection) {
+      // /parameters describes the current publication, not a historical version.
+      // Derive historical inputs from its exact graph and recheck its membership.
+      const verified = await selectedWorkflowVersion(appId, selection, request);
+      if (
+        fingerprint(z.json().parse(verified.graph)) !==
+        fingerprint(z.json().parse(workflow.graph))
+      )
+        throw new AppError(
+          "DIFY_PUBLICATION_CHANGED",
+          "The selected workflow changed during registration. Reload versions and try again.",
+          409,
+        );
+    } else {
+      const parameters = await request("/parameters", { key });
+      const loadedInputs = difyInitialInputs(parameters);
+      if (
+        fingerprint(
+          z
+            .json()
+            .parse(
+              loadedInputs.filter(
+                (field) => !field.name.startsWith("unibase_"),
+              ),
+            ),
+        ) !== fingerprint(z.json().parse(definition.inputs))
+      )
+        throw new AppError(
+          "DIFY_REGISTRATION_INPUTS",
+          "Published Start inputs and the Service API disagree. Check the publication in Dify, then register again.",
+          409,
+        );
+      const latest = z.object({ id: z.string().uuid() }).parse(
+        await request(`/apps/${appId}/workflows/publish`, {
+          management: true,
+        }),
       );
-    const latest = z
-      .object({ id: z.string().uuid() })
-      .parse(
-        await request(`/apps/${appId}/workflows/publish`, { management: true }),
-      );
-    if (latest.id !== definition.workflowId)
-      throw new AppError(
-        "DIFY_PUBLICATION_CHANGED",
-        "The published workflow changed during registration. Register again.",
-        409,
-      );
+      if (latest.id !== definition.workflowId)
+        throw new AppError(
+          "DIFY_PUBLICATION_CHANGED",
+          "The published workflow changed during registration. Register again.",
+          409,
+        );
+    }
     await stage("Enabling orchestrator");
     await accessTransaction(
       db,
@@ -499,6 +546,7 @@ export async function registerDifyOrchestrator(
     return {
       appId,
       orchestratorId: definition.id,
+      workflowId: definition.workflowId!,
       name: definition.name,
       status: "ready" as const,
     };

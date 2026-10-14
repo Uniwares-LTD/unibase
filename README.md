@@ -65,7 +65,8 @@ replace its milestone scope with the new product's accepted work.
 ## Personas and saved artifacts
 
 Create **Persona responder** in Administration > Orchestrators, configure its
-LLM provider/model in Dify, then Register the saved workflow again. The template
+LLM provider/model in Dify, then use **Re-register** and select **Saved draft**
+to publish the edited draft, or choose an existing published version. The template
 uses a suggested OpenAI model; it needs your Dify provider plugin/credentials and
 code sandbox, and can be changed to another structured-output model. Under
 Administration > Personas, edit an example or create a persona, select the
@@ -73,6 +74,15 @@ registered responder, configure pricing/answer limits, and enable it. Start Run
 then offers **User** or an available persona. Completed valid responder answers
 remain chargeable if the main workflow fails or the user takes over. Review the
 combined maximum before starting. No model credentials are added to Unibase.
+
+In **Administration > Orchestrators**, **Register**, **Re-register**, and **Enable**
+open a version selector. Choose a published version and **Register selected version**
+to use it for future Runs. The selector shows the current Unibase workflow ID,
+publication names/dates and more pages when available. Selecting a published version
+does not publish the draft. **Saved draft — publish if changed** explicitly publishes
+the saved Dify edits before registration. Accepted Runs retain their pinned version;
+ordinary users do not choose a version separately. Local template JSON edits still
+require creating a new workflow or updating the draft in Dify first.
 
 For the reference product integration, grant `run:read`, `artifact:read`, and
 `artifact:write` explicitly to the dedicated MCP client and refresh its tools in

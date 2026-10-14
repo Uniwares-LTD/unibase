@@ -18,6 +18,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { OrchestratorTemplateSummary } from "@/lib/contracts/orchestrator-templates";
+import type { WorkflowVersionSelection } from "@/lib/contracts/workflow-versions";
+import { WorkflowVersionPicker } from "./workflow-version-picker";
 
 const appSchema = z.object({
   id: z.string(),
@@ -34,6 +36,7 @@ const appSchema = z.object({
   registered: z.boolean(),
   available: z.boolean(),
   orchestratorId: z.string().optional(),
+  workflowId: z.string().uuid().optional(),
   stage: z.string().optional(),
   message: z.string().optional(),
 });
@@ -240,7 +243,7 @@ export function OrchestratorEditor({
       setRefreshing(false);
     }
   }
-  async function register(appId: string) {
+  async function register(appId: string, selection?: WorkflowVersionSelection) {
     setActive(appId);
     setMessage("");
     setApps((prior) =>
@@ -262,10 +265,11 @@ export function OrchestratorEditor({
           status: z.literal("ready"),
           name: z.string(),
           orchestratorId: z.string(),
+          workflowId: z.string().uuid(),
         }),
         {
           method: "POST",
-          body: { action: "register", appId },
+          body: { action: "register", appId, selection },
           timeoutMs: 120000,
         },
       );
@@ -277,6 +281,7 @@ export function OrchestratorEditor({
                 status: "ready",
                 registered: true,
                 orchestratorId: result.orchestratorId,
+                workflowId: result.workflowId,
                 stage: translate("m5fa7aac5375c"),
                 message: translate("mf22c4dc94df3"),
               }
@@ -426,27 +431,29 @@ export function OrchestratorEditor({
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button
+              <WorkflowVersionPicker
+                appId={app.id}
+                currentWorkflowId={app.workflowId}
                 disabled={
                   creating ||
                   !!changing ||
                   !app.available ||
                   !!active ||
-                  app.status === "ready" ||
                   app.status === "registering"
                 }
-                onClick={() => void register(app.id)}
-              >
-                {app.status === "ready"
-                  ? translate("m2351ee992626")
-                  : app.status === "registering"
+                onRegister={(selection) => void register(app.id, selection)}
+                label={
+                  app.status === "registering"
                     ? translate("m9ef767a32782")
-                    : app.status === "failed"
-                      ? translate("m04048ff7f268")
-                      : app.status === "disabled"
-                        ? translate("m5342e09f2729")
-                        : translate("mbb7234ec1245")}
-              </Button>
+                    : app.registered && app.status !== "disabled"
+                      ? translate("m9959a4e4ca3f")
+                      : app.status === "failed"
+                        ? translate("m04048ff7f268")
+                        : app.status === "disabled"
+                          ? translate("m5342e09f2729")
+                          : translate("mbb7234ec1245")
+                }
+              />
               {app.registered && app.orchestratorId && (
                 <>
                   {app.status !== "disabled" &&

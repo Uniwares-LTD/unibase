@@ -295,7 +295,7 @@ identity remain private environment configuration; absolute safety ceilings,
 protocol versions and component registrations remain in code.
 
 `/admin/orchestrators` offers a **Create orchestrator** template dropdown and
-formless registration of an existing Workflow. `registration.ts` reads the
+version selection for Register/Re-register/Enable of an existing Workflow. `registration.ts` reads the
 publication, acquires an encrypted key, verifies API inputs and enables a derived
 definition. `dify-capabilities.ts` checks supported Start controls, Human Input
 WebApp delivery/form contracts and referenced MCP authorization/tool metadata.
@@ -308,10 +308,19 @@ revision. Admission conditionally writes the current orchestrator inside the
 credit/job transaction, preventing a concurrent disable from slipping through.
 Unregister leaves a private tombstone to prevent seed resurrection. Accepted job
 snapshots, encrypted credentials, saved results and tracing remain untouched.
-Registration validates the saved draft, publishes when new or changed and checks
-the resulting publication. It performs no draft mutation, injected inputs or provider
+Saved-draft registration validates the draft, publishes when new or changed and checks
+the resulting publication. Explicit-version registration validates a published graph
+from the selected app's bounded history page without publishing the draft. Its
+inputs come from that version, rather than the latest-only `/parameters` response.
+Version membership and graph identity are rechecked before enabling; failed or
+stale selections preserve the prior definition. Registration performs no draft mutation, injected inputs or provider
 response wrapping. Obsolete input/graph setup, validation and manual-save modules/routes
 were removed. Registration/audit records retain sanitized progress, not graphs.
+The shared management contract accepts only an app UUID and optional version
+UUID/page. `workflow-versions.ts` excludes draft rows and exposes allowlisted
+publication metadata; graphs, variable values and provider account data stay on
+the server. Admin-selected versions affect future admissions. Accepted Run
+configuration and execution bindings remain pinned and are never rewritten.
 
 The app contract normalizes native End outputs on the Unibase server, retaining
 explicit valid structured business outcomes/cards/images. Invalid claimed rich

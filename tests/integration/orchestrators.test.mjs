@@ -17,6 +17,8 @@ import {
   emptyApp,
   existingToken,
   createdToken,
+  workflowId,
+  previousWorkflowId,
 } from "./dify-keys-fixture.mjs";
 
 assert.equal(process.env.DIFY_MODE, "live");
@@ -140,6 +142,15 @@ test("Read-only registration runs native Dify outputs without graph changes", as
     403,
   );
   assert.equal(
+    (await command(other, { action: "versions", appId: existingApp })).status,
+    403,
+  );
+  assert.equal(
+    (await command(owner, { action: "versions", appId: existingApp, page: 0 }))
+      .status,
+    400,
+  );
+  assert.equal(
     (
       await command(owner, {
         action: "register",
@@ -208,7 +219,67 @@ test("Read-only registration runs native Dify outputs without graph changes", as
     const admittedText = await admitted.text();
     assert.equal(admitted.status, 202, admittedText);
     const run = JSON.parse(admittedText);
+    if (appId === existingApp) {
+      const versionResponse = await command(owner, {
+        action: "versions",
+        appId,
+      });
+      assert.equal(versionResponse.status, 200);
+      const versions = await versionResponse.json();
+      assert.deepEqual(
+        versions.versions.map((v) => v.id),
+        [workflowId, previousWorkflowId],
+      );
+      assert(!JSON.stringify(versions).includes("graph"));
+      const switched = await command(owner, {
+        action: "register",
+        appId,
+        selection: { workflowId: previousWorkflowId, page: 1 },
+      });
+      assert.equal(switched.status, 200, await switched.clone().text());
+      assert.equal((await switched.json()).workflowId, previousWorkflowId);
+      assert.equal(
+        (await db.collection("aiJobs").findOne({ _id: run.id })).run
+          .orchestrator.workflowId,
+        workflowId,
+      );
+    }
     await runWorker();
+    if (appId === existingApp) {
+      const current = (
+        await (await owner.request("/api/admin/orchestrators")).json()
+      ).find((row) => row.id === selected.id);
+      const nextResponse = await owner.request("/api/runs", {
+        method: "POST",
+        body: JSON.stringify({
+          ...body,
+          key: randomUUID(),
+          configurationKey: current.configurationKey,
+        }),
+      });
+      assert.equal(nextResponse.status, 202, await nextResponse.clone().text());
+      const nextRun = await nextResponse.json();
+      assert.equal(
+        (await db.collection("aiJobs").findOne({ _id: nextRun.id })).run
+          .orchestrator.workflowId,
+        previousWorkflowId,
+      );
+      await runWorker();
+      const nextDetail = await (
+        await owner.request(`/api/runs/${nextRun.id}`)
+      ).json();
+      assert.equal(nextDetail.status, "succeeded");
+      assert.equal(
+        (
+          await command(owner, {
+            action: "register",
+            appId,
+            selection: { workflowId, page: 1 },
+          })
+        ).status,
+        200,
+      );
+    }
     const detailResponse = await owner.request(`/api/runs/${run.id}`);
     const detailText = await detailResponse.text();
     assert.equal(detailResponse.status, 200, detailText);
@@ -263,7 +334,7 @@ test("Read-only registration runs native Dify outputs without graph changes", as
       .findOne({ _id: selected.id });
     assert.equal(after.revision, before.revision);
   }
-  assert.equal((await readWallet(db, owner.uid)).balance, 28);
+  assert.equal((await readWallet(db, owner.uid)).balance, 27);
   assert.equal(await db.collection("orchestrators").countDocuments(), 2);
   assert.equal(await db.collection("difyCredentials").countDocuments(), 2);
   const storage =
@@ -284,7 +355,7 @@ test("Read-only registration runs native Dify outputs without graph changes", as
     creates: 1,
     draftUpdates: 0,
     publishes: 0,
-    executions: 2,
+    executions: 3,
   });
   const creationKey = randomUUID();
   assert.equal(
@@ -426,7 +497,7 @@ test("Read-only registration runs native Dify outputs without graph changes", as
     creates: 2,
     draftUpdates: 0,
     publishes: 1,
-    executions: 3,
+    executions: 4,
     imports: 1,
     mcpCalls: 1,
   });
