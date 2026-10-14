@@ -439,9 +439,13 @@ and file responses remain invalid; human-only approvals still require a User.
 The responder template maps plain prose only to a single text-question card and
 maps top-level null only to summary/issue acknowledgements. All normalized output
 still passes the shared server validation. The story-to-panel template uses two
-sequential decisions (story changes and character approval), three LLM calls, and
+sequential decisions (story approval/changes in one form, then character approval), three LLM calls, and
 an approval-only image-tool branch. It saves the combined story/character as an
 ordinary artifact revision without adding a separate story domain or worker.
+The story writer consumes the artifact MCP JSON directly, and the revision LLM
+consumes the review JSON directly. Deterministic Python still constructs bounded
+forms and enforces revision/output contracts; an LLM never supplies the saved
+revision or approval hash.
 
 Native Dify tool images opt in through the `unibase_images` End output alongside a
 successful structured result. Server-only ingestion accepts signed, matching-UUID

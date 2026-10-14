@@ -86,8 +86,11 @@ This sample requires the Dify code sandbox and reachable MCP, but no generation
 model. Persona mode additionally needs the responder model.
 
 For real generation, create **Story to panel** and choose it on **Start run**.
-Create or select an owned artifact and enter a story idea; the workflow writes a story, asks for changes,
-revises it, creates a character description, requests approval, and generates one
+Create or select an owned artifact and enter a story idea; the workflow writes a story,
+shows one review form with **Approved**, **Send changes**, and an optional changes
+text box. Save the response and Continue. The revision LLM receives the review
+JSON directly and is instructed to preserve approved stories or apply changes
+(blank changes preserve the story). It creates a character description, requests approval, and generates one
 comic panel only after approval. **User** answers both questions manually; a
 selected persona answers both automatically, with Take over available. Declining
 keeps the story/character draft and returns a partial result without an image.

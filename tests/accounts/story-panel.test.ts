@@ -28,16 +28,29 @@ function code(id: string, args: Record<string, unknown>, workflow = template) {
   return JSON.parse(result.stdout);
 }
 
-test("story feedback and character approval use distinct, persona-compatible decisions", () => {
+test("story review offers approval and changes together, with persona-compatible character approval", () => {
   const story = "A curious child finds a tiny moon in a garden.";
   const form = parseUiForm(
     code("story_form", { story }).form + "\n{{#$output.response#}}",
   );
-  const answers = { changes: "Make the explorer a friendly robot." };
-  validateAnswers(form, answers);
-  const feedback = code("feedback", { response: JSON.stringify(answers) });
-  assert.equal(feedback.changes, answers.changes);
-  assert.throws(() => code("feedback", { response: "{}" }));
+  const answers = {
+    review: {
+      decision: "changes",
+      changes: "Make the explorer a friendly robot.",
+    },
+  };
+  assert.deepEqual(validateAnswers(form, answers), answers);
+  const approved = { review: { decision: "approved" } };
+  assert.deepEqual(validateAnswers(form, approved), approved);
+  assert.throws(() => validateAnswers(form, { review: {} }));
+  assert.throws(() =>
+    validateAnswers(form, { review: { decision: "unknown" } }),
+  );
+  assert.throws(() =>
+    validateAnswers(form, {
+      review: { decision: "changes", changes: "x".repeat(4001) },
+    }),
+  );
   assert.throws(() => code("story_form", { story: "x".repeat(1201) }));
   const parsed = responderAnswer(
     {
@@ -46,18 +59,35 @@ test("story feedback and character approval use distinct, persona-compatible dec
           form_content:
             code("story_form", { story }).form + "\n{{#$output.response#}}",
           inputs: [],
-          user_actions: [{ id: "revise", title: "Apply changes" }],
+          user_actions: [{ id: "continue", title: "Continue" }],
           resolved_default_values: {},
         }),
       },
     },
-    { answer: JSON.stringify({ action: "revise", answers }) },
+    { answer: JSON.stringify({ action: "continue", answers }) },
   );
-  assert.deepEqual(parsed, { action: "revise", answers });
+  assert.deepEqual(parsed, { action: "continue", answers });
+  assert.deepEqual(
+    responderAnswer(
+      {
+        inputs: {
+          question: JSON.stringify({
+            form_content:
+              code("story_form", { story }).form + "\n{{#$output.response#}}",
+            inputs: [],
+            user_actions: [{ id: "continue", title: "Continue" }],
+            resolved_default_values: {},
+          }),
+        },
+      },
+      { answer: { action: "continue", answers: approved } },
+    ),
+    { action: "continue", answers: approved },
+  );
   const draft = code("draft", {
     story: "A friendly robot finds a tiny moon.",
     character: "Lumi is a small silver robot with a blue scarf.",
-    revision: 4,
+    reference: [{ artifactId: "fixture-artifact", revision: 4 }],
   });
   assert.match(draft.prompt, /friendly robot/);
   assert.match(draft.prompt, /blue scarf/);
@@ -106,9 +136,29 @@ test("story feedback and character approval use distinct, persona-compatible dec
 
 test("responder normalizes plain prose only for one unambiguous text question", () => {
   const responder = orchestratorTemplate("persona-responder").build("fixture");
-  const storyForm = code("story_form", {
-    story: "A robot finds a firefly.",
-  }).form;
+  // The story template now uses a form. Retain coverage of the responder's
+  // generic single-text normalization with a standalone question fixture.
+  const storyForm =
+    "```unibase-ui\n" +
+    JSON.stringify({
+      version: 1,
+      cards: [
+        {
+          id: "changes",
+          content: {
+            type: "question",
+            version: 1,
+            data: {
+              kind: "text",
+              title: "Requested changes",
+              explanation: "A robot finds a firefly.",
+              options: [],
+            },
+          },
+        },
+      ],
+    }) +
+    "\n```";
   const question = JSON.stringify({ form_content: storyForm });
   const answer = { action: "revise", answers: "Give the robot a blue scarf." };
   assert.deepEqual(
@@ -223,4 +273,72 @@ test("only the approved branch reaches real panel generation", () => {
     template.workflow.graph.nodes.find((n) => n.id === "panel")?.data.tool_name,
     "gpt_image_generate",
   );
+});
+
+test("LLMs receive raw tool context and review answers without Python extraction", () => {
+  const { nodes, edges } = template.workflow.graph;
+  const node = (id: string) => nodes.find((n) => n.id === id)!;
+  assert.equal(
+    nodes.some((n) => ["reference", "feedback"].includes(n.id)),
+    false,
+  );
+  // Inspect every binding so removing a node cannot leave a dangling selector.
+  for (const n of nodes) {
+    for (const match of JSON.stringify(n.data).matchAll(
+      /\{\{#([^.}]+)\.[^}]+#\}\}/g,
+    )) {
+      assert(
+        match[1].startsWith("$") || nodes.some((n) => n.id === match[1]),
+        match[0],
+      );
+    }
+    const variables = (n.data.variables ?? []) as {
+      value_selector?: string[];
+    }[];
+    for (const variable of variables)
+      if (variable.value_selector)
+        assert(nodes.some((n) => n.id === variable.value_selector![0]));
+  }
+  for (const [source, target] of [
+    ["read", "story"],
+    ["story_decision", "revised_story"],
+  ]) {
+    assert(edges.some((e) => e.source === source && e.target === target));
+    assert.equal(node(target).data.type, "llm");
+  }
+  const prompts = (id: string) =>
+    node(id).data.prompt_template as { role: string; text: string }[];
+  assert(prompts("story").some((p) => p.text.includes("{{#read.json#}}")));
+  const reviewPrompt = prompts("revised_story").find(
+    (p) => p.role === "user",
+  )!.text;
+  assert(reviewPrompt.includes("{{#story_decision.response#}}"));
+  const responder = orchestratorTemplate("persona-responder").build("fixture");
+  const question = JSON.stringify({
+    form_content: code("story_form", { story: "A robot finds a firefly." })
+      .form,
+  });
+  for (const review of [
+    { decision: "approved" },
+    { decision: "changes", changes: "Give the robot a blue scarf." },
+  ]) {
+    const answer = { action: "continue", answers: { review } };
+    assert.deepEqual(
+      JSON.parse(code("compose", { answer, question }, responder).answer),
+      answer,
+    );
+    const rendered = reviewPrompt.replace(
+      "{{#story_decision.response#}}",
+      JSON.stringify(answer.answers),
+    );
+    assert(rendered.includes(JSON.stringify(answer.answers)));
+  }
+  for (const revision of [-1, true, "4"])
+    assert.throws(() =>
+      code("draft", {
+        story: "A robot finds a firefly.",
+        character: "A silver robot.",
+        reference: [{ artifactId: "fixture-artifact", revision }],
+      }),
+    );
 });

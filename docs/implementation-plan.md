@@ -970,6 +970,26 @@ Remaining acceptance requires real environment evidence: live Firebase/Cloudflar
 journeys, actual provider/S3/billing integration, live deployment/publication and
 Android/device verification. Local fixtures do not constitute that acceptance.
 
+### Story-panel configurable-flow proof - 2026-10-14
+
+The local JSON template now passes artifact MCP JSON and story-review JSON directly
+to the next LLM, removing the `reference` and `feedback` Python nodes. One story
+review form offers Approved / Send changes and optional bounded changes text.
+The revision LLM is instructed to preserve approved stories, ignore changes text
+on approval and preserve the story when changes are blank. Deterministic draft
+revision extraction, saved-revision approval and result/image contracts remain.
+
+Local verification: five focused template/story tests, independent type checking,
+lint and the production web/worker build pass. A disposable SSR/hydration fixture
+using the real card renderer passed approval without text, changes serialization,
+required-choice rejection, keyboard selection, reload and English/Arabic 390px
+layout with no hydration errors or horizontal overflow. A separate read-only
+review pass found no actionable defect. Sandbox SWC cache ownership prevented the
+first build/typecheck attempts; the same checks passed outside the sandbox without
+repository configuration changes. No live Dify import/publication or paid model
+execution occurred; actual LLM compliance and live graph execution remain unverified.
+Existing Dify workflows are unchanged by this local template edit.
+
 ## Accepted environment configuration and provisioning extension ? 2026-10-14
 
 The accepted scope replaces maintained `unitale` resource defaults with fresh

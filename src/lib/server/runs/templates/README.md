@@ -21,12 +21,20 @@ outputs and the Unibase answer format. Refresh Dify tool metadata before creatio
 
 - `persona-responder.json`: bounded persona/question/context → structured LLM → normalized answer. Configure the Dify model/provider before use; no MCP binding is needed.
 - `saved-artifact.json`: private Run context → owned draft read/save → revision-bound approval/decline → synthetic retained image. Start this from an owned artifact.
-- `story-panel.json`: Story idea → AI story → requested changes → AI revision and character description → revision-bound approval → real generated panel. Start from an owned artifact. Configure the LLM nodes and authorize OpenAI Tools in Dify. Decline retains the draft without generating an image.
+- `story-panel.json`: Story idea → AI story → Approved/Send changes review form → AI revision and character description → revision-bound approval → real generated panel. Start from an owned artifact. Configure the LLM nodes and authorize OpenAI Tools in Dify. Decline retains the draft without generating an image.
 
 Private tools bind the server-filled `unibase_context` directly; never send that
 value to a prompt. The artifact sample's approval metadata is rendered dynamically
 and validated against the saved revision. Persona responders receive no private
 capabilities and cannot call product tools.
+
+Story generation receives the artifact tool's JSON directly. Story review uses one
+version-1 form card (`review`) with a required `decision` choice (`approved` or
+`changes`) and optional `changes` text (4,000 characters maximum). Save response,
+then Continue. The revision LLM receives that response JSON directly, with
+instructions to preserve approved stories (ignoring changes text) and to preserve
+the original when requested changes are blank. Python still bounds form content,
+extracts the exact draft revision, builds approval metadata and formats results.
 
 The Story to panel End exposes native image-tool `files` as `unibase_images`
 alongside a version-1 result. The server downloads only signed image files on the

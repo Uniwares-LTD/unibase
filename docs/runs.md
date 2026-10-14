@@ -321,8 +321,13 @@ cleanup, and retained product images remain accessible after that cleanup.
 ### Real story-to-panel workflow
 
 `story-panel` uses the same owned artifact and private MCP tools. Its required
-Story idea input feeds an LLM story writer. The first decision asks for requested
-changes, including "keep it as is"; an LLM revises the story and another creates
+Story idea input feeds an LLM story writer directly from the owned artifact's MCP
+JSON, without a Python extraction step. The first decision shows one form with an
+**Approved** / **Send changes** choice and an optional changes text box. Save the
+response, then Continue. The revision LLM receives the raw JSON response keyed by
+`review`, with `decision` and optional `changes` fields; it is instructed to return
+approved stories unchanged and otherwise apply the changes. Blank changes preserve
+the story. Another LLM creates
 the main character's description. The combined story and character are saved as
 one revision. The second decision approves or declines that exact revision.
 Approval records its human/persona source before the image tool runs. Decline
@@ -330,6 +335,13 @@ returns a partial result, retains the unapproved draft, and never calls the imag
 tool. The selected answerer handles both decisions; personas can approve this
 template (`requireHuman: false`). There is one revision pass and one character
 approval per attempt, rather than an unbounded revision loop.
+
+Python remains for bounded review-form construction, deterministic draft revision
+extraction, saved-revision approval metadata and result envelopes. Revision numbers
+and content hashes are never delegated to the LLM. Editing the local JSON changes
+future template creation; it does not synchronize existing Dify apps. Update an
+existing Dify draft explicitly and re-register, or create a separate workflow to
+trial the new graph while retaining the earlier publication for accepted Runs.
 
 Configure the three LLM nodes and the separate OpenAI Tools provider in Dify;
 the template uses `gpt-4.1-mini` and `gpt_image_generate` with `gpt-image-1`.
