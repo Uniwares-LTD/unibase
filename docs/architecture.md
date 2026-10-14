@@ -349,7 +349,7 @@ ID with a fenced lease. Unknown imports are not repeated. This path is separate
 from general registration. New starters disable the public Dify site while retaining
 API access and Human Input WebApp delivery. Create merges its confirmed app into
 the client list and refreshes discovery. The starter uses zero inputs, an authorized reference MCP
-tool, a Human Input Generative UI choice and Code/End native text output. MCP
+tool, a Human Input Generative UI choice and prompted LLM/End native text output. MCP
 structured content is consumed from `json`, because Dify may leave `text` empty.
 Reconnect consumes events following historical pauses; polling completed Runs
 also replays available events. When terminal snapshots omit historical nodes, the
@@ -447,24 +447,28 @@ summary through settlement; historical failures without saved details show an
 explicit fallback. Terminal Runs without stage events report that no stage details
 were recorded. They do not keep displaying a waiting message.
 
-Persona actions normalize omitted summary/issue acknowledgements to JSON null.
+Legacy persona actions normalize omitted summary/issue acknowledgements to JSON null.
 Explicit invalid acknowledgement values, missing choices/fields, unoffered actions
 and file responses remain invalid; human-only approvals still require a User.
 
 The responder template is Start → LLM → End with raw answer text, no Python and
-no enforced model output schema. It accepts serialized question shapes and
-requests the appropriate response format, including native typed JSON values
-inside `{action,answers}` for Run forms. For a single offered action, Unibase also
-accepts a raw answer map and assigns that action; multiple actions still require
-an explicit choice. Unibase's shared form validation remains
-the submission boundary. The persona adapter treats null optional form fields as
-omitted, preserving validation of required fields and supplied values. Dify does
-no normalization. The story-to-panel template uses two
-sequential decisions (story approval/changes in one form, then character approval), three LLM calls, and
+no enforced model output schema. New registrations snapshot `responseMode: raw-v1`;
+re-registration preserves it and snapshots without it keep the legacy adapter.
+The raw path sends the rendered question and public context to the persona, then
+forwards the answer unchanged to the workflow. Human UI values are not normalized.
+JSON values are serialized once for Dify's paragraph input; strings stay exact.
+Original response values are retained separately from provider input strings and
+participate in retry hashes. The next workflow LLM interprets the response.
+Renderable component definitions and tool execution still have checked contracts.
+The story-to-panel template uses two
+sequential decisions (story approval/changes in one form, then character approval), three ordinary LLM calls plus a persona-only approval interpretation, and
 an approval-only image-tool branch. It saves the combined story/character as an
 ordinary artifact revision without adding a separate story domain or worker.
 The story writer consumes the artifact MCP JSON directly, and the revision LLM
-consumes the review JSON directly. Deterministic Python still constructs bounded
+consumes the raw review directly. Explicit human approval actions remain separate
+from raw content. Persona `continue` evidence must match the accepted persona ID
+and revision and cannot satisfy human-only approval. The approval LLM branches
+conservatively; only exact `approve` reaches the tool. Deterministic Python still constructs
 forms and enforces revision/output contracts; an LLM never supplies the saved
 revision or approval hash.
 

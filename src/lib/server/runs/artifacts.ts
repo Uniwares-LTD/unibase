@@ -389,8 +389,19 @@ export async function artifactOperation(
           !decision?.approval ||
           (decision.approval.requireHuman &&
             decision.answerSource?.type !== "user") ||
-          (decision.confirmedAction ?? decision.intent?.action) !==
-            decision.approval.action ||
+          ((decision.confirmedAction ?? decision.intent?.action) !==
+            decision.approval.action &&
+            !(
+              job.run!.orchestrator.responseMode === "raw-v1" &&
+              decision.answerSource?.type === "persona" &&
+              !!job.run!.answerer &&
+              decision.answerSource.personaId === job.run!.answerer.id &&
+              decision.answerSource.personaRevision ===
+                job.run!.answerer.revision &&
+              !decision.approval.requireHuman &&
+              (decision.confirmedAction ?? decision.intent?.action) ===
+                "continue"
+            )) ||
           artifact.revision !== data.revision
         )
           throw new AppError(

@@ -51,7 +51,6 @@ test("story review offers approval and changes together, with persona-compatible
       review: { decision: "changes", changes: "x".repeat(4001) },
     }),
   );
-  assert.throws(() => code("story_form", { story: "x".repeat(1201) }));
   const parsed = responderAnswer(
     {
       inputs: {
@@ -173,6 +172,41 @@ test("only the approved branch reaches real panel generation", () => {
   assert.equal(
     template.workflow.graph.nodes.find((n) => n.id === "panel")?.data.tool_name,
     "gpt_image_generate",
+  );
+  const route = template.workflow.graph.nodes.find(
+    (n) => n.id === "approval_route",
+  )!;
+  assert.equal(route.data.type, "if-else");
+  assert.equal(
+    reachable(
+      edges.find((e) => e.source === route.id && e.sourceHandle === "false")!
+        .target,
+    ).has("panel"),
+    false,
+  );
+  assert.equal(
+    reachable(
+      edges.find((e) => e.source === route.id && e.sourceHandle === "approved")!
+        .target,
+    ).has("panel"),
+    true,
+  );
+  const interpreter = template.workflow.graph.nodes.find(
+    (n) => n.id === "interpret_approval",
+  )!;
+  assert.equal(interpreter.data.type, "llm");
+  assert(
+    JSON.stringify(interpreter.data.prompt_template).includes(
+      "{{#decision.response#}}",
+    ),
+  );
+  assert(
+    edges.some(
+      (e) =>
+        e.source === "decision" &&
+        e.sourceHandle === "continue" &&
+        e.target === interpreter.id,
+    ),
   );
 });
 

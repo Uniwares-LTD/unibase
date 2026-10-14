@@ -55,6 +55,9 @@ export async function sampleForm(db: Db, job: AiJob) {
     user_actions: [
       { id: "approve", title: "Approve" },
       { id: "decline", title: "Decline" },
+      ...(job.run!.orchestrator.responseMode === "raw-v1"
+        ? [{ id: "continue", title: "Continue" }]
+        : []),
     ],
     resolved_default_values: {},
   };

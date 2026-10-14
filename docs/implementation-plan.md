@@ -1058,6 +1058,39 @@ independent type checking, targeted lint, formatting, docs, i18n and skill check
 pass. Separate read-only review found no actionable defect. No decision or
 provider execution was resubmitted during verification.
 
+### Raw responses and prompted workflow interpretation - 2026-10-14
+
+New registrations snapshot `responseMode: raw-v1`; re-registration preserves the
+saved mode and accepted snapshots without it retain the structured adapter. Raw
+human submissions use a separate response field. Text is forwarded exactly and
+other JSON values are serialized once for Dify. Original values are retained for
+history/context and retry identity; persona output is not parsed into UI fields.
+Renderable UI definitions, payload bounds and tool permissions remain checked.
+
+The persona template answers directly without an action/answers envelope. Story
+review reuses its next LLM; persona approval uses a prompted interpretation and
+conservative branch. Explicit human approval actions retain their provenance;
+persona continuation cannot satisfy human-only approval and must match the accepted
+persona ID/revision. The saved-artifact sample uses the same approval path. The
+three simple examples also replace their Python answer interpreters with LLM
+prompts, so new raw registrations do not ship with incompatible answer parsing.
+Their interpretation models now need configuration in Dify. No additional generic
+formatter call, billing category, migration or UI framework was introduced.
+
+Verification: all 169 isolated account/service tests and 62 pure tests pass.
+Production web/worker build, independent type checking, lint, formatting,
+environment, documentation, i18n and pinned-skill checks pass. A concurrent repeat
+hit Mongo fixture startup timeouts; the final suite passed with concurrency two.
+Real production-browser checks pass at desktop and 390px Arabic RTL, including
+client navigation, keyboard activation, unchanged whitespace/zero/false/array
+values, no page errors and no horizontal overflow. All three saved successful
+Dify responses rejected by earlier adapters pass read-only raw replay unchanged.
+The separate read-only review covers response transport, registration compatibility,
+approval provenance and the final templates. Live Dify publication, paid model
+execution and resubmission of existing paused decisions were not performed.
+The local AI worker was restarted with the rebuilt bundle and reported a fresh
+healthy heartbeat.
+
 ## Accepted environment configuration and provisioning extension ? 2026-10-14
 
 The accepted scope replaces maintained `unitale` resource defaults with fresh

@@ -36,6 +36,7 @@ export const orchestratorSchema = z
     enabled: z.boolean(),
     domainAdapter: domainAdapterSchema.optional(),
     purpose: z.enum(["run", "responder"]).optional(),
+    responseMode: z.literal("raw-v1").optional(),
     privateTools: z.array(z.string().max(128)).max(20).optional(),
     contextInput: z.boolean().optional(),
     contextInputName: z.enum(["context", "unibase_context"]).optional(),
@@ -149,6 +150,46 @@ export const decisionSubmitSchema = z.strictObject({
   action: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]{0,19}$/),
   answers: z.record(z.string(), z.json()),
 });
+export const rawDecisionSubmitSchema = z.strictObject({
+  key: z.string().uuid(),
+  action: decisionSubmitSchema.shape.action,
+  response: z.json(),
+});
+// The HTTP boundary accepts both wire shapes; the accepted Run snapshot selects
+// exactly one of them in the server service, never the browser's payload.
+export const decisionRequestSchema = z.union([
+  decisionSubmitSchema,
+  rawDecisionSubmitSchema,
+]);
+
+// Dify paragraph inputs carry strings. Keep text byte-for-byte and encode other
+// JSON values exactly once; do not interpret a JSON-looking string as an object.
+export const rawResponseTextSchema = z
+  .json()
+  .transform((response) =>
+    typeof response === "string" ? response : JSON.stringify(response),
+  )
+  .pipe(z.string().max(4000));
+export function rawResponseText(value: unknown) {
+  return rawResponseTextSchema.parse(value);
+}
+
+export function assertRawResponseForm(form: {
+  inputs: { type: string; output_variable_name: string }[];
+  user_actions: { id: string }[];
+}) {
+  if (
+    form.inputs.length !== 1 ||
+    form.inputs[0].type !== "paragraph" ||
+    form.inputs[0].output_variable_name !== "response" ||
+    !form.user_actions.some((a) => a.id === "continue") ||
+    new Set(form.user_actions.map((a) => a.id)).size !==
+      form.user_actions.length
+  )
+    throw new Error(
+      "Raw responses need one paragraph input named response and a continue action. Use an LLM after the question to interpret the response.",
+    );
+}
 export const uiPayloadSchema = z
   .strictObject({
     version: z.literal(1),

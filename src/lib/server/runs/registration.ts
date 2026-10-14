@@ -254,6 +254,7 @@ export async function registerDifyOrchestrator(
   appId = z.string().uuid().parse(appId).toLowerCase();
   const id = scope(appId, env);
   const owner = randomUUID();
+  let responseMode: "raw-v1" | undefined = "raw-v1";
   const registrations = db.collection<Registration>(
     "orchestratorRegistrations",
   );
@@ -262,6 +263,10 @@ export async function registerDifyOrchestrator(
     actor.uid,
     async (session) => {
       const prior = await registrations.findOne({ _id: id }, { session });
+      const saved = await db
+        .collection<OrchestratorRecord>("orchestrators")
+        .findOne({ _id: `dify-${appId}` }, { session });
+      if (saved) responseMode = saved.definition.responseMode;
       if (prior?.status === "registering" && prior.until > new Date())
         throw new AppError(
           "DIFY_REGISTRATION_BUSY",
@@ -357,7 +362,7 @@ export async function registerDifyOrchestrator(
       const draft = draftSchema.parse(
         await request(`/apps/${appId}/workflows/draft`, { management: true }),
       );
-      const draftFit = inspectDifyWorkflow(draft.graph);
+      const draftFit = inspectDifyWorkflow(draft.graph, responseMode);
       await verifyMcpTools(draftFit.mcpTools, request);
       const publicationSchema = draftSchema.extend({ id: z.string().uuid() });
       const current = await request(`/apps/${appId}/workflows/publish`, {
@@ -411,7 +416,7 @@ export async function registerDifyOrchestrator(
         "Dify did not confirm workflow publication. Retry registration.",
         409,
       );
-    const fit = inspectDifyWorkflow(workflow.graph);
+    const fit = inspectDifyWorkflow(workflow.graph, responseMode);
     await verifyMcpTools(fit.mcpTools, request);
     await stage("Connecting app key");
     const credential = await acquireAppCredential(
@@ -432,6 +437,7 @@ export async function registerDifyOrchestrator(
       credentialId: credential.credentialId,
       enabled: true,
       inputs: fit.inputs,
+      ...(responseMode ? { responseMode } : {}),
       ...(fit.purpose ? { purpose: fit.purpose } : {}),
       ...(fit.contextInput
         ? {

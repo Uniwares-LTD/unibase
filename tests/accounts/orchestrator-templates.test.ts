@@ -22,7 +22,26 @@ test("Template catalog exposes metadata only; templates bind isolated graphs and
       orchestratorTemplateIdSchema.parse(summary.id),
     );
     const dsl = template.build("authorized-provider");
-    const fit = inspectDifyWorkflow(dsl.workflow.graph);
+    const fit = inspectDifyWorkflow(dsl.workflow.graph, "raw-v1");
+    if (
+      ["document-summary", "catalog-picker", "quote-approval"].includes(
+        summary.id,
+      )
+    ) {
+      const interpreter = dsl.workflow.graph.nodes.find(
+        (n) => n.id === "compose",
+      )!;
+      assert.equal(interpreter.data.type, "llm");
+      assert(
+        JSON.stringify(interpreter.data.prompt_template).includes(
+          "{{#decision.response#}}",
+        ),
+      );
+      assert.equal(
+        dsl.workflow.graph.nodes.some((n) => n.data.type === "code"),
+        false,
+      );
+    }
     assert.deepEqual(
       fit.inputs.map((f) => f.name),
       summary.id === "persona-responder"

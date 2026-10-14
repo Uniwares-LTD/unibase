@@ -258,6 +258,10 @@ bounded allowlisted context and entity DTOs, never database documents or tokens.
 Draft saves use `operationKey`, `expectedRevision` and bounded text. Approval uses
 `operationKey`, revision and content hash; a persisted matching decision must be
 submitted with the required action. Human-only approvals reject persona sources.
+In `raw-v1`, a submitted persona `continue` may supply approval evidence after the
+workflow's prompted interpretation. Its recorded persona ID/revision must match
+the accepted snapshot and the approval must permit personas. Raw human text does
+not supply approval evidence: a User must click the explicit approval action.
 Transactional `productOperations` records make identical retries return the first
 result and reject changed payloads. A timeout cannot undo a committed save; callers
 retry the same operation key to reconcile it. No arbitrary URL/image fetch or raw

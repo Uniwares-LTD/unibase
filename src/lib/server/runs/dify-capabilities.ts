@@ -5,6 +5,7 @@ import {
   difyInitialInputs,
   orchestratorSchema,
   parseUiForm,
+  assertRawResponseForm,
 } from "@/lib/contracts/runs";
 import type { difyJson } from "./dify-console-client";
 import { privateToolPermissions } from "../mcp/private-tools";
@@ -46,7 +47,7 @@ function referencesInput(
 
 // Inspect the publication only. Drafts, node bindings and provider secrets stay
 // in Dify; neither this module nor registration changes the graph.
-export function inspectDifyWorkflow(graph: unknown) {
+export function inspectDifyWorkflow(graph: unknown, responseMode?: "raw-v1") {
   const { nodes } = graphSchema.parse(graph);
   const starts = nodes.filter((node) => node.data.type === "start");
   if (starts.length !== 1 || !nodes.some((node) => node.data.type === "end"))
@@ -215,6 +216,19 @@ export function inspectDifyWorkflow(graph: unknown) {
           throw new AppError(
             "DIFY_GENERATIVE_UI_UNSUPPORTED",
             "The Human Input node has an invalid Generative UI response contract.",
+            409,
+          );
+        }
+      }
+      if (responseMode === "raw-v1") {
+        try {
+          assertRawResponseForm(form.data);
+        } catch (error) {
+          throw new AppError(
+            "DIFY_RAW_RESPONSE_UNSUPPORTED",
+            error instanceof Error
+              ? error.message
+              : "Unsupported raw response form.",
             409,
           );
         }

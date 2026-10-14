@@ -331,9 +331,12 @@ function fakeRun(job: AiJob, db: Db): WorkflowProvider {
 
 function fakeResponder(job: AiJob): WorkflowProvider {
   const runId = job.runId ?? randomUUID();
-  const q = JSON.parse(String(job.inputs.question));
+  const q =
+    job.responder?.responseMode === "raw-v1"
+      ? null
+      : JSON.parse(String(job.inputs.question));
   const answers: Record<string, import("../ai/types").Json> = {};
-  if (q.form_content.includes("```unibase-ui")) {
+  if (q?.form_content.includes("```unibase-ui")) {
     const ui = JSON.parse(
       q.form_content.match(/```unibase-ui\s*\n([\s\S]*?)\n```/)[1],
     );
@@ -350,7 +353,7 @@ function fakeResponder(job: AiJob): WorkflowProvider {
       else if (card.content.type === "gallery")
         answers[card.id] = card.content.data.items[0].assetId;
     }
-  } else
+  } else if (q)
     for (const field of q.inputs)
       answers[field.output_variable_name] =
         field.options?.[0] ?? "Persona answer";
@@ -359,7 +362,10 @@ function fakeResponder(job: AiJob): WorkflowProvider {
     workflowId: job.responder!.definition.workflowId ?? randomUUID(),
     status: "succeeded",
     outputs: {
-      answer: JSON.stringify({ action: q.user_actions[0].id, answers }),
+      answer:
+        job.responder?.responseMode === "raw-v1"
+          ? "Approved"
+          : JSON.stringify({ action: q.user_actions[0].id, answers }),
     },
     usage: {
       id: runId,

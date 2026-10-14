@@ -26,7 +26,7 @@ test("Starter declares no inputs and includes MCP, Generative UI and native resu
   );
   assert.equal(
     dsl.workflow.graph.nodes.find((n) => n.id === "compose")?.data.type,
-    "code",
+    "llm",
   );
 });
 test("Creation imports only a new app, resumes safely and checks fresh admin access", async (t) => {

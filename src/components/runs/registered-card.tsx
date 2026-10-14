@@ -34,17 +34,24 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 type CardBodyProps = {
+  rawResponse?: boolean;
   content: RegisteredValue;
   disabled: boolean;
   respond: (action: CardAction, value: RegisteredValue["data"]) => void;
   allowedAssetIds: string[];
 };
-function QuestionBody({ content, disabled, respond }: CardBodyProps) {
+function QuestionBody({
+  content,
+  disabled,
+  respond,
+  rawResponse,
+}: CardBodyProps) {
   const translate = useTranslations("ui");
 
   const data = questionSchema.parse(content.data);
   return (
     <FormBody
+      rawResponse={rawResponse}
       content={{
         type: "form",
         version: 1,
@@ -83,7 +90,7 @@ function QuestionBody({ content, disabled, respond }: CardBodyProps) {
     />
   );
 }
-function FormBody({ content, disabled, respond }: CardBodyProps) {
+function FormBody({ content, disabled, respond, rawResponse }: CardBodyProps) {
   const translate = useTranslations("ui");
 
   const form = formCardSchema.parse(content.data);
@@ -104,7 +111,7 @@ function FormBody({ content, disabled, respond }: CardBodyProps) {
           const parsed = cardRegistry
             .get("form", 1)
             .response(form, "submit", values);
-          respond("submit", parsed);
+          respond("submit", rawResponse ? values : parsed);
         } catch (e) {
           setError(e instanceof Error ? e.message : translate("m94391b48e270"));
         }
@@ -343,11 +350,13 @@ export const cardRenderers = createRegistry<{
   { type: "issue", version: 1, component: IssueBody },
 ]);
 export function RegisteredCard({
+  rawResponse = false,
   card,
   disabled,
   onRespond,
   allowedAssetIds = [],
 }: {
+  rawResponse?: boolean;
   card: SavedCard;
   disabled: boolean;
   allowedAssetIds?: string[];
@@ -387,6 +396,7 @@ export function RegisteredCard({
       <CardContent className="space-y-3">
         {card.status === "active" ? (
           <Component
+            rawResponse={rawResponse}
             content={content}
             disabled={disabled}
             respond={onRespond}

@@ -13,6 +13,9 @@ import {
   runCommandSchema,
   runIdSchema,
   decisionSubmitSchema,
+  rawDecisionSubmitSchema,
+  rawResponseTextSchema,
+  assertRawResponseForm,
   parseUiForm,
   validateAnswers,
   type OrchestratorDefinition,
@@ -67,6 +70,7 @@ export type Decision = {
   createdAt: Date;
   form?: Form;
   intent?: {
+    response?: z.infer<ReturnType<typeof z.json>>;
     key: string;
     hash: string;
     action: string;
@@ -481,7 +485,10 @@ export async function decisionView(
       inputs: [],
     };
   let cards: z.infer<ReturnType<typeof z.json>> = [];
+  let approval: ReturnType<typeof parseUiForm>["approval"];
   try {
+    if (job.run?.orchestrator.responseMode === "raw-v1")
+      assertRawResponseForm(form);
     if (form.form_content.includes("```unibase-ui")) {
       if (
         form.inputs.length !== 1 ||
@@ -497,6 +504,7 @@ export async function decisionView(
           target && domains.get(target.adapter, target.version).approval;
         if (!validate) throw new Error("Unsupported approval");
         await validate(db, job, ui.approval);
+        approval = ui.approval;
         await db
           .collection<Decision>("runDecisions")
           .updateOne(
@@ -505,6 +513,12 @@ export async function decisionView(
           );
       }
     }
+    if (
+      job.run?.orchestrator.responseMode === "raw-v1" &&
+      !approval &&
+      (form.user_actions.length !== 1 || form.user_actions[0].id !== "continue")
+    )
+      throw new Error("Ordinary raw questions need only a continue action.");
     for (const card of cards as ReturnType<typeof parseUiForm>["cards"])
       for (const id of cardRegistry
         .get(card.content.type, card.content.version)
@@ -545,7 +559,11 @@ export async function decisionView(
           ? "expired"
           : decision.status,
     cards,
-    actions: form.user_actions,
+    actions:
+      job.run?.orchestrator.responseMode === "raw-v1" && approval
+        ? form.user_actions.filter((action) => action.id !== "continue")
+        : form.user_actions,
+    responseMode: job.run?.orchestrator.responseMode,
     inputs: form.inputs,
     defaults: form.resolved_default_values,
     structured: form.form_content.includes("```unibase-ui"),
@@ -914,7 +932,10 @@ export async function submitAuthorizedDecision(
   input: unknown,
   source: NonNullable<Decision["answerSource"]>,
 ) {
-  const parsed = parseInput(decisionSubmitSchema, input);
+  const parsed =
+    job.run?.orchestrator.responseMode === "raw-v1"
+      ? parseInput(rawDecisionSubmitSchema, input)
+      : parseInput(decisionSubmitSchema, input);
   const id = decision._id;
   const collection = db.collection<Decision>("runDecisions");
   const view = await decisionView(decision, job, db);
@@ -924,9 +945,28 @@ export async function submitAuthorizedDecision(
     throw new AppError("DECISION_UNAVAILABLE", "Decision is unavailable.", 409);
   if (!form.user_actions.some((action) => action.id === parsed.action))
     throw new AppError("INVALID_ACTION", "Choose an offered action.");
+  if (source.type === "persona" && refreshed?.approval?.requireHuman)
+    throw new AppError(
+      "APPROVAL_REQUIRED",
+      "This approval requires a user.",
+      409,
+    );
   const managedFiles = new Set<string>();
   let inputs: Record<string, z.infer<ReturnType<typeof z.json>>> = {};
-  if (form.form_content.includes("```unibase-ui")) {
+  if ("response" in parsed) {
+    assertRawResponseForm(form);
+    if (
+      (source.type === "persona" && parsed.action !== "continue") ||
+      (source.type === "user" &&
+        refreshed?.approval &&
+        parsed.action === "continue")
+    )
+      throw new AppError(
+        "INVALID_ACTION",
+        "Choose an explicit approval action.",
+      );
+    inputs = { response: parseInput(rawResponseTextSchema, parsed.response) };
+  } else if (form.form_content.includes("```unibase-ui")) {
     try {
       inputs = {
         response: JSON.stringify(
@@ -1031,7 +1071,11 @@ export async function submitAuthorizedDecision(
       }
     }
   }
-  const hash = fingerprint([parsed.action, inputs]);
+  const hash = fingerprint(
+    "response" in parsed
+      ? [parsed.action, inputs, parsed.response]
+      : [parsed.action, inputs],
+  );
   if (refreshed?.intent) {
     if (refreshed.intent.key === parsed.key && refreshed.intent.hash === hash)
       return { status: refreshed.status };
@@ -1078,7 +1122,13 @@ export async function submitAuthorizedDecision(
           $set: {
             answerSource: source,
             status: "submitting",
-            intent: { key: parsed.key, hash, action: parsed.action, inputs },
+            intent: {
+              key: parsed.key,
+              hash,
+              action: parsed.action,
+              inputs,
+              ...("response" in parsed ? { response: parsed.response } : {}),
+            },
           },
         },
         { session },

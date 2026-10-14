@@ -54,6 +54,7 @@ import { inspectDifyWorkflow } from "../../src/lib/server/runs/dify-capabilities
 import { orchestratorTemplate } from "../../src/lib/server/runs/templates";
 import {
   prepareRunInputs,
+  submitAuthorizedDecision,
   type Decision,
 } from "../../src/lib/server/runs/service";
 import {
@@ -191,7 +192,7 @@ test("Personas, private callbacks and product assets use durable owned boundarie
     maxCalls: 2,
     maximum: 2,
   };
-  async function parent(persona = true, artifactId?: string) {
+  async function parent(persona = true, artifactId?: string, raw = false) {
     const key = randomUUID();
     const id = fingerprint([actor.uid, key]);
     return createAiJob(db, actor, key, {
@@ -213,7 +214,10 @@ test("Personas, private callbacks and product assets use durable owned boundarie
         logicalId: id,
         attempt: 1,
         predecessorId: null,
-        orchestrator: definition,
+        orchestrator: {
+          ...definition,
+          ...(raw ? { responseMode: "raw-v1" as const } : {}),
+        },
         configurationRevision: 1,
         settingsRevision: 0,
         answerer: persona ? snapshot : undefined,
@@ -287,6 +291,126 @@ test("Personas, private callbacks and product assets use durable owned boundarie
           1,
         );
         assert.equal(await responderCharges(db, saved), 1);
+      },
+    );
+    await t.test(
+      "raw persona execution is submitted unchanged and billed once",
+      async () => {
+        const job = await parent(true, undefined, true);
+        await worker();
+        await processOneAutomaticDecision(db, async () => true);
+        const child = (await aiJobs(db).findOne({
+          "responder.parentId": job._id,
+        }))!;
+        assert.equal(child.responder?.responseMode, "raw-v1");
+        assert(String(child.inputs.question).includes("Choose a direction"));
+        assert(!String(child.inputs.question).includes("answerContracts"));
+        await worker();
+        const completed = (await aiJobs(db).findOne({ _id: child._id }))!;
+        assert.equal(completed.status, "succeeded");
+        assert.equal(completed.execution?.outputs?.answer, "Approved");
+        await processOneAutomaticDecision(db, async () => true);
+        const decision = (await db
+          .collection<Decision>("runDecisions")
+          .findOne({ jobId: job._id }))!;
+        assert.equal(decision.intent?.inputs.response, "Approved");
+        assert.equal(decision.answerSource?.type, "persona");
+        await aiJobs(db).updateOne(
+          { _id: job._id },
+          { $set: { nextAttemptAt: new Date(0) } },
+        );
+        await worker();
+        const saved = (await aiJobs(db).findOne({ _id: job._id }))!;
+        assert.equal(saved.status, "succeeded");
+        assert.equal(saved.responderCharge, 1);
+        assert.equal(await responderCharges(db, saved), 1);
+      },
+    );
+    await t.test(
+      "raw user submissions preserve JSON values, ownership and retry boundaries",
+      async () => {
+        for (const response of [
+          "",
+          "Plain text",
+          '{"changes":null}',
+          null,
+          false,
+          0,
+          [1, null],
+          { review: { changes: null } },
+        ]) {
+          const job = await parent(false, undefined, true);
+          await worker();
+          const decision = (await db
+            .collection<Decision>("runDecisions")
+            .findOne({ jobId: job._id }))!;
+          const key = randomUUID();
+          const command = { key, action: "continue", response };
+          await assert.rejects(
+            submitAuthorizedDecision(
+              db,
+              { uid: "another", auth_time: actor.authTime },
+              job,
+              decision,
+              command,
+              { type: "user" },
+            ),
+          );
+          await submitAuthorizedDecision(
+            db,
+            { uid: actor.uid, auth_time: actor.authTime },
+            job,
+            decision,
+            command,
+            { type: "user" },
+          );
+          const stored = (await db
+            .collection<Decision>("runDecisions")
+            .findOne({ _id: decision._id }))!;
+          assert.equal(
+            stored.intent?.inputs.response,
+            typeof response === "string" ? response : JSON.stringify(response),
+          );
+          assert.deepEqual(stored.intent?.response, response);
+          if (typeof response !== "string")
+            await assert.rejects(
+              submitAuthorizedDecision(
+                db,
+                { uid: actor.uid, auth_time: actor.authTime },
+                job,
+                stored,
+                { ...command, response: JSON.stringify(response) },
+                { type: "user" },
+              ),
+            );
+          await submitAuthorizedDecision(
+            db,
+            { uid: actor.uid, auth_time: actor.authTime },
+            job,
+            stored,
+            command,
+            { type: "user" },
+          );
+          await assert.rejects(
+            submitAuthorizedDecision(
+              db,
+              { uid: actor.uid, auth_time: actor.authTime },
+              job,
+              stored,
+              { ...command, response: "changed" },
+              { type: "user" },
+            ),
+          );
+          await aiJobs(db).updateOne(
+            { _id: job._id },
+            { $set: { nextAttemptAt: new Date(0) } },
+          );
+          await worker();
+          assert.equal(
+            (await aiJobs(db).findOne({ _id: job._id }))!.status,
+            "succeeded",
+          );
+        }
       },
     );
     await t.test(
@@ -896,6 +1020,187 @@ test("Personas, private callbacks and product assets use durable owned boundarie
           { _id: job._id },
           { $set: { status: "cancelled" } },
         );
+      },
+    );
+    await t.test(
+      "raw approval keeps explicit human actions and persona provenance at the tool boundary",
+      async () => {
+        for (const human of [true, false]) {
+          const artifactId = randomUUID();
+          await db.collection("artifacts").insertOne({
+            id: artifactId,
+            uid: actor.uid,
+            title: "Raw approval",
+            revision: 0,
+            approvedRevision: null,
+            assets: [],
+            createdAt: new Date(),
+          });
+          const job = await parent(true, artifactId, true);
+          job.run!.orchestrator = {
+            ...job.run!.orchestrator,
+            contextInput: true,
+            contextInputName: "context",
+            privateTools: ["save_artifact_draft_v1", "approve_artifact_v1"],
+          };
+          await aiJobs(db).updateOne(
+            { _id: job._id },
+            { $set: { run: job.run, status: "paused" } },
+          );
+          const token = await capabilityForRun(db, job);
+          const signal = new AbortController().signal;
+          const saved = await artifactOperation(
+            db,
+            token,
+            "dify",
+            "save_artifact_draft_v1",
+            { operationKey: "draft", expectedRevision: 0, text: "Raw draft" },
+            signal,
+            async () => true,
+          );
+          const ui = {
+            version: 1,
+            approval: {
+              artifactId,
+              revision: 1,
+              contentHash: saved.contentHash,
+              action: "approve",
+              requireHuman: true,
+            },
+            cards: [
+              {
+                id: "draft",
+                content: {
+                  type: "summary",
+                  version: 1,
+                  data: { title: "Approve?", body: "Raw draft" },
+                },
+              },
+            ],
+          };
+          const decision: Decision = {
+            _id: fingerprint([job._id, "raw-approval"]),
+            uid: actor.uid,
+            jobId: job._id,
+            logicalId: job.run!.logicalId,
+            nodeId: "approval",
+            title: "Approve?",
+            token: "opaque",
+            status: "pending",
+            createdAt: new Date(),
+            form: {
+              form_content:
+                "```unibase-ui\n" +
+                JSON.stringify(ui) +
+                "\n```\n{{#$output.response#}}",
+              inputs: [{ type: "paragraph", output_variable_name: "response" }],
+              user_actions: [
+                { id: "approve", title: "Approve" },
+                { id: "decline", title: "Decline" },
+                { id: "continue", title: "Continue" },
+              ],
+              resolved_default_values: {},
+            },
+          };
+          await db.collection<Decision>("runDecisions").insertOne(decision);
+          const source = {
+            type: "persona" as const,
+            personaId: snapshot.id,
+            personaRevision: snapshot.revision,
+          };
+          const command = {
+            key: randomUUID(),
+            action: "continue",
+            response: "Approved, no changes.",
+          };
+          const authActor = { uid: actor.uid, auth_time: actor.authTime };
+          await assert.rejects(
+            submitAuthorizedDecision(
+              db,
+              authActor,
+              job,
+              decision,
+              command,
+              source,
+            ),
+          );
+          await assert.rejects(
+            submitAuthorizedDecision(db, authActor, job, decision, command, {
+              type: "user",
+            }),
+          );
+          if (!human) {
+            ui.approval.requireHuman = false;
+            decision.form!.form_content =
+              "```unibase-ui\n" +
+              JSON.stringify(ui) +
+              "\n```\n{{#$output.response#}}";
+            await db
+              .collection<Decision>("runDecisions")
+              .updateOne(
+                { _id: decision._id },
+                { $set: { form: decision.form } },
+              );
+          }
+          await submitAuthorizedDecision(
+            db,
+            authActor,
+            job,
+            decision,
+            { ...command, action: human ? "approve" : "continue" },
+            human ? { type: "user" } : source,
+          );
+          const operation = {
+            operationKey: "approval",
+            revision: 1,
+            contentHash: saved.contentHash,
+          };
+          if (!human) {
+            await db
+              .collection<Decision>("runDecisions")
+              .updateOne(
+                { _id: decision._id },
+                { $set: { "answerSource.personaId": "other-persona" } },
+              );
+            await assert.rejects(
+              artifactOperation(
+                db,
+                token,
+                "dify",
+                "approve_artifact_v1",
+                operation,
+                signal,
+                async () => true,
+              ),
+            );
+            await db
+              .collection<Decision>("runDecisions")
+              .updateOne(
+                { _id: decision._id },
+                { $set: { "answerSource.personaId": snapshot.id } },
+              );
+          }
+          await artifactOperation(
+            db,
+            token,
+            "dify",
+            "approve_artifact_v1",
+            operation,
+            signal,
+            async () => true,
+          );
+          const revision = await db
+            .collection("artifactRevisions")
+            .findOne({ artifactId, revision: 1 });
+          assert.equal(
+            revision!.approvalSource.type,
+            human ? "user" : "persona",
+          );
+          await aiJobs(db).updateOne(
+            { _id: job._id },
+            { $set: { status: "cancelled" } },
+          );
+        }
       },
     );
     await t.test(

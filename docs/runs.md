@@ -40,7 +40,7 @@ only template names/descriptions reach the browser. Available scenarios:
 | Document summary  | Fetch a guide and choose Brief/Detailed                 | `get_reference_document_v1`                       |
 | Catalog picker    | Fetch structured catalog data and choose an item        | `get_demo_catalog_v1`                             |
 | Quote approval    | Calculate a synthetic quote, then approve or decline    | `calculate_demo_quote_v1`                         |
-| Persona responder | Noninteractive LLM answers with validated action/fields | None                                              |
+| Persona responder | Noninteractive LLM with raw answers                    | None                                              |
 | Saved artifact    | Owned draft, approval/decline, persistent image         | Run context and artifact read/save/approval tools |
 | Story to panel    | AI story, changes, character approval, generated panel  | Run context and artifact read/save/approval tools |
 
@@ -50,9 +50,9 @@ or payment. Each template binds an authorized provider with all required tools,
 preferring `unibase_starter`. Missing tools stop creation before import.
 The Document summary binds `get_reference_document_v1` (preferring
 `unibase_starter` when available). Start sends empty inputs; MCP fetches the synthetic
-`unibase-demo` document; Generative UI asks Brief/Detailed; a Code node consumes
-the structured MCP JSON and returns ordinary End text. Dify's code sandbox must
-work; no LLM credentials are required. Start a Run, choose an option, Continue,
+`unibase-demo` document; Generative UI asks Brief/Detailed; a prompted LLM consumes
+the MCP JSON and raw response and returns ordinary End text. Configure its model
+in Dify before use. Start a Run, choose an option, Continue,
 then view its result and tracing. Existing published workflows use **Register**.
 Create immediately shows the confirmed app and refreshes discovery automatically.
 New starters disable the public Dify Web App (`enable_site=false`). API access and
@@ -217,8 +217,11 @@ from the contract. The shared schemas in `src/lib/contracts/runs.ts` and
 The parent Human Input form has one fenced `unibase-ui` JSON payload, a paragraph
 input named `response`, the native `{{#$output.response#}}` placeholder and Dify
 continuation actions. The server submits `{action,inputs:{response},user}` with
-serialized validated answers and the original opaque user. Native paragraph,
-select and owned file forms use the same renderer. Form tokens remain server-side;
+the original opaque user. New registrations use `raw-v1`: text stays exact and
+other JSON values are serialized once. Human submissions use `{key,action,response}`;
+legacy snapshots retain `{key,action,answers}` and validated card-answer JSON.
+Raw questions require a paragraph `response` input and a `continue` action.
+Native selects and owned file forms remain supported on the legacy path. Form tokens remain server-side;
 application decision IDs and current ownership control access. Submission intent
 precedes the provider request. Unknown responses are reconciled from evidence
 without blindly resubmitting. Expired/unavailable forms show clear status.
@@ -276,22 +279,18 @@ Disabled/archived/unavailable personas cannot admit new attempts. Accepted attem
 
 Responder workflows declare exactly three required paragraph controls: `persona`,
 `question`, and `context`, each bounded to 4,000 characters, plus an End `answer`
-output containing JSON `{action,answers}` or a raw answer map for a single offered
-action. They need an LLM and no Human Input or
+output containing the raw answer. They need an LLM and no Human Input or
 external tool nodes. This contract derives registration purpose `responder`.
 The template is Start → LLM → End, passing the raw LLM text to `answer`, without
 Python or an enforced output schema. It accepts text or serialized questions of
-any shape and uses the requested response format. For automatic Run forms, its
-prompt requests `{action,answers}` with native JSON values keyed by card/field ID;
-`answers` is an object, not another JSON-encoded string.
-Unibase also accepts a raw object keyed by card/field ID when exactly one action
-is offered, assigning that action before shared validation. Multiple offered
-actions require the explicit envelope; incomplete envelopes remain invalid.
-For form cards, null values for declared optional fields are omitted before
-validation. Required fields, unknown fields and invalid supplied values still fail.
+any shape. In `raw-v1`, Unibase sends the rendered question directly and does not
+parse persona output into fields, remove nulls, infer choices, or require an
+envelope. Strings, objects, arrays, numbers, booleans and null are valid within the
+4,000-character transport limit. The next workflow LLM interprets the response.
+Raw child billing validates transport and provider usage, not semantic form shape.
 Use Dify to configure the actual model and re-register after edits.
 
-Unibase sends rendered questions, constraints, allowed actions, explicit card
+The legacy path sends rendered questions, constraints, allowed actions, explicit card
 answer contracts, initial inputs and previous decisions. Summary/issue cards use
 null acknowledgements; when a persona chooses an offered action, omitted
 acknowledgement keys are normalized to null. Invalid supplied values and missing
@@ -301,12 +300,13 @@ select and registered Generative UI responses share human validation. File
 questions, malformed answers, unavailable forms and exceeded limits pause for the
 user. Unknown responder outcomes require reconciliation rather than redispatch.
 
-The current template performs no Dify-side normalization or validation. Older
-publications may retain their Python normalizer; accepted attempts keep their
-pinned version. Unibase still checks all fields and offered actions, and invalid
-model output falls back to User. The raw template output can represent strings,
-numbers, booleans, arrays, objects or null when used outside automatic Run
-submission; automatic decisions must use their offered form's answer contract.
+The legacy adapter retains `{action,answers}`, single-action answer maps, omitted
+acknowledgements and optional-null normalization. Old publications may retain
+their Python normalizer. Existing registrations and accepted attempts retain
+their mode and pinned version; re-registration never switches their response mode.
+Create a new app from the updated template to adopt raw responses. Raw mode still
+checks renderable UI, action metadata, permissions, payload bounds and execution
+state. It never treats raw text as verified human approval.
 
 `take-over` switches remaining decisions to User and cancels unfinished responder
 executions; submitted/uncertain decisions reconcile before another answer. History
@@ -361,19 +361,22 @@ cleanup, and retained product images remain accessible after that cleanup.
 Story idea input feeds an LLM story writer directly from the owned artifact's MCP
 JSON, without a Python extraction step. The first decision shows one form with an
 **Approved** / **Send changes** choice and an optional changes text box. Save the
-response, then Continue. The revision LLM receives the raw JSON response keyed by
-`review`, with `decision` and optional `changes` fields; it is instructed to return
+response, then Continue. The revision LLM receives raw human UI JSON or persona
+text without a fixed answer signature; it is instructed to return
 approved stories unchanged and otherwise apply the changes. Blank changes preserve
 the story. Another LLM creates
 the main character's description. The combined story and character are saved as
 one revision. The second decision approves or declines that exact revision.
-Approval records its human/persona source before the image tool runs. Decline
+Human approval uses explicit Approve/Decline actions. A persona uses `continue`
+with raw text; a prompted LLM interprets it and branches to approval or decline.
+Only the exact `approve` interpretation reaches the tool; all other outputs
+decline. Approval checks the submitted revision and source before the image tool runs. Decline
 returns a partial result, retains the unapproved draft, and never calls the image
 tool. The selected answerer handles both decisions; personas can approve this
 template (`requireHuman: false`). There is one revision pass and one character
 approval per attempt, rather than an unbounded revision loop.
 
-Python remains for bounded review-form construction, deterministic draft revision
+Python remains for review-form construction, deterministic draft revision
 extraction, saved-revision approval metadata and result envelopes. Revision numbers
 and content hashes are never delegated to the LLM. Editing the local JSON changes
 future template creation; it does not synchronize existing Dify apps. Update an

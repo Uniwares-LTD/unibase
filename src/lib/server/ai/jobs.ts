@@ -79,6 +79,7 @@ export type AiJob = {
   pricing?: AiPricing;
   charge?: AiCharge & { usage: UsageObservation | null };
   responder?: {
+    responseMode?: "raw-v1";
     parentId: string;
     decisionId: string;
     definition: import("@/lib/contracts/runs").OrchestratorDefinition;

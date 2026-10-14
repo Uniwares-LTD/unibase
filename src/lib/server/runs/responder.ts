@@ -2,12 +2,14 @@ import { enqueueNotification } from "../notifications";
 import "server-only";
 import type { Db } from "mongodb";
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import { personaAnswerSchema } from "@/lib/contracts/personas";
 import { formCardSchema } from "@/lib/runs/cards";
 import {
   parseUiForm,
   validateAnswers,
   publicRunInputs,
+  rawResponseText,
 } from "@/lib/contracts/runs";
 import { AppError } from "@/lib/auth-policy";
 import { calculateAiCharge } from "@/lib/ai-pricing";
@@ -21,11 +23,20 @@ import {
   type Decision,
 } from "./service";
 
+type Json = z.infer<ReturnType<typeof z.json>>;
 export function responderAnswer(
-  job: Pick<AiJob, "inputs">,
+  job: Pick<AiJob, "inputs"> & {
+    responder?: Pick<NonNullable<AiJob["responder"]>, "responseMode">;
+  },
   outputs: Record<string, unknown> | null,
-) {
+):
+  | { action: string; answers: Record<string, Json>; response?: never }
+  | { action: string; response: Json; answers?: never } {
   if (!outputs) throw new Error("Missing responder output");
+  if (job.responder?.responseMode === "raw-v1") {
+    rawResponseText(outputs.answer);
+    return { action: "continue", response: outputs.answer as Json };
+  }
   const value =
     typeof outputs.answer === "string"
       ? JSON.parse(outputs.answer)
@@ -200,42 +211,60 @@ export async function processOneAutomaticDecision(
           .find({ jobId: parent._id, status: "submitted" })
           .limit(100)
           .toArray();
-        const question = JSON.stringify({
-          form_content: form.form_content,
-          inputs: form.inputs,
-          user_actions: form.user_actions,
-          resolved_default_values: form.resolved_default_values,
-          answerContracts: form.form_content.includes("```unibase-ui")
-            ? Object.fromEntries(
-                parseUiForm(form.form_content).cards.map((c) => [
-                  c.id,
-                  c.content.type === "summary" || c.content.type === "issue"
-                    ? "null acknowledgement"
-                    : c.content.type === "question"
-                      ? "string for text/single choice; array of offered IDs for multiple choice"
-                      : c.content.type === "form"
-                        ? "object keyed by field ID, respecting each field's constraints"
-                        : c.content.type === "gallery"
-                          ? "one offered assetId string"
-                          : "no response",
-                ]),
-              )
-            : Object.fromEntries(
-                form.inputs.map((f) => [
-                  f.output_variable_name,
-                  f.type === "select"
-                    ? "one offered option string"
-                    : "text string up to 4000 characters",
-                ]),
-              ),
-        });
+        const raw = parent.run!.orchestrator.responseMode === "raw-v1";
+        const question = raw
+          ? form.form_content
+          : JSON.stringify({
+              form_content: form.form_content,
+              inputs: form.inputs,
+              user_actions: form.user_actions,
+              resolved_default_values: form.resolved_default_values,
+              ...(parent.run!.orchestrator.responseMode === "raw-v1"
+                ? {}
+                : {
+                    answerContracts: form.form_content.includes("```unibase-ui")
+                      ? Object.fromEntries(
+                          parseUiForm(form.form_content).cards.map((c) => [
+                            c.id,
+                            c.content.type === "summary" ||
+                            c.content.type === "issue"
+                              ? "null acknowledgement"
+                              : c.content.type === "question"
+                                ? "string for text/single choice; array of offered IDs for multiple choice"
+                                : c.content.type === "form"
+                                  ? "object keyed by field ID, respecting each field's constraints"
+                                  : c.content.type === "gallery"
+                                    ? "one offered assetId string"
+                                    : "no response",
+                          ]),
+                        )
+                      : Object.fromEntries(
+                          form.inputs.map((f) => [
+                            f.output_variable_name,
+                            f.type === "select"
+                              ? "one offered option string"
+                              : "text string up to 4000 characters",
+                          ]),
+                        ),
+                  }),
+            });
         const context = JSON.stringify({
           inputs: publicRunInputs(parent.inputs, parent.run!.orchestrator),
-          decisions: previous.map((d) => ({
-            title: d.title,
-            action: d.intent?.action ?? d.confirmedAction,
-            answers: d.intent?.inputs ?? d.confirmedInputs,
-          })),
+          decisions: previous.map((d) =>
+            raw
+              ? {
+                  title: d.title,
+                  response:
+                    d.intent && Object.hasOwn(d.intent, "response")
+                      ? d.intent.response
+                      : d.confirmedInputs,
+                }
+              : {
+                  title: d.title,
+                  action: d.intent?.action ?? d.confirmedAction,
+                  answers: d.intent?.inputs ?? d.confirmedInputs,
+                },
+          ),
         });
         const instructions = JSON.stringify({
           name: persona.name,
@@ -263,6 +292,7 @@ export async function processOneAutomaticDecision(
             source: { type: "decision", id: decision._id, version: "1" },
             credits: 0,
             responder: {
+              responseMode: parent.run!.orchestrator.responseMode,
               parentId: parent._id,
               decisionId: decision._id,
               definition: persona.responder,

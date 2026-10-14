@@ -138,6 +138,133 @@ export async function browserFixture(env) {
     );
   }
   await mkdir("output/playwright", { recursive: true });
+  if (process.argv.includes("--raw-responses")) {
+    const { createAiJob, aiJobs } =
+      await import("../../src/lib/server/ai/jobs.ts");
+    const { readSettings } = await import("../../src/lib/server/settings.ts");
+    const { processOneAiJob } =
+      await import("../../src/lib/server/ai/worker.ts");
+    const { providerForRun } =
+      await import("../../src/lib/server/runs/provider.ts");
+    const definition = {
+      id: "raw-ui",
+      name: "Raw UI fixture",
+      description: "",
+      order: 0,
+      enabled: true,
+      keyEnv: "DIFY_KEY_FIXTURE",
+      pricing: null,
+      recovery: null,
+      responseMode: "raw-v1",
+      inputs: [],
+    };
+    const settings = (await readSettings(db)).settings;
+    const runs = [];
+    for (let index = 0; index < 2; index++) {
+      const id = randomUUID().replaceAll("-", "").repeat(2);
+      const job = await createAiJob(
+        db,
+        { uid: user.uid, authTime: Math.floor(Date.now() / 1000) },
+        randomUUID(),
+        {
+          capability: "orchestrator",
+          capabilityVersion: "1",
+          inputs: { prompt: "decision" },
+          binding: {
+            name: definition.id,
+            revision: "1",
+            kind: "workflow",
+            mode: "fake",
+            fingerprint: "fixture",
+          },
+          source: null,
+          credits: 1,
+          pricing: { mode: "fixed", credits: 1 },
+          run: {
+            ...settings.runs,
+            logicalId: id,
+            attempt: 1,
+            predecessorId: null,
+            orchestrator: definition,
+            configurationRevision: 1,
+            settingsRevision: 0,
+          },
+        },
+      );
+      await processOneAiJob(db, {
+        provider: (job) => providerForRun(job, db),
+        authorize: async () => true,
+        validateOutput: () => true,
+      });
+      const data = {
+        title: "Raw review",
+        explanation: "Complete and save this response.",
+        fields: [
+          {
+            id: "text",
+            label: "Review text",
+            kind: "text",
+            required: true,
+            multiline: true,
+            maxLength: 4000,
+          },
+          {
+            id: "number",
+            label: "Number",
+            kind: "number",
+            required: true,
+            min: 0,
+            max: 10,
+          },
+          { id: "toggle", label: "Toggle", kind: "toggle", required: true },
+          {
+            id: "choices",
+            label: "Choices",
+            kind: "choice",
+            required: true,
+            multiple: true,
+            options: [
+              { id: "a", label: "A" },
+              { id: "b", label: "B" },
+            ],
+          },
+        ],
+      };
+      await db.collection("runDecisions").updateOne(
+        { jobId: job._id },
+        {
+          $set: {
+            form: {
+              form_content:
+                "```unibase-ui\n" +
+                JSON.stringify({
+                  version: 1,
+                  cards: [
+                    {
+                      id: "review",
+                      content: { type: "form", version: 1, data },
+                    },
+                  ],
+                }) +
+                "\n```\n{{#$output.response#}}",
+              inputs: [{ type: "paragraph", output_variable_name: "response" }],
+              user_actions: [{ id: "continue", title: "Continue" }],
+              resolved_default_values: {},
+            },
+          },
+        },
+      );
+      await aiJobs(db).updateOne(
+        { _id: job._id },
+        { $set: { nextAttemptAt: new Date(Date.now() + 3600000) } },
+      );
+      runs.push(id);
+    }
+    await writeFile(
+      "output/playwright/raw-ui-fixture.json",
+      JSON.stringify({ runs }),
+    );
+  }
   await writeFile(
     "output/playwright/runs-state.json",
     JSON.stringify({

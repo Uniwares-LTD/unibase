@@ -369,6 +369,7 @@ test("Formless registration: draft validation, publication, retries, authorizati
           .findOne({ _id: result.orchestratorId });
         assert.equal(record!.validated, true);
         assert.equal(record!.definition.enabled, true);
+        assert.equal(record!.definition.responseMode, "raw-v1");
         assert.deepEqual(
           record!.definition.inputs.map(
             (field: { name: string }) => field.name,
@@ -427,6 +428,29 @@ test("Formless registration: draft validation, publication, retries, authorizati
         await registerDifyOrchestrator(f.appId, actor, db, f.request, env);
         await registerDifyOrchestrator(f.appId, actor, db, f.request, env);
         assert.equal(f.counts.keys, 1);
+      },
+    );
+    await t.test(
+      "re-registration preserves legacy response behavior",
+      async () => {
+        const f = fixture();
+        const result = await registerDifyOrchestrator(
+          f.appId,
+          actor,
+          db,
+          f.request,
+          env,
+        );
+        await db
+          .collection("orchestrators")
+          .updateOne({ _id: result.orchestratorId } as never, {
+            $unset: { "definition.responseMode": "" },
+          });
+        await registerDifyOrchestrator(f.appId, actor, db, f.request, env);
+        const saved = await db
+          .collection("orchestrators")
+          .findOne({ _id: result.orchestratorId } as never);
+        assert.equal(saved!.definition.responseMode, undefined);
       },
     );
     await t.test(

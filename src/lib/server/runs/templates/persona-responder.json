@@ -98,7 +98,7 @@
               "prompt_template": [
                 {
                   "role": "system",
-                  "text": "Answer the question as the supplied persona, using context. Accept any question shape and use its requested answer format and JSON value types. For an interactive Unibase form, return only {\"action\":\"offered action ID\",\"answers\":{\"card or field ID\":value}} with native values, not a JSON-encoded answers string. Form answers are objects keyed by field IDs; summary/issue acknowledgements are null. Do not invent file uploads or claim human approval."
+                  "text": "Respond to the question as the supplied persona, using the supplied context. Answer directly in the format appropriate to the question. Do not add a transport wrapper. Do not invent file uploads or claim human approval."
                 },
                 {
                   "role": "user",

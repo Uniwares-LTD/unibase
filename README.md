@@ -69,10 +69,12 @@ LLM provider/model in Dify, then use **Re-register** and select **Saved draft**
 to publish the edited draft, or choose an existing published version. The template
 uses a suggested OpenAI model; it needs your Dify provider plugin/credentials.
 Its flow is Start → LLM → End, with raw answer text and no Python or enforced
-output schema. Questions can contain text or serialized data; the model uses the
-requested response format. For automatic Run decisions it returns ordinary JSON
-`{action,answers}`, with native values inside `answers` rather than a JSON-encoded
-string. Unibase checks the target form and permissions before submission. Under
+output schema. New registrations use `raw-v1`: persona answers pass unchanged to
+the next workflow LLM without an `{action,answers}` requirement. Human UI values
+also pass unchanged; the workflow interprets them through prompts. MCP tools still
+check arguments, ownership and approval permissions. Existing registrations and
+accepted Runs keep their saved mode; re-registration preserves it. Create a new
+app from the updated template to adopt raw responses from a legacy app. Under
 Administration > Personas, edit an example or create a persona, select the
 registered responder, configure pricing/answer limits, and enable it. Start Run
 then offers **User** or an available persona. Completed valid responder answers
@@ -104,8 +106,8 @@ web and AI workers. Create **Saved artifact**, then choose it on **Start run**.
 Create a new artifact there or select an existing one; you can also start from
 **Saved artifacts** with that artifact already selected. Approve/decline its deterministic
 draft; the validated sample image is retained independently of execution cleanup.
-This sample requires the Dify code sandbox and reachable MCP, but no generation
-model. Persona mode additionally needs the responder model.
+This sample requires the Dify code sandbox and reachable MCP, with no image-generation
+model. Persona mode needs the responder and approval-interpretation models.
 
 For real generation, create **Story to panel** and choose it on **Start run**.
 Create or select an owned artifact and enter a story idea; the workflow writes a story,
@@ -351,7 +353,7 @@ configuration. Accepted attempts and purchases retain their original billing
 terms. Administration → Orchestrators lists Dify Workflow apps. **Create orchestrator**
 creates, publishes and registers **Unibase starter**: zero Start inputs, an MCP demo
 document, a Brief/Detailed Generative UI choice and a native text result. Connect
-Unibase MCP in Dify first; the starter needs Dify's code sandbox, but no LLM key.
+Unibase MCP in Dify first; the starter needs a configured interpretation LLM in Dify.
 Existing published workflows use **Register** without a form. Registration checks API access, declared inputs, Human
 Input WebApp delivery and referenced MCP tools, then reuses/creates an encrypted
 app key and enables the Orchestrator. Register validates the saved draft and

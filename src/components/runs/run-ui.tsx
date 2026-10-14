@@ -79,13 +79,23 @@ function Decision({
   });
   const cards = parsed.success ? parsed.data.cards : [];
   const active = decision.status === "pending";
+  const raw = "responseMode" in decision && decision.responseMode === "raw-v1";
   async function submit(action: string) {
     setBusy(true);
     try {
       await api(
         `/api/runs/${runId}/decisions/${decision.id}`,
         z.object({ status: z.string() }),
-        { method: "POST", body: { key, action, answers } },
+        {
+          method: "POST",
+          body: {
+            key,
+            action,
+            ...(raw
+              ? { response: cards.length ? answers : (answers.response ?? "") }
+              : { answers }),
+          },
+        },
       );
       refresh();
     } catch (e) {
@@ -152,6 +162,7 @@ function Decision({
         {cards.map((card) => (
           <div key={card.id}>
             <RegisteredCard
+              rawResponse={raw}
               card={savedCard(card, answers[card.id])}
               disabled={busy || !active}
               allowedAssetIds={cardRegistry
