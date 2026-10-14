@@ -6,6 +6,7 @@ import { z } from "zod";
 import { api, ApiError } from "@/lib/client/api";
 import type { PersonaFields } from "@/lib/contracts/personas";
 import type { personasView } from "@/lib/server/runs/personas";
+import { CompletionEditor } from "./persona-completion-editor";
 import { SettingsField } from "./admin-editors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,23 +23,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 type View = Awaited<ReturnType<typeof personasView>>;
 type Row = View["personas"][number];
 function PersonaForm({
   initial,
-  responders,
   saved,
   onBusyChange,
 }: {
   initial: Row;
-  responders: View["responders"];
   saved: (row: Row) => void;
   onBusyChange: (busy: boolean) => void;
 }) {
@@ -49,7 +41,6 @@ function PersonaForm({
     name: initial.name,
     description: initial.description,
     instructions: initial.instructions,
-    responderId: initial.responderId,
     enabled: initial.enabled,
     archived: initial.archived,
     pricing: initial.pricing,
@@ -119,30 +110,6 @@ function PersonaForm({
           )}
         </div>
       ))}
-      <Label htmlFor={`${prefix}-responder`}>
-        {translate("md38ef52766c2")}
-      </Label>
-      <Select
-        value={fields.responderId ?? "none"}
-        onValueChange={(v) =>
-          setFields({ ...fields, responderId: v === "none" ? null : v })
-        }
-      >
-        <SelectTrigger id={`${prefix}-responder`}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">{translate("mdd1841d29502")}</SelectItem>
-          {responders.map((r) => (
-            <SelectItem key={r.id} value={r.id}>
-              {r.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <p className="text-sm text-muted-foreground">
-        {translate("m27a1b5a40a5d")}{" "}
-      </p>
       {(["enabled", "archived"] as const).map((name) => (
         <div className="flex items-center gap-2" key={name}>
           <Checkbox
@@ -161,6 +128,7 @@ function PersonaForm({
       ))}
       <SettingsField
         name="pricing"
+        tokenPricingOnly
         value={fields.pricing}
         onChange={(pricing) =>
           setFields({
@@ -202,7 +170,6 @@ function newPersona(): Row {
     name: "",
     description: "",
     instructions: "Answer as this persona.",
-    responderId: null,
     enabled: false,
     archived: false,
     pricing: { mode: "fixed", credits: 1 },
@@ -211,11 +178,9 @@ function newPersona(): Row {
 }
 function PersonaDialog({
   row,
-  responders,
   saved,
 }: {
   row?: Row;
-  responders: View["responders"];
   saved: (row: Row) => void;
 }) {
   const translate = useTranslations("ui");
@@ -251,7 +216,6 @@ function PersonaDialog({
           <PersonaForm
             key={draft.id}
             initial={draft}
-            responders={responders}
             onBusyChange={setBusy}
             saved={(next) => {
               saved(next);
@@ -267,6 +231,9 @@ export function PersonaEditor({ initial }: { initial: View }) {
   const translate = useTranslations("ui");
 
   const [rows, setRows] = useState(initial.personas);
+  const [completionReady, setCompletionReady] = useState(
+    initial.completion.ready,
+  );
   function saved(next: Row) {
     setRows((old) =>
       old.some((row) => row.id === next.id)
@@ -276,7 +243,11 @@ export function PersonaEditor({ initial }: { initial: View }) {
   }
   return (
     <div className="space-y-4">
-      <PersonaDialog responders={initial.responders} saved={saved} />
+      <CompletionEditor
+        initial={initial.completion}
+        onReady={setCompletionReady}
+      />
+      <PersonaDialog saved={saved} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {rows.map((row) => (
           <Card key={row.id}>
@@ -294,7 +265,7 @@ export function PersonaEditor({ initial }: { initial: View }) {
                       ? translate("m92c1cdfdf4cb")
                       : translate("m75081b593d15")}
                 </Badge>
-                {!row.responderId && (
+                {!completionReady && (
                   <Badge variant="outline">{translate("m0b8cf6e153eb")}</Badge>
                 )}
               </div>
@@ -306,19 +277,13 @@ export function PersonaEditor({ initial }: { initial: View }) {
                 </p>
               )}
               <p className="text-sm text-muted-foreground">
-                {translate("m2e3849303b8c")}{" "}
-                {initial.responders.find((r) => r.id === row.responderId)
-                  ?.name ?? translate("mdd1841d29502")}
+                {row.instructions}
               </p>
               <p className="text-sm text-muted-foreground">
                 {translate("m3e2884632c01")} {row.maxCalls}{" "}
                 {translate("mea76df0af549")} {row.revision}
               </p>
-              <PersonaDialog
-                row={row}
-                responders={initial.responders}
-                saved={saved}
-              />
+              <PersonaDialog row={row} saved={saved} />
             </CardContent>
           </Card>
         ))}

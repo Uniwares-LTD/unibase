@@ -15,7 +15,7 @@ export async function browserFixture(env) {
     password: "local-fixture-password",
   });
   const signed = await fetch(
-    "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=demo-key",
+    `http://${env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=demo-key`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -54,29 +54,24 @@ export async function browserFixture(env) {
   });
   if (process.argv.includes("--personas")) {
     const baseDefinition = {
-      id: "fixture-responder",
-      name: "Fixture responder",
-      description: "Synthetic local responder",
+      description: "Synthetic local workflow",
       order: 0,
       enabled: true,
       keyEnv: "DIFY_KEY_FIXTURE",
       pricing: null,
       recovery: null,
-      purpose: "responder",
-      inputs: ["persona", "question", "context"].map((name) => ({
-        name,
-        label: name,
-        kind: "paragraph",
-        required: true,
-        options: [],
-      })),
+      responseMode: "raw-v1",
+      inputs: [],
     };
-    await db.collection("orchestrators").insertOne({
-      _id: baseDefinition.id,
+    const { personaCompletionSchema } =
+      await import("../../src/lib/contracts/personas.ts");
+    await db.collection("personaCompletionSettings").insertOne({
+      _id: "shared",
       revision: 1,
-      definition: baseDefinition,
-      validated: true,
-      updatedAt: new Date(),
+      settings: personaCompletionSchema.parse({
+        enabled: true,
+        model: "fixture",
+      }),
     });
     const { seedPersonas } =
       await import("../../src/lib/server/runs/personas.ts");
@@ -84,7 +79,7 @@ export async function browserFixture(env) {
     await db.collection("personas").updateOne(
       { name: "Parent" },
       {
-        $set: { enabled: true, responderId: baseDefinition.id, maxCalls: 2 },
+        $set: { enabled: true, maxCalls: 2 },
       },
     );
     const sample = {
@@ -92,7 +87,6 @@ export async function browserFixture(env) {
       id: "fixture-artifact",
       name: "Saved artifact fixture",
       description: "Local sample with owned draft and image",
-      purpose: "run",
       inputs: [],
       contextInput: true,
       privateTools: [

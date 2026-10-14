@@ -43,7 +43,6 @@ test("administrative reasons accept omission, blank and short notes while retain
           name: "Parent",
           description: "",
           instructions: "Answer as a parent.",
-          responderId: null,
           enabled: false,
           archived: false,
         },

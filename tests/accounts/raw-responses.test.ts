@@ -18,10 +18,9 @@ const form = {
 };
 const job = {
   inputs: { question: JSON.stringify(form) },
-  responder: { responseMode: "raw-v1" as const },
 };
 
-test("raw persona responses preserve text and all JSON types without interpreting them", () => {
+test("completion text stays exact while raw UI responses preserve JSON values", () => {
   for (const response of [
     "Approved, no changes.",
     '{"review":{"decision":"approved","changes":null}}',
@@ -35,10 +34,12 @@ test("raw persona responses preserve text and all JSON types without interpretin
     { review: { decision: "approved", changes: null } },
   ]) {
     const output = structuredClone({ answer: response });
-    assert.deepEqual(responderAnswer(job, output), {
-      action: "continue",
-      response,
-    });
+    if (typeof response === "string" && response.trim()) {
+      assert.deepEqual(responderAnswer(job, output), {
+        action: "continue",
+        response,
+      });
+    } else assert.throws(() => responderAnswer(job, output));
     assert.deepEqual(output, { answer: response });
     const wire = rawResponseText(response);
     assert.deepEqual(

@@ -7,7 +7,6 @@ import {
   type Answerer,
 } from "@/lib/contracts/personas";
 import { maximumCredits } from "@/lib/config/ai-pricing";
-import type { OrchestratorDefinition } from "@/lib/contracts/runs";
 import { AppError } from "@/lib/auth-policy";
 import { database } from "../mongo";
 async function requireAdmin(recent = false) {
@@ -15,8 +14,13 @@ async function requireAdmin(recent = false) {
 }
 import { accessTransaction } from "../store/access";
 import { fingerprint } from "../ai/jobs";
-import { executionBinding } from "./provider";
-import { selectedOrchestrator, type OrchestratorRecord } from "./orchestrators";
+import {
+  readPersonaCompletion,
+  personaCompletionView,
+  completionBinding,
+  type CompletionSnapshot,
+  type CompletionRecord,
+} from "./persona-completion-settings";
 
 export type Persona = PersonaFields & {
   _id: string;
@@ -28,8 +32,8 @@ export type PersonaSnapshot = {
   name: string;
   revision: number;
   instructions: string;
-  responder: OrchestratorDefinition;
-  responderRevision: number;
+  completion: CompletionSnapshot;
+  configurationKey: string;
   pricing: PersonaFields["pricing"];
   maxCalls: number;
   maximum: number;
@@ -59,7 +63,6 @@ export async function seedPersonas(db: Db = database()) {
           name,
           description: "Editable example persona",
           instructions,
-          responderId: null,
           enabled: false,
           archived: false,
           pricing: { mode: "fixed", credits: 1 },
@@ -73,58 +76,39 @@ export async function seedPersonas(db: Db = database()) {
 }
 export async function personaChoices(db: Db = database()) {
   await seedPersonas(db);
+  const current = await readPersonaCompletion(db);
+  let binding;
+  try {
+    binding = completionBinding(current.settings, current.revision);
+  } catch {
+    return [];
+  }
   const rows = await db
     .collection<Persona>("personas")
-    .find({ enabled: true, archived: false, responderId: { $ne: null } })
+    .find({ enabled: true, archived: false })
     .limit(100)
     .toArray();
-  const choices = [];
-  for (const row of rows) {
-    const responder = await db
-      .collection<OrchestratorRecord>("orchestrators")
-      .findOne({
-        _id: row.responderId!,
-        validated: true,
-        "definition.purpose": "responder",
-        "definition.enabled": true,
-        lifecycle: { $ne: "unregistered" },
-        availability: { $ne: "missing" },
-      });
-    if (!responder) continue;
-    try {
-      await executionBinding(responder.definition, responder.revision, db);
-    } catch {
-      continue;
-    }
-    choices.push({
-      id: row._id,
-      name: row.name,
-      description: row.description,
-      revision: row.revision,
-      configurationKey: fingerprint([
-        row.revision,
-        responder.revision,
-        responder.definition,
-      ]),
-      maxCalls: row.maxCalls,
-      maximum: maximumCredits(row.pricing) * row.maxCalls,
-    });
-  }
-  return choices;
+  return rows.map((row) => ({
+    id: row._id,
+    name: row.name,
+    description: row.description,
+    revision: row.revision,
+    configurationKey: fingerprint([
+      row.revision,
+      current.revision,
+      current.settings,
+      binding,
+    ]),
+    maxCalls: row.maxCalls,
+    maximum: maximumCredits(row.pricing) * row.maxCalls,
+  }));
 }
 export async function personasView() {
   await requireAdmin();
   await seedPersonas();
-  const [personas, responders] = await Promise.all([
+  const [personas, completion] = await Promise.all([
     database().collection<Persona>("personas").find({}).limit(100).toArray(),
-    database()
-      .collection<OrchestratorRecord>("orchestrators")
-      .find({
-        "definition.purpose": "responder",
-        lifecycle: { $ne: "unregistered" },
-      })
-      .limit(100)
-      .toArray(),
+    personaCompletionView(),
   ]);
   return {
     personas: personas.map(({ _id, updatedAt, ...row }) => ({
@@ -132,7 +116,7 @@ export async function personasView() {
       ...row,
       updatedAt: updatedAt.toISOString(),
     })),
-    responders: responders.map((r) => ({ id: r._id, name: r.definition.name })),
+    completion,
   };
 }
 export async function savePersona(input: unknown) {
@@ -146,25 +130,6 @@ export async function savePersona(input: unknown) {
       const prior = await records.findOne({ _id: change.id }, { session });
       if ((prior?.revision ?? 0) !== change.revision)
         throw new AppError("PERSONA_CONFLICT", "Persona changed. Reload.", 409);
-      if (
-        change.fields.responderId &&
-        !(await database()
-          .collection<OrchestratorRecord>("orchestrators")
-          .findOne(
-            {
-              _id: change.fields.responderId,
-              "definition.purpose": "responder",
-              validated: true,
-              lifecycle: { $ne: "unregistered" },
-            },
-            { session },
-          ))
-      )
-        throw new AppError(
-          "RESPONDER_UNAVAILABLE",
-          "Select a registered responder.",
-          409,
-        );
       await records.updateOne(
         { _id: change.id },
         {
@@ -217,31 +182,33 @@ export async function snapshotPersona(
     enabled: true,
     archived: false,
   });
-  if (!row?.responderId)
+  if (!row)
     throw new AppError(
       "PERSONA_UNAVAILABLE",
       "This persona is unavailable. Reload.",
       409,
     );
-  const responder = await selectedOrchestrator(row.responderId);
-  if (
-    responder.definition.purpose !== "responder" ||
-    answerer.configurationKey !==
-      fingerprint([row.revision, responder.revision, responder.definition])
-  )
+  const current = await readPersonaCompletion(db);
+  const binding = completionBinding(current.settings, current.revision);
+  const configurationKey = fingerprint([
+    row.revision,
+    current.revision,
+    current.settings,
+    binding,
+  ]);
+  if (answerer.configurationKey !== configurationKey)
     throw new AppError(
       "CONFIGURATION_CHANGED",
       "Persona configuration changed. Reload.",
       409,
     );
-  await executionBinding(responder.definition, responder.revision, db);
   return {
     id: row._id,
     name: row.name,
     revision: row.revision,
     instructions: row.instructions,
-    responder: responder.definition,
-    responderRevision: responder.revision,
+    completion: { ...current, binding },
+    configurationKey,
     pricing: row.pricing,
     maxCalls: row.maxCalls,
     maximum: maximumCredits(row.pricing) * row.maxCalls,
@@ -265,17 +232,31 @@ export async function guardPersona(
   );
   if (!changed.matchedCount)
     throw new AppError("PERSONA_UNAVAILABLE", "Persona changed. Reload.", 409);
-  const { guardOrchestratorAdmission } =
-    await import("./orchestrator-lifecycle");
-  await guardOrchestratorAdmission(
-    db,
-    {
-      _id: snapshot.responder.id,
-      revision: snapshot.responderRevision,
-      definition: snapshot.responder,
-      validated: true,
-      updatedAt: new Date(),
-    },
-    session,
+  const changedCompletion = await db
+    .collection<CompletionRecord>("personaCompletionSettings")
+    .updateOne(
+      {
+        _id: "shared",
+        revision: snapshot.completion.revision,
+        "settings.enabled": true,
+      },
+      { $inc: { admissionSequence: 1 } },
+      { session },
+    );
+  if (!changedCompletion.matchedCount)
+    throw new AppError(
+      "PERSONA_UNAVAILABLE",
+      "Completion settings changed. Reload.",
+      409,
+    );
+  const binding = completionBinding(
+    snapshot.completion.settings,
+    snapshot.completion.revision,
   );
+  if (binding.fingerprint !== snapshot.completion.binding.fingerprint)
+    throw new AppError(
+      "PERSONA_UNAVAILABLE",
+      "Completion connection changed. Reload.",
+      409,
+    );
 }

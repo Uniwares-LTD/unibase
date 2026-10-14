@@ -99,7 +99,6 @@ export async function orchestrators(
         ? { lifecycle: { $ne: "unregistered" } }
         : {
             "definition.enabled": true,
-            "definition.purpose": { $ne: "responder" },
             validated: true,
             lifecycle: { $ne: "unregistered" },
             availability: { $ne: "missing" },

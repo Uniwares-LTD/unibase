@@ -61,79 +61,9 @@ import {
   seedPersonas,
   personaChoices,
 } from "../../src/lib/server/runs/personas";
+import { personaCompletionSchema } from "../../src/lib/contracts/personas";
+import { completionBinding } from "../../src/lib/server/runs/persona-completion-settings";
 import { appointFirstAdmin } from "../../src/lib/server/store/access";
-
-test("persona actions normalize only missing value-free acknowledgements", () => {
-  const cards = [
-    {
-      id: "draft",
-      content: {
-        type: "summary",
-        version: 1,
-        data: { title: "Draft", body: "Synthetic draft" },
-      },
-    },
-    {
-      id: "notice",
-      content: {
-        type: "issue",
-        version: 1,
-        data: {
-          title: "Notice",
-          severity: "info",
-          details: ["Synthetic notice"],
-        },
-      },
-    },
-  ];
-  const job = (cards: unknown[]) => ({
-    inputs: {
-      question: JSON.stringify({
-        form_content:
-          "```unibase-ui\n" +
-          JSON.stringify({ version: 1, cards }) +
-          "\n```\n{{#$output.response#}}",
-        inputs: [],
-        user_actions: [{ id: "approve", title: "Approve" }],
-        resolved_default_values: {},
-      }),
-    },
-  });
-  const output = (answers: unknown, action = "approve") => ({
-    answer: JSON.stringify({ action, answers }),
-  });
-  const read = (cards: unknown[], answers: unknown, action = "approve") =>
-    responderAnswer(job(cards), output(answers, action));
-  assert.deepEqual(read(cards, {}), {
-    action: "approve",
-    answers: { draft: null, notice: null },
-  });
-  assert.throws(() => read(cards, { draft: true }));
-  assert.throws(() => read(cards, { unknown: null }));
-  assert.throws(() => read(cards, {}, "unoffered"));
-  const question = {
-    id: "choice",
-    content: {
-      type: "question",
-      version: 1,
-      data: {
-        kind: "single",
-        title: "Choose",
-        explanation: "",
-        options: [
-          { id: "a", label: "A" },
-          { id: "b", label: "B" },
-        ],
-      },
-    },
-  };
-  assert.throws(() => read([...cards, question], {}));
-  assert.deepEqual(read([...cards, question], { choice: "b" }).answers, {
-    choice: "b",
-    draft: null,
-    notice: null,
-  });
-});
 
 test("Personas, private callbacks and product assets use durable owned boundaries", async (t) => {
   const repl = await MongoMemoryReplSet.create({
@@ -144,6 +74,7 @@ test("Personas, private callbacks and product assets use durable owned boundarie
   const db = client.db("persona_artifacts");
   const old = { ...process.env };
   process.env.DIFY_MODE = "fake";
+  process.env.PERSONA_COMPLETION_MODE = "fake";
   process.env.ASSET_STORE = "mongo";
   process.env.DIFY_CREDENTIAL_ENCRYPTION_KEY = "ab".repeat(32);
   process.env.MCP_ENABLED = "true";
@@ -182,17 +113,23 @@ test("Personas, private callbacks and product assets use durable owned boundarie
     name: "Parent",
     revision: 2,
     instructions: "Answer as a parent",
-    responder: {
-      ...definition,
-      id: "responder",
-      purpose: "responder" as const,
+    configurationKey: "fixture",
+    completion: {
+      revision: 1,
+      settings: personaCompletionSchema.parse({
+        enabled: true,
+        model: "fixture",
+      }),
+      binding: completionBinding(
+        personaCompletionSchema.parse({ enabled: true, model: "fixture" }),
+        1,
+      ),
     },
-    responderRevision: 1,
     pricing: { mode: "fixed" as const, credits: 1 },
     maxCalls: 2,
     maximum: 2,
   };
-  async function parent(persona = true, artifactId?: string, raw = false) {
+  async function parent(persona = true, artifactId?: string, raw = true) {
     const key = randomUUID();
     const id = fingerprint([actor.uid, key]);
     return createAiJob(db, actor, key, {
@@ -225,9 +162,26 @@ test("Personas, private callbacks and product assets use durable owned boundarie
       },
     });
   }
-  const worker = () =>
+  const worker = (withoutUsage = false) =>
     processOneAiJob(db, {
-      provider: (j) => providerForRun(j, db),
+      provider: async (j) => {
+        const provider = await providerForRun(j, db);
+        if (!withoutUsage || !j.responder) return provider;
+        return {
+          ...provider,
+          start: async (...args) => {
+            const outcome = await provider.start(...args);
+            if (outcome.kind === "ok")
+              outcome.value.usage = {
+                ...outcome.value.usage,
+                inputTokens: null,
+                outputTokens: null,
+                totalTokens: null,
+              };
+            return outcome;
+          },
+        };
+      },
       authorize: async () => true,
       validateOutput: (j, result) => {
         try {
@@ -302,7 +256,7 @@ test("Personas, private callbacks and product assets use durable owned boundarie
         const child = (await aiJobs(db).findOne({
           "responder.parentId": job._id,
         }))!;
-        assert.equal(child.responder?.responseMode, "raw-v1");
+        assert.equal(child.binding.kind, "completion");
         assert(String(child.inputs.question).includes("Choose a direction"));
         assert(!String(child.inputs.question).includes("answerContracts"));
         await worker();
@@ -324,6 +278,63 @@ test("Personas, private callbacks and product assets use durable owned boundarie
         assert.equal(saved.status, "succeeded");
         assert.equal(saved.responderCharge, 1);
         assert.equal(await responderCharges(db, saved), 1);
+      },
+    );
+    await t.test(
+      "completion claims and saved-result recovery never redispatch or duplicate billing",
+      async () => {
+        const job = await parent();
+        await worker();
+        await processOneAutomaticDecision(db, async () => true);
+        await Promise.all([worker(), worker()]);
+        const child = (await aiJobs(db).findOne({
+          "responder.parentId": job._id,
+        }))!;
+        assert.equal(child.status, "succeeded");
+        assert.equal(child.terminationEvidence, "provider-completed");
+        assert.equal(
+          await db.collection("aiUsage").countDocuments({ jobId: child._id }),
+          1,
+        );
+        await aiJobs(db).updateOne(
+          { _id: child._id },
+          {
+            $set: {
+              status: "dispatching",
+              nextAttemptAt: new Date(0),
+              lease: null,
+              leaseUntil: new Date(0),
+            },
+          },
+        );
+        let redispatched = false;
+        await processOneAiJob(db, {
+          provider: async () => {
+            redispatched = true;
+            throw new Error("Must recover saved evidence");
+          },
+          authorize: async () => true,
+          validateOutput: () => true,
+        });
+        assert.equal(redispatched, false);
+        assert.equal(
+          (await aiJobs(db).findOne({ _id: child._id }))!.status,
+          "succeeded",
+        );
+        await processOneAutomaticDecision(db, async () => true);
+        await processOneAutomaticDecision(db, async () => true);
+        await aiJobs(db).updateOne(
+          { _id: job._id },
+          { $set: { nextAttemptAt: new Date(0) } },
+        );
+        await worker();
+        const saved = (await aiJobs(db).findOne({ _id: job._id }))!;
+        assert.equal(saved.charge?.credits, 2);
+        assert.equal(saved.responderCharge, 1);
+        assert.equal(
+          await db.collection("aiUsage").countDocuments({ jobId: child._id }),
+          1,
+        );
       },
     );
     await t.test(
@@ -521,11 +532,7 @@ test("Personas, private callbacks and product assets use durable owned boundarie
         const child = (await aiJobs(db).findOne({
           "responder.parentId": limited._id,
         }))!;
-        assert.throws(() =>
-          responderAnswer(child, {
-            answer: JSON.stringify({ action: "unoffered", answers: {} }),
-          }),
-        );
+        assert.throws(() => responderAnswer(child, { answer: "" }));
         await db
           .collection<Decision>("runDecisions")
           .updateOne({ _id: first._id }, { $set: { status: "submitted" } });
@@ -676,6 +683,39 @@ test("Personas, private callbacks and product assets use durable owned boundarie
       },
     );
     await t.test(
+      "completion connection changes before dispatch release the child without a request and notify human fallback",
+      async () => {
+        const job = await parent();
+        await worker();
+        await processOneAutomaticDecision(db, async () => true);
+        process.env.PERSONA_COMPLETION_MODE = "disabled";
+        try {
+          await worker();
+        } finally {
+          process.env.PERSONA_COMPLETION_MODE = "fake";
+        }
+        const child = (await aiJobs(db).findOne({
+          "responder.parentId": job._id,
+        }))!;
+        assert.equal(child.status, "failed");
+        assert.equal(child.runId, null);
+        assert.equal(child.terminationEvidence, "not-dispatched");
+        assert.equal(child.failure, "persona-completion-unavailable");
+        await processOneAutomaticDecision(db, async () => true);
+        assert(
+          (
+            await db
+              .collection<Decision>("runDecisions")
+              .findOne({ jobId: job._id })
+          )?.automaticError,
+        );
+        await aiJobs(db).updateOne(
+          { _id: job._id },
+          { $set: { status: "cancelled" } },
+        );
+      },
+    );
+    await t.test(
       "unknown responder dispatch and missing usage retain the combined hold",
       async () => {
         const job = await parent();
@@ -744,7 +784,7 @@ test("Personas, private callbacks and product assets use durable owned boundarie
       },
     );
     await t.test(
-      "missing responder price evidence is reviewable and an audited child waiver unblocks settlement",
+      "missing completion token usage is reviewable and an audited child waiver unblocks settlement",
       async () => {
         const job = await parent();
         await worker();
@@ -753,16 +793,15 @@ test("Personas, private callbacks and product assets use durable owned boundarie
           {
             $set: {
               "run.answerer.pricing": {
-                mode: "provider-cost",
+                mode: "tokens",
                 maxCredits: 1,
-                currency: "USD",
-                creditsPerCurrencyUnit: "100",
+                rate: { basis: "total", creditsPerMillion: "100" },
               },
             },
           },
         );
         await processOneAutomaticDecision(db, async () => true);
-        await worker();
+        await worker(true);
         const child = (await aiJobs(db).findOne({
           "responder.parentId": job._id,
         }))!;

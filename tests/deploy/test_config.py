@@ -148,3 +148,20 @@ class ConfigTests(unittest.TestCase):
             write({**values, **changes})
             with self.assertRaises(ValueError):
                 config_module.validate(self.root, "staging")
+
+    def test_persona_completion_connection_validation(self):
+        env = self.root / "staging/runtime.env"
+        original = env.read_text()
+        values = {"PERSONA_COMPLETION_MODE": "live", "PERSONA_COMPLETION_BASE_URL": "https://model.example.test/v1", "PERSONA_COMPLETION_API_KEY": "completion-secret-canary"}
+        def write(extra):
+            env.write_text(original + "".join(f"{key}={value}\n" for key, value in extra.items()))
+        write(values)
+        self.assertNotIn(values["PERSONA_COMPLETION_API_KEY"], "".join(config_module.validate(self.root, "staging")))
+        for changes in ({"PERSONA_COMPLETION_MODE": "unknown"}, {"PERSONA_COMPLETION_API_KEY": ""},
+                        {"PERSONA_COMPLETION_BASE_URL": "http://127.0.0.1/v1"},
+                        {"PERSONA_COMPLETION_BASE_URL": "https://user:password@example.test/v1"},
+                        {"PERSONA_COMPLETION_BASE_URL": "https://example.test/v1?token=private"}):
+            write({**values, **changes})
+            with self.assertRaises(ValueError) as caught:
+                config_module.validate(self.root, "staging")
+            self.assertNotIn("completion-secret-canary", str(caught.exception))

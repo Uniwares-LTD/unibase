@@ -7,6 +7,7 @@ import { parseDatabaseConfig } from "../src/lib/config/database";
 import { assetLinks } from "../src/lib/config/android";
 import { parseCreditConfig } from "../src/lib/config/credits";
 import { parseStripeConfig } from "../src/lib/config/payments";
+import { parsePersonaCompletionConfig } from "../src/lib/config/persona-completion";
 import { parseDifyConfig } from "../src/lib/config/dify";
 import { parseAssetConfig } from "../src/lib/config/assets";
 import { parseMcpConfig } from "../src/lib/config/mcp";
@@ -33,7 +34,10 @@ try {
     : null;
   if (requirements.has("payments"))
     parseStripeConfig(process.env, credits?.mode === "stripe");
-  if (requirements.has("runs")) parseDifyConfig(process.env);
+  if (requirements.has("runs")) {
+    parseDifyConfig(process.env);
+    parsePersonaCompletionConfig(process.env);
+  }
   if (requirements.has("assets") || requirements.has("runs"))
     parseAssetConfig(process.env);
   assetLinks(

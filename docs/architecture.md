@@ -393,14 +393,31 @@ live provider, VPS and Android acceptance remain external checkpoints.
 
 ## Personas and product persistence
 
-Administrator-owned, revisioned `personas` select registered noninteractive Dify
-responders. User Start choices snapshot instructions, responder publication/key
-reference, pricing and limits in an accepted attempt. Old attempts default to User.
-Responder registrations are hidden from ordinary Run choices. The existing AI
-worker schedules one zero-reservation child execution per pending decision and
-uses shared form validation/submission. Persona decisions record their source;
-Take over fences new submissions and requests cancellation of unfinished children.
-Unknown dispatch/submission remains evidence-driven reconciliation.
+Administrator-owned, revisioned `personas` contain role instructions, pricing and
+call limits. The Persona administration page also owns one revisioned shared
+completion configuration and common instruction template. Model, optional
+temperature, token limit/parameter and shared instructions are administrator-only
+settings; `PERSONA_COMPLETION_MODE`, `PERSONA_COMPLETION_BASE_URL` and
+`PERSONA_COMPLETION_API_KEY` remain server configuration. There is no Persona
+workflow, Orchestrator purpose classification, or responder registration.
+
+Start choices and admission bind the Persona revision, shared settings revision and
+connection fingerprint. Transaction fences reject stale choices. Accepted attempts
+snapshot their complete configuration without credentials. Later settings changes
+apply to future Runs. The existing AI worker schedules one zero-reservation child
+completion per decision; it sends separate system messages for common/role
+instructions and public question/history as user data. Raw answer text follows the
+existing decision-submission path. Human-only approvals and takeover fences remain
+authoritative. File questions and unsupported legacy response modes fall back to a
+user. No legacy Persona workflow execution adapter or data migration is retained.
+
+The server-only adapter uses non-streaming Chat Completions with a 60-second
+request deadline and 1 MiB response limit. Empty, truncated, tool-call and malformed
+answers cannot be submitted. Identity, terminal output and usage are persisted
+atomically before settlement/submission. Uncertain dispatch is never retried as a
+new POST and remains reviewable; human fallback emits the existing notification.
+Portable provider retrieval/cancellation is unavailable, so takeover prevents late
+submission while already-dispatched work still needs termination evidence.
 
 Admission reserves the parent maximum plus the configured maximum responder
 calls. Successful valid responder results have separately calculated charges,
@@ -409,7 +426,7 @@ in the parent settlement transaction; Run detail and administrator usage expose
 the breakdown without a second wallet charge. Combined settlement waits for every
 child's confirmed termination and required usage. Missing child price evidence
 remains reviewable and can receive an audited waiver. Parent pricing/failure rules
-are retained. Responder provider usage appears under `persona-responder` in the
+are retained. Completion provider usage appears under `persona-completion` in the
 existing administrative usage report.
 
 Private MCP tools consume `context` only through direct Start-to-tool
@@ -420,8 +437,8 @@ wallet/access transaction boundary. Dify's execution input/tool logs are private
 capabilities never enter LLM prompts or browser DTOs. `productOperations` journals
 payload-hashed idempotent writes; approval binds a persisted decision to an exact
 artifact revision and records its human/persona source.
-Registration hides `context` only for private-MCP graphs; the persona responder's
-ordinary `context` paragraph remains public. The accepted orchestrator snapshots
+Registration hides `context` only for private-MCP graphs; ordinary public
+workflow context remains public. Registrations snapshot the private input name as
 `contextInputName`. Legacy publications can still bind `unibase_context`, and older
 snapshots without a name default to that legacy spelling. Injection and public
 input filtering share the snapshot's name; no live graph or accepted attempt is
@@ -447,13 +464,10 @@ summary through settlement; historical failures without saved details show an
 explicit fallback. Terminal Runs without stage events report that no stage details
 were recorded. They do not keep displaying a waiting message.
 
-Legacy persona actions normalize omitted summary/issue acknowledgements to JSON null.
-Explicit invalid acknowledgement values, missing choices/fields, unoffered actions
-and file responses remain invalid; human-only approvals still require a User.
+Personas use fixed, token or token-based hybrid pricing. Provider-cost pricing is
+not offered because portable completion responses do not supply verified monetary
+cost. Missing required usage remains reviewable; fixed pricing needs no tokens.
 
-The responder template is Start → LLM → End with raw answer text, no Python and
-no enforced model output schema. New registrations snapshot `responseMode: raw-v1`;
-re-registration preserves it and snapshots without it keep the legacy adapter.
 The raw path sends the rendered question and public context to the persona, then
 forwards the answer unchanged to the workflow. Human UI values are not normalized.
 JSON values are serialized once for Dify's paragraph input; strings stay exact.
@@ -495,7 +509,6 @@ artifact and Run admission services retain ownership and idempotency authority.
 Saved artifacts links to Start Run for creation; its detail controls only delete
 existing artifacts.
 
-
 ### Reuse hardening boundaries
 
 Application and host runtime names share a machine-readable catalog under
@@ -529,7 +542,6 @@ in the existing readiness probe.
 Nginx strips incoming forwarded addresses, trusts CF-Connecting-IP only on the
 Docker bridge host gateway, and preserves streaming. The existing host connector targets a loopback Nginx listener; no app-owned tunnel container exists. Redis has no published host port.
 
-
 ### Owned domains and managed files
 
 Domain adapters provide stable ID/version, reference kind, bounded owned picker
@@ -552,7 +564,6 @@ their state transaction. Terminal-history cleanup releases them. Provider upload
 references retain binding snapshots and add `managedFileId`; legacy references
 remain readable without pretending source bytes are available.
 
-
 ### In-app notifications
 
 Run decisions requiring a human, terminal parent Runs, confirmed credit purchases
@@ -570,7 +581,6 @@ completed-event tombstone after retention to prevent duplicate replay. Opening a
 Run notification rechecks ownership and retained history before resolving its
 allowlisted internal destination. Visible tabs poll unread summaries every 30
 seconds and abort requests on hide, unmount and session invalidation.
-
 
 ## Locale and direction
 
@@ -591,7 +601,6 @@ Public offline recovery caches only its HTML and language script; the selected
 locale is a namespaced browser preference. It never caches account data. Regenerate
 public recovery assets and client key inventories with `node scripts/i18n-assets.mjs`
 and `node scripts/i18n-client-sections.mjs`; `npm run check:i18n` checks drift.
-
 
 ## Project creation and compatibility
 

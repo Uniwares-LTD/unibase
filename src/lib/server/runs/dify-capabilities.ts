@@ -67,7 +67,7 @@ export function inspectDifyWorkflow(graph: unknown, responseMode?: "raw-v1") {
       typeof data.tool_name === "string" &&
       data.tool_name in privateToolPermissions,
   );
-  // Persona responders and ordinary workflows may have a public context input.
+  // Ordinary workflows may have a public context input.
   // Treat context as private only when the graph invokes private MCP tools.
   const contextInputName = fields.some((f) => f.variable === "unibase_context")
     ? ("unibase_context" as const)
@@ -286,37 +286,6 @@ export function inspectDifyWorkflow(graph: unknown, responseMode?: "raw-v1") {
       "This workflow references too many MCP providers.",
       409,
     );
-  const purpose =
-    inputs.length === 3 &&
-    ["persona", "question", "context"].every((name) =>
-      inputs.some(
-        (f) => f.name === name && f.kind === "paragraph" && f.required,
-      ),
-    )
-      ? "responder"
-      : "run";
-  if (
-    purpose === "responder" &&
-    (nodes.some((n) =>
-      ["human-input", "tool", "agent", "http-request"].includes(n.data.type),
-    ) ||
-      contextInput ||
-      !nodes.some((n) => n.data.type === "llm") ||
-      !nodes.some(
-        (n) =>
-          n.data.type === "end" &&
-          Array.isArray(n.data.outputs) &&
-          n.data.outputs.some(
-            (o: unknown) =>
-              z.object({ variable: z.literal("answer") }).safeParse(o).success,
-          ),
-      ))
-  )
-    throw new AppError(
-      "DIFY_RESPONDER_UNSUPPORTED",
-      "Responder workflows need an LLM, an answer output and no human input or external tools.",
-      409,
-    );
   return {
     inputs,
     legacyInputs,
@@ -328,7 +297,6 @@ export function inspectDifyWorkflow(graph: unknown, responseMode?: "raw-v1") {
           privateTools: [...new Set(privateTools)],
         }
       : {}),
-    ...(purpose === "responder" ? { purpose } : {}),
   };
 }
 

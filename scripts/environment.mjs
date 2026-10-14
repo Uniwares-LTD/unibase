@@ -25,6 +25,7 @@ export function loadLocalEnvironment(development = false) {
     "STRIPE_WEBHOOK_SECRET",
     "DIFY_MANAGEMENT_KEY",
     "DIFY_CREDENTIAL_ENCRYPTION_KEY",
+    "PERSONA_COMPLETION_API_KEY",
     "ASSET_S3_ACCESS_KEY_ID",
     "ASSET_S3_SECRET_ACCESS_KEY",
   ]);

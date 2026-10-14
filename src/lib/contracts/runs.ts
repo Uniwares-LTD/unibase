@@ -35,7 +35,6 @@ export const orchestratorSchema = z
       .optional(),
     enabled: z.boolean(),
     domainAdapter: domainAdapterSchema.optional(),
-    purpose: z.enum(["run", "responder"]).optional(),
     responseMode: z.literal("raw-v1").optional(),
     privateTools: z.array(z.string().max(128)).max(20).optional(),
     contextInput: z.boolean().optional(),

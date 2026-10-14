@@ -61,9 +61,12 @@ test("tracked local defaults yield to private overrides and reject tracked crede
     JSON.parse(result.stdout.trim().split("\n").at(-1)!).name,
     "Private override",
   );
-  config.runtime.STRIPE_SECRET_KEY = "secret-canary";
-  await writeFile(file, JSON.stringify(config));
-  result = run();
-  assert.notEqual(result.status, 0);
-  assert.ok(!result.stderr.includes("secret-canary"));
+  for (const key of ["STRIPE_SECRET_KEY", "PERSONA_COMPLETION_API_KEY"]) {
+    config.runtime[key] = "secret-canary";
+    await writeFile(file, JSON.stringify(config));
+    result = run();
+    assert.notEqual(result.status, 0);
+    assert.ok(!result.stderr.includes("secret-canary"));
+    delete config.runtime[key];
+  }
 });

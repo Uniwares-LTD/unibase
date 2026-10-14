@@ -740,8 +740,8 @@ permissions/settings as documented in README before using them in a derived app.
 
 - [x] Show persona cards with state/responder summaries and Add/Edit dialogs.
 - [x] Make change reasons optional across admin settings, personas, accounts,
-  credit adjustments, cleanup, payment review and AI reconciliation; preserve
-  authorization, revisions, confirmation, length bounds and atomic audits.
+      credit adjustments, cleanup, payment review and AI reconciliation; preserve
+      authorization, revisions, confirmation, length bounds and atomic audits.
 
 Verification: 53 pure tests and 136 account tests passed, as did type checking,
 lint, formatting and the production web/worker build. Playwright on a disposable
@@ -754,21 +754,21 @@ deployment/tooling and registry-audit availability warnings remain advisory.
 ### Saved-artifact live compatibility and diagnostics - 2026-10-12
 
 - [x] Return `draftText` from the private artifact read tool instead of Dify's
-  reserved top-level `text` output; refresh the existing Dify MCP tool catalog.
+      reserved top-level `text` output; refresh the existing Dify MCP tool catalog.
 - [x] Persist fixed, safe provider failure summaries and show explicit fallbacks
-  for historical failures; terminal Runs no longer display a waiting trace message.
+      for historical failures; terminal Runs no longer display a waiting trace message.
 - [x] Normalize omitted persona summary/issue acknowledgements to null while
-  retaining validation for supplied values, choices, fields and offered actions.
+      retaining validation for supplied values, choices, fields and offered actions.
 - [x] Rebuild and restart the local worker so persona execution and product image
-  application use the current implementation.
+      application use the current implementation.
 - [ ] Complete live persona approval and takeover acceptance through a healthy
-  MCP connection. The existing temporary tunnel repeatedly disconnected over
-  QUIC and subsequently reported that its tunnel no longer exists. The user
-  authorized replacement with an MCP-only HTTP/2 tunnel. Global and US-region
-  attempts failed Cloudflare's TCP connectivity checks: outbound tunnel access
-  on port 7844 is blocked or unreachable. Dify's URL remains unchanged until a
-  healthy connection exists; live acceptance awaits network access or an existing
-  reachable MCP endpoint.
+      MCP connection. The existing temporary tunnel repeatedly disconnected over
+      QUIC and subsequently reported that its tunnel no longer exists. The user
+      authorized replacement with an MCP-only HTTP/2 tunnel. Global and US-region
+      attempts failed Cloudflare's TCP connectivity checks: outbound tunnel access
+      on port 7844 is blocked or unreachable. Dify's URL remains unchanged until a
+      healthy connection exists; live acceptance awaits network access or an existing
+      reachable MCP endpoint.
 
 Verification: 53 pure tests, 139 account/provider tests (with test concurrency
 bounded to two) and the Runs HTTP regression pass. Typecheck, lint, configuration,
@@ -859,7 +859,6 @@ Saved artifacts creation follow-up: the standalone title/create form was removed
 detail page. Browser navigation and control-presence checks, typecheck, lint and
 production build passed, with no artifact mutation during verification.
 
-
 ## Accepted reuse and service-hardening extension - 2026-10-13
 
 The six milestones below are authorized for local implementation, in order.
@@ -868,17 +867,17 @@ this extension. Each milestone requires affected checks, a production web/worker
 build, documentation reconciliation and a separate read-only review.
 
 - [x] H1: shared environment catalog, authenticated bounded uploads, caller input
-  errors/not-found pages, stable 25-row pagination, distinct HTTP pricing suite.
+      errors/not-found pages, stable 25-row pagination, distinct HTTP pricing suite.
 - [x] H2: project identity and typed modules, private Redis limits, Nginx ingress,
-  nonce CSP and browser security policies.
+      nonce CSP and browser security policies.
 - [x] H3: versioned owned domain adapters and managed private files with atomic
-  quotas, reference-safe deletion, GridFS/S3 and provider upload reuse.
+      quotas, reference-safe deletion, GridFS/S3 and provider upload reuse.
 - [x] H4: transactional in-app notification outbox, inbox and preferences for
-  Runs, credits and account changes.
+      Runs, credits and account changes.
 - [x] H5: complete English/Arabic catalogs, server locale/RTL, stable URLs and
-  explicit timezone formatting.
+      explicit timezone formatting.
 - [x] H6: new-directory initializer from reviewed Git source, isolated identities,
-  application/examples modes, and reconciliation of all owned documentation/skills.
+      application/examples modes, and reconciliation of all owned documentation/skills.
 
 New projects enable reusable modules, with live providers inactive until configured
 and examples explicitly selected. Existing session namespaces, accounting records,
@@ -926,7 +925,6 @@ read-only review checked outbox/source transaction coupling, lease fences, owned
 links, bounded template parameters and replay protection after retention. No
 email, push delivery or external messaging was introduced.
 
-
 H5 local verification (2026-10-13): 60 pure tests and two notification tests pass,
 including catalog interpolation parity, locale precedence, timezone validation,
 independent profile mutations and read-time notification translation. Production
@@ -938,7 +936,6 @@ were observed. The separate read-only review checked server/client dictionary
 boundaries, stable URLs, ownership, UTC administrative filters and nonce retention.
 Native validation feedback uses the selected application language; user-authored
 content and provider output are intentionally preserved.
-
 
 H6 final local verification (2026-10-13): 61 pure tests, 153 account/service tests
 and 26 isolated deployment tests pass. Production web/worker build, independent
@@ -1140,3 +1137,40 @@ The public initializeAuth API is billing-only Identity Platform, so Firebase con
 initialization is reported explicitly rather than enabling it. No live provider,
 VPS, Cloudflare/Dify lifecycle or deployment mutation was performed. No commit,
 push, issue comment, publication or release occurred.
+
+### Direct Persona completions and simplified Orchestrators - 2026-10-14
+
+Persona workflows have been replaced by a shared OpenAI-compatible Chat
+Completions connection. Persona administration owns revisioned model/generation
+settings and one editable instruction template with Reset to default. Each Persona
+retains role instructions, fixed/token/hybrid pricing and call limits. The Persona
+workflow template, registration classification, selectors and special catalog
+filters are removed; the Orchestrator catalog contains five example workflows.
+
+Accepted attempts snapshot both revisions and the private connection fingerprint.
+The existing durable child-job, takeover, approval, reservation and combined
+settlement boundaries remain. Completion identity, terminal answer and usage are
+saved atomically. Unknown outcomes never authorize a repeated POST. Definite
+pre-dispatch connection failures release the child without a request and offer
+human fallback. Provider-cost Persona pricing is no longer offered. Both tracked
+runtime loaders reject the completion API key in public environment documents.
+
+Local verification: all 171 account/service tests pass with test concurrency set to
+four, all 62 pure tests pass, and all 11 deployment configuration tests pass.
+Unrestricted test parallelism during compilation caused one disposable MongoDB
+startup timeout; the bounded-concurrency full run passed. Independent type checking,
+lint and production web/worker compilation pass. Documentation, i18n, environment
+and pinned-skill checks pass. Browser verification against isolated MongoDB/Auth
+Emulator accounts covers shared settings save/reset, hybrid pricing, Persona
+creation/editing, stale revisions, member/recent-admin/origin rejection, five-item
+Orchestrator creation menu, keyboard focus and 390px English/Arabic layouts without
+hydration errors. A fake-provider Run selected Parent, reserved the combined
+maximum and succeeded with one completion child through the bundled AI worker.
+
+A separate read-only review found a missing local tracked-key exclusion; it was
+corrected and its secret-rejection test passed. Final review found no remaining
+actionable defect. Browser captures remain under ignored `output/playwright/`.
+This intentionally uses fresh Persona/Run data, with no legacy Persona workflow
+adapter or migration. No existing database, external Dify app or accounting record
+was deleted. Live model execution, provider activation and deployment were not
+performed. The earlier workflow-based Persona verification above is historical.

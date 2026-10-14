@@ -158,6 +158,16 @@ def validate(root, target, runtime_file=None):
             console=urlsplit(env.get("DIFY_CONSOLE_URL",""))
             if console.scheme!="https" or console.netloc!=dify_url.netloc or console.path!="/console/api" or console.query or console.fragment:
                 raise ValueError("Invalid management connection")
+    completion_mode = env.get("PERSONA_COMPLETION_MODE", "disabled")
+    if completion_mode not in ("disabled", "fake", "live"):
+        raise ValueError("Invalid Persona completion mode")
+    if completion_mode == "live":
+        completion_url = urlsplit(env.get("PERSONA_COMPLETION_BASE_URL", ""))
+        if (completion_url.scheme != "https" or not completion_url.hostname or completion_url.username or
+                completion_url.password or completion_url.query or completion_url.fragment):
+            raise ValueError("Invalid Persona completion API URL")
+        if not env.get("PERSONA_COMPLETION_API_KEY") or any(c in env["PERSONA_COMPLETION_API_KEY"] for c in "\r\n"):
+            raise ValueError("Missing or invalid Persona completion API key")
     expected = {"APP_ENV": target, "APP_ORIGIN": item["origin"], "AUTH_MODE": "firebase",
                 "FIREBASE_PROJECT_ID": item["firebaseProject"],
                 "MONGODB_DATABASE": item["mongoDatabase"]}

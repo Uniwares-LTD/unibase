@@ -438,7 +438,6 @@ export async function registerDifyOrchestrator(
       enabled: true,
       inputs: fit.inputs,
       ...(responseMode ? { responseMode } : {}),
-      ...(fit.purpose ? { purpose: fit.purpose } : {}),
       ...(fit.contextInput
         ? {
             contextInput: true,

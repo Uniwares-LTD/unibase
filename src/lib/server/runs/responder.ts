@@ -3,110 +3,27 @@ import "server-only";
 import type { Db } from "mongodb";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { personaAnswerSchema } from "@/lib/contracts/personas";
-import { formCardSchema } from "@/lib/runs/cards";
-import {
-  parseUiForm,
-  validateAnswers,
-  publicRunInputs,
-  rawResponseText,
-} from "@/lib/contracts/runs";
+import { publicRunInputs, rawResponseText } from "@/lib/contracts/runs";
 import { AppError } from "@/lib/auth-policy";
 import { calculateAiCharge } from "@/lib/ai-pricing";
 import { aiJobs, createAiJob, type AiJob } from "../ai/jobs";
 import { authorizeWorkerAccount } from "../worker-authorization";
-import { executionBinding } from "./provider";
+import { completionBinding } from "./persona-completion-settings";
 import {
   decisionView,
-  formSchema,
   submitAuthorizedDecision,
   type Decision,
 } from "./service";
 
 type Json = z.infer<ReturnType<typeof z.json>>;
 export function responderAnswer(
-  job: Pick<AiJob, "inputs"> & {
-    responder?: Pick<NonNullable<AiJob["responder"]>, "responseMode">;
-  },
+  _job: Pick<AiJob, "inputs">,
   outputs: Record<string, unknown> | null,
-):
-  | { action: string; answers: Record<string, Json>; response?: never }
-  | { action: string; response: Json; answers?: never } {
-  if (!outputs) throw new Error("Missing responder output");
-  if (job.responder?.responseMode === "raw-v1") {
-    rawResponseText(outputs.answer);
-    return { action: "continue", response: outputs.answer as Json };
-  }
-  const value =
-    typeof outputs.answer === "string"
-      ? JSON.parse(outputs.answer)
-      : outputs.answer;
-  const question = JSON.parse(String(job.inputs.question));
-  const form = formSchema.parse(question);
-  // A raw answer map is unambiguous only when exactly one action is offered.
-  // Explicit envelopes must still satisfy the original contract in full.
-  const rawAnswers =
-    value !== null &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    !Object.hasOwn(value, "action") &&
-    !Object.hasOwn(value, "answers");
-  const answer = personaAnswerSchema.parse(
-    rawAnswers && form.user_actions.length === 1
-      ? { action: form.user_actions[0].id, answers: value }
-      : value,
-  );
-  if (!form.user_actions.some((a) => a.id === answer.action))
-    throw new Error("Invalid action");
-  if (form.inputs.some((f) => f.type === "file" || f.type === "file-list"))
-    throw new Error("Files need a human");
-  if (form.form_content.includes("```unibase-ui")) {
-    const ui = parseUiForm(form.form_content);
-    // Models commonly express an unanswered optional field as JSON null.
-    // Omit only declared optional fields; required and unknown fields still fail.
-    for (const card of ui.cards) {
-      const values = answer.answers[card.id];
-      if (
-        card.content.type === "form" &&
-        values !== null &&
-        typeof values === "object" &&
-        !Array.isArray(values)
-      )
-        for (const field of formCardSchema.parse(card.content.data).fields)
-          if (!field.required && values[field.id] === null)
-            delete values[field.id];
-    }
-    // These cards have no answer value. An offered action acknowledges them;
-    // models commonly omit their keys rather than spelling out JSON null.
-    // Never invent a choice, field value, file or human approval.
-    for (const card of ui.cards)
-      if (
-        ["summary", "issue"].includes(card.content.type) &&
-        !Object.hasOwn(answer.answers, card.id)
-      )
-        answer.answers[card.id] = null;
-    validateAnswers(ui, answer.answers);
-  } else {
-    if (
-      Object.keys(answer.answers).some(
-        (k) => !form.inputs.some((f) => f.output_variable_name === k),
-      )
-    )
-      throw new Error("Unknown field");
-    for (const f of form.inputs) {
-      const v =
-        answer.answers[f.output_variable_name] ??
-        form.resolved_default_values[f.output_variable_name];
-      if (
-        typeof v !== "string" ||
-        v.length > 4000 ||
-        (f.type === "select" &&
-          !(f.options ?? f.option_source?.value ?? []).includes(v))
-      )
-        throw new Error("Invalid field");
-    }
-  }
-  return answer;
+): { action: string; response: Json } {
+  if (!outputs || typeof outputs.answer !== "string" || !outputs.answer.trim())
+    throw new Error("Missing completion output");
+  rawResponseText(outputs.answer);
+  return { action: "continue", response: outputs.answer };
 }
 export async function responderCharges(db: Db, job: AiJob) {
   if (!job.run?.answerer) return 0;
@@ -211,60 +128,21 @@ export async function processOneAutomaticDecision(
           .find({ jobId: parent._id, status: "submitted" })
           .limit(100)
           .toArray();
-        const raw = parent.run!.orchestrator.responseMode === "raw-v1";
-        const question = raw
-          ? form.form_content
-          : JSON.stringify({
-              form_content: form.form_content,
-              inputs: form.inputs,
-              user_actions: form.user_actions,
-              resolved_default_values: form.resolved_default_values,
-              ...(parent.run!.orchestrator.responseMode === "raw-v1"
-                ? {}
-                : {
-                    answerContracts: form.form_content.includes("```unibase-ui")
-                      ? Object.fromEntries(
-                          parseUiForm(form.form_content).cards.map((c) => [
-                            c.id,
-                            c.content.type === "summary" ||
-                            c.content.type === "issue"
-                              ? "null acknowledgement"
-                              : c.content.type === "question"
-                                ? "string for text/single choice; array of offered IDs for multiple choice"
-                                : c.content.type === "form"
-                                  ? "object keyed by field ID, respecting each field's constraints"
-                                  : c.content.type === "gallery"
-                                    ? "one offered assetId string"
-                                    : "no response",
-                          ]),
-                        )
-                      : Object.fromEntries(
-                          form.inputs.map((f) => [
-                            f.output_variable_name,
-                            f.type === "select"
-                              ? "one offered option string"
-                              : "text string up to 4000 characters",
-                          ]),
-                        ),
-                  }),
-            });
+        if (parent.run!.orchestrator.responseMode !== "raw-v1")
+          throw new AppError(
+            "PERSONA_FALLBACK",
+            "This workflow needs raw-response registration. Please answer or take over.",
+          );
+        const question = form.form_content;
         const context = JSON.stringify({
           inputs: publicRunInputs(parent.inputs, parent.run!.orchestrator),
-          decisions: previous.map((d) =>
-            raw
-              ? {
-                  title: d.title,
-                  response:
-                    d.intent && Object.hasOwn(d.intent, "response")
-                      ? d.intent.response
-                      : d.confirmedInputs,
-                }
-              : {
-                  title: d.title,
-                  action: d.intent?.action ?? d.confirmedAction,
-                  answers: d.intent?.inputs ?? d.confirmedInputs,
-                },
-          ),
+          decisions: previous.map((d) => ({
+            title: d.title,
+            response:
+              d.intent && Object.hasOwn(d.intent, "response")
+                ? d.intent.response
+                : d.confirmedInputs,
+          })),
         });
         const instructions = JSON.stringify({
           name: persona.name,
@@ -275,28 +153,30 @@ export async function processOneAutomaticDecision(
             "PERSONA_FALLBACK",
             "The question or context exceeds the responder's supported size. Please answer or take over.",
           );
-        const binding = await executionBinding(
-          persona.responder,
-          persona.responderRevision,
-          db,
+        const binding = completionBinding(
+          persona.completion.settings,
+          persona.completion.revision,
         );
+        if (binding.fingerprint !== persona.completion.binding.fingerprint)
+          throw new AppError(
+            "PERSONA_FALLBACK",
+            "The completion connection changed. Please answer or take over.",
+          );
         child = await createAiJob(
           db,
           { uid: parent.uid, authTime: parent.authTime },
           `responder:${decision._id}`,
           {
-            capability: "persona-responder",
+            capability: "persona-completion",
             capabilityVersion: "1",
-            binding: binding.snapshot,
+            binding,
             inputs: { persona: instructions, question, context },
             source: { type: "decision", id: decision._id, version: "1" },
             credits: 0,
             responder: {
-              responseMode: parent.run!.orchestrator.responseMode,
               parentId: parent._id,
               decisionId: decision._id,
-              definition: persona.responder,
-              revision: persona.responderRevision,
+              completion: persona.completion,
             },
           },
           new Date(),
@@ -361,7 +241,15 @@ export async function processOneAutomaticDecision(
         );
         return true;
       }
-      if (["failed", "cancelled"].includes(child.status))
+      if (
+        [
+          "failed",
+          "cancelled",
+          "unknown",
+          "needs-review",
+          "settlement-blocked",
+        ].includes(child.status)
+      )
         throw new AppError(
           "PERSONA_FALLBACK",
           "The responder could not provide a valid answer. Please answer or take over.",

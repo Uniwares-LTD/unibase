@@ -9,7 +9,17 @@ import { prepareStandalone } from "./standalone.mjs";
 
 // All targets are owned by this runner. Never load .env files or accept Atlas
 // connection strings for tests. The auth emulator must already be running.
-await fetch("http://127.0.0.1:9099/", { signal: AbortSignal.timeout(3000) });
+const authPort = Number(
+  process.argv
+    .find((arg) => arg.startsWith("--auth-port="))
+    ?.slice("--auth-port=".length) ?? "9099",
+);
+if (!Number.isInteger(authPort) || authPort < 1024 || authPort > 65535)
+  throw new Error("Invalid local Auth Emulator port.");
+const authEmulatorHost = `127.0.0.1:${authPort}`;
+await fetch(`http://${authEmulatorHost}/`, {
+  signal: AbortSignal.timeout(3000),
+});
 const mongo = await MongoMemoryReplSet.create({
   binary: { downloadDir: path.resolve(".cache/mongodb-binaries") },
   replSet: { count: 1, ip: "127.0.0.1", storageEngine: "wiredTiger" },
@@ -33,7 +43,7 @@ const env = {
   FIREBASE_PROJECT_ID: "demo-unibase",
   FIREBASE_API_KEY: "demo-key",
   FIREBASE_APP_ID: "demo-app",
-  FIREBASE_AUTH_EMULATOR_HOST: "127.0.0.1:9099",
+  FIREBASE_AUTH_EMULATOR_HOST: authEmulatorHost,
   MONGODB_URI: mongo.getUri(),
   MONGODB_DATABASE: database,
   PAYMENTS_MODE: process.argv.includes("--stripe") ? "stripe" : "simulation",
@@ -43,6 +53,11 @@ const env = {
     : process.argv.includes("--ai")
       ? "fake"
       : "disabled",
+  PERSONA_COMPLETION_MODE: process.argv.includes("--personas")
+    ? "fake"
+    : "disabled",
+  PERSONA_COMPLETION_BASE_URL: "",
+  PERSONA_COMPLETION_API_KEY: "",
   DIFY_BASE_URL: "",
   DIFY_ORCHESTRATORS_JSON: "",
   DIFY_MANAGEMENT_KEY: "",

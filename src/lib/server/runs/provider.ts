@@ -1,4 +1,5 @@
 import "server-only";
+import { personaCompletionProvider } from "../ai/persona-completion";
 import type { Db } from "mongodb";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -120,11 +121,11 @@ export async function providerForRun(
 ): Promise<WorkflowProvider> {
   if (!job.run && !job.responder)
     throw new AppError("RUN_REQUIRED", "Run configuration is missing.", 503);
-  if (job.binding.mode === "fake")
-    return job.responder ? fakeResponder(job) : fakeRun(job, db);
+  if (job.responder) return personaCompletionProvider(job);
+  if (job.binding.mode === "fake") return fakeRun(job, db);
   const live = await executionBinding(
-    job.responder?.definition ?? job.run!.orchestrator,
-    job.responder?.revision ?? job.run!.configurationRevision,
+    job.run!.orchestrator,
+    job.run!.configurationRevision,
     db,
   );
   if (live.snapshot.fingerprint !== job.binding.fingerprint)
@@ -326,63 +327,5 @@ function fakeRun(job: AiJob, db: Db): WorkflowProvider {
         throw new Error("Simulated dropped submission response");
       }
     },
-  };
-}
-
-function fakeResponder(job: AiJob): WorkflowProvider {
-  const runId = job.runId ?? randomUUID();
-  const q =
-    job.responder?.responseMode === "raw-v1"
-      ? null
-      : JSON.parse(String(job.inputs.question));
-  const answers: Record<string, import("../ai/types").Json> = {};
-  if (q?.form_content.includes("```unibase-ui")) {
-    const ui = JSON.parse(
-      q.form_content.match(/```unibase-ui\s*\n([\s\S]*?)\n```/)[1],
-    );
-    for (const card of ui.cards) {
-      if (["summary", "issue"].includes(card.content.type))
-        answers[card.id] = null;
-      else if (card.content.type === "question")
-        answers[card.id] =
-          card.content.data.kind === "text"
-            ? "Persona answer"
-            : card.content.data.kind === "multiple"
-              ? [card.content.data.options[0].id]
-              : card.content.data.options[0].id;
-      else if (card.content.type === "gallery")
-        answers[card.id] = card.content.data.items[0].assetId;
-    }
-  } else if (q)
-    for (const field of q.inputs)
-      answers[field.output_variable_name] =
-        field.options?.[0] ?? "Persona answer";
-  const state: ProviderExecution = {
-    runId,
-    workflowId: job.responder!.definition.workflowId ?? randomUUID(),
-    status: "succeeded",
-    outputs: {
-      answer:
-        job.responder?.responseMode === "raw-v1"
-          ? "Approved"
-          : JSON.stringify({ action: q.user_actions[0].id, answers }),
-    },
-    usage: {
-      id: runId,
-      scope: "execution",
-      inputTokens: 20,
-      outputTokens: 10,
-      totalTokens: 30,
-      cost: null,
-      elapsedMs: 1,
-    },
-  };
-  return {
-    start: async (_input, event) => {
-      await event({ type: "identity", runId, taskId: runId });
-      return { kind: "ok", value: state };
-    },
-    retrieve: async () => ({ kind: "ok", value: state }),
-    stop: async () => ({ kind: "ok", value: undefined }),
   };
 }

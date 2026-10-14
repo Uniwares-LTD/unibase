@@ -5,7 +5,6 @@ import catalogPicker from "./catalog-picker.json";
 import quoteApproval from "./quote-approval.json";
 import type { OrchestratorTemplateId } from "@/lib/contracts/orchestrator-templates";
 
-import personaResponder from "./persona-responder.json";
 import savedArtifact from "./saved-artifact.json";
 import storyPanel from "./story-panel.json";
 type NodeData = {
@@ -37,16 +36,13 @@ const templates: {
   documentSummary,
   catalogPicker,
   quoteApproval,
-  personaResponder,
   savedArtifact,
   storyPanel,
 ];
 
 export function orchestratorTemplates() {
   return templates
-    .filter(
-      (template) => project.examples || template.id === "persona-responder",
-    )
+    .filter(() => project.examples)
     .map(({ id, title, description }) => ({
       id: id as OrchestratorTemplateId,
       title,
@@ -56,9 +52,7 @@ export function orchestratorTemplates() {
 
 export function orchestratorTemplate(id: OrchestratorTemplateId) {
   const template = templates.find(
-    (template) =>
-      template.id === id &&
-      (project.examples || template.id === "persona-responder"),
+    (template) => template.id === id && project.examples,
   );
   if (!template) throw new Error("Unknown orchestrator template");
   return {

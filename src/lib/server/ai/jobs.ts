@@ -33,9 +33,9 @@ import type {
 export type BindingSnapshot = {
   name: string;
   revision: string;
-  kind: "workflow";
+  kind: "workflow" | "completion";
   mode: "fake" | "live";
-  // Hash of provider origin, app key and publication. Never persist the key.
+  // Hash of provider connection and accepted configuration. Never persist the key.
   fingerprint: string;
 };
 export type AiJob = {
@@ -79,11 +79,9 @@ export type AiJob = {
   pricing?: AiPricing;
   charge?: AiCharge & { usage: UsageObservation | null };
   responder?: {
-    responseMode?: "raw-v1";
     parentId: string;
     decisionId: string;
-    definition: import("@/lib/contracts/runs").OrchestratorDefinition;
-    revision: number;
+    completion: import("../runs/persona-completion-settings").CompletionSnapshot;
   };
   responderCharge?: number;
   responderFee?: number;
@@ -140,7 +138,7 @@ export type AiUsage = UsageObservation & {
   jobId: string;
   runId: string;
   capability: string;
-  provider: "dify" | "fake";
+  provider: "dify" | "openai-compatible" | "fake";
   timestamp: Date;
 };
 export const aiJobs = (db: Db) => db.collection<AiJob>("aiJobs");
@@ -379,7 +377,7 @@ export async function persistAiEvent(
   const session = db.client.startSession();
   try {
     await session.withTransaction(async () => {
-      const current = await patchAiJob(db, job, {}, now, session);
+      let current = await patchAiJob(db, job, {}, now, session);
       if (event.type === "identity") {
         if (
           current.runId &&
@@ -398,6 +396,22 @@ export async function persistAiEvent(
           session,
         );
       } else {
+        // A synchronous completion returns its identity with its terminal answer.
+        // Persist both in this transaction, so restart recovery never needs a POST.
+        if (
+          !current.runId &&
+          current.binding.kind === "completion" &&
+          current.responder &&
+          event.type === "execution"
+        ) {
+          current = await patchAiJob(
+            db,
+            job,
+            { runId: event.execution.runId },
+            now,
+            session,
+          );
+        }
         if (!current.runId) throw conflict();
         if (
           event.type === "stage" ||
@@ -532,7 +546,12 @@ export async function persistAiEvent(
           jobId: job._id,
           runId: current.runId,
           capability: job.capability,
-          provider: job.binding.mode === "fake" ? "fake" : "dify",
+          provider:
+            job.binding.mode === "fake"
+              ? "fake"
+              : job.binding.kind === "completion"
+                ? "openai-compatible"
+                : "dify",
           timestamp: now,
         };
         // An execution summary is a distinct scope, not an extra billable node.
@@ -708,7 +727,7 @@ export async function settleAiJob(
               ? "provider-failed"
               : prior.execution?.status === "stopped"
                 ? "provider-stopped"
-                : prior.run &&
+                : (prior.run || prior.responder) &&
                     ["succeeded", "partial-succeeded"].includes(
                       prior.execution?.status ?? "",
                     )

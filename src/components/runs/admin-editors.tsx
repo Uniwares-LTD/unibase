@@ -67,9 +67,11 @@ export function SettingsField({
   name,
   value,
   onChange,
+  tokenPricingOnly = false,
 }: {
   name: string;
   value: Json;
+  tokenPricingOnly?: boolean;
   onChange: (value: Json) => void;
 }) {
   const translate = useTranslations("ui");
@@ -102,45 +104,51 @@ export function SettingsField({
     return (
       <fieldset className="space-y-3 rounded-lg border p-4">
         <legend className="px-2 font-semibold">{label}</legend>
-        {Object.entries(value).map(([key, entry]) => (
-          <SettingsField
-            key={`${key}-${key === "mode" ? String(entry) : ""}`}
-            name={key}
-            value={entry}
-            onChange={(next) => {
-              if (
-                key === "mode" &&
-                typeof next === "string" &&
-                name !== "usage"
-              )
-                onChange(preset[next]);
-              else if (key === "mode" && name === "usage")
-                onChange(
-                  next === "tokens"
-                    ? {
-                        mode: "tokens",
-                        rate: { basis: "total", creditsPerMillion: "1000" },
-                      }
-                    : {
-                        mode: "provider-cost",
-                        currency: "USD",
-                        creditsPerCurrencyUnit: "100",
-                      },
-                );
-              else if (key === "basis")
-                onChange(
-                  next === "total"
-                    ? { basis: "total", creditsPerMillion: "1000" }
-                    : {
-                        basis: "split",
-                        inputCreditsPerMillion: "1000",
-                        outputCreditsPerMillion: "1000",
-                      },
-                );
-              else onChange({ ...value, [key]: next });
-            }}
-          />
-        ))}
+        {Object.entries(value)
+          .filter(
+            ([key]) =>
+              !(tokenPricingOnly && name === "usage" && key === "mode"),
+          )
+          .map(([key, entry]) => (
+            <SettingsField
+              key={`${key}-${key === "mode" ? String(entry) : ""}`}
+              name={key}
+              tokenPricingOnly={tokenPricingOnly}
+              value={entry}
+              onChange={(next) => {
+                if (
+                  key === "mode" &&
+                  typeof next === "string" &&
+                  name !== "usage"
+                )
+                  onChange(preset[next]);
+                else if (key === "mode" && name === "usage")
+                  onChange(
+                    next === "tokens"
+                      ? {
+                          mode: "tokens",
+                          rate: { basis: "total", creditsPerMillion: "1000" },
+                        }
+                      : {
+                          mode: "provider-cost",
+                          currency: "USD",
+                          creditsPerCurrencyUnit: "100",
+                        },
+                  );
+                else if (key === "basis")
+                  onChange(
+                    next === "total"
+                      ? { basis: "total", creditsPerMillion: "1000" }
+                      : {
+                          basis: "split",
+                          inputCreditsPerMillion: "1000",
+                          outputCreditsPerMillion: "1000",
+                        },
+                  );
+                else onChange({ ...value, [key]: next });
+              }}
+            />
+          ))}
       </fieldset>
     );
   return (
@@ -163,11 +171,15 @@ export function SettingsField({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {modes[name].map((mode) => (
-                  <SelectItem key={mode} value={mode}>
-                    <StateLabel value={mode} />
-                  </SelectItem>
-                ))}
+                {modes[name]
+                  .filter(
+                    (mode) => !tokenPricingOnly || mode !== "provider-cost",
+                  )
+                  .map((mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      <StateLabel value={mode} />
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           ) : (

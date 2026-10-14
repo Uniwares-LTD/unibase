@@ -17,7 +17,7 @@ export function validateEnvironmentNames(
   for (const key of Object.keys(env)) {
     if (env[key] === undefined) continue;
     if (
-      /^(MCP_|RUN_MCP_|DIFY_KEY_)/.test(key) &&
+      /^(MCP_|RUN_MCP_|DIFY_KEY_|PERSONA_COMPLETION_)/.test(key) &&
       !names.has(key) &&
       !credentials.some((pattern) => pattern.test(key))
     )

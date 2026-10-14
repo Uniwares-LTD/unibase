@@ -398,19 +398,22 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
     } else if (
       error instanceof AppError &&
       job.status === "queued" &&
-      [
+      ([
         "AI_REFERENCE_REJECTED",
         "AI_REFERENCE_INVALID",
         "AI_FILE_QUOTA",
         "CAPABILITY_CONFIGURATION",
-      ].includes(error.code)
+      ].includes(error.code) ||
+        (!!job.responder &&
+          ["AI_CONFIGURATION", "PERSONA_UNAVAILABLE"].includes(error.code)))
     ) {
       job = await patchAiJob(
         db,
         job,
         {
-          failure:
-            error.code === "CAPABILITY_CONFIGURATION"
+          failure: job.responder
+            ? "persona-completion-unavailable"
+            : error.code === "CAPABILITY_CONFIGURATION"
               ? "private-context-unavailable"
               : error.code === "AI_FILE_QUOTA"
                 ? "reference-upload-quota"

@@ -20,27 +20,19 @@ ID in `src/lib/contracts/orchestrator-templates.ts`, and add its MCP requirement
 Use supported node/output contracts and verify the embedded Code with actual tool
 outputs and the Unibase answer format. Refresh Dify tool metadata before creation.
 
-- `persona-responder.json`: bounded persona/question/context → LLM → raw answer text. No Python node or enforced output schema. Configure the Dify model/provider before use; no MCP binding is needed.
 - `saved-artifact.json`: private Run context → owned draft read/save → revision-bound approval/decline → synthetic retained image. Start this from an owned artifact.
 - `story-panel.json`: Story idea → AI story → Approved/Send changes review form → AI revision and character description → revision-bound approval → real generated panel. Start from an owned artifact. Configure the LLM nodes and authorize OpenAI Tools in Dify. Decline retains the draft without generating an image.
 
 Private tools bind the server-filled `context` directly; never send that
 value to a prompt. The artifact sample's approval metadata is rendered dynamically
-and validated against the saved revision. Persona responders receive no private
+and validated against the saved revision. Persona completions receive no private
 capabilities and cannot call product tools.
-The persona's paragraph `context` is public, while the required text `context`
-in a private-MCP graph is a hidden capability. Registration snapshots the actual
-private input name. Existing `unibase_context` graphs and older boolean-only
-snapshots retain their legacy binding; changing a local template does not rewrite
-an existing Dify publication.
-
-The persona template accepts text or serialized questions of any shape and passes
-the LLM's text directly to End `answer`. The prompt uses the requested response
-format without a transport envelope. New registrations use `raw-v1`; Unibase
-passes raw persona answers and unnormalized human UI values to the next workflow
-LLM. Each question needs a paragraph `response` input and a `continue` action.
-Legacy registrations retain their structured adapter and pinned graphs. Create a
-new app from an updated template to adopt raw mode; re-registration preserves mode.
+Persona completions are configured in Persona administration and use a direct
+OpenAI-compatible model API; they are not Orchestrator templates. Only public
+question/context data is sent to them. Raw workflows need a paragraph `response`
+input and a `continue` action for automatic answers. Private-MCP graphs still
+snapshot the actual hidden input name; existing `unibase_context` graphs retain
+their binding.
 Unibase still checks rendering definitions, payload bounds, ownership and approval
 permissions; MCP tools retain typed arguments.
 
@@ -61,8 +53,8 @@ configured Dify origin and retains validated bytes privately. Tool form settings
 are plain values, while dynamic tool parameters use variable bindings.
 
 `project.config.json.examples` controls sample visibility and creation. Application
-mode exposes the reusable Persona responder template; example mode explicitly
-exposes all six. Accepted work retains its handler/binding snapshots. The JSON
+mode exposes no example templates; example mode explicitly
+exposes all five. Accepted work retains its handler/binding snapshots. The JSON
 catalog is the current source; `dify/` YAML files are historical compatibility
 fixtures. Adding an ID also requires translation of its administrative presentation
 and verification of its tool permissions, owned target and provider prerequisites.

@@ -65,7 +65,10 @@ test("story review offers approval and changes together, with persona-compatible
     },
     { answer: JSON.stringify({ action: "continue", answers }) },
   );
-  assert.deepEqual(parsed, { action: "continue", answers });
+  assert.deepEqual(parsed, {
+    action: "continue",
+    response: JSON.stringify({ action: "continue", answers }),
+  });
   assert.deepEqual(
     responderAnswer(
       {
@@ -79,9 +82,9 @@ test("story review offers approval and changes together, with persona-compatible
           }),
         },
       },
-      { answer: { action: "continue", answers: approved } },
+      { answer: JSON.stringify(approved) },
     ),
-    { action: "continue", answers: approved },
+    { action: "continue", response: JSON.stringify(approved) },
   );
   const draft = code("draft", {
     story: "A friendly robot finds a tiny moon.",
@@ -122,7 +125,10 @@ test("story review offers approval and changes together, with persona-compatible
     },
     { answer: JSON.stringify({ action: "approve", answers: {} }) },
   );
-  assert.deepEqual(approve, { action: "approve", answers: { draft: null } });
+  assert.deepEqual(approve, {
+    action: "continue",
+    response: JSON.stringify({ action: "approve", answers: {} }),
+  });
   assert.equal(
     parseResult(code("declined", { text: draft.text })).outcome,
     "partial",
@@ -266,7 +272,7 @@ test("LLMs receive raw tool context and review answers without Python extraction
         { inputs: { question } },
         { answer: JSON.stringify(answer) },
       ),
-      answer,
+      { action: "continue", response: JSON.stringify(answer) },
     );
     const rendered = reviewPrompt.replace(
       "{{#story_decision.response#}}",

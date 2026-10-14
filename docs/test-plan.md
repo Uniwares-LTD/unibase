@@ -136,16 +136,16 @@ Perform browser checks in Chrome and another supported browser, at desktop and
 
 ## 4. Admin dashboard and user management
 
-| ID     | Test steps                                                                                                | Expected result                                                                                                                                                                |
-| ------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ADM-01 | Open `/admin` as anonymous and as a verified member; request `/api/admin/users` and `/api/admin/reports`. | Anonymous page redirects to Account; member page shows not-found. APIs return 401/403 respectively.                                                                            |
-| ADM-02 | Open `/admin` as Admin A; compare labels with known test activity.                                        | Counts represent application profiles, active admins, suspended accounts and the labelled last-24-hour runtime errors/audit changes. Profiles are not all Firebase identities. |
-| ADM-03 | List users; search exact email and UID; search unknown identity and clear search.                         | Correct account, explicit empty result, then normal list. Next-page navigation works with more than 25 identities. Mark pagination Not run if there are too few fixtures.      |
-| ADM-04 | Edit a member's application display name with reason; review then cancel; repeat and confirm.             | Cancel changes nothing. Confirm persists and creates audit evidence. Firebase email/password/provider identity is not rewritten.                                               |
-| ADM-05 | Promote Admin B; demote it from Admin A; retry from B's old tab.                                          | Role takes effect on server immediately; old B session loses admin access. Restore B from A if needed.                                                                         |
-| ADM-06 | Try self-demotion/self-suspension; run last-admin concurrency tests.                                      | Protected operations are rejected; at least one active admin remains.                                                                                                          |
-| ADM-07 | Suspend a member with an existing session; try protected access/new sign-in; reactivate.                  | Suspension denies access. Reactivation requires a new sign-in; old cookies cannot revive.                                                                                      |
-| ADM-08 | Submit omitted, blank or short reason; reject overlong reason; cancel confirmation; try mutation after 30 minutes without signing in again. | Valid changes accept optional reasons and remain audited; invalid/cancelled operations have no effect; stale authentication requires fresh sign-in.                                                                      |
+| ID     | Test steps                                                                                                                                  | Expected result                                                                                                                                                                |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ADM-01 | Open `/admin` as anonymous and as a verified member; request `/api/admin/users` and `/api/admin/reports`.                                   | Anonymous page redirects to Account; member page shows not-found. APIs return 401/403 respectively.                                                                            |
+| ADM-02 | Open `/admin` as Admin A; compare labels with known test activity.                                                                          | Counts represent application profiles, active admins, suspended accounts and the labelled last-24-hour runtime errors/audit changes. Profiles are not all Firebase identities. |
+| ADM-03 | List users; search exact email and UID; search unknown identity and clear search.                                                           | Correct account, explicit empty result, then normal list. Next-page navigation works with more than 25 identities. Mark pagination Not run if there are too few fixtures.      |
+| ADM-04 | Edit a member's application display name with reason; review then cancel; repeat and confirm.                                               | Cancel changes nothing. Confirm persists and creates audit evidence. Firebase email/password/provider identity is not rewritten.                                               |
+| ADM-05 | Promote Admin B; demote it from Admin A; retry from B's old tab.                                                                            | Role takes effect on server immediately; old B session loses admin access. Restore B from A if needed.                                                                         |
+| ADM-06 | Try self-demotion/self-suspension; run last-admin concurrency tests.                                                                        | Protected operations are rejected; at least one active admin remains.                                                                                                          |
+| ADM-07 | Suspend a member with an existing session; try protected access/new sign-in; reactivate.                                                    | Suspension denies access. Reactivation requires a new sign-in; old cookies cannot revive.                                                                                      |
+| ADM-08 | Submit omitted, blank or short reason; reject overlong reason; cancel confirmation; try mutation after 30 minutes without signing in again. | Valid changes accept optional reasons and remain audited; invalid/cancelled operations have no effect; stale authentication requires fresh sign-in.                            |
 
 ## 5. Credits, ledger and simulated purchases
 
@@ -459,13 +459,22 @@ owned, and delete their exact S3 object after all references are released.
 
 For browser acceptance use the isolated fixture with
 `node --conditions=react-server --import tsx scripts/integration.mjs --ai --browser --personas`.
-It seeds a fake responder and owned admin session under `output/playwright/runs-state.json`;
+It seeds shared fake completions and an owned admin session under `output/playwright/runs-state.json`;
 no production database/provider is used. Exercise persona administration, Start
 selection/maxima, automatic answering, takeover, artifact create/revisions/delete,
 associated Runs, desktop/mobile layout, keyboard focus and hydration. Stop the
-fixture with Enter after verification. For actual provider acceptance, use a newly
-owned Dify workflow with a configured structured-output model and reachable MCP.
+fixture with Enter after verification. The Auth Emulator defaults to loopback port
+9099; use `--auth-port=9199` when running a separate owned emulator on that port.
+For actual provider acceptance, separately authorize the direct completion
+connection and use a newly owned raw-response Dify workflow with reachable MCP.
 Fixture success is not live model/plugin or production S3 evidence.
+
+Persona completion acceptance: shared model/instructions save and Reset to default,
+revision conflicts, stale administrator/member rejection, fixed/token/hybrid pricing
+without provider-cost options, raw text preservation, bounded HTTP responses,
+redirect rejection, unknown dispatch without replay, and saved-result recovery must
+pass against fake/local providers. Confirm five Orchestrator templates with no
+Persona workflow management. Check 390px English/Arabic layouts and navigation.
 
 Persona administration follow-up: verify the responsive card list, Add/Edit dialogs,
 Escape/focus restoration, cancellation without a new card, and saves with blank reasons.
@@ -473,7 +482,6 @@ Escape/focus restoration, cancellation without a new card, and saves with blank 
 across admin contracts and retains cleanup/AI release confirmation checks. Account
 tests also exercise empty-note cleanup and AI resolution, and omitted-note credit
 adjustment with the existing atomic audits.
-
 
 ## Reuse and service-hardening acceptance
 

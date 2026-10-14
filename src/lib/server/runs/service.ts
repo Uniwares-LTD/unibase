@@ -186,11 +186,8 @@ async function createAttempt(
         (input.answerer?.type === "persona" ? input.answerer.id : null) ||
       (input.answerer?.type === "persona" &&
         (replay.run.answerer?.revision !== input.answerer.revision ||
-          fingerprint([
-            replay.run.answerer.revision,
-            replay.run.answerer.responderRevision,
-            replay.run.answerer.responder,
-          ]) !== input.answerer.configurationKey)) ||
+          replay.run.answerer.configurationKey !==
+            input.answerer.configurationKey)) ||
       fingerprint(jobTarget(replay) ?? null) !==
         fingerprint(
           resolveTarget(
@@ -224,11 +221,6 @@ async function createAttempt(
       409,
     );
   const bound = await executionBinding(d, selected.revision);
-  if (d.purpose === "responder")
-    throw new AppError(
-      "INVALID_ORCHESTRATOR",
-      "Responders cannot be started as ordinary Runs.",
-    );
   const answerer = await snapshotPersona(input.answerer);
   const target = resolveTarget(d, input.target, input.artifactId);
   if (target)

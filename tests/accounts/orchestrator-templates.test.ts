@@ -11,7 +11,7 @@ import { tools } from "../../src/lib/server/mcp/tools";
 
 test("Template catalog exposes metadata only; templates bind isolated graphs and supported tools/forms", () => {
   const summaries = orchestratorTemplates();
-  assert.equal(new Set(summaries.map((t) => t.id)).size, 6);
+  assert.equal(new Set(summaries.map((t) => t.id)).size, 5);
   for (const summary of summaries) {
     assert.deepEqual(Object.keys(summary).sort(), [
       "description",
@@ -44,11 +44,7 @@ test("Template catalog exposes metadata only; templates bind isolated graphs and
     }
     assert.deepEqual(
       fit.inputs.map((f) => f.name),
-      summary.id === "persona-responder"
-        ? ["persona", "question", "context"]
-        : summary.id === "story-panel"
-          ? ["prompt"]
-          : [],
+      summary.id === "story-panel" ? ["prompt"] : [],
     );
     assert.deepEqual(
       fit.mcpTools.map((tool) => tool.toolName),
