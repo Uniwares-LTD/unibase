@@ -1,8 +1,6 @@
 import { project } from "@/lib/project";
 import "server-only";
 import documentSummary from "./document-summary.json";
-import catalogPicker from "./catalog-picker.json";
-import quoteApproval from "./quote-approval.json";
 import type { OrchestratorTemplateId } from "@/lib/contracts/orchestrator-templates";
 
 import savedArtifact from "./saved-artifact.json";
@@ -32,13 +30,7 @@ const templates: {
   description: string;
   requiredTools: string[];
   dsl: Dsl;
-}[] = [
-  documentSummary,
-  catalogPicker,
-  quoteApproval,
-  savedArtifact,
-  storyPanel,
-];
+}[] = [documentSummary, savedArtifact, storyPanel];
 
 export function orchestratorTemplates() {
   return templates

@@ -240,7 +240,7 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
           assert.deepEqual(f.counts(), { imports: 1, publishes: 1, keys: 1 });
           const different =
             template.id === "document-summary"
-              ? "catalog-picker"
+              ? "saved-artifact"
               : "document-summary";
           await assert.rejects(
             createDifyOrchestrator(key, actor, db, f.request, env, different),
@@ -256,9 +256,9 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
             db,
             missing.request,
             env,
-            "catalog-picker",
+            "saved-artifact",
           ),
-          /get_demo_catalog_v1/,
+          /get_run_context_v1/,
         );
         assert.equal(missing.counts().imports, 0);
       },

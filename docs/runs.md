@@ -38,16 +38,14 @@ only template names/descriptions reach the browser. Available scenarios:
 | Template          | Scenario                                                | Required MCP tool                                 |
 | ----------------- | ------------------------------------------------------- | ------------------------------------------------- |
 | Document summary  | Fetch a guide and choose Brief/Detailed                 | `get_reference_document_v1`                       |
-| Catalog picker    | Fetch structured catalog data and choose an item        | `get_demo_catalog_v1`                             |
-| Quote approval    | Calculate a synthetic quote, then approve or decline    | `calculate_demo_quote_v1`                         |
-| Persona responder | Noninteractive LLM with raw answers                    | None                                              |
 | Saved artifact    | Owned draft, approval/decline, persistent image         | Run context and artifact read/save/approval tools |
-| Story to panel    | AI story, changes, character approval, generated panel  | Run context and artifact read/save/approval tools |
+| Unitale           | AI story, changes, character approval, generated panel  | Run context and artifact read/save/approval tools |
 
-Grant `demo:read` to the intended MCP client for catalog/quote scenarios, restart
-the web process, then refresh that provider's tools in Dify. Quotes create no order
-or payment. Each template binds an authorized provider with all required tools,
-preferring `unibase_starter`. Missing tools stop creation before import.
+The three retained samples showcase basic MCP/human input, owned artifact
+persistence/approval, and full story/image generation. Each template binds an
+authorized provider with all required tools, preferring `unibase_starter`.
+Missing tools stop creation before import. Persona completions are configured
+separately and are not Orchestrator templates.
 The Document summary binds `get_reference_document_v1` (preferring
 `unibase_starter` when available). Start sends empty inputs; MCP fetches the synthetic
 `unibase-demo` document; Generative UI asks Brief/Detailed; a prompted LLM consumes
@@ -355,9 +353,9 @@ failed** with **Retry product save**; retry creates no generation or extra charg
 Deletion releases product references. Run history retains its own object until
 cleanup, and retained product images remain accessible after that cleanup.
 
-### Real story-to-panel workflow
+### Unitale story-to-panel workflow
 
-`story-panel` uses the same owned artifact and private MCP tools. Its required
+Unitale (`story-panel`) uses the same owned artifact and private MCP tools. Its required
 Story idea input feeds an LLM story writer directly from the owned artifact's MCP
 JSON, without a Python extraction step. The first decision shows one form with an
 **Approved** / **Send changes** choice and an optional changes text box. Save the

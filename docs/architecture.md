@@ -337,9 +337,10 @@ and verified Run capabilities; service tokens never imply user ownership. Regist
 
 Create selects an allowlisted JSON DSL from `src/lib/server/runs/templates` through
 a shadcn dropdown. Server Components pass only template metadata to the client;
-graphs and provider configuration stay server-only. Document summary, Catalog
-picker and Quote approval exercise public synthetic MCP reads/calculation and
-human decisions. `demo:read` separately grants the new tools. Each creation journal
+graphs and provider configuration stay server-only. The three example templates
+are Document summary (basic MCP/human input), Saved artifact (owned draft, approval
+and retained media), and Unitale (story review, character approval and generated
+panel). Unitale retains the `story-panel` ID. Each creation journal
 binds its template ID; browser retry keys are separate per template. Existing
 template-less journals map to Document summary. A template switch cannot reuse
 the same import intent. Create imports its graph, checks that its draft is unchanged,
@@ -474,7 +475,7 @@ JSON values are serialized once for Dify's paragraph input; strings stay exact.
 Original response values are retained separately from provider input strings and
 participate in retry hashes. The next workflow LLM interprets the response.
 Renderable component definitions and tool execution still have checked contracts.
-The story-to-panel template uses two
+The Unitale story-to-panel template uses two
 sequential decisions (story approval/changes in one form, then character approval), three ordinary LLM calls plus a persona-only approval interpretation, and
 an approval-only image-tool branch. It saves the combined story/character as an
 ordinary artifact revision without adding a separate story domain or worker.

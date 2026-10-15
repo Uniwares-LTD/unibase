@@ -1,6 +1,6 @@
 {
   "id": "story-panel",
-  "title": "Story to panel",
+  "title": "Unitale",
   "description": "AI story → requested changes → AI character approval → generated comic panel.",
   "requiredTools": [
     "get_run_context_v1",
@@ -13,7 +13,7 @@
     "kind": "app",
     "dependencies": [],
     "app": {
-      "name": "Unibase story to panel",
+      "name": "Unitale",
       "description": "AI story → requested changes → AI character approval → generated comic panel.",
       "mode": "workflow",
       "icon_type": "emoji",

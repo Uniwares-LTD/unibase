@@ -128,7 +128,7 @@ draft; the validated sample image is retained independently of execution cleanup
 This sample requires the Dify code sandbox and reachable MCP, with no image-generation
 model. Persona mode needs the shared completion connection and the workflow's approval-interpretation model.
 
-For real generation, create **Story to panel** and choose it on **Start run**.
+For real generation, create **Unitale** and choose it on **Start run**.
 Create or select an owned artifact and enter a story idea; the workflow writes a story,
 shows one review form with **Approved**, **Send changes**, and an optional changes
 text box. Save the response and Continue. The revision LLM receives the review
@@ -377,11 +377,10 @@ Existing published workflows use **Register** without a form. Registration check
 Input WebApp delivery and referenced MCP tools, then reuses/creates an encrypted
 app key and enables the Orchestrator. Register validates the saved draft and
 publishes it automatically when new or changed; it never edits nodes or inputs.
-Create offers Document summary, Catalog picker, Quote approval, Saved artifact
-and Story to panel templates from
-`src/lib/server/runs/templates`. Catalog/quote MCP tools need the client's explicit
-`demo:read` permission and a refreshed Dify tool catalog. Both use synthetic data;
-quote approval creates no order or payment. Create refreshes the app list automatically and disables Dify's public Web App;
+Create offers Document summary, Saved artifact and Unitale templates from
+`src/lib/server/runs/templates`: basic MCP/human input, owned draft/approval/media,
+and full story/image generation samples for derived projects. Create refreshes
+the app list automatically and disables Dify's public Web App;
 the Human Input node's WebApp delivery stays enabled for API forms.
 Native End outputs are normalized by Unibase. Inline prompts require no
 prompt field. Users start Runs and view owned status, node tracing and Human Input.

@@ -2,8 +2,6 @@ import { z } from "zod";
 
 export const orchestratorTemplateIdSchema = z.enum([
   "document-summary",
-  "catalog-picker",
-  "quote-approval",
   "saved-artifact",
   "story-panel",
 ]);

@@ -11,7 +11,12 @@ import { tools } from "../../src/lib/server/mcp/tools";
 
 test("Template catalog exposes metadata only; templates bind isolated graphs and supported tools/forms", () => {
   const summaries = orchestratorTemplates();
-  assert.equal(new Set(summaries.map((t) => t.id)).size, 5);
+  assert.equal(new Set(summaries.map((t) => t.id)).size, 3);
+  assert.equal(summaries.find((t) => t.id === "story-panel")?.title, "Unitale");
+  assert.equal(
+    orchestratorTemplate("story-panel").build("fixture").app.name,
+    "Unitale",
+  );
   for (const summary of summaries) {
     assert.deepEqual(Object.keys(summary).sort(), [
       "description",
@@ -23,11 +28,7 @@ test("Template catalog exposes metadata only; templates bind isolated graphs and
     );
     const dsl = template.build("authorized-provider");
     const fit = inspectDifyWorkflow(dsl.workflow.graph, "raw-v1");
-    if (
-      ["document-summary", "catalog-picker", "quote-approval"].includes(
-        summary.id,
-      )
-    ) {
+    if (summary.id === "document-summary") {
       const interpreter = dsl.workflow.graph.nodes.find(
         (n) => n.id === "compose",
       )!;
@@ -73,7 +74,13 @@ test("Template catalog exposes metadata only; templates bind isolated graphs and
     dsl.app.name = "mutated";
     assert.notEqual(template.build("different-provider").app.name, "mutated");
   }
-  for (const invalid of ["../secret", "unknown", "catalog-picker.json"])
+  for (const invalid of [
+    "../secret",
+    "unknown",
+    "catalog-picker.json",
+    "catalog-picker",
+    "quote-approval",
+  ])
     assert.equal(
       orchestratorTemplateIdSchema.safeParse(invalid).success,
       false,

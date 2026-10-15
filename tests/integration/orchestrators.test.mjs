@@ -633,40 +633,16 @@ test("Read-only registration runs native Dify outputs without graph changes", as
     ).status,
     400,
   );
-  for (const [templateId, name] of [
-    ["catalog-picker", "Unibase catalog picker"],
-    ["quote-approval", "Unibase quote approval"],
-  ]) {
-    const key = randomUUID();
-    const response = await command(owner, {
-      action: "create",
-      key,
-      templateId,
-    });
-    const text = await response.text();
-    assert.equal(response.status, 200, text);
-    const created = JSON.parse(text);
-    assert.equal(created.name, name);
-    const repeated = await command(owner, {
-      action: "create",
-      key,
-      templateId,
-    });
-    assert.equal((await repeated.json()).appId, created.appId);
+  for (const templateId of ["catalog-picker", "quote-approval"]) {
     assert.equal(
       (
         await command(owner, {
           action: "create",
-          key,
-          templateId: "document-summary",
+          key: randomUUID(),
+          templateId,
         })
       ).status,
-      409,
+      400,
     );
-    const ready = (
-      await (await owner.request("/api/admin/orchestrators")).json()
-    ).find((row) => row.id === created.orchestratorId);
-    assert.equal(ready.ready, true);
-    assert.deepEqual(ready.inputs, []);
   }
 });

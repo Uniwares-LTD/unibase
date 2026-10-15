@@ -74,10 +74,11 @@ database query tool. HTTP credentials never reach tool arguments or LLM prompts.
 Catalog version 1.1.0 adds the demo tools. Grant `demo:read` explicitly to intended
 clients, restart the web process, and refresh Dify tools. Existing reference-only
 clients retain their original tool access. Quote calculation and approval do not
-create orders, payments, inventory reservations or user records. The Admin Create
-dropdown includes matching Catalog picker and Quote approval workflows alongside
-Document summary. All three require Dify's code sandbox, with no LLM key or Start
-inputs. Templates are JSON DSL in `src/lib/server/runs/templates`.
+create orders, payments, inventory reservations or user records. The demo tools
+remain available for custom workflows. The Admin Create dropdown
+retains Document summary, Saved artifact and Unitale as representative samples.
+Templates are JSON DSL in `src/lib/server/runs/templates`; configure their LLM
+nodes in Dify before running them.
 
 The example document is bundled server data, not a real venue or user record.
 It intentionally contains information a workflow should fetch rather than infer.

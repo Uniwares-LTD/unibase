@@ -1174,3 +1174,21 @@ This intentionally uses fresh Persona/Run data, with no legacy Persona workflow
 adapter or migration. No existing database, external Dify app or accounting record
 was deleted. Live model execution, provider activation and deployment were not
 performed. The earlier workflow-based Persona verification above is historical.
+
+
+### Curated example templates - 2026-10-15
+
+The Orchestrator creation catalog now retains three complementary samples:
+Document summary for basic MCP and human input, Saved artifact for owned drafts,
+revision-bound approval and retained media, and Unitale for story review and real
+panel generation. Catalog picker and Quote approval JSON templates and creation
+IDs are removed as overlapping examples; their MCP tools remain available for
+custom workflows. Unitale replaces the Story to panel display/app name while
+retaining the `story-panel` ID. Existing Dify apps and accepted Runs are unchanged.
+
+Local verification: all 21 focused template, creation/retry, private-context,
+raw-response and story-panel checks pass. Documentation, i18n and pinned-skill
+checks, direct TypeScript checking and lint pass. Build and route-type generation
+could not load the installed SWC
+native binding because its cache fails local Windows ownership/permissions checks,
+including a workspace-cache retry. No live Dify mutation was performed.
