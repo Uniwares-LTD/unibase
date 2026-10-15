@@ -51,7 +51,7 @@ const statusSchema = z.object({
 });
 type Catalog = z.infer<typeof catalogSchema>;
 
-// The previous forms and advanced tools are paused. Admins supply no configuration.
+// Destination-specific template setup happens in Dify before registration.
 export function OrchestratorEditor({
   initial,
   initialError,
@@ -112,12 +112,19 @@ export function OrchestratorEditor({
       localStorage.setItem(storageKey, key);
       const result = await api(
         "/api/admin/orchestrators/manage",
-        z.object({
-          status: z.literal("ready"),
-          name: z.string(),
-          appId: z.string(),
-          orchestratorId: z.string(),
-        }),
+        z.discriminatedUnion("status", [
+          z.object({
+            status: z.literal("ready"),
+            name: z.string(),
+            appId: z.string(),
+            orchestratorId: z.string(),
+          }),
+          z.object({
+            status: z.literal("setup-required"),
+            name: z.string(),
+            appId: z.string(),
+          }),
+        ]),
         {
           method: "POST",
           body: { action: "create", key, templateId: template.id },
@@ -130,10 +137,12 @@ export function OrchestratorEditor({
         id: result.appId,
         name: result.name,
         description: template.description,
-        status: "ready",
-        registered: true,
+        status: result.status === "ready" ? "ready" : "unregistered",
+        registered: result.status === "ready",
         available: true,
-        orchestratorId: result.orchestratorId,
+        ...(result.status === "ready"
+          ? { orchestratorId: result.orchestratorId }
+          : {}),
       };
       setApps((prior) => [
         ...prior.filter((app) => app.id !== result.appId),
@@ -141,7 +150,9 @@ export function OrchestratorEditor({
       ]);
       await refresh(confirmed);
       setMessage(
-        `${result.name} is ready. Start a Run to try ${template.title}.`,
+        result.status === "setup-required"
+          ? translate("m61b1eea125c1", { name: result.name })
+          : `${result.name} is ready. Start a Run to try ${template.title}.`,
       );
       router.refresh();
     } catch (error) {

@@ -5,6 +5,7 @@ import type { OrchestratorTemplateId } from "@/lib/contracts/orchestrator-templa
 
 import savedArtifact from "./saved-artifact.json";
 import storyPanel from "./story-panel.json";
+import casePreparation from "./case-preparation.json";
 type NodeData = {
   type: string;
   title: string;
@@ -17,7 +18,17 @@ type NodeData = {
   [key: string]: unknown;
 };
 type Dsl = Omit<typeof documentSummary.dsl, "workflow"> & {
-  workflow: Omit<typeof documentSummary.dsl.workflow, "graph"> & {
+  workflow: Omit<
+    typeof documentSummary.dsl.workflow,
+    "graph" | "environment_variables"
+  > & {
+    environment_variables: {
+      id: string;
+      name: string;
+      value_type: string;
+      value: string;
+      selector: string[];
+    }[];
     graph: {
       nodes: { id: string; data: NodeData; [key: string]: unknown }[];
       edges: typeof documentSummary.dsl.workflow.graph.edges;
@@ -29,8 +40,9 @@ const templates: {
   title: string;
   description: string;
   requiredTools: string[];
+  setupRequired?: boolean;
   dsl: Dsl;
-}[] = [documentSummary, savedArtifact, storyPanel];
+}[] = [documentSummary, savedArtifact, storyPanel, casePreparation];
 
 export function orchestratorTemplates() {
   return templates

@@ -31,7 +31,10 @@ Register requires draft-read and publication permissions. Create additionally
 requires app-import and Web App setting permissions.
 
 At `/admin/orchestrators`, **Create orchestrator** opens a template dropdown,
-then imports, publishes and registers the selected workflow without a form.
+then imports the selected workflow without a form. Most templates publish and
+register automatically. Case preparation stays a private draft until its country,
+Dify Knowledge base and multimodal models are configured; publish it in Dify,
+then Register it here. See the [template setup](../src/lib/server/runs/templates/README.md#case-preparation).
 The server loads allowlisted JSON DSL files from `src/lib/server/runs/templates`;
 only template names/descriptions reach the browser. Available scenarios:
 
@@ -40,8 +43,9 @@ only template names/descriptions reach the browser. Available scenarios:
 | Document summary  | Fetch a guide and choose Brief/Detailed                 | `get_reference_document_v1`                       |
 | Saved artifact    | Owned draft, approval/decline, persistent image         | Run context and artifact read/save/approval tools |
 | Unitale           | AI story, changes, character approval, generated panel  | Run context and artifact read/save/approval tools |
+| Case preparation  | Multimodal evidence, fact review, country-law retrieval, approved brief | Run context and artifact read/save/approval tools |
 
-The three retained samples showcase basic MCP/human input, owned artifact
+The retained samples showcase basic MCP/human input, owned artifact
 persistence/approval, and full story/image generation. Each template binds an
 authorized provider with all required tools, preferring `unibase_starter`.
 Missing tools stop creation before import. Persona completions are configured

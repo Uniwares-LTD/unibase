@@ -131,3 +131,12 @@ and desktop/mobile decision/history flows. Current registration cleanup evidence
 is recorded in [the implementation plan](implementation-plan.md). Removed setup
 fixtures no longer establish current registration behavior. Live Dify acceptance
 above remains pending beyond the verified starter scenario.
+
+
+Case preparation checks execute its embedded Python using synthetic passages, not
+real law or production services. They cover missing jurisdiction, extraction bounds,
+known/unknown/missing citation IDs, empty-retrieval partial results, corrected facts,
+artifact size/revision contracts, and human-only approval routing. Creation fixtures
+verify a retry reuses the imported draft without publication, registration or key
+creation. Live country-corpus retrieval, OCR/vision and audio transcription remain
+separate destination-Dify acceptance checks; see [template setup](../src/lib/server/runs/templates/README.md#case-preparation).

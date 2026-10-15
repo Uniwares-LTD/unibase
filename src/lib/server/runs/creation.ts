@@ -222,6 +222,15 @@ export async function createDifyOrchestrator(
           "Dify did not confirm that the starter Web App was disabled. Retry setup.",
           409,
         );
+      // Knowledge bases and multimodal models belong to the destination Dify
+      // workspace. Never publish/register an unconfigured sample or overwrite
+      // its draft when a caller retries the same import intent.
+      if (template.setupRequired)
+        return {
+          status: "setup-required" as const,
+          appId,
+          name: template.dsl.app.name,
+        };
       const published = await creationRequest(
         `/apps/${appId}/workflows/publish`,
         {

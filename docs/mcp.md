@@ -76,7 +76,7 @@ clients, restart the web process, and refresh Dify tools. Existing reference-onl
 clients retain their original tool access. Quote calculation and approval do not
 create orders, payments, inventory reservations or user records. The demo tools
 remain available for custom workflows. The Admin Create dropdown
-retains Document summary, Saved artifact and Unitale as representative samples.
+offers Document summary, Saved artifact, Unitale and Case preparation as samples.
 Templates are JSON DSL in `src/lib/server/runs/templates`; configure their LLM
 nodes in Dify before running them.
 

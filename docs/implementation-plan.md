@@ -1192,3 +1192,36 @@ checks, direct TypeScript checking and lint pass. Build and route-type generatio
 could not load the installed SWC
 native binding because its cache fails local Windows ownership/permissions checks,
 including a workspace-cache retry. No live Dify mutation was performed.
+
+
+### Country-neutral case preparation sample - 2026-10-15
+
+The accepted sample uses Dify Knowledge for administrator-provided country law,
+with country/jurisdiction configured in Dify. A fourth example template,
+Case preparation, accepts notes and one optional text/PDF, image and MP3/WAV file
+per Run. It extracts/transcribes evidence, pauses for factual corrections, retrieves
+law, checks structured analysis citation IDs, saves an owned artifact draft and
+requires a human to approve the exact saved revision/hash. No retrieved law bypasses
+the legal-analysis LLM and produces a partial factual brief. Decline/persona Continue
+retain the draft without approval. Source metadata and labelled exact excerpts are
+saved with the brief; full retrieved passages follow Run trace retention.
+
+Create returns a private `setup-required` draft without publication, registration
+or API-key generation. Retry preserves destination edits and reuses its app ID.
+Administrators configure jurisdiction, the country Knowledge base, text/vision/native
+audio models and any required OCR in Dify before publishing and registering. This
+adds no matter domain, knowledgebase management service, batch uploader, live model
+activation, external research, court filing or deadline calculation. Existing
+accepted Runs and the other sample creation flows retain their contracts.
+
+Local verification: all 176 account/service tests pass with concurrency four.
+The owned Auth Emulator/MongoDB/fake-Dify HTTP regression passes, including draft
+creation/retry and absence of registration. A stale HTTP fixture was corrected to
+send the current raw-response field. Production web/worker build, independent
+TypeScript, lint, documentation, i18n and pinned-skill checks pass. Browser checks
+cover the four-template menu, private draft/setup message, keyboard focus, reload,
+and English/Arabic 1440px/390px layouts without overflow or console/hydration errors.
+Visual review caught an Arabic shell-encoding defect; the catalog was corrected.
+Live corpus retrieval, OCR/vision, audio transcription and actual legal accuracy
+remain destination acceptance checks. No live Dify app, provider or database was
+changed, and no commit, publication or deployment was performed.

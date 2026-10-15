@@ -4,6 +4,7 @@ export const orchestratorTemplateIdSchema = z.enum([
   "document-summary",
   "saved-artifact",
   "story-panel",
+  "case-preparation",
 ]);
 export type OrchestratorTemplateId = z.infer<
   typeof orchestratorTemplateIdSchema

@@ -50,9 +50,69 @@ are plain values, while dynamic tool parameters use variable bindings.
 
 `project.config.json.examples` controls sample visibility and creation. Application
 mode exposes no example templates; example mode explicitly
-exposes these three samples. Catalog picker and Quote approval were removed as
+exposes four samples. Catalog picker and Quote approval were removed as
 overlapping examples. Unitale retains the `story-panel` ID for creation-journal
 compatibility; newly imported Dify apps are named Unitale. Accepted work retains its handler/binding snapshots. The JSON
 catalog is the current source; `dify/` YAML files are historical compatibility
 fixtures. Adding an ID also requires translation of its administrative presentation
 and verification of its tool permissions, owned target and provider prerequisites.
+
+## Case preparation
+
+`case-preparation.json` is a country-neutral general case-preparation sample.
+It uses the same private Run capability and owned artifact adapter as Unitale.
+Create imports a private draft and returns `setup-required`; it does not publish,
+register, enable or generate an API key. Retrying the same creation key returns
+that draft without overwriting edits. Existing templates retain automatic setup.
+
+In the destination Dify workspace:
+
+1. Set the workflow environment variable `jurisdiction` to the country/jurisdiction
+   and scope you intend. No country or real legal source ships in this template.
+2. Create and index a Dify Knowledge base containing the reviewed law for that
+   jurisdiction. Bind it to **Search configured country law knowledgebase**.
+   Use a dedicated country corpus or configure metadata filters yourself; setting
+   the environment variable alone does not filter a mixed-country dataset.
+3. Preserve source titles and document/segment IDs; provide article/section,
+   effective date, version and source URL as document metadata where available.
+   This sample retains up to three passages. Configure chunking/retrieval for the
+   12,000-character per-passage and 45,000-character serialized context limits.
+4. Configure the text and image LLM nodes. **Transcribe voice recording** deliberately
+   has no selected model: choose a model/provider with native audio input supported
+   by your Dify installation. Its attachment selector is the `audio` Start input.
+   A text-only model or the app's speech-to-text toggle is insufficient.
+5. Ensure the Dify Code sandbox is available and Unibase MCP has explicit
+   Run-context/artifact read/save/approval permissions. Configure document OCR if
+   needed. Review and test the draft in Dify; publish it, then Register it in Unibase.
+
+Each Run accepts required case notes plus one optional text/PDF document, one image
+and one MP3/WAV recording. Upload bounds/ownership remain the shared file service's
+contracts. This sample does not add batch uploads or browser microphone capture.
+Text extraction rejects empty output (including scans without OCR); upload a scan
+as an image or configure OCR in Dify. Extracted document text is limited to 30,000
+characters. Image reading and audio transcription depend on configured model
+capabilities; neither is proven by the template's local fixture tests.
+
+The workflow extracts evidence, asks for factual corrections, creates research
+questions, retrieves law, and drafts analysis using those passages as its only legal
+authority. Corrections remain distinguished from documentary evidence. No law
+retrieved means the analysis LLM is bypassed and the result is explicitly partial.
+JSON analysis is checked for known, nonempty source-ID references; invented or
+missing IDs fail before saving. These structural checks cannot establish semantic
+support, correctness, current law or corpus completeness. A lawyer must verify them.
+
+The saved brief preserves the reviewed facts, analysis, source metadata and exact
+source excerpts (up to the first 600 characters per passage, explicitly labelled).
+Full passages remain in the Run retrieval trace subject to its normal retention.
+Factual summaries and rendered analysis each have a 2,000-character bound; the
+final brief must fit the existing 8,000-character artifact contract, otherwise the
+workflow fails explicitly without silently truncating the brief. It saves a draft
+before final review. Approve binds the saved revision/hash and requires a human;
+Decline and persona Continue keep it unapproved. Approval with no retrieved law
+still yields a partial factual brief. No court filing, deadline calculation,
+external research, law ingestion UI or separate matter domain is included.
+
+Node contracts were checked against Dify 1.17.1 and its graphon 0.7.0 engine:
+[builder node contracts](https://github.com/langgenius/dify/blob/1.17.1/api/core/workflow/generator/prompts/builder_prompts.py),
+[knowledge retrieval](https://github.com/langgenius/dify/blob/1.17.1/api/core/workflow/nodes/knowledge_retrieval/entities.py)
+and [workflow engine](https://github.com/langgenius/graphon).

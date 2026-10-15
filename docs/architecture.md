@@ -337,10 +337,15 @@ and verified Run capabilities; service tokens never imply user ownership. Regist
 
 Create selects an allowlisted JSON DSL from `src/lib/server/runs/templates` through
 a shadcn dropdown. Server Components pass only template metadata to the client;
-graphs and provider configuration stay server-only. The three example templates
+graphs and provider configuration stay server-only. The example templates
 are Document summary (basic MCP/human input), Saved artifact (owned draft, approval
 and retained media), and Unitale (story review, character approval and generated
-panel). Unitale retains the `story-panel` ID. Each creation journal
+panel), plus Case preparation (multimodal evidence, fact review and supplied-law
+retrieval). Unitale retains the `story-panel` ID. Case preparation imports a private
+draft with `setup-required` status; destination-specific country, Knowledge base
+and multimodal models are configured in Dify before publication/registration. Its
+brief uses the existing artifact adapter and human-only revision approval. No new
+case domain or knowledgebase service is added. Each creation journal
 binds its template ID; browser retry keys are separate per template. Existing
 template-less journals map to Document summary. A template switch cannot reuse
 the same import intent. Create imports its graph, checks that its draft is unchanged,

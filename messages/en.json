@@ -91,7 +91,7 @@
     "mea76df0af549": "answers per attempt · Revision",
     "m130a7da2c155": "No personas yet. Add one to get started.",
     "md940356f831e": "Dify workflows",
-    "m74b3f6c29768": "Create a ready-to-run starter with MCP and a human choice, or register an existing published workflow.",
+    "m74b3f6c29768": "Create a sample workflow, complete any required setup in Dify, or register an existing published workflow.",
     "mb7e3e4aa4257": "Disable",
     "mc5f3e9c14d36": "Delete artifact",
     "mbe4cc95114f3": "Answer questions as",
@@ -662,7 +662,8 @@
     "m71e1b0b067f6": "Shared instructions",
     "mbc5b45ae7b60": "Reset to default",
     "m299efc821572": "Shared settings apply to future Runs. Each persona supplies its own role instructions.",
-    "md599b2bbf718": "Save completion settings"
+    "md599b2bbf718": "Save completion settings",
+    "m61b1eea125c1": "{name} was created as a draft. In Dify, configure the country, law knowledgebase and document/image/audio models, then return here and Register it."
   },
   "locale": {
     "heading": "Language and region",

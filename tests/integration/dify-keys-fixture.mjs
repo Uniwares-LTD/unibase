@@ -149,6 +149,10 @@ export async function difyKeysFixture() {
               "get_reference_document_v1",
               "get_demo_catalog_v1",
               "calculate_demo_quote_v1",
+              "get_run_context_v1",
+              "read_artifact_v1",
+              "save_artifact_draft_v1",
+              "approve_artifact_v1",
             ].map((name) => ({ name })),
           },
         ]);

@@ -434,7 +434,7 @@ test("Read-only registration runs native Dify outputs without graph changes", as
   const answer = {
     key: randomUUID(),
     action: "continue",
-    answers: { direction: "detailed" },
+    response: { direction: "detailed" },
   };
   assert.equal(
     (
@@ -645,4 +645,28 @@ test("Read-only registration runs native Dify outputs without graph changes", as
       400,
     );
   }
+  const setupKey = randomUUID();
+  const createCase = () =>
+    command(owner, {
+      action: "create",
+      key: setupKey,
+      templateId: "case-preparation",
+    });
+  const setupResponse = await createCase();
+  const setup = await setupResponse.json();
+  assert.equal(setupResponse.status, 200, JSON.stringify(setup));
+  assert.equal(setup.status, "setup-required");
+  assert.equal(setup.name, "Case preparation");
+  assert.equal((await (await createCase()).json()).appId, setup.appId);
+  assert.equal(
+    await db
+      .collection("orchestrators")
+      .countDocuments({ "definition.appId": setup.appId }),
+    0,
+  );
+  const caseApp = (
+    await (await command(owner, { action: "discover" })).json()
+  ).apps.find((a) => a.id === setup.appId);
+  assert.equal(caseApp.registered, false);
+  assert.equal(caseApp.status, "unregistered");
 });

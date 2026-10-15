@@ -228,7 +228,10 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
             env,
             template.id,
           );
-          assert.equal(result.status, "ready");
+          assert.equal(
+            result.status,
+            template.id === "case-preparation" ? "setup-required" : "ready",
+          );
           await createDifyOrchestrator(
             key,
             actor,
@@ -237,7 +240,11 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
             env,
             template.id,
           );
-          assert.deepEqual(f.counts(), { imports: 1, publishes: 1, keys: 1 });
+          const expected =
+            template.id === "case-preparation"
+              ? { imports: 1, publishes: 0, keys: 0 }
+              : { imports: 1, publishes: 1, keys: 1 };
+          assert.deepEqual(f.counts(), expected);
           const different =
             template.id === "document-summary"
               ? "saved-artifact"
@@ -246,7 +253,7 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
             createDifyOrchestrator(key, actor, db, f.request, env, different),
             /another template/,
           );
-          assert.deepEqual(f.counts(), { imports: 1, publishes: 1, keys: 1 });
+          assert.deepEqual(f.counts(), expected);
         }
         const missing = fixture();
         await assert.rejects(
@@ -261,6 +268,50 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
           /get_run_context_v1/,
         );
         assert.equal(missing.counts().imports, 0);
+      },
+    );
+    await t.test(
+      "destination setup retries preserve the edited draft and never publish or create keys",
+      async () => {
+        const f = fixture({ allTools: true, siteFail: true }),
+          key = randomUUID();
+        await assert.rejects(
+          createDifyOrchestrator(
+            key,
+            actor,
+            db,
+            f.request,
+            env,
+            "case-preparation",
+          ),
+        );
+        f.options.siteFail = false;
+        f.options.changed = true;
+        const setup = await createDifyOrchestrator(
+          key,
+          actor,
+          db,
+          f.request,
+          env,
+          "case-preparation",
+        );
+        assert.equal(setup.status, "setup-required");
+        assert.equal("orchestratorId" in setup, false);
+        assert.deepEqual(f.counts(), { imports: 1, publishes: 0, keys: 0 });
+        assert.equal(
+          (
+            await createDifyOrchestrator(
+              key,
+              actor,
+              db,
+              f.request,
+              env,
+              "case-preparation",
+            )
+          ).appId,
+          setup.appId,
+        );
+        assert.deepEqual(f.counts(), { imports: 1, publishes: 0, keys: 0 });
       },
     );
     await t.test(

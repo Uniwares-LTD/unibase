@@ -11,7 +11,7 @@ import { tools } from "../../src/lib/server/mcp/tools";
 
 test("Template catalog exposes metadata only; templates bind isolated graphs and supported tools/forms", () => {
   const summaries = orchestratorTemplates();
-  assert.equal(new Set(summaries.map((t) => t.id)).size, 3);
+  assert.equal(new Set(summaries.map((t) => t.id)).size, 4);
   assert.equal(summaries.find((t) => t.id === "story-panel")?.title, "Unitale");
   assert.equal(
     orchestratorTemplate("story-panel").build("fixture").app.name,
@@ -45,7 +45,11 @@ test("Template catalog exposes metadata only; templates bind isolated graphs and
     }
     assert.deepEqual(
       fit.inputs.map((f) => f.name),
-      summary.id === "story-panel" ? ["prompt"] : [],
+      summary.id === "story-panel"
+        ? ["prompt"]
+        : summary.id === "case-preparation"
+          ? ["notes", "document", "image", "audio"]
+          : [],
     );
     assert.deepEqual(
       fit.mcpTools.map((tool) => tool.toolName),
@@ -67,7 +71,11 @@ test("Template catalog exposes metadata only; templates bind isolated graphs and
             input!.value,
           ]),
         );
-        if (!["saved-artifact", "story-panel"].includes(summary.id))
+        if (
+          !["saved-artifact", "story-panel", "case-preparation"].includes(
+            summary.id,
+          )
+        )
           tool.input.parse(parameters);
       }
     }

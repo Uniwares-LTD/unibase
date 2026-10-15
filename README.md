@@ -377,9 +377,11 @@ Existing published workflows use **Register** without a form. Registration check
 Input WebApp delivery and referenced MCP tools, then reuses/creates an encrypted
 app key and enables the Orchestrator. Register validates the saved draft and
 publishes it automatically when new or changed; it never edits nodes or inputs.
-Create offers Document summary, Saved artifact and Unitale templates from
+Create offers Document summary, Saved artifact, Unitale and Case preparation templates from
 `src/lib/server/runs/templates`: basic MCP/human input, owned draft/approval/media,
-and full story/image generation samples for derived projects. Create refreshes
+full story/image generation, and country-neutral case preparation samples for derived
+projects. Case preparation imports a draft: configure its country, legal knowledgebase
+and models in Dify before publishing/registering. See [setup and limits](src/lib/server/runs/templates/README.md#case-preparation). Create refreshes
 the app list automatically and disables Dify's public Web App;
 the Human Input node's WebApp delivery stays enabled for API forms.
 Native End outputs are normalized by Unibase. Inline prompts require no
