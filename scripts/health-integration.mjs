@@ -33,7 +33,9 @@ const mongo = await MongoMemoryServer.create({
 const env = {
   ...process.env,
   NODE_ENV: "production",
-  APP_ENV: "staging",
+  // This fixture verifies Firebase credential availability, not staging Redis.
+  // Staging dependency/Redis behavior is covered by test:limits.
+  APP_ENV: "local",
   APP_ORIGIN: "https://health.example.test",
   AUTH_MODE: "firebase",
   FIREBASE_PROJECT_ID: credential.project_id,
@@ -42,6 +44,11 @@ const env = {
   GOOGLE_APPLICATION_CREDENTIALS: filename,
   MONGODB_URI: mongo.getUri(),
   MONGODB_DATABASE: "unibase_health_test",
+  REDIS_URL: "",
+  PAYMENTS_MODE: "disabled",
+  DIFY_MODE: "disabled",
+  MCP_ENABLED: "false",
+  PERSONA_COMPLETION_MODE: "disabled",
   ANDROID_HOST: "",
   ANDROID_PACKAGE_NAME: "",
   ANDROID_SHA256_FINGERPRINTS: "",
@@ -70,24 +77,25 @@ async function check(status) {
 }
 try {
   let available = false;
+  let startupEvidence = "no response";
   for (let attempt = 0; attempt < 60; attempt++) {
     if (app.exitCode !== null)
       throw new Error("Health test server exited before startup.");
     try {
-      if (
-        (
-          await fetch(`${origin}/api/health/live`, {
-            signal: AbortSignal.timeout(1000),
-          })
-        ).ok
-      ) {
+      const response = await fetch(`${origin}/api/health/live`, {
+        signal: AbortSignal.timeout(3000),
+      });
+      startupEvidence = `HTTP ${response.status}`;
+      if (response.ok) {
         available = true;
         break;
       }
-    } catch {}
+    } catch (error) {
+      startupEvidence = error.cause?.code ?? error.name;
+    }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
-  assert.equal(available, true);
+  assert.equal(available, true, `Health fixture startup: ${startupEvidence}`);
   await check(200);
   writeFileSync(
     filename,

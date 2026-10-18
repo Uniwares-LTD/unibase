@@ -52,11 +52,11 @@ only template names/descriptions reach the browser. Available scenarios:
 | ----------------- | ------------------------------------------------------- | ------------------------------------------------- |
 | Document summary  | Fetch a guide and choose Brief/Detailed                 | `get_reference_document_v1`                       |
 | Saved artifact    | Owned draft, approval/decline, persistent image         | Run context and artifact read/save/approval tools |
-| Unitale           | AI story, changes, character approval, generated panel  | Run context and artifact read/save/approval tools |
+| Unitale           | Simulated J01-J13 comic, reviews and retained placeholders  | Run context and artifact read/save/approval tools |
 | Case preparation  | Multimodal evidence, fact review, country-law retrieval, approved brief | Run context and artifact read/save/approval tools |
 
 The retained samples showcase basic MCP/human input, owned artifact
-persistence/approval, and full story/image generation. Each template binds an
+persistence/approval, and a model-free comic-production preview. Each template binds an
 authorized provider with all required tools, preferring `unibase_starter`.
 Missing tools stop creation before import. Persona completions are configured
 separately and are not Orchestrator templates.
@@ -370,51 +370,43 @@ failed** with **Retry product save**; retry creates no generation or extra charg
 Deletion releases product references. Run history retains its own object until
 cleanup, and retained product images remain accessible after that cleanup.
 
-### Unitale story-to-panel workflow
+### Unitale simulated comic workflow
 
-Unitale (`story-panel`) uses the same owned artifact and private MCP tools. Its required
-Story idea input feeds an LLM story writer directly from the owned artifact's MCP
-JSON, without a Python extraction step. The first decision shows one form with an
-**Approved** / **Send changes** choice and an optional changes text box. Save the
-response, then Continue. The revision LLM receives raw human UI JSON or persona
-text without a fixed answer signature; it is instructed to return
-approved stories unchanged and otherwise apply the changes. Blank changes preserve
-the story. Another LLM creates
-the main character's description. The combined story and character are saved as
-one revision. The second decision approves or declines that exact revision.
-Human approval uses explicit Approve/Decline actions. A persona uses `continue`
-with raw text; a prompted LLM interprets it and branches to approval or decline.
-Only the exact `approve` interpretation reaches the tool; all other outputs
-decline. Approval checks the submitted revision and source before the image tool runs. Decline
-returns a partial result, retains the unapproved draft, and never calls the image
-tool. The selected answerer handles both decisions; personas can approve this
-template (`requireHuman: false`). There is one revision pass and one character
-approval per attempt, rather than an unbounded revision loop.
+```mermaid
+flowchart TD
+  A[Idea and owned artifact] --> B[J01-J02 simulated concept and outline]
+  B --> C[Choose title and ending]
+  C --> D[J03-J07 simulated manuscript and final lists]
+  D --> E[J08-J10 style and reference plan]
+  E --> F{Reference review}
+  F -->|Decline| P[Partial result without images]
+  F -->|Approve| G[J11-J12 layout and page bibles]
+  G --> H[Save bounded package]
+  H --> I{Exact saved-package human approval}
+  I -->|Approve| J[J13 nine schematic images and galleries]
+  I -->|Decline or Continue| P
+```
 
-Python remains for review-form construction, deterministic draft revision
-extraction, saved-revision approval metadata and result envelopes. Revision numbers
-and content hashes are never delegated to the LLM. Editing the local JSON changes
-future template creation; it does not synchronize existing Dify apps. Update an
-existing Dify draft explicitly and re-register, or create a separate workflow to
-trial the new graph while retaining the earlier publication for accepted Runs.
+Unitale (`story-panel`) previews the POC's J01-J13 production responsibilities
+without model calls. Select **User**, an owned artifact and an idea. The fixed
+kite-rescue narrative retains the idea as context. Choose title/ending in the
+first form, accept or decline the reference plan, then approve the exact saved
+simulation package. Final approval is human-only and revision/hash-bound.
+Continue at that final decision keeps an unapproved draft and returns partial.
 
-Configure the three LLM nodes and the separate OpenAI Tools provider in Dify;
-the template uses `gpt-4.1-mini` and `gpt_image_generate` with `gpt-image-1`.
-[The tool's parameters](https://github.com/langgenius/dify-official-plugins/blob/main/tools/openai/tools/gpt_image_generate.yaml)
-are plain `tool_configurations` values; the prompt is a variable binding. Model
-credentials stay in Dify. Install/authorize the image plugin before running it,
-and re-register any changed publication. The saved-artifact synthetic sample is
-retained for validation without generation providers.
+The package fits the existing artifact text contract and includes concept,
+outline, draft/final lists, manuscript, style and reference plans, cover-plus-three
+page layout, page bibles and simulated output metadata. Nine schematic PNG
+placeholders and two galleries are retained only after final approval. They do
+not render chosen lettering or establish image quality. No PDF, product domain
+migration or new billing engine is included. Existing configured Run pricing
+continues to apply.
 
-An approved End returns the ordinary version-1 result envelope plus
-`unibase_images`, a nonempty list of native Dify `tool_file` image references.
-The server requires a successful structured result, at most ten total images,
-and signed image paths on the exact `DIFY_BASE_URL` origin with a matching file
-UUID. It rejects remote URLs, credentials, redirects and unsupported MIME types,
-bounds the download, then uses the existing decode/pixel/normalization limits.
-Retries reuse staged owned bytes instead of depending on an expiring download
-link. Public results contain local asset IDs/names and existing private read
-checks; signed provider links never reach browser DTOs.
+Dify Code sandbox and reachable authorized MCP are required; model credentials
+and image plugins are not. See [template contracts](../src/lib/server/runs/templates/README.md)
+for exact review input formats and simulation limits. Updating JSON changes future
+template imports, not existing Dify apps or accepted publications. Explicitly
+review/publish/re-register any destination draft before using its new graph.
 
 
 ## Reusable domain and file contracts

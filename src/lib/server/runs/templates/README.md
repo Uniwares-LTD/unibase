@@ -24,7 +24,7 @@ Use supported node/output contracts and verify the embedded Code with actual too
 outputs and the Unibase answer format. Refresh Dify tool metadata before creation.
 
 - `saved-artifact.json`: private Run context → owned draft read/save → revision-bound approval/decline → synthetic retained image. Start this from an owned artifact.
-- `story-panel.json` (Unitale): Story idea → AI story → Approved/Send changes review form → AI revision and character description → revision-bound approval → real generated panel. Start from an owned artifact. Configure the LLM nodes and authorize OpenAI Tools in Dify. Decline retains the draft without generating an image.
+- `story-panel.json` (Unitale): model-free J01-J13 comic simulation with narrative choices, reference-plan review, human-only saved-package approval, and nine retained schematic PNG placeholders. Start from an owned artifact with **User**. Dify Code sandbox and private MCP are required; models and image plugins are not.
 
 Private tools bind the server-filled `context` directly; never send that
 value to a prompt. The artifact sample's approval metadata is rendered dynamically
@@ -39,21 +39,30 @@ their binding.
 Unibase still checks rendering definitions, payload bounds, ownership and approval
 permissions; MCP tools retain typed arguments.
 
-Story generation receives the artifact tool's JSON directly. Story review uses one
-version-1 form card (`review`) with a required `decision` choice (`approved` or
-`changes`) and optional `changes` text (4,000 characters maximum). Save response,
-then Continue. The revision LLM receives UI JSON or persona text directly, with
-instructions to preserve approved stories (ignoring changes text) and to preserve
-the original when requested changes are blank. Approval forms retain explicit
-human Approve/Decline buttons. Personas submit raw text through `continue`; the
-approval LLM outputs `approve` or `decline`, and only exact `approve` reaches the
-approval tool. This never creates human-only approval evidence. Python constructs
-forms, extracts the exact draft revision, builds approval metadata and formats results.
+Unitale groups the POC's J01-J13 responsibilities into deterministic Python nodes.
+Its fixed kite-rescue example retains the initial idea as data rather than
+interpreting it. The first form uses card `review`, optional `title` (80 characters)
+and required `ending` (`share` or `celebrate`). Save response, then Apply choices.
+The parser accepts UI JSON keyed by `review`, optionally wrapped in `answers`;
+unsupported natural-language answers fail explicitly.
 
-The Unitale End exposes native image-tool `files` as `unibase_images`
-alongside a version-1 result. The server downloads only signed image files on the
-configured Dify origin and retains validated bytes privately. Tool form settings
-are plain values, while dynamic tool parameters use variable bindings.
+The reference review accepts Approve/Decline. Its Continue path accepts only the
+exact `approve` token or a JSON object with `action: "approve"`; other answers stop.
+This review confirms the plan, not an artifact approval. After pagination, the full
+compact simulation package is saved within the existing 8,000-character artifact
+contract. Final approval binds its saved revision/hash and requires a human.
+Final Continue and Decline return `partial` without images. Reference decline
+stops before saving the new package. No intermediate package is falsely approved.
+
+The successful End returns nine inline PNG fixtures and two galleries through
+the existing version-1 envelope. The server normalizes/promotes these into owned
+private assets: two style placeholders, two character sheets, one location sheet,
+cover and three pages. Images are schematic fixed fixtures; they do not depict
+all planned sheet views or render chosen title/lettering. Exact intended text and
+source routing remain in J11/J12. No native provider files, model execution, PDF,
+new domain collections, runtime agents or POC-specific accounting are introduced.
+Configured Run pricing still applies; simulated provider work does not imply a
+zero-credit Run. Use User mode: final human-only approval cannot be delegated.
 
 `project.config.json.examples` controls sample visibility and creation. Application
 mode exposes no example templates; example mode explicitly

@@ -1,3 +1,8 @@
+import {
+  fixtureProjectId,
+  fixtureDatabasePattern,
+  fixtureRedisPrefix,
+} from "./project-fixture.mjs";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import { randomUUID } from "node:crypto";
@@ -13,12 +18,12 @@ assert.match(
   /^redis:\/\/default:[A-Za-z0-9_-]+@127\.0\.0\.1:\d+$/,
 );
 assert.equal(process.env.APP_ORIGIN, "http://127.0.0.1:3101");
-assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST, "127.0.0.1:9099");
+assert.match(process.env.FIREBASE_AUTH_EMULATOR_HOST, /^127\.0\.0\.1:\d+$/);
 assert.match(process.env.MONGODB_URI, /^mongodb:\/\/127\.0\.0\.1:\d+\//);
-assert.match(process.env.MONGODB_DATABASE, /^unibase_test_[a-f0-9]+$/);
+assert.match(process.env.MONGODB_DATABASE, fixtureDatabasePattern);
 const origin = process.env.APP_ORIGIN;
 const auth = getAuth(
-  initializeApp({ projectId: "demo-unibase" }, `runs-${randomUUID()}`),
+  initializeApp({ projectId: fixtureProjectId }, `runs-${randomUUID()}`),
 );
 const mongo = new MongoClient(process.env.MONGODB_URI);
 const created = [];
@@ -35,7 +40,7 @@ async function browser() {
   });
   created.push(user.uid);
   const response = await fetch(
-    "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=demo-key",
+    `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=demo-key`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -120,7 +125,8 @@ test("two web processes share limits, ignore spoofed IPs, expire and fail closed
     assert.equal(denied.status, 429);
     assert.ok(Number(denied.headers.get("retry-after")) > 0);
     const key =
-      "unibase:local:limits:read:" +
+      fixtureRedisPrefix +
+      "read:" +
       createHash("sha256")
         .update("account:" + owner.uid)
         .digest("hex");

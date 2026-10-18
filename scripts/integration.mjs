@@ -6,9 +6,14 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { prepareStandalone } from "./standalone.mjs";
+import {
+  fixtureProjectId,
+  fixtureDatabasePrefix,
+} from "../tests/integration/project-fixture.mjs";
 
 // All targets are owned by this runner. Never load .env files or accept Atlas
-// connection strings for tests. The auth emulator must already be running.
+// connection strings for tests. An external auth emulator must already be
+// running unless --owned-auth starts this fixture's project-specific instance.
 const authPort = Number(
   process.argv
     .find((arg) => arg.startsWith("--auth-port="))
@@ -16,7 +21,19 @@ const authPort = Number(
 );
 if (!Number.isInteger(authPort) || authPort < 1024 || authPort > 65535)
   throw new Error("Invalid local Auth Emulator port.");
-const authEmulatorHost = `127.0.0.1:${authPort}`;
+let authEmulatorHost = `127.0.0.1:${authPort}`;
+let ownedAuth;
+if (process.argv.includes("--owned-auth")) {
+  // The pinned emulator's client API uses its default project for every API
+  // key. A renamed project therefore needs its own emulator, not another
+  // namespace in an unrelated developer emulator.
+  const { createApp } =
+    await import("firebase-tools/lib/emulator/auth/server.js");
+  const emulator = await createApp(fixtureProjectId, 0);
+  ownedAuth = emulator.listen(0, "127.0.0.1");
+  await once(ownedAuth, "listening");
+  authEmulatorHost = `127.0.0.1:${ownedAuth.address().port}`;
+}
 await fetch(`http://${authEmulatorHost}/`, {
   signal: AbortSignal.timeout(3000),
 });
@@ -24,7 +41,7 @@ const mongo = await MongoMemoryReplSet.create({
   binary: { downloadDir: path.resolve(".cache/mongodb-binaries") },
   replSet: { count: 1, ip: "127.0.0.1", storageEngine: "wiredTiger" },
 });
-const database = `unibase_test_${randomUUID().replaceAll("-", "")}`;
+const database = `${fixtureDatabasePrefix}${randomUUID().replaceAll("-", "")}`;
 const client = new MongoClient(mongo.getUri());
 await client
   .db(database)
@@ -40,7 +57,7 @@ const env = {
   APP_NAME: "Base runtime fixture",
   APP_ORIGIN: "http://127.0.0.1:3101",
   AUTH_MODE: "emulator",
-  FIREBASE_PROJECT_ID: "demo-unibase",
+  FIREBASE_PROJECT_ID: fixtureProjectId,
   FIREBASE_API_KEY: "demo-key",
   FIREBASE_APP_ID: "demo-app",
   FIREBASE_AUTH_EMULATOR_HOST: authEmulatorHost,
@@ -112,7 +129,7 @@ try {
       throw new Error("Test server exited before readiness.");
     try {
       const response = await fetch(`${env.APP_ORIGIN}/api/auth/csrf`, {
-        signal: AbortSignal.timeout(1000),
+        signal: AbortSignal.timeout(3000),
       });
       if (response.ok) {
         available = true;
@@ -196,4 +213,5 @@ try {
     await exited;
   }
   await mongo.stop();
+  if (ownedAuth) await new Promise((resolve) => ownedAuth.close(resolve));
 }

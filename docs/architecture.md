@@ -341,8 +341,8 @@ Create selects an allowlisted JSON DSL from `src/lib/server/runs/templates` thro
 a shadcn dropdown. Server Components pass only template metadata to the client;
 graphs and provider configuration stay server-only. The example templates
 are Document summary (basic MCP/human input), Saved artifact (owned draft, approval
-and retained media), and Unitale (story review, character approval and generated
-panel), plus Case preparation (multimodal evidence, fact review and supplied-law
+and retained media), and Unitale (simulated comic stages, grouped reviews and
+retained schematic placeholders), plus Case preparation (multimodal evidence, fact review and supplied-law
 retrieval). Unitale retains the `story-panel` ID. Case preparation imports a private
 draft with `setup-required` status; destination-specific country, Knowledge base
 and multimodal models are configured in Dify before publication/registration. Its
@@ -390,6 +390,12 @@ Private S3 removals use durable fenced intents on the existing maintenance worke
 No local database is automatically deleted.
 
 ## Runtime packaging
+
+Next.js bundling and output tracing explicitly use the application's own
+directory. A derived checkout nested beneath another lockfile therefore retains
+the expected `.next/standalone/server.js` layout. Local document CSP permits only
+the configured loopback Auth Emulator port, with no emulator origins in live
+environments.
 
 One Next.js standalone web application and the existing AI/maintenance workers are
 bundled. `sharp` stays external for image normalization. DSL templates are traced
@@ -480,19 +486,18 @@ The raw path sends the rendered question and public context to the persona, then
 forwards the answer unchanged to the workflow. Human UI values are not normalized.
 JSON values are serialized once for Dify's paragraph input; strings stay exact.
 Original response values are retained separately from provider input strings and
-participate in retry hashes. The next workflow LLM interprets the response.
+participate in retry hashes. The consuming workflow node interprets the response.
 Renderable component definitions and tool execution still have checked contracts.
-The Unitale story-to-panel template uses two
-sequential decisions (story approval/changes in one form, then character approval), three ordinary LLM calls plus a persona-only approval interpretation, and
-an approval-only image-tool branch. It saves the combined story/character as an
-ordinary artifact revision without adding a separate story domain or worker.
-The story writer consumes the artifact MCP JSON directly, and the revision LLM
-consumes the raw review directly. Explicit human approval actions remain separate
-from raw content. Persona `continue` evidence must match the accepted persona ID
-and revision and cannot satisfy human-only approval. The approval LLM branches
-conservatively; only exact `approve` reaches the tool. Deterministic Python still constructs
-forms and enforces revision/output contracts; an LLM never supplies the saved
-revision or approval hash.
+The Unitale template is a deterministic J01-J13 comic-production preview.
+Python nodes simulate narrative, reference packages, pagination and page bibles.
+Three decisions collect title/ending choices, accept a reference plan, and approve
+the exact saved package. The final decision requires a human; raw Continue never
+supplies that approval. No LLM or image-provider node is included. Nine inline
+schematic PNG fixtures become owned Run/product assets through the existing media
+pipeline. Their images do not vary with the chosen title/ending; the compact
+saved package retains exact intended text. The `story-panel` ID remains stable
+for creation-journal compatibility, and existing publications/accepted Runs are
+not rewritten. This sample adds no comic domain service or replacement accounting.
 
 Native Dify tool images opt in through the `unibase_images` End output alongside a
 successful structured result. Server-only ingestion accepts signed, matching-UUID

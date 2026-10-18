@@ -1283,3 +1283,93 @@ authenticated MCP and Dify tool-discovery checks, enabling the verified decline
 attempt (Dify run `94f7a163-b918-4ab9-a9cc-885e5711ad6d`, published workflow
 `4fd84c68-2586-4f4d-9043-e901d23bef20`). Recovery does not establish durable tunnel
 availability.
+
+## Accepted reuse verification and simulated Unitale preview — 2026-10-18
+
+The current request authorizes local completion of the web reuse milestone,
+followed by improving the existing Unitale orchestrator template before product
+migration. The requested preview simulates both text and illustrations. Unitale
+v1's eventual product endpoint is a readable comic, cover, approved pages and
+image downloads; PDF remains deferred.
+
+Reuse scope: reviewed-source initializer, isolated identities/configuration,
+account/Run/file/credit boundaries, fresh derived installs/builds and affected
+HTTP/browser acceptance. Correct stale setup/test evidence and use disposable
+fixtures. Live deployment, cloud-provider activation, Android/device acceptance,
+publication and product schema migration remain separate.
+
+The initializer itself retains its immutable-source, excluded-private-state and
+empty-destination contracts. Integration fixtures now derive project IDs,
+database prefixes, cookie names and Redis scopes from the manifest, including
+browser session state. HTTP tests support an isolated loopback Auth Emulator
+port. The initialized-project verifier optionally runs account HTTP acceptance
+with `--http` and a project-specific ephemeral Auth Emulator; `--offline` reuses the npm cache without copying
+installed dependencies into the destination. The credential-readiness fixture
+uses local mode with synthetic Firebase credentials; real Redis dependency and
+failure behavior belongs to the separate two-process limits suite. Neither test
+activates a production provider.
+
+Unitale retains the `story-panel` template ID and app name. It now presents a
+fixed, explicitly simulated kite-rescue journey through J01–J13: concept/outline,
+draft/final cast and location lists, manuscript, style/reference plans,
+pagination, page bibles and schematic image fixtures. Three reviews collect
+title/ending choices, accept the reference plan, and approve the exact saved
+package. Only the final review supplies artifact approval, and it requires a
+human. Unsupported narrative answers fail explicitly; final Continue and Decline
+keep the draft partial without images. Reference decline precedes the package
+save. Nine fixed PNGs accompany success: two style placeholders, two character
+sheets, a location sheet, cover and three story pages. They do not depict all
+planned views or render chosen lettering. This preview establishes workflow
+boundaries, not real creative quality.
+
+The sample uses existing bounded artifact text, private MCP, result galleries,
+media promotion and Run accounting. It adds no comic domain collections,
+agent runtime, custom Dify/provider patch or export service. There are no model
+or image-provider nodes; configured application Run charges still apply.
+Local JSON affects future imports only. Existing Dify drafts/publications,
+registrations and accepted Runs are preserved.
+
+Acceptance: fresh project isolation and account journeys work; affected service
+and browser checks retain actual outcomes; the template's Python nodes execute
+with both ending choices and bounded Unicode content; saved-revision approval,
+valid retained images, conservative decline, no paid nodes and unique End output
+names are verified. Record final verification below after checks and a separate
+read-only review; earlier milestone evidence does not certify this diff.
+
+### Final local verification — 2026-10-18
+
+- [x] Web reuse checkpoint: local source fixes, independent derived builds,
+      isolated account journeys and affected service/browser acceptance verified.
+- [x] Unitale simulated template: executable Python, review/approval boundaries,
+      bounded package, valid schematic images and supported registration checked.
+
+The audit corrected ancestor-root standalone packaging, hardcoded test
+identities, and custom loopback Auth Emulator CSP ports. Each derived HTTP fixture
+now owns an emulator whose default project matches its manifest. One-second
+cold-start fixture probes caused false failures under local build load; startup
+probes now allow three seconds and the health runner retains a sanitized startup
+diagnostic. Application readiness deadlines and failure behavior are unchanged.
+Stale export/template-count and payment-rendering/auth-order evidence was
+reconciled with current behavior.
+
+| Area | Final evidence |
+| --- | --- |
+| Initializer and isolation | Two independent application-mode destinations installed and built with distinct cookie, browser, cache, database, Redis and deployment namespaces. After the packaging/test fixes, their unchanged dependency installations were reused for final source-delta rebuilds; each passed all nine account HTTP checks with its own ephemeral Auth Emulator. No working-repository index/ref/history was changed. |
+| Unit/service boundaries | All 63 pure tests and 179 account/service tests passed, including files/quotas/ownership, accounting/recovery, MCP permissions and the simulated template's Python nodes. |
+| HTTP/operations | Root account HTTP, Runs, separate pricing, Stripe fixtures, shared two-process Redis and synthetic-credential readiness passed. Final root account/readiness checks were repeated after the final build. All 42 disposable Docker deployment/provisioning tests passed. |
+| Browser | Eleven member/admin routes at 390px and 1440px in each of English and Arabic: 44 checked visits, correct direction, no overflow or ordinary-navigation hydration/console errors. Profile save/reload persisted. Mobile menu Escape restored focus. An inline script inserted into served HTML before parsing was rejected by document CSP. |
+| Build/quality | Final production web/worker build, independent TypeScript, affected-code lint, formatting, environment, documentation links/commands, generated i18n and pinned-skill integrity passed. |
+| Review | Separate read-only review passed. Scope matched web reuse fixes and the existing example template; no comic domain migration, provider activation or replacement accounting/runtime was introduced. |
+
+The clean installation reported 35 aggregate dependency advisories (27 high,
+eight moderate). They remain visible advisory findings; dependencies were not
+force-upgraded or suppressed. This is local web reuse acceptance, not production
+release certification. Live Firebase/Atlas/S3/billing, VPS release/rollback and
+Android/device acceptance retain their separate outstanding status.
+
+The new Dify graph was not imported, published or live-executed in this task.
+Its local registration contracts, Python execution and result/media contracts are
+verified; actual destination Dify acceptance remains a trial step. No commit,
+publication or deployment was performed. Before deriving a product with the
+initializer, create/select a reviewed commit containing these local fixes;
+the initializer deliberately does not copy an uncommitted working tree.

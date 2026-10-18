@@ -93,6 +93,8 @@ async function main() {
       NEXT_TELEMETRY_DISABLED: "1",
       PAYMENTS_MODE: "disabled",
       DIFY_MODE: "disabled",
+      PERSONA_COMPLETION_MODE: "disabled",
+      MCP_ENABLED: "false",
       APP_ENV: "local",
       APP_NAME: slug,
     };
@@ -112,6 +114,7 @@ async function main() {
           npm,
           "ci",
           "--ignore-scripts",
+          ...(process.argv.includes("--offline") ? ["--offline"] : []),
           "--cache",
           path.join(workspace, ".cache/npm"),
         ],
@@ -150,6 +153,19 @@ async function main() {
       await readFile(path.join(destination, "project.source.json"), "utf8"),
     );
     assert.equal(sourceRecord.revision, revision);
+    if (process.argv.includes("--http")) {
+      await writeFile(
+        path.join(destination, "http-verification.log"),
+        command(
+          destination,
+          process.execPath,
+          ["scripts/integration.mjs", "--owned-auth"],
+          undefined,
+          env,
+        ),
+      );
+      console.log(`${slug}: isolated account HTTP acceptance passed.`);
+    }
   }
   for (const key of [
     "cookie",

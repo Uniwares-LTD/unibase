@@ -1,3 +1,4 @@
+import { fixtureProjectId, fixtureCookie } from "./project-fixture.mjs";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { MongoClient } from "mongodb";
@@ -7,7 +8,7 @@ import { spawn } from "node:child_process";
 export async function browserFixture(env) {
   Object.assign(process.env, env);
   const auth = getAuth(
-    initializeApp({ projectId: "demo-unibase" }, `browser-${randomUUID()}`),
+    initializeApp({ projectId: fixtureProjectId }, `browser-${randomUUID()}`),
   );
   const user = await auth.createUser({
     email: `${randomUUID()}@example.test`,
@@ -264,7 +265,7 @@ export async function browserFixture(env) {
     JSON.stringify({
       cookies: [
         {
-          name: "unibase-session",
+          name: fixtureCookie("session"),
           value: session,
           domain: "127.0.0.1",
           path: "/",

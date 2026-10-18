@@ -1,3 +1,8 @@
+import {
+  fixtureProjectId,
+  fixtureDatabasePattern,
+  fixtureCookie,
+} from "./project-fixture.mjs";
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -6,10 +11,10 @@ import { getAuth } from "firebase-admin/auth";
 import { MongoClient } from "mongodb";
 
 assert.equal(process.env.APP_ORIGIN, "http://127.0.0.1:3101");
-assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST, "127.0.0.1:9099");
-assert.equal(process.env.FIREBASE_PROJECT_ID, "demo-unibase");
+assert.match(process.env.FIREBASE_AUTH_EMULATOR_HOST, /^127\.0\.0\.1:\d+$/);
+assert.equal(process.env.FIREBASE_PROJECT_ID, fixtureProjectId);
 assert.match(process.env.MONGODB_URI, /^mongodb:\/\/127\.0\.0\.1:\d+\//);
-assert.match(process.env.MONGODB_DATABASE, /^unibase_test_[a-f0-9]+$/);
+assert.match(process.env.MONGODB_DATABASE, fixtureDatabasePattern);
 const origin = process.env.APP_ORIGIN;
 test("design showcase is unavailable in production", async () => {
   const response = await fetch(`${origin}/design-system`);
@@ -40,13 +45,17 @@ test("runtime application name reaches metadata and the install manifest", async
 test("initial HTML resolves runtime style defaults and allowlisted browser cookies", async () => {
   for (const [cookie, expected] of [
     ["", "glass"],
-    ["unibase-style=classic", "classic"],
-    ["unibase-style=glass", "glass"],
-    ["unibase-style=soft-blue", "soft-blue"],
-    ["unibase-style=unknown", "glass"],
+    [`${fixtureCookie("style")}=classic`, "classic"],
+    [`${fixtureCookie("style")}=glass`, "glass"],
+    [`${fixtureCookie("style")}=soft-blue`, "soft-blue"],
+    [`${fixtureCookie("style")}=unknown`, "glass"],
   ]) {
     const response = await fetch(origin, { headers: { cookie } });
     assert.equal(response.status, 200);
+    const emulatorPort = process.env.FIREBASE_AUTH_EMULATOR_HOST.split(":")[1];
+    const policy = response.headers.get("content-security-policy");
+    assert.ok(policy.includes(`http://127.0.0.1:${emulatorPort}`));
+    assert.ok(policy.includes(`http://localhost:${emulatorPort}`));
     assert.match(
       await response.text(),
       new RegExp(`<html[^>]*data-style="${expected}"`),
@@ -66,11 +75,11 @@ test("health distinguishes a live process from healthy required dependencies", a
     commit: "a".repeat(40),
   });
 });
-const auth = getAuth(initializeApp({ projectId: "demo-unibase" }, "tests"));
+const auth = getAuth(initializeApp({ projectId: fixtureProjectId }, "tests"));
 const users = [];
 async function identity(method, body) {
   const response = await fetch(
-    `http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:${method}?key=demo-key`,
+    `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:${method}?key=demo-key`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -118,7 +127,7 @@ test("real emulator sessions enforce ownership, verification, CSRF and revocatio
   assert.equal(
     (
       await request("/api/profile", {
-        headers: { cookie: "unibase-session=invalid-token" },
+        headers: { cookie: `${fixtureCookie("session")}=invalid-token` },
       })
     ).status,
     401,
@@ -307,7 +316,7 @@ test("public PWA assets and debug headers preserve safe HTTP boundaries", async 
     headers: {
       "x-debug": "true",
       "x-request-id": "secret-injected-id",
-      cookie: "unibase-session=secret-cookie",
+      cookie: `${fixtureCookie("session")}=secret-cookie`,
     },
   });
   assert.equal(response.status, 401);
@@ -515,7 +524,7 @@ test("admin reports store sanitized request outcomes and reject stale permission
   assert.equal((await request("/api/admin/reports")).status, 401);
   const secretProbe = await request("/api/profile?token=runtime-secret-query", {
     headers: {
-      cookie: "unibase-session=runtime-secret-cookie",
+      cookie: `${fixtureCookie("session")}=runtime-secret-cookie`,
       "x-request-id": "runtime-secret-id",
       "x-debug": "true",
     },

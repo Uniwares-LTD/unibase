@@ -1,3 +1,8 @@
+import {
+  fixtureProjectId,
+  fixtureDatabasePattern,
+  fixtureCookie,
+} from "./project-fixture.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import Stripe from "stripe";
@@ -8,15 +13,15 @@ import { getAuth } from "firebase-admin/auth";
 assert.equal(process.env.APP_ORIGIN, "http://127.0.0.1:3101");
 assert.equal(process.env.PAYMENTS_MODE, "stripe");
 assert.equal(process.env.STRIPE_SECRET_KEY, "sk_test_fixture");
-assert.match(process.env.MONGODB_DATABASE, /^unibase_test_[a-f0-9]+$/);
+assert.match(process.env.MONGODB_DATABASE, fixtureDatabasePattern);
 assert.match(process.env.MONGODB_URI, /^mongodb:\/\/127\.0\.0\.1:\d+\//);
 const origin = process.env.APP_ORIGIN;
 const sdk = new Stripe("sk_test_fixture"); // Only signs fixtures; no provider calls.
 test("verified member sees Stripe purchase UI without private configuration", async () => {
-  assert.equal(process.env.FIREBASE_PROJECT_ID, "demo-unibase");
-  assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST, "127.0.0.1:9099");
+  assert.equal(process.env.FIREBASE_PROJECT_ID, fixtureProjectId);
+  assert.match(process.env.FIREBASE_AUTH_EMULATOR_HOST, /^127\.0\.0\.1:\d+$/);
   const app = initializeApp(
-    { projectId: "demo-unibase" },
+    { projectId: fixtureProjectId },
     "owned-stripe-page-fixture",
   );
   const auth = getAuth(app);
@@ -25,7 +30,7 @@ test("verified member sees Stripe purchase UI without private configuration", as
   const identity = async (method) =>
     await (
       await fetch(
-        `http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:${method}?key=demo-key`,
+        `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:${method}?key=demo-key`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -54,7 +59,7 @@ test("verified member sees Stripe purchase UI without private configuration", as
     assert.equal(session.status, 200);
     const cookie = session.headers
       .getSetCookie()
-      .find((value) => value.startsWith("unibase-session="))
+      .find((value) => value.startsWith(`${fixtureCookie("session")}=`))
       .split(";")[0];
     const page = await fetch(`${origin}/credits`, { headers: { cookie } });
     assert.equal(page.status, 200);
@@ -62,7 +67,12 @@ test("verified member sees Stripe purchase UI without private configuration", as
     assert.match(html, /Buy credits/);
     assert.match(html, /Owned Stripe fixture/);
     assert.doesNotMatch(html, /sk_test_fixture|whsec_fixture|price_fixture/);
-    assert.doesNotMatch(html, /Local purchase simulation/);
+    // Translated client dictionaries in RSC scripts include labels for hidden
+    // controls. Check rendered markup rather than all serialized catalog text.
+    assert.doesNotMatch(
+      html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ""),
+      /Local purchase simulation/,
+    );
   } finally {
     await auth.deleteUser(signup.localId);
     await deleteApp(app);
@@ -194,6 +204,7 @@ test("checkout HTTP mutations require CSRF and authenticated ownership before co
         headers,
       )
     ).status,
-    400,
+    // The shared boundary authenticates before exposing validation details.
+    401,
   );
 });

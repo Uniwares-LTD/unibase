@@ -35,7 +35,12 @@ try {
     throw new Error("Invalid fixture port.");
   const test = spawn(
     process.execPath,
-    ["scripts/integration.mjs", "--ai", "--rate-limits"],
+    [
+      "scripts/integration.mjs",
+      "--ai",
+      "--rate-limits",
+      ...process.argv.slice(2),
+    ],
     {
       env: {
         ...process.env,

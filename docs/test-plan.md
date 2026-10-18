@@ -351,7 +351,8 @@ The general foundation now includes accounts, profiles, appearance presets, admi
 reports, credits/ledger, simulated and opt-in Stripe payments, optional Dify
 workflow/chat/files, durable jobs, usage and configurable pricing, plus PWA and
 VPS/Android tooling. It also includes reusable generated UI, versioned artifacts,
-approvals, private media, durable workflows and PDF/ZIP exports. Domain schemas,
+approvals, private media and durable workflows. PDF/ZIP export services were
+removed; product-specific exports remain downstream work. Domain schemas,
 provider prompts and product-specific layouts remain downstream features.
 See [derived-project setup and identity inventory](../README.md#start-a-derived-project).
 
@@ -473,7 +474,7 @@ Persona completion acceptance: shared model/instructions save and Reset to defau
 revision conflicts, stale administrator/member rejection, fixed/token/hybrid pricing
 without provider-cost options, raw text preservation, bounded HTTP responses,
 redirect rejection, unknown dispatch without replay, and saved-result recovery must
-pass against fake/local providers. Confirm five Orchestrator templates with no
+pass against fake/local providers. Confirm four Orchestrator templates with no
 Persona workflow management. Check 390px English/Arabic layouts and navigation.
 
 Persona administration follow-up: verify the responsive card list, Add/Edit dialogs,
@@ -492,6 +493,10 @@ plan do not substitute for these checks on the new project.
   unsafe target rejection. `npm run test:initialized-projects` creates a private
   synthetic source commit and independently installs/builds two application-mode
   projects; it does not commit or change refs in the working repository.
+  Add `-- --http` to verify account journeys in each generated project with its
+  own project-specific, ephemeral Auth Emulator. Add `--offline` after `--` when
+  the pinned dependency cache is already populated. The shared developer Auth
+  Emulator is not reused by this option.
 - Run `npm run test:limits` for two-process Redis limits, expiry, spoofed headers,
   failure and namespace isolation. Run `npm run test:deployment` for ingress,
   readiness, environment isolation and retained-release rollback tooling.

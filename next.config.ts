@@ -1,8 +1,13 @@
 import createNextIntlPlugin from "next-intl/plugin";
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Derived projects may live beneath another checkout. Keep bundling and the
+  // standalone server layout independent of an ancestor's lockfile/workspace.
+  outputFileTracingRoot: path.resolve(__dirname),
+  turbopack: { root: path.resolve(__dirname) },
   outputFileTracingIncludes: {
     "/api/admin/orchestrators/templates/*": ["./dify/**/*.yaml"],
   },

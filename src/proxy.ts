@@ -15,6 +15,16 @@ export function proxy(request: NextRequest) {
     });
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const local = !process.env.APP_ENV || process.env.APP_ENV === "local";
+  const emulator = local
+    ? /^(?:localhost|127\.0\.0\.1):(\d{2,5})$/.exec(
+        process.env.FIREBASE_AUTH_EMULATOR_HOST ?? "127.0.0.1:9099",
+      )
+    : null;
+  const emulatorPort = emulator ? Number(emulator[1]) : 0;
+  const emulatorSources =
+    emulatorPort > 0 && emulatorPort <= 65535
+      ? ` http://127.0.0.1:${emulatorPort} http://localhost:${emulatorPort}`
+      : "";
   const dev = process.env.NODE_ENV === "development";
   const helper = path.startsWith("/__/auth/");
   const csp = [
@@ -31,7 +41,7 @@ export function proxy(request: NextRequest) {
     "img-src 'self' data: blob: https:",
     "font-src 'self'",
     "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com" +
-      (local ? " http://127.0.0.1:9099 http://localhost:9099" : "") +
+      emulatorSources +
       (dev ? " ws: wss:" : ""),
     "frame-src 'self' https://accounts.google.com",
     "object-src 'none'",

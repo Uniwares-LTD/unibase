@@ -96,6 +96,14 @@ npm.cmd run build
 npm.cmd run test:integration
 ```
 
+For an entirely owned account fixture, use
+`npm.cmd run test:integration -- --owned-auth`. It starts an ephemeral loopback
+Auth Emulator with this project's manifest identity and closes it afterward.
+This also works for a renamed derived application: the emulator's client API
+uses its default project for every API key, so another project's developer
+emulator is not an interchangeable test target. Use the normal CLI emulator for
+interactive sign-in and its verification/reset links.
+
 `validate` also runs account tests, deployment tooling, dependency audit and workflow/shell checks alongside configuration, skills, TypeScript, lint, formatting and unit tests. Docker/network/tool prerequisites may produce advisory warnings; see the full test plan. Its aggregate exit code is advisory; inspect every result and `output/validation/results.json`. Individual checks retain their real exit codes. Build failures remain failures.
 
 `test:integration` needs a completed production build. It starts its own disposable MongoDB instance and application server at `127.0.0.1:3101`, with hardcoded demo/test settings. Keep that port free. It uses unique test accounts in the running configured demo Auth Emulator and removes those accounts afterward. Its disposable database is separate from the development database; it never targets production Atlas.
