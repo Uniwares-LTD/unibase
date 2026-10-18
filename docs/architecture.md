@@ -324,7 +324,9 @@ configuration and execution bindings remain pinned and are never rewritten.
 
 The app contract normalizes native End outputs on the Unibase server, retaining
 explicit valid structured business outcomes/cards/images. Invalid claimed rich
-results fail validation. Local owned Run/attempt IDs map to Dify's returned
+results fail validation. Structured envelopes use `result`, with `draft_result`
+accepted as a sole output for exclusive unapproved branches so End output names
+remain globally unique in Dify. Local owned Run/attempt IDs map to Dify's returned
 `workflow_run_id` and active `task_id`; declared legacy fields remain compatible.
 Zero-control workflows send empty inputs. Human Input uses provider form tokens,
 matching end users and event reconnect; Generative UI is validated data, never

@@ -5,6 +5,13 @@ Dify DSL. `index.ts` loads them on the server and binds the selected authorized 
 provider when importing. Never put credentials, deployment URLs or real user data
 in templates.
 
+Dify requires End output names to be unique across the entire graph, including
+mutually exclusive branches. Approved branches export `result`; unapproved draft
+branches export only `draft_result`. Both carry the same validated version-1
+envelope, preserving the draft's `partial` outcome. Keep these names unique when
+editing a destination workflow; changing repository JSON does not repair existing
+Dify drafts or publications.
+
 - `document-summary.json`: reference document → Brief/Detailed → summary.
 
 Document summary demonstrates empty Start inputs, MCP structured JSON, native Human

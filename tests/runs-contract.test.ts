@@ -104,6 +104,25 @@ test("business outcome is structured and image and checkpoint references are bou
     "success",
   );
   assert.equal(parseResult({ text: "failed" }).outcome, "success");
+  const draft = {
+    ...result,
+    outcome: "partial",
+    text: "Draft kept unapproved",
+  };
+  assert.deepEqual(
+    parseResult({ draft_result: JSON.stringify(draft) }),
+    parseResult({ result: JSON.stringify(draft) }),
+  );
+  assert.throws(() =>
+    parseResult({
+      draft_result: JSON.stringify({ ...draft, outcome: "unknown" }),
+    }),
+  );
+  assert.throws(() =>
+    parseResult({
+      draft_result: { ...draft, images: [{ url: "https://evil.test" }] },
+    }),
+  );
   assert.throws(() =>
     parseResult({
       result: {

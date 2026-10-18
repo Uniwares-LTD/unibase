@@ -241,7 +241,11 @@ export const resultSchema = z.strictObject({
 });
 export function parseResult(outputs: unknown) {
   const values = z.record(z.string(), z.json()).parse(outputs);
-  let candidate = values.result;
+  // Dify requires globally unique End output names, including exclusive branches.
+  // Draft-only branches use a separate name without losing their partial outcome.
+  let candidate =
+    values.result ??
+    (Object.keys(values).length === 1 ? values.draft_result : undefined);
   if (typeof candidate === "string") {
     try {
       candidate = JSON.parse(candidate);

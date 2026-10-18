@@ -1225,3 +1225,61 @@ Visual review caught an Arabic shell-encoding defect; the catalog was corrected.
 Live corpus retrieval, OCR/vision, audio transcription and actual legal accuracy
 remain destination acceptance checks. No live Dify app, provider or database was
 changed, and no commit, publication or deployment was performed.
+
+### Dify End output uniqueness correction - 2026-10-17
+
+Case preparation and Unitale used `result` on two exclusive End nodes. Dify's
+editor requires graph-wide output-name uniqueness even across exclusive branches.
+Their unapproved branches now export only `draft_result`; Unibase validates that
+sole output with the same version-1 envelope schema and preserves partial outcomes.
+Approved results, native panel images and existing published bindings remain
+compatible. The other two current templates already had unique End outputs.
+
+Verification: all 62 pure tests and 20 focused template/media/Run tests pass,
+including the declared draft End mappings and partial-result settlement without
+success-only charges. TypeScript, lint, focused formatting, documentation, i18n
+and pinned-skill checks pass. The production web/worker build passes with access
+to the installed SWC cache; sandbox compilation failed on native-cache permissions.
+A separate read-only review found no remaining actionable defect.
+
+The two existing destination Dify drafts were repaired and read back with zero
+duplicate outputs, preserving their environment settings and other graph edits.
+No publication or registration changed and no paid model execution was performed.
+The local AI worker was refreshed after checking for active leases. Case preparation
+still requires its reviewed Iran law knowledgebase; the corresponding Dify checklist
+warning remains an external setup requirement, not a template-validation bypass.
+
+### Unitale live verification and cancellation investigation - 2026-10-18
+
+With explicit session authorization, Unitale's one-field output fix was published
+and its registration refreshed. The synthetic local account used for the audited
+operation was restored to member. Live human correction/approval produced and
+retained a panel image. Parent Persona completed an autonomous run on the new
+publication with two responder calls and three total credits. The new publication's
+decline path passed live acceptance: `draft_result` parsed as partial, the UI showed
+partially completed, zero credits were charged and the reservation was released.
+
+A live cancellation test returned a successful Dify task-stop acknowledgement while
+the run remained paused. Its reservation remains held. The local UI disables pending
+decision submission after cancellation. A regression test covers retaining the hold
+until independent provider retrieval confirms termination.
+
+At the user's request, the proposed custom Dify server patch, its test harnesses,
+and the client's custom endpoint dependency were removed. Hosted Dify was never
+patched or redeployed. The client continues to use the standard task-stop API.
+The earlier custom-patch harness results are not evidence of supported cancellation.
+
+Upstream 1.17.1 distinguishes human-input node timeout (resumes the graph) from
+global human-input timeout (stops the run). A workflow action routed directly to
+an End node is a candidate for explicit decline/cancellation in future runs; it
+must be configured and verified before relying on it. Existing paused runs retain
+their execution graph. The user subsequently stopped the reported run in Dify logs. This exposed a local
+reconciliation bug: an unknown form submission blocked settlement despite saved
+`stopped` evidence. The worker now gives confirmed stops precedence and reclaims
+that specific review state; other review states and billing checks are preserved.
+
+The existing Cloudflare endpoint recovered and passed public boundary,
+authenticated MCP and Dify tool-discovery checks, enabling the verified decline
+attempt (Dify run `94f7a163-b918-4ab9-a9cc-885e5711ad6d`, published workflow
+`4fd84c68-2586-4f4d-9043-e901d23bef20`). Recovery does not establish durable tunnel
+availability.

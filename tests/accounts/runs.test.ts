@@ -220,7 +220,7 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
       },
     );
     await t.test(
-      "business partial result keeps private images and waives success-only charges",
+      "draft_result partial outcome keeps private images and waives success-only charges",
       async () => {
         const execution: ProviderExecution = {
           runId,
@@ -236,7 +236,7 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
             elapsedMs: 1,
           },
           outputs: {
-            result: {
+            draft_result: {
               version: 1,
               outcome: "partial",
               text: "Partial",
@@ -494,6 +494,75 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
         assert.equal(done?.failure, "decision-outcome-unconfirmed");
         assert.equal((await readWallet(db, uid)).reserved, 1);
         assert.equal(canStartNewAttempt(done!), false);
+      },
+    );
+    await t.test(
+      "stopped runs recover from decision review without replay or a success charge",
+      async () => {
+        const uid = "stopped-decision";
+        await grantCredits(db, uid, "seed", {
+          amount: 10,
+          source: "purchase",
+          reference: uid,
+        });
+        const saved = await createAiJob(db, { ...actor, uid }, randomUUID(), {
+          ...request,
+          run: { ...request.run, logicalId: fingerprint(uid) },
+        });
+        const providerId = randomUUID();
+        await aiJobs(db).updateOne(
+          { _id: saved._id },
+          {
+            $set: {
+              status: "needs-review",
+              failure: "decision-outcome-unconfirmed",
+              runId: providerId,
+              cancelRequested: true,
+              execution: {
+                runId: providerId,
+                workflowId: null,
+                status: "stopped",
+                outputs: null,
+                usage: {
+                  scope: "execution",
+                  id: providerId,
+                  inputTokens: 1,
+                  outputTokens: 1,
+                  totalTokens: 2,
+                  cost: null,
+                  elapsedMs: 1,
+                },
+              },
+            },
+          },
+        );
+        await db
+          .collection("runDecisions")
+          .insertOne({ jobId: saved._id, status: "unknown" });
+        assert.equal(
+          await processOneAiJob(db, {
+            authorize: async () => true,
+            validateOutput: () => true,
+            terminalOutput: async () => "failed",
+            provider: () => {
+              throw new Error(
+                "Saved termination must not replay provider requests",
+              );
+            },
+          }),
+          true,
+        );
+        const done = (await aiJobs(db).findOne({ _id: saved._id }))!;
+        assert.equal(done.status, "cancelled");
+        assert.equal(done.terminationEvidence, "provider-stopped");
+        assert.equal(canStartNewAttempt(done), true);
+        assert.equal((await readWallet(db, uid)).reserved, 0);
+        assert.equal((await readWallet(db, uid)).balance, 10);
+        assert.equal(
+          (await db.collection("runDecisions").findOne({ jobId: saved._id }))
+            ?.status,
+          "unknown",
+        );
       },
     );
     await t.test(

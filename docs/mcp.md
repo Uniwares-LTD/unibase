@@ -207,6 +207,28 @@ If QUIC disconnects repeatedly, test `--protocol http2`; TCP connectivity must
 still pass. Cloudflare API access over HTTPS port 443 does not prove tunnel edge
 connectivity. Check cloudflared's startup connectivity results before updating a
 Dify provider URL; keep the same authenticated MCP-only proxy behind the tunnel.
+With the locally verified cloudflared 2026.10.0 client, connectivity prechecks can
+abort an explicitly selected QUIC connection because TCP/HTTP2 is blocked, even
+when the UDP check succeeds. In that situation, `--protocol quic --no-prechecks`
+was verified to establish a real QUIC connection. Require the subsequent
+`Registered tunnel connection` log, authenticated public MCP checks and successful
+Dify tool refresh before switching provider URLs. A generated quick-tunnel URL
+alone is insufficient evidence. Keep the tunnel process running during Runs;
+quick-tunnel addresses can change after restart.
+
+A running process and an old registration log do not prove current connectivity.
+If current reconnect attempts report `Unauthorized: Tunnel not found`, the quick
+tunnel is no longer usable. Restart that tunnel, verify the new public endpoint
+and refresh the existing Dify providers before starting another Run. Preserve
+in-flight Run identities; a tunnel outage does not prove execution stopped.
+
+When updating an existing Dify MCP connection, preserve its provider UUID, server
+identifier, credentials and settings. Management responses mask the endpoint path;
+verify the saved host and actual tool discovery rather than comparing the masked
+display URL byte-for-byte. Distinct providers require distinct URLs in Dify. A
+local MCP-only proxy may allow explicit connection-label query values while
+forwarding only the authenticated `/api/mcp` endpoint. Verify unknown paths remain
+404 and unauthenticated MCP requests remain 401.
 See [Cloudflare tunnel firewall requirements](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/configure-tunnels/tunnel-with-firewall/).
 
 References: [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk),

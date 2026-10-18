@@ -7,6 +7,16 @@ ordered attempts. Closing the browser does not stop the worker. Cancellation is
 pending until provider termination is confirmed. Unknown acceptance/reconciliation
 is visible and never creates a second generation request automatically.
 
+Pending cancellation disables decision submission. The worker uses Dify's standard
+workflow task-stop endpoint and retrieves the run independently. A successful
+acknowledgement is not terminal evidence: retrieval must confirm termination
+before releasing a hold or admitting another attempt. Dify can acknowledge
+task-stop while a human-input workflow remains paused; that attempt correctly
+stays unresolved. No custom Dify cancellation endpoint is required by this client.
+Once Dify confirms `stopped`, an uncertain form submission does not block terminal
+settlement. The worker also recovers previously reviewed jobs with saved stopped
+evidence and `decision-outcome-unconfirmed`; unrelated review cases remain manual.
+
 ## Administration and setup
 
 Use `/admin/settings` for branding/default appearance, credit packs/expiry, all
@@ -206,6 +216,9 @@ an empty response. No special End name or provider-side adapter is required.
 Explicit application envelopes retain `version:1`, `outcome:success|failed|partial`,
 `text`, `cards`, `images` and safe optional failure/checkpoint data. Claimed rich
 envelopes must validate; invalid rich data is never accepted as ordinary text.
+Envelopes use `result`, or the sole output `draft_result` for unapproved branches.
+These distinct names satisfy Dify's graph-wide End output uniqueness rule while
+preserving partial outcomes and their settlement behavior.
 Provider execution failures follow the durable worker policy.
 
 Cards are versioned registered question, form, summary, gallery, progress and

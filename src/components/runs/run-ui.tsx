@@ -57,11 +57,13 @@ function Decision({
   decision,
   runId,
   attemptId,
+  cancelRequested,
   refresh,
 }: {
   decision: Detail["decisions"][number];
   runId: string;
   attemptId: string;
+  cancelRequested: boolean;
   refresh: () => void;
 }) {
   const translate = useTranslations("ui");
@@ -78,7 +80,7 @@ function Decision({
     cards: decision.cards,
   });
   const cards = parsed.success ? parsed.data.cards : [];
-  const active = decision.status === "pending";
+  const active = decision.status === "pending" && !cancelRequested;
   const raw = "responseMode" in decision && decision.responseMode === "raw-v1";
   async function submit(action: string) {
     setBusy(true);
@@ -521,6 +523,7 @@ export function RunDetail({ initial }: { initial: Detail }) {
         <Decision
           key={decision.id}
           decision={decision}
+          cancelRequested={current.cancelRequested}
           runId={data.id}
           attemptId={
             ("attemptId" in decision ? decision.attemptId : undefined) ??

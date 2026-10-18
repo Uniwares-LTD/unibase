@@ -222,8 +222,14 @@ test("Fact review accepts corrections; final approval binds the saved revision a
       )?.target,
       "declined",
     );
+  const end = graph.nodes.find((node) => node.id === "declined_end")!;
+  const output = (
+    end.data.outputs as { variable: string; value_selector: string[] }[]
+  )[0];
+  const declined = code("declined", { text: "Reviewed case brief" });
   assert.equal(
-    parseResult(code("declined", { text: "Reviewed case brief" })).outcome,
+    parseResult({ [output.variable]: declined[output.value_selector[1]] })
+      .outcome,
     "partial",
   );
 });

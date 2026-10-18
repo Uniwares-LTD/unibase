@@ -676,6 +676,73 @@ test("durable AI jobs, credit boundaries and recovery", async (t) => {
         }
       },
     );
+    await t.test(
+      "paused cancellation keeps its hold until provider confirms termination",
+      async () => {
+        const db = await fixture();
+        const saved = await createAiJob(
+          db,
+          actor,
+          "paused-cancel",
+          request,
+          start,
+        );
+        let clock = start;
+        let stopped = false;
+        let stopCalls = 0;
+        const provider: WorkflowProvider = {
+          async start(_input, observe) {
+            await observe({ type: "identity", runId, taskId });
+            return { kind: "ok", value: { ...execution, status: "paused" } };
+          },
+          async retrieve() {
+            return {
+              kind: "ok",
+              value: { ...execution, status: stopped ? "stopped" : "paused" },
+            };
+          },
+          async stop(task) {
+            assert.equal(task, taskId);
+            stopCalls++;
+            return { kind: "ok", value: undefined };
+          },
+        };
+        const deps = {
+          provider: () => provider,
+          authorize: async () => true,
+          validateOutput: () => true,
+          now: () => clock,
+        };
+        await processOneAiJob(db, deps);
+        clock = at(1);
+        await aiJobs(db).updateOne(
+          { _id: saved._id },
+          { $set: { cancelRequested: true, nextAttemptAt: clock } },
+        );
+        await processOneAiJob(db, deps);
+        const pending = (await aiJobs(db).findOne({ _id: saved._id }))!;
+        assert.equal(pending.status, "paused");
+        assert.equal(canStartNewAttempt(pending), false);
+        assert.equal(
+          (await readWallet(db, actor.uid, { now: clock })).reserved,
+          5,
+        );
+        stopped = true;
+        clock = at(2);
+        await aiJobs(db).updateOne(
+          { _id: saved._id },
+          { $set: { nextAttemptAt: clock } },
+        );
+        await processOneAiJob(db, deps);
+        const finished = (await aiJobs(db).findOne({ _id: saved._id }))!;
+        assert.equal(stopCalls, 2);
+        assert.equal(finished.status, "cancelled");
+        assert.equal(canStartNewAttempt(finished), true);
+        const wallet = await readWallet(db, actor.uid, { now: clock });
+        assert.equal(wallet.balance, 100);
+        assert.equal(wallet.reserved, 0);
+      },
+    );
   } finally {
     await client.close();
     await repl.stop();

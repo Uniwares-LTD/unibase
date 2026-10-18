@@ -27,6 +27,19 @@ test("Template catalog exposes metadata only; templates bind isolated graphs and
       orchestratorTemplateIdSchema.parse(summary.id),
     );
     const dsl = template.build("authorized-provider");
+    const outputNames = new Set<string>();
+    for (const node of dsl.workflow.graph.nodes) {
+      if (node.data.type !== "end") continue;
+      for (const output of node.data.outputs as { variable: string }[]) {
+        const name = output.variable.trim();
+        assert(name, `${summary.id}: empty End output name`);
+        assert(
+          !outputNames.has(name),
+          `${summary.id}: duplicate End output ${name}`,
+        );
+        outputNames.add(name);
+      }
+    }
     const fit = inspectDifyWorkflow(dsl.workflow.graph, "raw-v1");
     if (summary.id === "document-summary") {
       const interpreter = dsl.workflow.graph.nodes.find(

@@ -1424,7 +1424,7 @@
               "title": "Draft result",
               "outputs": [
                 {
-                  "variable": "result",
+                  "variable": "draft_result",
                   "value_selector": ["declined", "result"]
                 }
               ]

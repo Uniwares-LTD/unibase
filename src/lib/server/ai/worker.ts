@@ -105,10 +105,11 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       const trace = (await deps.trace?.(job!).catch(() => [])) ?? [];
       for (const event of trace) await persistAiEvent(db, job!, event, now());
       if (
-        await db.collection("runDecisions").findOne({
+        execution.status !== "stopped" &&
+        (await db.collection("runDecisions").findOne({
           jobId: job!._id,
           status: { $in: ["unknown", "submitting"] },
-        })
+        }))
       ) {
         await defer("decision-outcome-unconfirmed", true);
         return;
@@ -182,6 +183,7 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       if (
         job.run &&
         job.runId &&
+        job.execution.status !== "stopped" &&
         (await db.collection("runDecisions").findOne({
           jobId: job._id,
           status: { $in: ["unknown", "submitting"] },

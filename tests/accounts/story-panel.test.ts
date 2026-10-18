@@ -129,8 +129,16 @@ test("story review offers approval and changes together, with persona-compatible
     action: "continue",
     response: JSON.stringify({ action: "approve", answers: {} }),
   });
+  const end = template.workflow.graph.nodes.find(
+    (node) => node.id === "declined_end",
+  )!;
+  const output = (
+    end.data.outputs as { variable: string; value_selector: string[] }[]
+  )[0];
+  const declined = code("declined", { text: draft.text });
   assert.equal(
-    parseResult(code("declined", { text: draft.text })).outcome,
+    parseResult({ [output.variable]: declined[output.value_selector[1]] })
+      .outcome,
     "partial",
   );
   assert.deepEqual(

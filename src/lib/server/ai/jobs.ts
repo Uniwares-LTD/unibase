@@ -311,9 +311,20 @@ export async function createAiJob(
 export async function claimAiJob(db: Db, now = new Date()) {
   return aiJobs(db).findOneAndUpdate(
     {
-      status: {
-        $in: ["queued", "dispatching", "running", "paused", "unknown"],
-      },
+      $or: [
+        {
+          status: {
+            $in: ["queued", "dispatching", "running", "paused", "unknown"],
+          },
+        },
+        // Recover runs previously blocked by an uncertain decision even though
+        // the provider had already confirmed termination. Other reviews stay manual.
+        {
+          status: "needs-review",
+          failure: "decision-outcome-unconfirmed",
+          "execution.status": "stopped",
+        },
+      ],
       leaseUntil: { $lte: now },
       nextAttemptAt: { $lte: now },
     },
