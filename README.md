@@ -128,23 +128,20 @@ draft; the validated sample image is retained independently of execution cleanup
 This sample requires the Dify code sandbox and reachable MCP, with no image-generation
 model. Persona mode needs the shared completion connection and the workflow's approval-interpretation model.
 
-For a model-free comic journey preview, create **Unitale** and choose **User**
-on **Start run**. Select an owned artifact and enter an idea. The idea is retained
-as context; the template deliberately uses a fixed kite-rescue story rather than
-pretending to interpret it. Choose an optional title and an ending, review the
-reference plan, then explicitly approve the exact saved package. The final approval
-requires a human; Continue keeps an unapproved draft.
+For a real comic workflow trial, select **Unitale** on **Start run** (or create it
+from the template when absent), enter an idea and create/select an owned artifact.
+Choose **User** or a configured **Persona**. Review the generated story and visual
+plan in ordinary language, then explicitly approve the saved package. Persona
+answers are interpreted by model steps; final approval requires a human takeover.
 
-The template simulates the POC's J01-J13 responsibilities: narrative, final
-character/location lists, style, sheet plans, pagination, page bibles and images.
-It retains nine schematic PNG placeholders: two style samples, two character
-sheets, one location sheet, a cover and three story pages. The placeholders are
-fixed and do not render the selected title or lettering; intended text remains
-in the saved package. No model or image plugin is required. Dify's Code sandbox,
-reachable private MCP and explicit Run/artifact permissions are still required.
-Run pricing is separate from provider costs; model-free execution can still
-consume configured application credits. PDF and the full Unitale domain remain
-downstream work.
+Four Dify LLM steps implement the grouped J01-J12 concept, manuscript, cast,
+location, style, reference and page-planning work. After approval, nine real image
+calls produce two style samples, two character sheets, one location sheet, a cover
+and three pages. These use the configured OpenAI text provider and authorized
+official OpenAI image tool, Dify's Code sandbox, reachable private MCP and existing
+artifact/media storage. Provider costs and configured Run/Persona credit charges
+apply. Consistency is guided by shared descriptions; reference-image conditioning,
+a dedicated Unitale schema/API/reader and PDF export remain downstream work.
 
 Local JSON changes affect future template creation only. Existing Dify drafts,
 publications, registrations and accepted Runs keep their previous graphs. Use a
@@ -384,7 +381,7 @@ app key and enables the Orchestrator. Register validates the saved draft and
 publishes it automatically when new or changed; it never edits nodes or inputs.
 Create offers Document summary, Saved artifact, Unitale and Case preparation templates from
 `src/lib/server/runs/templates`: basic MCP/human input, owned draft/approval/media,
-full story/image generation, and country-neutral case preparation samples for derived
+  a real comic journey, and country-neutral case preparation samples for derived
 projects. Case preparation imports a draft: configure its country, legal knowledgebase
 and models in Dify before publishing/registering. See [setup and limits](src/lib/server/runs/templates/README.md#case-preparation). Create refreshes
 the app list automatically and disables Dify's public Web App;

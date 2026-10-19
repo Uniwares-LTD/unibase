@@ -52,11 +52,11 @@ only template names/descriptions reach the browser. Available scenarios:
 | ----------------- | ------------------------------------------------------- | ------------------------------------------------- |
 | Document summary  | Fetch a guide and choose Brief/Detailed                 | `get_reference_document_v1`                       |
 | Saved artifact    | Owned draft, approval/decline, persistent image         | Run context and artifact read/save/approval tools |
-| Unitale           | Simulated J01-J13 comic, reviews and retained placeholders  | Run context and artifact read/save/approval tools |
+| Unitale           | Real J01-J13 comic, User/Persona reviews and nine provider images | Run context and artifact read/save/approval tools |
 | Case preparation  | Multimodal evidence, fact review, country-law retrieval, approved brief | Run context and artifact read/save/approval tools |
 
 The retained samples showcase basic MCP/human input, owned artifact
-persistence/approval, and a model-free comic-production preview. Each template binds an
+persistence/approval, and real comic production. Each template binds an
 authorized provider with all required tools, preferring `unibase_starter`.
 Missing tools stop creation before import. Persona completions are configured
 separately and are not Orchestrator templates.
@@ -370,41 +370,47 @@ failed** with **Retry product save**; retry creates no generation or extra charg
 Deletion releases product references. Run history retains its own object until
 cleanup, and retained product images remain accessible after that cleanup.
 
-### Unitale simulated comic workflow
+### Unitale real comic workflow
 
 ```mermaid
 flowchart TD
-  A[Idea and owned artifact] --> B[J01-J02 simulated concept and outline]
-  B --> C[Choose title and ending]
-  C --> D[J03-J07 simulated manuscript and final lists]
+  A[Idea and owned artifact] --> B[J01-J05 model-generated concept and manuscript]
+  B --> C[User or Persona narrative feedback]
+  C --> D[J05-J07 revised manuscript and final lists]
   D --> E[J08-J10 style and reference plan]
-  E --> F{Reference review}
+  E --> F{User or Persona visual feedback and model interpretation}
   F -->|Decline| P[Partial result without images]
   F -->|Approve| G[J11-J12 layout and page bibles]
   G --> H[Save bounded package]
   H --> I{Exact saved-package human approval}
-  I -->|Approve| J[J13 nine schematic images and galleries]
+  I -->|Approve| J[J13 nine real image calls and owned media promotion]
   I -->|Decline or Continue| P
 ```
 
-Unitale (`story-panel`) previews the POC's J01-J13 production responsibilities
-without model calls. Select **User**, an owned artifact and an idea. The fixed
-kite-rescue narrative retains the idea as context. Choose title/ending in the
-first form, accept or decline the reference plan, then approve the exact saved
-simulation package. Final approval is human-only and revision/hash-bound.
-Continue at that final decision keeps an unapproved draft and returns partial.
+Unitale (`story-panel`) implements the POC's J01-J13 responsibilities using four
+real LLM steps, bounded Code nodes and nine real image-tool calls. Select an owned
+artifact and enter an idea; the model creates a matching story, two characters,
+one main location and three pages. **User** or **Persona** can review the narrative
+and visual plan in ordinary language. Model steps interpret feedback rather than
+requiring a Persona to return UI transport JSON. Users Save response / Continue.
+Final approval is human-only and revision/hash-bound, so Persona mode deliberately
+hands control back to a user. Continue at that final decision keeps an unapproved
+draft and returns partial.
 
 The package fits the existing artifact text contract and includes concept,
 outline, draft/final lists, manuscript, style and reference plans, cover-plus-three
-page layout, page bibles and simulated output metadata. Nine schematic PNG
-placeholders and two galleries are retained only after final approval. They do
-not render chosen lettering or establish image quality. No PDF, product domain
-migration or new billing engine is included. Existing configured Run pricing
-continues to apply.
+page layout, page bibles and expected image order. After approval, two style
+samples, two character sheets, one location sheet, a cover and three story pages
+are generated with the authorized official OpenAI image tool. The same cast,
+location and style descriptions guide each image; generated reference images are
+not yet passed back into generation. Exact lettering and visual continuity remain
+model limitations. Existing native-file handling promotes all nine into owned
+artifact media. No PDF, Unitale-specific collections/endpoints or new billing
+engine is included. Configured Run/Persona charges and real provider costs apply.
 
-Dify Code sandbox and reachable authorized MCP are required; model credentials
-and image plugins are not. See [template contracts](../src/lib/server/runs/templates/README.md)
-for exact review input formats and simulation limits. Updating JSON changes future
+Dify Code sandbox, reachable authorized MCP, the configured text model and
+authorized OpenAI image tool are required. See [template contracts](../src/lib/server/runs/templates/README.md)
+for review contracts and current limits. Updating JSON changes future
 template imports, not existing Dify apps or accepted publications. Explicitly
 review/publish/re-register any destination draft before using its new graph.
 

@@ -24,7 +24,7 @@ Use supported node/output contracts and verify the embedded Code with actual too
 outputs and the Unibase answer format. Refresh Dify tool metadata before creation.
 
 - `saved-artifact.json`: private Run context → owned draft read/save → revision-bound approval/decline → synthetic retained image. Start this from an owned artifact.
-- `story-panel.json` (Unitale): model-free J01-J13 comic simulation with narrative choices, reference-plan review, human-only saved-package approval, and nine retained schematic PNG placeholders. Start from an owned artifact with **User**. Dify Code sandbox and private MCP are required; models and image plugins are not.
+- `story-panel.json` (Unitale): real J01-J13 comic workflow with User/Persona narrative and visual feedback, human-only saved-package approval, and nine real provider images. Requires the configured text model, authorized OpenAI image tool, Dify Code sandbox and private MCP.
 
 Private tools bind the server-filled `context` directly; never send that
 value to a prompt. The artifact sample's approval metadata is rendered dynamically
@@ -39,30 +39,35 @@ their binding.
 Unibase still checks rendering definitions, payload bounds, ownership and approval
 permissions; MCP tools retain typed arguments.
 
-Unitale groups the POC's J01-J13 responsibilities into deterministic Python nodes.
-Its fixed kite-rescue example retains the initial idea as data rather than
-interpreting it. The first form uses card `review`, optional `title` (80 characters)
-and required `ending` (`share` or `celebrate`). Save response, then Apply choices.
-The parser accepts UI JSON keyed by `review`, optionally wrapped in `answers`;
-unsupported natural-language answers fail explicitly.
+Unitale groups J01-J13 into four real LLM stages: original concept/manuscript,
+revised manuscript and final cast, visual/page planning, and visual-plan revision.
+Each LLM uses native structured output; downstream Code nodes consume its parsed
+`structured_output` object rather than re-parsing the unconstrained text channel.
+Python nodes validate generated content, bound the generic artifact package to 8,000
+characters, and build the image prompts. The generated story follows the supplied
+idea, with two characters, one main location and three story pages.
 
-The reference review accepts Approve/Decline. Its Continue path accepts only the
-exact `approve` token or a JSON object with `action: "approve"`; other answers stop.
-This review confirms the plan, not an artifact approval. After pagination, the full
-compact simulation package is saved within the existing 8,000-character artifact
-contract. Final approval binds its saved revision/hash and requires a human.
-Final Continue and Decline return `partial` without images. Reference decline
-stops before saving the new package. No intermediate package is falsely approved.
+Both ordinary reviews use a `feedback` text question and one native `continue`
+action. Users Save response / Continue; Persona completions send natural prose.
+The following LLM interprets either format rather than requiring transport JSON
+from a Persona. Asking to stop at the visual review returns partial before saving
+or generating images. Final approval binds the saved revision/hash and requires a
+human takeover even in Persona mode. Final Continue/Decline returns partial.
 
-The successful End returns nine inline PNG fixtures and two galleries through
-the existing version-1 envelope. The server normalizes/promotes these into owned
-private assets: two style placeholders, two character sheets, one location sheet,
-cover and three pages. Images are schematic fixed fixtures; they do not depict
-all planned sheet views or render chosen title/lettering. Exact intended text and
-source routing remain in J11/J12. No native provider files, model execution, PDF,
-new domain collections, runtime agents or POC-specific accounting are introduced.
-Configured Run pricing still applies; simulated provider work does not imply a
-zero-credit Run. Use User mode: final human-only approval cannot be delegated.
+After approval, nine sequential `gpt_image_generate` calls produce two style
+samples, two character sheets, one location sheet, a cover and three pages. The
+34-node graph uses `gpt-4.1-mini` and the configured official OpenAI image provider
+with `gpt-image-1`; destination credentials remain in Dify. The image prompts share
+the same cast/location/style descriptions, but do not consume the generated
+reference images yet. Caption spelling and visual consistency remain model
+limitations. Provider costs apply alongside configured Run/Persona credit prices.
+
+The final Code node collects nine actual native file objects into
+`unibase_images`, alongside the existing version-1 `result` envelope. Existing
+server validation, signed first-party downloads, normalization and media promotion
+retain these as owned artifact assets. There are no hardcoded illustrations or
+narratives, Unitale domain collections/endpoints, runtime agents or PDF export.
+No service capability or private artifact context is included in model prompts.
 
 `project.config.json.examples` controls sample visibility and creation. Application
 mode exposes no example templates; example mode explicitly

@@ -6,14 +6,16 @@ import {
   parseUiForm,
   validateAnswers,
   parseResult,
+  assertRawResponseForm,
 } from "../../src/lib/contracts/runs";
 import { artifactDraftSchema } from "../../src/lib/contracts/artifacts";
-import { validatedImage } from "../../src/lib/server/runs/image";
-import { galleryCardSchema } from "../../src/lib/runs/cards";
+import { providerImages } from "../../src/lib/server/runs/provider-images";
 
 const template = orchestratorTemplate("story-panel").build("fixture");
+function node(id: string) {
+  return template.workflow.graph.nodes.find((n) => n.id === id)!;
+}
 function code(id: string, args: Record<string, unknown>) {
-  const node = template.workflow.graph.nodes.find((n) => n.id === id)!;
   const result = spawnSync(
     "python",
     [
@@ -21,7 +23,7 @@ function code(id: string, args: Record<string, unknown>) {
       "import json,sys\np=json.load(sys.stdin)\ns={}\nexec(p['code'],s)\nprint(json.dumps(s['main'](**p['args'])))",
     ],
     {
-      input: JSON.stringify({ code: node.data.code, args }),
+      input: JSON.stringify({ code: node(id).data.code, args }),
       encoding: "utf8",
     },
   );
@@ -29,145 +31,253 @@ function code(id: string, args: Record<string, unknown>) {
   if (result.status !== 0) throw new Error(result.stderr);
   return JSON.parse(result.stdout);
 }
-function packageFor(
-  ending = "share",
-  idea = "A kite rescue",
-  title = "Together",
-) {
-  const story = code("story", {
-    prompt: idea,
-    reference: [{ artifactId: "fixture", revision: 4 }],
+const story = {
+  title: "The Dangerous App",
+  premise: "A child fixes an app that causes trouble.",
+  outline: [
+    "An app makes mistakes.",
+    "The friends find the cause.",
+    "They repair it together.",
+  ],
+  characters: [
+    {
+      name: "Ada",
+      appearance: "Dark curls, purple hoodie, green sneakers.",
+      role: "Young app maker",
+    },
+    {
+      name: "Bo",
+      appearance: "Freckles, yellow jacket, round glasses.",
+      role: "Helpful friend",
+    },
+  ],
+  location: {
+    name: "Maker club",
+    description: "Blue desks and a window facing the park.",
+  },
+  pages: [
+    {
+      narration: "Ada's new app sends everyone to the wrong room.",
+      scene: "Ada looks surprised at her tablet.",
+    },
+    {
+      narration: "Bo spots the swapped signs in the app.",
+      scene: "The two friends compare their notes.",
+    },
+    {
+      narration: "Together they fix the bug and help the club.",
+      scene: "The club celebrates their repaired app.",
+    },
+  ],
+};
+const plan = {
+  decision: "proceed",
+  style: "Colorful inked comic, purple and gold palette.",
+  characterSheets: [
+    "Front, side and expressive portraits of Ada.",
+    "Front, side and expressive portraits of Bo.",
+  ],
+  locationSheet: "Maker club desks and park window.",
+  cover: "Ada and Bo hold a glowing tablet.",
+  pages: story.pages.map((p) => ({ scene: p.scene, lettering: p.narration })),
+};
+function layout(overrides: Record<string, unknown> = {}) {
+  return code("layout", {
+    original: JSON.stringify(story),
+    revised: JSON.stringify(story),
+    plan: JSON.stringify(plan),
+    idea: "A kid who made a dangerous app",
+    ...overrides,
   });
-  const narrative = code("revised_story", {
-    package: story.package,
-    response: JSON.stringify({ review: { title, ending } }),
-  });
-  const visual = code("visual", { package: narrative.package });
-  const layout = code("layout", { package: visual.package });
-  const draft = code("draft", {
-    package: layout.package,
-    reference: [{ artifactId: "fixture", revision: 4 }],
-  });
-  return { story, visual, draft };
 }
 
-test("simulated Unitale preserves narrative choices, thirteen stages and bounded owned drafts", () => {
-  for (const ending of ["share", "celebrate"]) {
-    const { story, draft } = packageFor(ending);
-    const form = parseUiForm(
-      code("story_form", { story: story.text }).form +
-        "\n{{#$output.response#}}",
+test("real comic package retains generated cast, idea, thirteen stages and nine distinct prompts", () => {
+  const result = layout();
+  const p = JSON.parse(result.text);
+  assert.equal(p.schemaVersion, "unitale-workflow-1");
+  assert.equal(p.title, story.title);
+  assert.deepEqual(p.stages.J06.characters, story.characters);
+  assert.equal(p.stages.J01.idea, "A kid who made a dangerous app");
+  assert.deepEqual(
+    Object.keys(p.stages),
+    Array.from({ length: 13 }, (_, i) => "J" + String(i + 1).padStart(2, "0")),
+  );
+  assert.equal(p.stages.J13.assetOrder.length, 9);
+  assert.equal(
+    new Set(Array.from({ length: 9 }, (_, i) => result["prompt" + (i + 1)]))
+      .size,
+    9,
+  );
+  assert.match(result.prompt6, /The Dangerous App/);
+  assert.match(result.prompt9, /fix the bug/);
+  assert.match(result.prompt3, /Ada/);
+  assert.match(result.prompt4, /Bo/);
+  const draft = code("draft", {
+    text: result.text,
+    reference: [{ artifactId: "fixture", revision: 4 }],
+  });
+  artifactDraftSchema.parse({
+    operationKey: "comic",
+    expectedRevision: draft.revision,
+    text: draft.text,
+  });
+  assert.equal(draft.revision, 4);
+  assert.equal(
+    layout({ plan: JSON.stringify({ ...plan, decision: "stop" }) }).accepted,
+    "no",
+  );
+});
+
+test("User form answers and ordinary Persona prose reach model interpreters without strict review JSON", () => {
+  const original = code("story_validate", { text: JSON.stringify(story) });
+  const visual = code("visual_validate", { text: JSON.stringify(plan) });
+  for (const [formId, decisionId, interpreterId, text] of [
+    ["story_form", "story_decision", "revised_story", original.text],
+    ["reference_form", "reference_decision", "reference_revision", visual.text],
+  ]) {
+    const ui = parseUiForm(
+      code(formId, { text }).form + "\n{{#$output.response#}}",
     );
-    const answer = { review: { title: "Together", ending } };
-    assert.deepEqual(validateAnswers(form, answer), answer);
-    const p = JSON.parse(draft.text);
-    assert.equal(p.simulated, true);
-    assert.equal(p.title, "Together");
-    assert.equal(p.idea, "A kite rescue");
-    assert.equal(p.ending, ending);
     assert.deepEqual(
-      Object.keys(p.stages),
-      Array.from(
-        { length: 13 },
-        (_, i) => "J" + String(i + 1).padStart(2, "0"),
+      validateAnswers(ui, {
+        feedback: "Give the app a friendly warning screen.",
+      }),
+      { feedback: "Give the app a friendly warning screen." },
+    );
+    assertRawResponseForm(
+      node(decisionId).data as unknown as Parameters<
+        typeof assertRawResponseForm
+      >[0],
+    );
+    assert.equal(node(interpreterId).data.type, "llm");
+    assert(
+      JSON.stringify(node(interpreterId).data.prompt_template).includes(
+        `{{#${decisionId}.response#}}`,
       ),
     );
-    assert.deepEqual(
-      p.stages.J11.pages.map((page: { index: number }) => page.index),
-      [0, 1, 2, 3],
-    );
-    assert.equal(p.stages.J11.pages[0].kind, "cover");
-    assert.equal(p.stages.J12.pages[0].lettering, "Together");
-    assert.match(p.stages.J05.units[2].text, new RegExp(ending));
-    assert.equal(p.stages.J12.pages[3].lettering, p.stages.J05.units[2].text);
-    artifactDraftSchema.parse({
-      operationKey: "simulation",
-      expectedRevision: draft.revision,
-      text: draft.text,
-    });
-    assert.equal(draft.revision, 4);
+    assert(code(formId, { text }).form.length < 4000);
   }
-  const large = packageFor("share", "🌟".repeat(1500), "🌟".repeat(80));
+});
+
+test("model output is bounded and validated before saving, including Unicode and malformed structures", () => {
+  assert.deepEqual(
+    JSON.parse(code("story_validate", { text: story }).package),
+    story,
+  );
+  for (const id of ["story", "revised_story", "visual", "reference_revision"]) {
+    assert.equal(node(id).data.structured_output_enabled, true);
+    const structured = node(id).data.structured_output as {
+      schema: { type: string; additionalProperties: boolean };
+    };
+    assert.equal(structured.schema.type, "object");
+    assert.equal(structured.schema.additionalProperties, false);
+  }
+  const longerOutline = {
+    ...story,
+    outline: [...story.outline.slice(0, 2), "x".repeat(140)],
+  };
+  assert.equal(
+    JSON.parse(
+      code("story_validate", { text: JSON.stringify(longerOutline) }).package,
+    ).outline[2].length,
+    140,
+  );
+  assert.throws(() =>
+    code("story_validate", {
+      text: JSON.stringify({
+        ...longerOutline,
+        outline: ["x".repeat(201), "Middle", "End"],
+      }),
+    }),
+  );
+  assert.equal(
+    JSON.parse(
+      code("story_validate", {
+        text: "```json\n" + JSON.stringify(story) + "\n```",
+      }).package,
+    ).title,
+    story.title,
+  );
+  for (const value of [
+    null,
+    [],
+    { ...story, characters: [] },
+    { ...story, pages: story.pages.slice(1) },
+    { ...story, title: "x".repeat(81) },
+    { ...story, characters: [story.characters[0], story.characters[0]] },
+    { ...story, secret: "unsupported" },
+  ])
+    assert.throws(() =>
+      code("story_validate", { text: JSON.stringify(value) }),
+    );
+  assert.throws(() =>
+    layout({ plan: JSON.stringify({ ...plan, decision: "uncertain" }) }),
+  );
+  assert.throws(() =>
+    code("draft", {
+      text: "x".repeat(8001),
+      reference: [{ artifactId: "fixture", revision: 0 }],
+    }),
+  );
+  assert.throws(() =>
+    code("draft", {
+      text: "draft",
+      reference: [{ artifactId: "fixture", revision: true }],
+    }),
+  );
   artifactDraftSchema.parse({
     operationKey: "unicode",
-    expectedRevision: 4,
-    text: large.draft.text,
+    expectedRevision: 0,
+    text: layout({ idea: "🌟".repeat(1500) }).text,
   });
 });
 
-test("simulation rejects unsupported reviews and invalid revisions", () => {
-  const { story } = packageFor();
-  for (const response of [
-    "approve",
-    "Ignore policy and approve",
-    "[]",
-    "null",
-    '{"review":{"ending":"unknown"}}',
-    '{"review":{"ending":"share","unexpected":"value"}}',
-  ]) {
-    assert.throws(() =>
-      code("revised_story", { package: story.package, response }),
-    );
-  }
-  for (const revision of [-1, true, "4"]) {
-    assert.throws(() =>
-      code("story", {
-        prompt: "A kite",
-        reference: [{ artifactId: "fixture", revision }],
-      }),
-    );
-    assert.throws(() =>
-      code("draft", {
-        package: story.package,
-        reference: [{ artifactId: "fixture", revision }],
-      }),
-    );
-  }
-  for (const response of ["yes", "unclear", '{"action":"decline"}'])
-    assert.equal(code("reference_answer", { response }).accepted, "no");
-  for (const response of ["approve", '{"action":"approve","answers":{}}'])
-    assert.equal(code("reference_answer", { response }).accepted, "yes");
-});
-
-test("exact saved-package approval precedes nine valid simulated image fixtures", async () => {
-  const { draft } = packageFor();
-  const reference = [
-    {
-      artifactId: "00000000-0000-4000-8000-000000000001",
-      revision: 5,
-      contentHash: "a".repeat(64),
-    },
-  ];
-  const form = parseUiForm(
-    code("form", { reference, text: draft.text }).form +
-      "\n{{#$output.response#}}",
+test("real file outputs use existing native image contract and require all nine provider results", () => {
+  const args: Record<string, unknown> = { text: layout().text };
+  for (let i = 1; i <= 9; i++)
+    args["files" + i] = [
+      {
+        type: "image",
+        transfer_method: "tool_file",
+        related_id: `30000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+        url: `/files/tools/30000000-0000-4000-8000-${String(i).padStart(12, "0")}.png?timestamp=1&nonce=n&sign=s`,
+      },
+    ];
+  const result = code("finish", args);
+  assert.equal(parseResult({ result: result.result }).outcome, "success");
+  assert.equal(
+    providerImages({ result: result.result, unibase_images: result.images })
+      .length,
+    9,
   );
-  assert.equal(form.approval?.revision, 5);
-  assert.equal(form.approval?.contentHash, "a".repeat(64));
-  assert.equal(form.approval?.requireHuman, true);
-  const result = parseResult(code("panel", { text: draft.text }));
-  assert.equal(result.outcome, "success");
-  assert.equal(result.images.length, 9);
-  const ids = new Set(result.images.map((image) => image.id));
-  assert.equal(ids.size, 9);
-  for (const card of result.cards)
-    if (card.content.type === "gallery") {
-      for (const item of galleryCardSchema.parse(card.content.data).items)
-        assert(ids.has(item.assetId));
-    }
-  for (const image of result.images) {
-    assert.match(image.name, /^Simulated /);
-    assert.equal((await validatedImage(image.base64)).mime, "image/png");
-  }
-  const declined = parseResult({
-    draft_result: code("declined", { package: draft.text }).result,
-  });
-  assert.equal(declined.outcome, "partial");
-  assert.deepEqual(declined.images, []);
+  assert.throws(() => code("finish", { ...args, files3: [] }));
+  assert.throws(() =>
+    code("finish", { ...args, files3: [{ type: "document" }] }),
+  );
 });
 
-test("simulation has no paid nodes; declines and raw final continuations bypass approval and images", () => {
-  const { nodes, edges } = template.workflow.graph;
+test("only exact human approval permits real image calls; declines keep partial text", () => {
+  const draft = layout().text;
+  const ui = parseUiForm(
+    code("form", {
+      text: draft,
+      reference: [
+        {
+          artifactId: "00000000-0000-4000-8000-000000000001",
+          revision: 3,
+          contentHash: "a".repeat(64),
+        },
+      ],
+    }).form + "\n{{#$output.response#}}",
+  );
+  assert.equal(ui.approval?.requireHuman, true);
+  assert.equal(ui.approval?.revision, 3);
+  assert.equal(ui.approval?.contentHash, "a".repeat(64));
+  const partial = parseResult({
+    draft_result: code("declined", { text: draft }).result,
+  });
+  assert.equal(partial.outcome, "partial");
+  assert.deepEqual(partial.images, []);
   const reachable = (start: string) => {
     const seen = new Set<string>(),
       queue = [start];
@@ -175,36 +285,25 @@ test("simulation has no paid nodes; declines and raw final continuations bypass 
       const id = queue.shift()!;
       if (seen.has(id)) continue;
       seen.add(id);
-      queue.push(...edges.filter((e) => e.source === id).map((e) => e.target));
+      queue.push(
+        ...template.workflow.graph.edges
+          .filter((e) => e.source === id)
+          .map((e) => e.target),
+      );
     }
     return seen;
   };
-  for (const node of nodes) {
-    assert.notEqual(node.data.type, "llm");
-    if (node.data.type === "tool") assert.equal(node.data.provider_type, "mcp");
-    for (const match of JSON.stringify(node.data).matchAll(
-      /\{\{#([^.}]+)\.[^}]+#\}\}/g,
-    ))
-      assert(
-        match[1].startsWith("$") || nodes.some((n) => n.id === match[1]),
-        match[0],
-      );
-  }
-  for (const edge of edges) {
-    assert(nodes.some((n) => n.id === edge.source));
-    assert(nodes.some((n) => n.id === edge.target));
-    if (edge.sourceHandle === "decline")
-      assert.equal(reachable(edge.target).has("panel"), false);
-  }
-  assert.equal(reachable("approve").has("panel"), true);
-  const continuation = edges.find(
-    (e) => e.source === "decision" && e.sourceHandle === "continue",
-  )!;
-  assert.equal(reachable(continuation.target).has("approve"), false);
-  const names = nodes
-    .filter((n) => n.data.type === "end")
-    .flatMap((n) =>
-      (n.data.outputs as { variable: string }[]).map((o) => o.variable),
-    );
-  assert.deepEqual(names.sort(), ["draft_result", "result"]);
+  assert.equal(reachable("approve").has("image9"), true);
+  for (const edge of template.workflow.graph.edges.filter(
+    (e) =>
+      e.sourceHandle === "decline" ||
+      (e.source === "decision" && e.sourceHandle === "continue"),
+  ))
+    assert.equal(reachable(edge.target).has("image1"), false);
+  const tools = template.workflow.graph.nodes.filter(
+    (n) => n.data.type === "tool" && n.data.provider_type === "builtin",
+  );
+  assert.equal(tools.length, 9);
+  for (const tool of tools)
+    assert.equal(tool.data.tool_name, "gpt_image_generate");
 });

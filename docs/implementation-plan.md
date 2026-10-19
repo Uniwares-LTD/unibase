@@ -1373,3 +1373,107 @@ verified; actual destination Dify acceptance remains a trial step. No commit,
 publication or deployment was performed. Before deriving a product with the
 initializer, create/select a reviewed commit containing these local fixes;
 the initializer deliberately does not copy an uncommitted working tree.
+
+### Unitale local trial activation — 2026-10-18
+
+At the user's subsequent request, the existing Unitale Dify app was backed up,
+updated in place, published and registered. The final tested publication is
+`f6f86d46-5efa-45c0-a3b6-c46f6717a02d`; its 22 nodes retain the existing MCP
+provider and application identity. The local web server and rebuilt AI worker
+were restarted. MongoDB, the Auth Emulator, accounts, artifacts and accounting
+history were preserved; no entity deletion was necessary.
+
+Live testing exposed a reference-review contract mismatch: an ordinary raw
+question cannot offer multiple native actions without artifact approval metadata.
+The reference review now collects an explicit approve/decline form choice and
+uses a single Continue action. Its regression test executes the Python form and
+parser through the actual UI-answer contracts for both choices and supported
+wrappers. Final approval remains human-only and bound to the saved revision/hash.
+
+The browser trial completed all three reviews. The successful retry finished in
+35 seconds, charged the configured one credit, applied the product result, and
+retained nine distinct PNG images on the approved artifact revision. All nine
+loaded and returned authenticated HTTP 200 image/png responses. These are
+schematic fixtures, not a finished Unitale reader or dedicated download UI.
+The earlier approval attempt failed when the temporary Cloudflare MCP tunnel
+returned HTTP 530; it charged zero credits. A superseded QA Run's cancellation
+request remains provider-dependent; its retained identity and hold must not be
+deleted or manually released on an unconfirmed stop acknowledgment.
+
+The affected five Python/template tests, TypeScript, production web/worker build,
+affected-test lint, formatting, documentation, i18n and pinned-skill checks passed.
+A separate read-only review verified the template, regression and documentation
+diff. This establishes local trial readiness while the tunnel is connected;
+it does not establish reliable hosted ingress. Cloudflare's temporary tunnel
+continues to reconnect intermittently, so a provider connection error can require
+retry after recovery. Start a new Run to use this publication; accepted older
+attempts retain their original workflow snapshots.
+
+### Corrected Unitale trial contract — 2026-10-18
+
+The user clarified that “semi-real” means real creative generation inside Dify,
+without implementing the future Unitale domain schema or endpoints. This
+supersedes the earlier simulation interpretation. Keep the Unibase reuse milestone
+and existing owned artifact, MCP, accounting and media contracts. Preserve accepted
+Runs/publications and source/provider identity.
+
+The corrected `story-panel` template has four real LLM steps and nine image-tool
+calls. It turns the supplied idea into a three-page story with two characters and
+one main location, accepts ordinary User or Persona feedback on narrative and
+visual plans, saves a bounded J01-J13 package in generic artifact text, and requires
+human revision/hash-bound approval before generating two style samples, two
+character sheets, one location sheet, a cover and three pages. Native Dify files
+use existing first-party validation and product media promotion. No new app
+collections, endpoints, custom runtime, provider credentials or billing engine are
+introduced. Shared descriptions guide image consistency; generated references are
+not yet fed back into page generation. PDF and a dedicated reader remain deferred.
+
+The reported Persona failure was traced to `revised_story`: the responder returned
+valid natural prose while the simulation Code node demanded a specific `review`
+JSON object. Both ordinary decisions now feed a following LLM interpretation
+step, retaining the raw-v1 contract and human-only final approval. Real provider
+costs and configured Run/Persona credit charges apply.
+
+Acceptance: no fixed narrative/illustration fixtures; supplied ideas drive model
+prompts; ordinary Persona answers advance through both reviews; final human
+approval is preserved; nine actual image files are retained on success; malformed
+content, size limits, decline and missing-file cases are checked. Verify local
+contracts, build/type checks, actual Dify native-file serialization, a live Persona
+journey and a separate read-only review before recording final acceptance.
+
+#### Verified real-generation trial — 2026-10-19
+
+The existing Unitale app is published and registered with workflow
+`54b98eeb-63f0-46e8-b1b3-5a668547778d` (34 nodes). Every LLM now uses native
+structured output; Code nodes consume the parsed object and retain strict content
+and artifact bounds. This corrected a live malformed-JSON response without
+weakening storage validation. Outline requests target 120 characters with a
+200-character validation ceiling to tolerate a small natural-language overrun.
+
+The Teenager Persona trial used the dangerous-app idea and completed both
+automatic creative reviews. Its prose feedback was reflected in the revised
+story and visual plan. The final decision correctly required user takeover and
+exact saved-package approval. All nine real image calls then succeeded. The app
+recovered the same provider execution after a connection timeout, promoted all
+nine 1536×1024 PNGs and applied the product result to approved artifact revision 1.
+Browser verification loaded all nine distinct images and retrieved each with
+authenticated HTTP 200/image/png responses. The comic, cast sheets, location,
+cover and three lettered pages were visually inspected. The successful attempt
+settled three configured credits: one main and two Persona answers; provider
+charges remain separate. Prior failed attempts remain historical evidence.
+
+Six focused template/catalog checks passed after the final code change, covering
+native objects, plain Persona feedback, UI answers, bounds, malformed content,
+missing files and approval/decline behavior. The 180 account/service checks passed
+before the final structured-output adjustment; the affected template checks were
+then repeated. Final production web/worker build, separate TypeScript, affected
+lint, formatting, documentation, i18n and skill-integrity checks passed. A separate
+read-only review found no outstanding in-scope defect. Graph reachability checked
+that every image path crosses approval and model prompts exclude private context.
+
+For this local trial, the existing private MCP provider was reconnected to a
+verified MCP-only ngrok tunnel after repeated Cloudflare interruptions. Provider
+identity and credentials were preserved; unknown paths returned 404 and anonymous
+MCP returned 401. This is temporary development ingress, not a hosted reliability
+guarantee. No accounts, accepted Runs, financial records or user artifacts were
+deleted. No commit or Git publication was performed.

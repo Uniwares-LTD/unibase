@@ -341,8 +341,8 @@ Create selects an allowlisted JSON DSL from `src/lib/server/runs/templates` thro
 a shadcn dropdown. Server Components pass only template metadata to the client;
 graphs and provider configuration stay server-only. The example templates
 are Document summary (basic MCP/human input), Saved artifact (owned draft, approval
-and retained media), and Unitale (simulated comic stages, grouped reviews and
-retained schematic placeholders), plus Case preparation (multimodal evidence, fact review and supplied-law
+and retained media), and Unitale (real comic generation, grouped reviews and
+retained provider images), plus Case preparation (multimodal evidence, fact review and supplied-law
 retrieval). Unitale retains the `story-panel` ID. Case preparation imports a private
 draft with `setup-required` status; destination-specific country, Knowledge base
 and multimodal models are configured in Dify before publication/registration. Its
@@ -488,14 +488,16 @@ JSON values are serialized once for Dify's paragraph input; strings stay exact.
 Original response values are retained separately from provider input strings and
 participate in retry hashes. The consuming workflow node interprets the response.
 Renderable component definitions and tool execution still have checked contracts.
-The Unitale template is a deterministic J01-J13 comic-production preview.
-Python nodes simulate narrative, reference packages, pagination and page bibles.
-Three decisions collect title/ending choices, accept a reference plan, and approve
-the exact saved package. The final decision requires a human; raw Continue never
-supplies that approval. No LLM or image-provider node is included. Nine inline
-schematic PNG fixtures become owned Run/product assets through the existing media
-pipeline. Their images do not vary with the chosen title/ending; the compact
-saved package retains exact intended text. The `story-panel` ID remains stable
+The Unitale template implements a real J01-J13 comic workflow with four LLM steps
+and bounded Python validation/packaging. Native structured-output objects cross
+each model/Code boundary. Two ordinary-language review decisions
+accept User or Persona feedback. Model steps interpret both natural text and form
+answers. A final exact saved-package approval requires a human; raw Continue never
+supplies that approval. Nine image-tool calls generate style samples, character
+and location references, a cover and three pages after approval. Existing native
+file promotion retains the images as owned Run/product assets. Shared text
+descriptions guide visual consistency; generated reference images are not yet
+fed back into the page generator. The `story-panel` ID remains stable
 for creation-journal compatibility, and existing publications/accepted Runs are
 not rewritten. This sample adds no comic domain service or replacement accounting.
 
