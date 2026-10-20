@@ -34,13 +34,20 @@ host files. Dev/start and administration commands load tracked local defaults af
 Next.js private env files; explicit process/private values win locally. Live images
 use generated runtime files. Builds receive no live credentials or deployment config.
 
+On provisioning and release, non-null tracked `runtime` values override matching
+private host values. To activate an optional integration, update its tracked mode
+as well as its private credentials; changing only `runtime.env` cannot override a
+tracked disabled mode. Rollback uses the retained release snapshot instead of
+merging the current tracked settings.
+
 Configure these fields before the first preview:
 
 - `runtime`: exact environment, canonical HTTPS origin, display/style defaults,
   Firebase project ID and app-scoped database name. Keep Dify, payments and MCP
   disabled until their integrations are configured. Firebase browser app ID/API
   key are discovered during provisioning and retained privately as runtime values.
-- `deployment`: GHCR repository, free loopback port, unused private bridge subnet,
+- `deployment`: GHCR repository matching `ghcr.io/<owner>/<repository>` in lowercase
+  for this workflow repository (the same in both environments), free loopback port, unused private bridge subnet,
   and verified immutable Redis, Nginx and Node administration-image digests.
 - `ssh`: existing Access hostname/operator and pinned cloudflared version/checksum.
 - `google`: shared staging project ID; distinct production project ID and explicit
@@ -70,8 +77,8 @@ new defaults; review those overrides to start with fresh local namespaces.
 
 ## Secrets and one-time access bootstrap
 
-Create GitHub environments `staging` and `production`. In **Repository Settings ?
-Environments ? selected environment ? Add environment secret**, enter the following
+Create GitHub environments `staging` and `production`. In **Repository Settings >
+Environments > selected environment > Add environment secret**, enter the following
 names and private values. Allow `main` for provisioning and the matching release
 branch (`_staging` or `_prod`) for release/check/rollback. No GitHub variables are needed.
 
@@ -139,7 +146,7 @@ provider accounts and one-time OIDC trust remain operator prerequisites.
    registration with matching repository, slug, environment, hostname and port.
    Enable only reviewed entries. Keep provider/connection identities out of derived
    projects unless their shared profile is explicitly selected.
-2. Open **Actions ? Provision environment ? Run workflow**, select `main` and the
+2. Open **Actions > Provision environment > Run workflow**, select `main` and the
    target environment, and leave **apply** off. Preview verifies owner registration,
    pinned SSH, Google/Atlas access, Docker prerequisites, allocations and GHCR login
    without changing provider resources or persistent app configuration.
@@ -163,6 +170,13 @@ are persisted before user creation so an interrupted run can reuse them. Host
 files/directories stay private; snapshot credentials are UID 1001/mode 0400 and
 mounted read-only. Provider admin credentials use transient private request files,
 are removed on completion, and never enter runtime files or image layers.
+
+Provisioning also generates `/etc/<slug>/config.json` from the tracked environment
+documents. `deploy/config.example.json` illustrates this host format; it is not the
+configuration input for the workflows. Releases and their configuration snapshots
+live under `/opt/<slug>/<environment>/releases/`, with `current` and `previous`
+symlinks in the environment directory. The application operation lock lives at
+`/var/lib/<slug>/operation.lock`.
 
 Missing saved credentials for an existing Atlas user or Firebase key stop provisioning.
 Recover the private files through the operator's approved backup procedure rather
@@ -192,7 +206,7 @@ and indexes. Check and Rollback are also manual GitHub workflows on the matching
 release branch. Operations share the app host lock and workflow concurrency group.
 Shared infrastructure operations additionally serialize in the owner repository.
 Provisioning on this VPS also takes a project-scoped shared Firebase lock, so two
-derived apps cannot overwrite each other?s authorized-domain additions.
+derived apps cannot overwrite each other's authorized-domain additions.
 
 Releases snapshot private config and merge the selected tracked runtime settings.
 Changing infrastructure/provider identity requires provisioning first. Pull and
