@@ -1,5 +1,87 @@
 # VPS deployment
 
+## Staging transition status — 2026-10-22
+
+Existing commands below describe the **current implementation**, not a ready-to-run
+staging installation. Shared host facts are canonical in the private
+[infrastructure inventory](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/inventory/srv1.md);
+shared conventions and ownership are in its
+[architecture](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/architecture.md)
+and [operations](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
+
+Observed blockers: host Compose 2.28.1 is below this provisioner's 2.30 minimum;
+both suggested Unibase ingress subnets overlap Dify's network; the shared-route
+workflow expected by Unibase was absent from the reviewed agentic-poc setup.
+Staging connection/provider bindings remain placeholders. The October 22 GitHub
+check found only `main`, no repository secrets and no environments. The organization
+uses GitHub Free: the environment-secret instructions below require adaptation for
+this private repository. Local M4 verification does not establish live activation.
+
+### Target conventions and pending compatibility work
+
+| Area | Accepted target / required implementation change |
+| --- | --- |
+| Ownership | Unibase and children deploy independently; infrastructure owns new shared components. Booklet, Dify and the existing tunnel retain their owner until explicit transfer. |
+| Branches | `main` for development; `_staging` targets `staging`; `_prod` targets `prod`. Current code/config uses `production`; rename deliberately while preserving retained snapshots. Keep `NODE_ENV=production`. |
+| SSH | Shared `uniwares-ops-admin` for privileged setup; `uniwares-deploy-user` for restricted routine dispatch, without general sudo or Docker-group membership. Current host scripts are not that dispatcher. |
+| Secrets | One deploy key copied into trusted repository secrets; separate admin credential. Replace private-repository environment-secret dependence; use environment prefixes where values differ. Retain private runtime snapshots. |
+| Images | Public GHCR and anonymous digest pulls. Adapt private-package publishing/pull-user checks; builds remain credential-free. |
+| Firebase | Shared staging project and credentials across Unibase/children; explicit app registrations/domains. Production has a separate Firebase project per application. Adapt per-app credential provisioning without deleting existing keys. |
+| Redis | Shared non-Dify instance, numbered logical DB per app/environment, shared credential, no ACL requirement. Current setup expects its own Redis at database 0; adapt validators, Compose, readiness and secret handling. |
+| Dify | Existing Community, separate app IDs/keys per app/environment, tag `app:<project>-<environment>`. Tags organize bindings, not access boundaries. |
+| Ingress | Proposed shared gateway behind the existing tunnel initially, retaining legacy Nginx. Remove fixed per-app ingress subnets/Nginx only after equivalent auth-helper, streaming and trusted-proxy behavior is verified. |
+| Coordination | Repository Actions concurrency and runbooks for shared changes; no new cross-repository orchestration. Application leases/idempotency remain necessary. |
+| Database | Runtime database-scoped `readWrite`; separate workflow recovery credentials. Verify required backup/restore actions rather than assuming `dbAdmin` alone is sufficient. |
+
+These are target requirements, not changed workflow/schema behavior. Gateway/tunnel
+integration, replacement networking, tested Compose version and off-host backup
+destination remain open in the infrastructure plan.
+
+### Current and proposed background scheduling
+
+Current entrypoints are `scripts/ai-worker.ts` and `scripts/payment-worker.ts`.
+Each sleeps two seconds **after** a completed cycle, not on a fixed two-second
+deadline. No GitHub Actions cron is configured for these application jobs.
+
+| Work | Current behavior | Proposed endpoint/cadence and reason |
+| --- | --- | --- |
+| AI Runs, automatic decisions, result application | User actions queue durable work; AI worker handles due records; provider calls can take 120 seconds | AI endpoint, approximately five seconds after completion; keep due times, retries, ownership, accounting and uncertain-submission recovery |
+| Payment notices | Signed Stripe webhook queues idempotent notices; maintenance worker processes one per cycle | Events endpoint, about ten seconds after completion; preserve webhook authentication and durable retry |
+| Notifications | Business transactions enqueue outbox records; worker delivers up to ten per cycle | Same events endpoint; bounded batches keep delivery prompt |
+| Payment reconciliation | One pending order older than 15 minutes or settled order older than 24 hours per cycle | Maintenance every five minutes; retain age thresholds, process bounded batches to avoid backlog |
+| Credit expiry/reservations | Checked each cycle; wallet access also reconciles expiry | Five-minute maintenance; never release managed AI reservations solely due to elapsed time |
+| File/asset deletion | Leased deletion intents; abandoned staging eligible after 24 hours | Five-minute maintenance batches; preserve reference guards, retries and queued cleanup after mode changes |
+| Notification expiry | Repeated inbox/outbox sweep; index setup already defines inbox expiry TTL | Verify deployed TTL, remove redundant inbox sweep, retain outbox payload compaction and permanent duplicate-prevention records |
+| Runtime/rate-limit retention | MongoDB TTL and Redis key expiration | Keep native expiration, without another scheduler |
+| Health | Worker heartbeat records/files, including disabled AI | Endpoint progress/last-success with cadence-aware thresholds; avoid disabled-provider polling |
+
+Extract reusable job-cycle functions into server-only modules and add three
+authenticated, bounded local HTTP endpoints. Infrastructure-managed systemd timer
+templates invoke them. AI stays separate from events so long provider requests do
+not delay payments/notifications. Requests await work; no untracked fire-and-forget
+tasks. Timer non-overlap does not replace DB leases or safe crash recovery.
+Keep optional providers disabled until configured while general maintenance remains
+active. Revise release health checks before removing worker containers. Dify's own
+workers are unaffected. This refactor is pending, not available today.
+
+### Minimum staging recovery target
+
+Add one manual workflow with `backup`/`restore` actions. Back up the app MongoDB
+database including GridFS before migrations/destructive work; pause/drain writers
+and timers for consistency. Verify encrypted off-host bytes, checksum and manifest
+before success. Restore requires an exact backup ID and target confirmation, a
+pre-restore backup and health checks before resuming writers. Rehearse a disposable
+restore. Manual backups accept loss since the last successful backup; production
+policy remains unresolved.
+
+Keep image/config rollback separate from data restore. Recover secrets separately;
+omit ephemeral Redis backup and extend coverage before enabling S3 media. Shared
+Firebase identities and Dify recovery are outside an app database restore. The
+shared operations guide owns storage/credential boundaries.
+
+See the [staging transition plan](implementation-plan.md#shared-infrastructure-staging-transition--2026-10-22)
+for implementation and acceptance.
+
 ## Environment flows
 
 | Environment | Entry point | Identity and services |

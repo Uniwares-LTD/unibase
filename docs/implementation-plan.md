@@ -6,6 +6,10 @@ Status: M1 and M2 implementation are complete and locally verified on 2026-10-03
 
 ## Agreed decisions
 
+The [shared infrastructure staging transition](#shared-infrastructure-staging-transition--2026-10-22)
+records newer target deployment decisions. Historical implementation/verification
+below remains evidence of existing tooling, not completion of that transition.
+
 | Area           | Decision                                                                                                                                     |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Destination    | Implement the current Base foundation; downstream product work remains separate.                                                             |
@@ -24,6 +28,9 @@ Ordinary web changes become available inside the installed Android application o
 
 ## Milestone overview
 
+See the [pending staging transition](#shared-infrastructure-staging-transition--2026-10-22)
+for changes beyond the historical milestones.
+
 | Checkpoint | Demonstrable result                                                                      | Depends on                                                  |
 | ---------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | M1         | A responsive, themed application shell runs locally.                                     | None                                                        |
@@ -33,6 +40,38 @@ Ordinary web changes become available inside the installed Android application o
 | M5         | Integrated acceptance is documented and the repository is ready for feature development. | M1–M4                                                       |
 
 Android project preparation can finish before VPS activation. Digital Asset Links and the complete installed-device journey must be verified after an HTTPS deployment is available. Foundation code completion and live activation are recorded separately.
+
+## Shared infrastructure staging transition — 2026-10-22
+
+Status: documentation baseline accepted; runtime changes and live acceptance pending.
+The [deployment guide](deployment.md#staging-transition-status--2026-10-22) owns the
+application transition and job inventory. Host facts and shared operational decisions
+belong to [infrastructure](https://github.com/Uniwares-LTD/infrastructure/blob/main/README.md).
+
+- [ ] Resolve gateway/tunnel integration, network collisions, Compose compatibility
+  and app Redis allocation while preserving existing ownership.
+- [ ] Adapt secrets for GitHub Free private repos, public GHCR pulls and restricted
+  shared SSH access. Preserve independent application deployment workflows.
+- [ ] Adopt `staging`/`prod` on `_staging`/`_prod`, preserving retained runtime
+  snapshots/history and framework `NODE_ENV=production`.
+- [ ] Reconcile shared staging Firebase credentials/registrations and separate
+  production projects; adapt shared Redis logical DB validation/readiness.
+- [ ] Replace per-app ingress requirements with equivalent shared-gateway behavior,
+  including trusted headers, Firebase helper paths and streaming.
+- [ ] Extract AI/events/maintenance endpoints and configure timers. Preserve leases,
+  retries, quotas, accounting, notification and accepted Run safeguards. Replace
+  worker health checks before removing worker containers.
+- [ ] Add manual backup/restore with workflow-only credentials and verified off-host
+  storage; rehearse a disposable restore including GridFS.
+- [ ] Verify staging build/deploy/check/rollback, anonymous digest pull, authentication,
+  Redis separation, timers and recovery on the target host.
+
+Acceptance includes preserving Booklet/Dify/legacy services, rejecting unauthorized
+job calls, recovering interruptions without duplicate effects, preventing backlog
+regression through bounded batches, preserving notification tombstones and rejecting
+network overlap. Documentation checks do not establish these properties. No live
+credentials, services or release branches change in this documentation task.
+Production recovery objectives and legacy gateway migration remain separate work.
 
 ## M1 Application foundation and development conventions
 

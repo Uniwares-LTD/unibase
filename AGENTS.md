@@ -6,6 +6,12 @@ Read [the implementation plan](docs/implementation-plan.md) and the relevant cod
 
 ## Architecture
 
+- Before deployment work, read [the staging transition](docs/deployment.md#staging-transition-status--2026-10-22)
+  and [shared infrastructure guidance](https://github.com/Uniwares-LTD/infrastructure/blob/main/AGENTS.md).
+  Keep host facts in infrastructure and application behavior here. Distinguish planned
+  conventions from current code; documentation does not transfer Booklet/Dify/tunnel
+  ownership or authorize live changes.
+
 - Before changing MCP tools or transport, read [MCP implementation and maintenance](docs/mcp.md).
   Keep tool handlers server-only, permission-checked, bounded, and independent of
   transport. Service credentials never imply end-user ownership.
