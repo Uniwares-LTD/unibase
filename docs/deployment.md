@@ -82,6 +82,112 @@ shared operations guide owns storage/credential boundaries.
 See the [staging transition plan](implementation-plan.md#shared-infrastructure-staging-transition--2026-10-22)
 for implementation and acceptance.
 
+## Staging execution and acceptance
+
+Use the [infrastructure checkpoint runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md)
+as the operational entry point. It owns access, discovery, shared setup and the
+single configuration/progress checklist. This section owns application work at
+checkpoints 3 and 5-8. No live operation was performed while writing this runbook.
+
+### Prepare the application — checkpoint 3
+
+**Owner/location:** agent in the development checkout and PR review.
+**Implementation required:** complete the target adaptations above before invoking
+the current workflows against shared infrastructure. In particular, repository
+secrets, restricted SSH dispatch, public images, shared Redis and gateway behavior
+are not compatible merely because existing workflow files are present.
+
+Provide a reviewed build/publish preflight without host deployment. The current
+release script couples these operations; do not dispatch it early just to obtain
+the public candidate needed for checkpoint 5's anonymous-pull verification.
+
+Review the exact application revision and targeted checks for job authentication,
+bounded execution, duplicate suppression, lease recovery, proxy/Firebase behavior
+and retained runtime snapshots. Record their results and the reviewed infrastructure
+revision in the shared checklist. Quality warnings remain advisory; build and
+operational failures stop release. If tooling is missing, continue implementation
+on the reviewed branch rather than bypassing it with ad hoc VPS commands.
+
+### Configure staging — checkpoint 5
+
+**Owner/location:** agent through the reviewed provisioning workflow/provider APIs;
+operator supplies only unavailable credential references through protected stores.
+Prerequisites: shared host setup and the reviewed provisioning adaptations.
+
+Populate staging JSON with the verified hostname, shared Firebase/app registration,
+Atlas database/user and egress allowlist, Redis connection/database allocation,
+public package identity and gateway integration. Do not reuse the colliding subnet
+suggestions or copy Booklet release paths. Keep Dify/payments/MCP disabled initially.
+Store secret values in repository secrets/private runtime files, never JSON or build
+arguments. Provisioner OIDC, if retained, must also be verified rather than inferred
+from shared Firebase credentials. Verify runtime `readWrite` separately from recovery
+permissions. On interruption, preview current resources and repair only missing
+bindings; preserve accepted keys, shared identities and existing application data.
+
+### Release and verify — checkpoint 6
+
+**Owner/location:** agent via GitHub Actions for `Uniwares-LTD/unibase`.
+**Implementation required:** the files below exist today, but their target-compatible
+behavior must first be implemented, reviewed and verified. Their names/inputs are
+source-checked; no workflow dispatch was executed for this documentation change.
+
+| Existing file | Current interface | Use after adaptation |
+| --- | --- | --- |
+| `.github/workflows/deploy.yml` | Push `_staging`, or manual `environment=staging` on `_staging` | Deploy one reviewed staging revision |
+| `.github/workflows/check-deployment.yml` | Manual `environment=staging` on `_staging` | Verify the deployed app and scheduled job progress |
+| `.github/workflows/rollback.yml` | Manual `environment=staging` on `_staging` | Restore an actual retained previous image/configuration |
+
+Before dispatch, verify the reviewed `_staging` head, workflow availability and
+target match. A push already triggers Release; do not also manually dispatch the
+same commit. Record workflow ID/URL, source SHA, immutable image digest and retained
+configuration identity. A queued/running workflow is not acceptance evidence.
+Use the workflow interface and inspected summaries; do not render private Compose
+configuration or copy arbitrary logs into GitHub evidence.
+
+Verify all of the following before marking staging accepted:
+
+- Public hostname reaches the intended app; liveness and dependency readiness pass.
+  Authentication, authorized domain and Firebase helper behavior work end to end.
+- The host pulls the public image anonymously by digest; runtime secrets are absent
+  from build inputs and browser responses. Retained configuration matches the release.
+- The app uses its assigned Redis logical database; inspection confirms separation
+  without clearing any other database. Existing Booklet/Dify/legacy health is preserved.
+- All three job endpoints reject unauthorized calls; reviewed timers complete bounded
+  requests and expose cadence-appropriate progress. General maintenance works with
+  optional providers disabled. Live Stripe/Dify activation is a separate checkpoint;
+  use isolated fixtures for retry/idempotency tests, not real charges or paid AI calls.
+- Interrupted processing can resume without duplicate effects or premature release
+  of managed AI credit holds; outbox duplicate-prevention records remain intact.
+
+**Failure/resume:** inspect workflow outcome and actual candidate/prior state before
+retrying. On a failed first deployment, stop only the unhealthy Unibase candidate
+and its timers through reviewed tooling, retain data/configuration and redeploy a
+fixed reviewed revision. There is no previous release to roll back to. Do not invoke
+database restore or restart shared services. If a previous healthy release exists,
+use the reviewed image/config rollback and verify it before resuming work.
+
+### Rehearse recovery and hand off — checkpoints 7-8
+
+**Owner/location:** agent via application workflows; operator retains protected
+credential recovery references. **Implementation required:** the planned manual
+backup/restore workflow does not exist yet; do not invent a dispatch command/name.
+
+After two compatible healthy releases provide a real predecessor, exercise the
+existing image/config rollback through its adapted workflow. Separately, use the
+implemented backup workflow to verify an encrypted off-host staging archive and
+restore it to an explicitly named disposable database. Check records, indexes and
+GridFS bytes without exposing contents. Record backup ID and sanitized results.
+Record an empty restore target as having no prior data; back up any nonempty target
+before restore instead of assuming a disposable name means it is empty.
+Shared Firebase identities and Dify resources are outside this restore.
+
+Partial backup/restore is not success. Keep failed restoration isolated, retain its
+source/pre-restore backup and diagnose before retrying. Do not automatically resume
+unhealthy writers or delete source data. Record verified workflow entrypoints,
+release/recovery identifiers, secret-store references and remaining work in the
+shared checkpoint table. Routine deployment/check/rollback must use the restricted
+account; privileged maintenance retains its separate access path.
+
 ## Environment flows
 
 | Environment | Entry point | Identity and services |
