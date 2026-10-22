@@ -43,35 +43,46 @@ Android project preparation can finish before VPS activation. Digital Asset Link
 
 ## Shared infrastructure staging transition — 2026-10-22
 
-Status: documentation baseline accepted; runtime changes and live acceptance pending.
-The [deployment guide](deployment.md#staging-transition-status--2026-10-22) owns the
-application transition and job inventory. Host facts and shared operational decisions
-belong to [infrastructure](https://github.com/Uniwares-LTD/infrastructure/blob/main/README.md).
+Status: staged delivery accepted; live deployment remains pending. Follow the
+[application runbook](deployment.md#staging-execution-and-acceptance) and
+[three-phase infrastructure runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
+Historical implementation/verification below remains intact.
 
-- [ ] Resolve gateway/tunnel integration, network collisions, Compose compatibility
-  and app Redis allocation while preserving existing ownership.
-- [ ] Adapt secrets for GitHub Free private repos, public GHCR pulls and restricted
-  shared SSH access. Preserve independent application deployment workflows.
-- [ ] Adopt `staging`/`prod` on `_staging`/`_prod`, preserving retained runtime
-  snapshots/history and framework `NODE_ENV=production`.
-- [ ] Reconcile shared staging Firebase credentials/registrations and separate
-  production projects; adapt shared Redis logical DB validation/readiness.
-- [ ] Replace per-app ingress requirements with equivalent shared-gateway behavior,
-  including trusted headers, Firebase helper paths and streaming.
-- [ ] Extract AI/events/maintenance endpoints and configure timers. Preserve leases,
-  retries, quotas, accounting, notification and accepted Run safeguards. Replace
-  worker health checks before removing worker containers.
-- [ ] Add manual backup/restore with workflow-only credentials and verified off-host
-  storage; rehearse a disposable restore including GridFS.
-- [ ] Verify staging build/deploy/check/rollback, anonymous digest pull, authentication,
-  Redis separation, timers and recovery on the target host.
+### First working staging deployment
 
-Acceptance includes preserving Booklet/Dify/legacy services, rejecting unauthorized
-job calls, recovering interruptions without duplicate effects, preventing backlog
-regression through bounded batches, preserving notification tombstones and rejecting
-network overlap. Documentation checks do not establish these properties. No live
-credentials, services or release branches change in this documentation task.
-Production recovery objectives and legacy gateway migration remain separate work.
+- [ ] Connect and prepare: complete required discovery, collect missing inputs once,
+  review restricted deployment access, repository secrets, public images and shared
+  staging Firebase/Atlas bindings.
+- [ ] Bootstrap and deploy: verify compatible Compose and free app subnet/port; use
+  an owner-managed tunnel route to existing app Nginx with adapted route verification.
+  One release builds, publishes, anonymously pulls the digest, deploys and checks health.
+- [ ] Verify and hand off: login, readiness, current workers, private app Redis,
+  release identity and unchanged Booklet/Dify/legacy health. Preserve leases, retries,
+  accounting and duplicate prevention. Routine operations use the restricted account.
+
+Retain current worker containers, app Redis at database 0 and Nginx initially.
+Keep Dify, Stripe and MCP disabled. On first-release failure, stop only that candidate
+and its workers/timers if present; retain data/configuration. No predecessor means
+no image rollback. Backup remains required before destructive operations/migrations.
+
+### Later consolidation and recovery
+
+- [ ] Shared gateway with equivalent trusted headers, Firebase helper and streaming;
+  remove per-app ingress/subnet requirements only after verification.
+- [ ] Shared non-Dify Redis with logical DB allocation, adapted validation/readiness
+  and private credential handling.
+- [ ] Authenticated bounded AI/events/maintenance endpoints and timers; preserve
+  safeguards and replace worker health checks before removing containers.
+- [ ] Production-to-prod naming compatibility before production activation, preserving
+  retained snapshots/history and framework NODE_ENV=production.
+- [ ] Minimum manual backup/restore with workflow-only permissions and verified
+  off-host storage; rehearse a disposable MongoDB/GridFS restore before relying on recovery.
+- [ ] Image/config rollback rehearsal when a real compatible predecessor exists,
+  without manufacturing a release solely for that check.
+
+No live configuration, providers or release branches change in this documentation
+task. Initial deployment, recovery and consolidation each need their own verified
+evidence. Production activation, legacy migration and broad cleanup remain separate.
 
 ## M1 Application foundation and development conventions
 

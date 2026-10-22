@@ -17,6 +17,19 @@ check found only `main`, no repository secrets and no environments. The organiza
 uses GitHub Free: the environment-secret instructions below require adaptation for
 this private repository. Local M4 verification does not establish live activation.
 
+### First deployment and later consolidation
+
+First staging retains the existing worker containers, app Redis and private Nginx.
+Fix only deployment blockers first: repository secrets, public images, restricted
+shared SSH access, shared staging Firebase bindings, compatible Compose, a free
+app subnet/port and an owner-managed tunnel route. Keep Dify, Stripe and MCP disabled.
+The generic shared-route workflow is not a prerequisite: support a reviewed
+owner-side route change and verify the actual hostname/target rather than skipping
+the check. Existing app runtime, health, leases and idempotency remain intact.
+
+The table below records the eventual conventions. Shared gateway/Redis, job endpoints
+and production naming changes are later work, not first-release acceptance gates.
+
 ### Target conventions and pending compatibility work
 
 | Area | Accepted target / required implementation change |
@@ -29,17 +42,18 @@ this private repository. Local M4 verification does not establish live activatio
 | Firebase | Shared staging project and credentials across Unibase/children; explicit app registrations/domains. Production has a separate Firebase project per application. Adapt per-app credential provisioning without deleting existing keys. |
 | Redis | Shared non-Dify instance, numbered logical DB per app/environment, shared credential, no ACL requirement. Current setup expects its own Redis at database 0; adapt validators, Compose, readiness and secret handling. |
 | Dify | Existing Community, separate app IDs/keys per app/environment, tag `app:<project>-<environment>`. Tags organize bindings, not access boundaries. |
-| Ingress | Proposed shared gateway behind the existing tunnel initially, retaining legacy Nginx. Remove fixed per-app ingress subnets/Nginx only after equivalent auth-helper, streaming and trusted-proxy behavior is verified. |
+| Ingress | First release uses the existing app Nginx behind the tunnel; later introduce the shared gateway, retaining legacy public Nginx. Remove fixed per-app ingress subnets/Nginx only after equivalent auth-helper, streaming and trusted-proxy behavior is verified. |
 | Coordination | Repository Actions concurrency and runbooks for shared changes; no new cross-repository orchestration. Application leases/idempotency remain necessary. |
 | Database | Runtime database-scoped `readWrite`; separate workflow recovery credentials. Verify required backup/restore actions rather than assuming `dbAdmin` alone is sufficient. |
 
-These are target requirements, not changed workflow/schema behavior. Gateway/tunnel
-integration, replacement networking, tested Compose version and off-host backup
-destination remain open in the infrastructure plan.
+These are target requirements, not changed workflow/schema behavior. First-release
+port/subnet, owner route integration and tested Compose remain open. Shared gateway,
+shared Redis and off-host backup decisions follow the staged infrastructure plan.
 
 ### Current and proposed background scheduling
 
-Current entrypoints are `scripts/ai-worker.ts` and `scripts/payment-worker.ts`.
+This consolidation is deferred until staging works; first-release acceptance uses
+existing workers and their health checks. Current entrypoints are `scripts/ai-worker.ts` and `scripts/payment-worker.ts`.
 Each sleeps two seconds **after** a completed cycle, not on a fixed two-second
 deadline. No GitHub Actions cron is configured for these application jobs.
 
@@ -66,9 +80,12 @@ workers are unaffected. This refactor is pending, not available today.
 
 ### Minimum staging recovery target
 
-Add one manual workflow with `backup`/`restore` actions. Back up the app MongoDB
-database including GridFS before migrations/destructive work; pause/drain writers
-and timers for consistency. Verify encrypted off-host bytes, checksum and manifest
+This is follow-up work, not a fresh first-startup prerequisite. Do not perform a
+destructive operation or data migration without its required backup. Verify off-host
+restoration before treating staging data as recoverable. Add one manual workflow
+with `backup`/`restore` actions. Back up the app MongoDB database including GridFS
+before migrations/destructive work; pause/drain app and worker writers (plus timers
+after their introduction) for consistency. Verify encrypted off-host bytes, checksum and manifest
 before success. Restore requires an exact backup ID and target confirmation, a
 pre-restore backup and health checks before resuming writers. Rehearse a disposable
 restore. Manual backups accept loss since the last successful backup; production
@@ -84,109 +101,102 @@ for implementation and acceptance.
 
 ## Staging execution and acceptance
 
-Use the [infrastructure checkpoint runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md)
-as the operational entry point. It owns access, discovery, shared setup and the
-single configuration/progress checklist. This section owns application work at
-checkpoints 3 and 5-8. No live operation was performed while writing this runbook.
+Follow the [three-phase infrastructure runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
+It owns access, shared setup and the single configuration/progress table. This
+section owns application changes and acceptance. No live operation is performed
+by publishing these instructions.
 
-### Prepare the application — checkpoint 3
+### Phase 1 — Connect and prepare
 
-**Owner/location:** agent in the development checkout and PR review.
-**Implementation required:** complete the target adaptations above before invoking
-the current workflows against shared infrastructure. In particular, repository
-secrets, restricted SSH dispatch, public images, shared Redis and gateway behavior
-are not compatible merely because existing workflow files are present.
+**Owner/location:** agent in development checkouts and read-only provider access;
+operator establishes protected admin access and supplies missing input references
+together. **Implementation required:** current workflows need the following bounded
+adaptations before first staging, even though their files already exist:
 
-Provide a reviewed build/publish preflight without host deployment. The current
-release script couples these operations; do not dispatch it early just to obtain
-the public candidate needed for checkpoint 5's anonymous-pull verification.
+- Repository secrets instead of unavailable private-repo environment secrets.
+- Public GHCR and anonymous digest-pull verification inside the release workflow,
+  before host activation; remove private-package and pull-credential requirements.
+- Reviewed root-owned operations invoked by the shared restricted deploy account.
+- Reuse shared staging Firebase credentials, explicit app registration/domains and
+  existing Atlas resources; retain app-scoped runtime readWrite access.
+- Compatible Compose and a free app subnet/loopback port. Keep current Redis at
+  database 0, Nginx and both worker containers.
+- Owner-managed route addition and verification of the exact hostname/private
+  Nginx target, without requiring a generic cross-repository route workflow.
 
-Review the exact application revision and targeted checks for job authentication,
-bounded execution, duplicate suppression, lease recovery, proxy/Firebase behavior
-and retained runtime snapshots. Record their results and the reviewed infrastructure
-revision in the shared checklist. Quality warnings remain advisory; build and
-operational failures stop release. If tooling is missing, continue implementation
-on the reviewed branch rather than bypassing it with ad hoc VPS commands.
+Do not create a separate build/publish workflow. The existing release already builds
+and publishes; adapt it to verify anonymous pull before candidate activation. Keep
+runtime secrets out of builds. Preserve credential-free local operation, worker
+health, retries, leases, quota/accounting and duplicate-prevention behavior.
 
-### Configure staging — checkpoint 5
+**Evidence/failure:** record reviewed revisions and focused validation. Missing
+interfaces remain implementation work; do not bypass them with ad hoc host commands.
+Quality warnings stay advisory; build and operational failures stop release.
 
-**Owner/location:** agent through the reviewed provisioning workflow/provider APIs;
-operator supplies only unavailable credential references through protected stores.
-Prerequisites: shared host setup and the reviewed provisioning adaptations.
+### Phase 2 — Bootstrap and deploy
 
-Populate staging JSON with the verified hostname, shared Firebase/app registration,
-Atlas database/user and egress allowlist, Redis connection/database allocation,
-public package identity and gateway integration. Do not reuse the colliding subnet
-suggestions or copy Booklet release paths. Keep Dify/payments/MCP disabled initially.
-Store secret values in repository secrets/private runtime files, never JSON or build
-arguments. Provisioner OIDC, if retained, must also be verified rather than inferred
-from shared Firebase credentials. Verify runtime `readWrite` separately from recovery
-permissions. On interruption, preview current resources and repair only missing
-bindings; preserve accepted keys, shared identities and existing application data.
+**Owner/location:** agent via reviewed provisioning/provider interfaces, existing
+tunnel owner's process and Unibase GitHub Actions. **Implementation required:**
+phase 1 adaptations and the authorized administrative access path must exist.
 
-### Release and verify — checkpoint 6
+Populate tracked staging configuration from verified bindings. Store secret values
+only in repository secrets and private runtime files. Do not reuse the colliding
+subnets, Booklet's release paths or Dify's Redis. Keep optional providers disabled.
+On interrupted setup, preview actual resources and repair only missing compatible
+bindings; preserve existing keys, shared identities and app data.
 
-**Owner/location:** agent via GitHub Actions for `Uniwares-LTD/unibase`.
-**Implementation required:** the files below exist today, but their target-compatible
-behavior must first be implemented, reviewed and verified. Their names/inputs are
-source-checked; no workflow dispatch was executed for this documentation change.
-
-| Existing file | Current interface | Use after adaptation |
+| Existing file | Interface for staging | Use after adaptation |
 | --- | --- | --- |
-| `.github/workflows/deploy.yml` | Push `_staging`, or manual `environment=staging` on `_staging` | Deploy one reviewed staging revision |
-| `.github/workflows/check-deployment.yml` | Manual `environment=staging` on `_staging` | Verify the deployed app and scheduled job progress |
-| `.github/workflows/rollback.yml` | Manual `environment=staging` on `_staging` | Restore an actual retained previous image/configuration |
+| `.github/workflows/deploy.yml` | Push `_staging`, or manual `environment=staging` on `_staging` | Build, publish, anonymous digest pull, deploy and health checks in one release |
+| `.github/workflows/check-deployment.yml` | Manual `environment=staging` on `_staging` | Verify deployed web/dependencies and current worker progress |
+| `.github/workflows/rollback.yml` | Manual `environment=staging` on `_staging` | Restore an actual retained healthy image/configuration |
 
-Before dispatch, verify the reviewed `_staging` head, workflow availability and
-target match. A push already triggers Release; do not also manually dispatch the
-same commit. Record workflow ID/URL, source SHA, immutable image digest and retained
-configuration identity. A queued/running workflow is not acceptance evidence.
-Use the workflow interface and inspected summaries; do not render private Compose
-configuration or copy arbitrary logs into GitHub evidence.
+Names, inputs and branch guards were source-checked; no workflow was dispatched.
+Verify the reviewed branch head and target before release. A push triggers Release;
+do not also manually dispatch the same commit. Record workflow ID/URL, source SHA,
+image digest and retained configuration identity after the workflow produces them.
+An anonymous-pull failure must stop before candidate activation.
 
-Verify all of the following before marking staging accepted:
+**Failure/resume:** inspect actual workflow/candidate/prior-release state before
+retrying. On the first failed deployment there is no predecessor: stop only its
+unhealthy candidate and workers, plus any candidate timers if present. Retain data
+and configuration, then fix/redeploy a reviewed revision. Do not restore the DB
+or restart shared services. Later failures can use a verified previous image/config.
 
-- Public hostname reaches the intended app; liveness and dependency readiness pass.
-  Authentication, authorized domain and Firebase helper behavior work end to end.
-- The host pulls the public image anonymously by digest; runtime secrets are absent
-  from build inputs and browser responses. Retained configuration matches the release.
-- The app uses its assigned Redis logical database; inspection confirms separation
-  without clearing any other database. Existing Booklet/Dify/legacy health is preserved.
-- All three job endpoints reject unauthorized calls; reviewed timers complete bounded
-  requests and expose cadence-appropriate progress. General maintenance works with
-  optional providers disabled. Live Stripe/Dify activation is a separate checkpoint;
-  use isolated fixtures for retry/idempotency tests, not real charges or paid AI calls.
-- Interrupted processing can resume without duplicate effects or premature release
-  of managed AI credit holds; outbox duplicate-prevention records remain intact.
+### Phase 3 — Verify and hand off
 
-**Failure/resume:** inspect workflow outcome and actual candidate/prior state before
-retrying. On a failed first deployment, stop only the unhealthy Unibase candidate
-and its timers through reviewed tooling, retain data/configuration and redeploy a
-fixed reviewed revision. There is no previous release to roll back to. Do not invoke
-database restore or restart shared services. If a previous healthy release exists,
-use the reviewed image/config rollback and verify it before resuming work.
+**Owner/location:** agent via check workflows and read-only public/private checks;
+operator completes user-facing authentication when necessary.
 
-### Rehearse recovery and hand off — checkpoints 7-8
+Verify the intended public hostname, liveness/dependency readiness, login/Firebase
+helper behavior, Nginx trusted headers/streaming and app-private Redis. Check current
+maintenance and AI-worker health, including disabled-AI status. Confirm Booklet,
+Dify and legacy services remain healthy. Test retry/accounting behavior with isolated
+fixtures rather than real payments or paid AI calls. New endpoints/timers and
+shared Redis/gateway behavior are not first-release acceptance requirements.
 
-**Owner/location:** agent via application workflows; operator retains protected
-credential recovery references. **Implementation required:** the planned manual
-backup/restore workflow does not exist yet; do not invent a dispatch command/name.
+Record initial deployment verification and routine deploy/check/rollback entrypoints
+in the shared progress table. Routine operations use the restricted account;
+privileged maintenance remains separate. Failed checks stay open and use phase 2's
+failure path. Never infer acceptance from a queued workflow or green build alone.
 
-After two compatible healthy releases provide a real predecessor, exercise the
-existing image/config rollback through its adapted workflow. Separately, use the
-implemented backup workflow to verify an encrypted off-host staging archive and
-restore it to an explicitly named disposable database. Check records, indexes and
-GridFS bytes without exposing contents. Record backup ID and sanitized results.
-Record an empty restore target as having no prior data; back up any nonempty target
-before restore instead of assuming a disposable name means it is empty.
-Shared Firebase identities and Dify resources are outside this restore.
+### Follow-up recovery and consolidation
 
-Partial backup/restore is not success. Keep failed restoration isolated, retain its
-source/pre-restore backup and diagnose before retrying. Do not automatically resume
-unhealthy writers or delete source data. Record verified workflow entrypoints,
-release/recovery identifiers, secret-store references and remaining work in the
-shared checkpoint table. Routine deployment/check/rollback must use the restricted
-account; privileged maintenance retains its separate access path.
+Keep the shared gateway, shared Redis/logical databases and app-hosted jobs as
+explicit later milestones in the implementation plan. Preserve current workers
+until the replacement is verified. Rename production to prod deliberately before
+production activation; staging does not need that rename first.
+
+The minimum manual backup/restore workflow is still **implementation required**.
+Do not block a fresh first startup on its completion, but back up before destructive
+operations/data migrations and complete off-host DB/GridFS restore rehearsal before
+relying on recovery. Use a named disposable target; verify it is empty or take a
+pre-restore backup. Keep partial/failed restores isolated and do not automatically
+resume unhealthy writers. Shared Firebase identities and Dify are excluded.
+
+Rehearse image/config rollback when a real compatible predecessor exists. Do not
+manufacture a second release just for the runbook. Mark first deployment verified
+separately from pending recovery/consolidation; track their next actions explicitly.
 
 ## Environment flows
 
