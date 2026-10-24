@@ -77,6 +77,44 @@ live provider-stopped cancellation was not established by that attempt. A
 separate read-only review found no outstanding in-scope source defect. No commit,
 Git publication, VPS release or live payment activation was performed.
 
+## Unitale completed-result recovery — 2026-10-24
+
+The subsequent user Run
+`774505e87a44685bb0ab1fe69f4276b0da55effad8388f4e12f544fd0d70496a`
+confirmed that the replacement model and all nine image validators work live.
+Dify completed the existing provider Run with nine images. Locally, a stream
+timeout deferred retrieval using exponential backoff; the oldest signed image
+link expired before collection. Later attempts retained terminal evidence but
+failed image import with HTTP 403, leaving the visible status paused.
+
+The worker now polls accepted executions at their saved interval after transport
+timeouts, preserving explicit provider retry delays. Confirmed terminal retrieval
+avoids live replay unless a non-stopped Run has an uncertain decision submission.
+Historical replay cannot replace confirmed termination; bounded node metadata
+still supplies tracing. Existing decision, ownership, lease and settlement checks
+remain in place.
+
+For this recovery, authenticated Dify Code-only calls rehydrated the nine existing
+native file references through the verified existing validator, producing fresh
+signed URLs without calling an image tool. File identities and the original
+provider Run were preserved. The standard retention, settlement and product-save
+paths then completed the same attempt. Artifact
+`cff9d4c9-9e21-443f-a25d-0763a3721a59` retains approved revision 1 and all nine
+1536-by-1024 images. The Run succeeded at three total credits: one main credit
+and two Persona answers. No new generation, attempt, manual financial adjustment
+or workflow publication occurred. An unstaged expired link still requires
+provider-authorized renewal; staged owned bytes no longer depend on that link.
+
+Verification: 40 affected worker, Run, Dify and tracing tests passed, including
+timeout scheduling, successful/failed/stopped retrieval, uncertain decisions,
+historical pauses and exactly-once settlement. TypeScript, production web/worker
+build, affected-file lint/formatting, documentation, i18n and skill checks passed.
+Browser checks decoded all nine images on both the Run and artifact pages from
+first-party routes. No browser errors occurred; existing Next.js image sizing/LCP
+warnings remain advisory. A separate read-only review found no remaining
+in-scope defect. The normal AI worker was restored with the tested correction.
+No Git commit or application deployment was performed.
+
 ## Unitale image-model recovery — 2026-10-24
 
 The reported Run `66783167a2eac40b01b4f27dd84a5ad0f4b2dedceea2c2c6df2de1c273373a90`
