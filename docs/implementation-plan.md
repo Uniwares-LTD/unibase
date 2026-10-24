@@ -178,6 +178,10 @@ was performed.
 
 ## Agreed decisions
 
+The [shared infrastructure staging transition](#shared-infrastructure-staging-transition--2026-10-22)
+records newer target deployment decisions. Historical implementation/verification
+below remains evidence of existing tooling, not completion of that transition.
+
 | Area           | Decision                                                                                                                                     |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Destination    | Implement the current Base foundation; downstream product work remains separate.                                                             |
@@ -196,6 +200,9 @@ Ordinary web changes become available inside the installed Android application o
 
 ## Milestone overview
 
+See the [pending staging transition](#shared-infrastructure-staging-transition--2026-10-22)
+for changes beyond the historical milestones.
+
 | Checkpoint | Demonstrable result                                                                      | Depends on                                                  |
 | ---------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | M1         | A responsive, themed application shell runs locally.                                     | None                                                        |
@@ -205,6 +212,64 @@ Ordinary web changes become available inside the installed Android application o
 | M5         | Integrated acceptance is documented and the repository is ready for feature development. | M1–M4                                                       |
 
 Android project preparation can finish before VPS activation. Digital Asset Links and the complete installed-device journey must be verified after an HTTPS deployment is available. Foundation code completion and live activation are recorded separately.
+
+## Shared infrastructure staging transition — 2026-10-22
+
+Status: staged delivery accepted; live deployment remains pending. Follow the
+[application runbook](deployment.md#staging-execution-and-acceptance) and
+[three-phase infrastructure runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
+Historical implementation/verification below remains intact.
+
+Phase 1 implementation, October 24: staging uses repository secrets, a restricted
+JSON dispatcher protocol, public package/anonymous digest checks, existing-provider
+configuration preparation and owner-managed live tunnel/DNS verification. Known
+staging bindings and image digests are populated; the replacement subnet remains
+a proposal until apply-time checks. Existing workers, Redis and Nginx are retained.
+Provider reads verify Firebase web registration and enabled Google/email login;
+staging domain, Atlas user and owner route are Phase 2 additions. See
+[the preparation package](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
+
+### First working staging deployment
+
+- [x] Connect and prepare: complete required discovery, collect missing inputs once,
+  review restricted deployment access, repository secrets, public images and shared
+  staging Firebase/Atlas bindings.
+
+  Verified October 24 at implementation commit `6edc411`: all 47 Linux deployment
+  tests passed in CI. Environment/docs/skills, TypeScript, lint, formatting,
+  application/account tests and ShellCheck passed. CI retained advisory warnings
+  for stale client translation sections, dependency audit findings and unavailable
+  Actionlint; separate local Actionlint passed. No live setup or deployment occurred.
+- [ ] Bootstrap and deploy: verify compatible Compose and free app subnet/port; use
+  an owner-managed tunnel route to existing app Nginx with adapted route verification.
+  One release builds, publishes, anonymously pulls the digest, deploys and checks health.
+- [ ] Verify and hand off: login, readiness, current workers, private app Redis,
+  release identity and unchanged Booklet/Dify/legacy health. Preserve leases, retries,
+  accounting and duplicate prevention. Routine operations use the restricted account.
+
+Retain current worker containers, app Redis at database 0 and Nginx initially.
+Keep Dify, Stripe and MCP disabled. On first-release failure, stop only that candidate
+and its workers/timers if present; retain data/configuration. No predecessor means
+no image rollback. Backup remains required before destructive operations/migrations.
+
+### Later consolidation and recovery
+
+- [ ] Shared gateway with equivalent trusted headers, Firebase helper and streaming;
+  remove per-app ingress/subnet requirements only after verification.
+- [ ] Shared non-Dify Redis with logical DB allocation, adapted validation/readiness
+  and private credential handling.
+- [ ] Authenticated bounded AI/events/maintenance endpoints and timers; preserve
+  safeguards and replace worker health checks before removing containers.
+- [ ] Production-to-prod naming compatibility before production activation, preserving
+  retained snapshots/history and framework NODE_ENV=production.
+- [ ] Minimum manual backup/restore with workflow-only permissions and verified
+  off-host storage; rehearse a disposable MongoDB/GridFS restore before relying on recovery.
+- [ ] Image/config rollback rehearsal when a real compatible predecessor exists,
+  without manufacturing a release solely for that check.
+
+No live host configuration, provider resources or release branches changed during
+Phase 1 preparation. Initial deployment, recovery and consolidation each need their own verified
+evidence. Production activation, legacy migration and broad cleanup remain separate.
 
 ## M1 Application foundation and development conventions
 

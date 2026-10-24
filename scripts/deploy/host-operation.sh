@@ -10,6 +10,12 @@ commit=${4:-}
 case "$action" in setup|check|rollback) [[ -z "$image$commit" ]] ;; deploy) [[ "$image" =~ ^ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$ && "$commit" =~ ^[a-f0-9]{40}$ ]] ;; *) exit 1 ;; esac
 case "$target" in staging|production) ;; *) exit 1 ;; esac
 ssh_config=${RUNNER_TEMP:?}/${project_slug}-access/config
+if [[ "$target" == staging ]]; then
+  # Only JSON data crosses this boundary. The host executes installed root-owned code.
+  python3 "$(dirname "${BASH_SOURCE[0]}")/dispatch-request.py" "$action" "$target" "$image" "$commit" |
+    ssh -F "$ssh_config" "${project_slug}-vps" operate
+  exit 0
+fi
 archive=$(mktemp "$RUNNER_TEMP/${project_slug}-bundle.XXXXXXXX.tar.gz")
 : > "$RUNNER_TEMP/${project_slug}-operation.log"
 remote=''

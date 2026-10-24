@@ -19,7 +19,6 @@ concurrency:
 jobs:
   operate:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
     env:
       TARGET: ${{ inputs.environment }}
       ACTION: ${{ inputs.action }}

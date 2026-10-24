@@ -28,3 +28,5 @@ android/project/app/build/
 android/project/local.properties
 *.aab
 *.apk
+__pycache__/
+*.pyc

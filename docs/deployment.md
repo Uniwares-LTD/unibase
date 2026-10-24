@@ -1,5 +1,240 @@
 # VPS deployment
 
+## Staging transition status — 2026-10-24
+
+Existing commands below describe the **current implementation**, not a ready-to-run
+staging installation. Shared host facts are canonical in the private
+[infrastructure inventory](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/inventory/srv1.md);
+shared conventions and ownership are in its
+[architecture](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/architecture.md)
+and [operations](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
+
+The staging path now uses repository secrets, public GHCR, direct pinned SSH and
+Infrastructure's restricted dispatcher. Tracked staging bindings identify the
+verified shared providers and a proposed `172.30.241.0/24` subnet; allocation is
+rechecked at apply time. Compose is still 2.28.1 on the host. Candidate 5.6.1 parsed
+this application's definition with synthetic inputs but is not installed or
+runtime-validated. Its package upgrade also upgrades Buildx; include that in the
+reviewed Phase 2 scope. No provider resources or application release were changed.
+
+### First deployment and later consolidation
+
+First staging retains the existing worker containers, app Redis and private Nginx.
+Fix only deployment blockers first: repository secrets, public images, restricted
+shared SSH access, shared staging Firebase bindings, compatible Compose, a free
+app subnet/port and an owner-managed tunnel route. Keep Dify, Stripe and MCP disabled.
+The generic shared-route workflow is not a prerequisite: support a reviewed
+owner-side route change and verify the actual hostname/target rather than skipping
+the check. Existing app runtime, health, leases and idempotency remain intact.
+
+The table below records the eventual conventions. Shared gateway/Redis, job endpoints
+and production naming changes are later work, not first-release acceptance gates.
+
+### Target conventions and pending compatibility work
+
+| Area | Accepted target / required implementation change |
+| --- | --- |
+| Ownership | Unibase and children deploy independently; infrastructure owns new shared components. Booklet, Dify and the existing tunnel retain their owner until explicit transfer. |
+| Branches | `main` for development; `_staging` targets `staging`; `_prod` targets `prod`. Current code/config uses `production`; rename deliberately while preserving retained snapshots. Keep `NODE_ENV=production`. |
+| SSH | Shared `uniwares-ops-admin` for privileged setup; `uniwares-deploy-user` for restricted routine dispatch, without general sudo or Docker-group membership. Staging sends data to Infrastructure's root-owned dispatcher; installation remains pending. |
+| Secrets | One deploy key copied into trusted repository secrets; separate admin credential. Replace private-repository environment-secret dependence; use environment prefixes where values differ. Retain private runtime snapshots. |
+| Images | Public GHCR and anonymous digest pulls. Staging verifies public visibility and anonymous pulls; production compatibility remains deferred. Builds remain credential-free. |
+| Firebase | Shared staging project and credentials across Unibase/children; explicit app registrations/domains. Production has a separate Firebase project per application. Adapt per-app credential provisioning without deleting existing keys. |
+| Redis | Shared non-Dify instance, numbered logical DB per app/environment, shared credential, no ACL requirement. Current setup expects its own Redis at database 0; adapt validators, Compose, readiness and secret handling. |
+| Dify | Existing Community, separate app IDs/keys per app/environment, tag `app:<project>-<environment>`. Tags organize bindings, not access boundaries. |
+| Ingress | First release uses the existing app Nginx behind the tunnel; later introduce the shared gateway, retaining legacy public Nginx. Remove fixed per-app ingress subnets/Nginx only after equivalent auth-helper, streaming and trusted-proxy behavior is verified. |
+| Coordination | Repository Actions concurrency and runbooks for shared changes; no new cross-repository orchestration. Application leases/idempotency remain necessary. |
+| Database | Runtime database-scoped `readWrite`; separate workflow recovery credentials. Verify required backup/restore actions rather than assuming `dbAdmin` alone is sufficient. |
+
+Shared-service targets remain deferred; the staging adaptations below are implemented
+locally. Live installation, owner route apply and runtime Compose compatibility remain open. Shared gateway,
+shared Redis and off-host backup decisions follow the staged infrastructure plan.
+
+### Current and proposed background scheduling
+
+This consolidation is deferred until staging works; first-release acceptance uses
+existing workers and their health checks. Current entrypoints are `scripts/ai-worker.ts` and `scripts/payment-worker.ts`.
+Each sleeps two seconds **after** a completed cycle, not on a fixed two-second
+deadline. No GitHub Actions cron is configured for these application jobs.
+
+| Work | Current behavior | Proposed endpoint/cadence and reason |
+| --- | --- | --- |
+| AI Runs, automatic decisions, result application | User actions queue durable work; AI worker handles due records; provider calls can take 120 seconds | AI endpoint, approximately five seconds after completion; keep due times, retries, ownership, accounting and uncertain-submission recovery |
+| Payment notices | Signed Stripe webhook queues idempotent notices; maintenance worker processes one per cycle | Events endpoint, about ten seconds after completion; preserve webhook authentication and durable retry |
+| Notifications | Business transactions enqueue outbox records; worker delivers up to ten per cycle | Same events endpoint; bounded batches keep delivery prompt |
+| Payment reconciliation | One pending order older than 15 minutes or settled order older than 24 hours per cycle | Maintenance every five minutes; retain age thresholds, process bounded batches to avoid backlog |
+| Credit expiry/reservations | Checked each cycle; wallet access also reconciles expiry | Five-minute maintenance; never release managed AI reservations solely due to elapsed time |
+| File/asset deletion | Leased deletion intents; abandoned staging eligible after 24 hours | Five-minute maintenance batches; preserve reference guards, retries and queued cleanup after mode changes |
+| Notification expiry | Repeated inbox/outbox sweep; index setup already defines inbox expiry TTL | Verify deployed TTL, remove redundant inbox sweep, retain outbox payload compaction and permanent duplicate-prevention records |
+| Runtime/rate-limit retention | MongoDB TTL and Redis key expiration | Keep native expiration, without another scheduler |
+| Health | Worker heartbeat records/files, including disabled AI | Endpoint progress/last-success with cadence-aware thresholds; avoid disabled-provider polling |
+
+Extract reusable job-cycle functions into server-only modules and add three
+authenticated, bounded local HTTP endpoints. Infrastructure-managed systemd timer
+templates invoke them. AI stays separate from events so long provider requests do
+not delay payments/notifications. Requests await work; no untracked fire-and-forget
+tasks. Timer non-overlap does not replace DB leases or safe crash recovery.
+Keep optional providers disabled until configured while general maintenance remains
+active. Revise release health checks before removing worker containers. Dify's own
+workers are unaffected. This refactor is pending, not available today.
+
+### Minimum staging recovery target
+
+This is follow-up work, not a fresh first-startup prerequisite. Do not perform a
+destructive operation or data migration without its required backup. Verify off-host
+restoration before treating staging data as recoverable. Add one manual workflow
+with `backup`/`restore` actions. Back up the app MongoDB database including GridFS
+before migrations/destructive work; pause/drain app and worker writers (plus timers
+after their introduction) for consistency. Verify encrypted off-host bytes, checksum and manifest
+before success. Restore requires an exact backup ID and target confirmation, a
+pre-restore backup and health checks before resuming writers. Rehearse a disposable
+restore. Manual backups accept loss since the last successful backup; production
+policy remains unresolved.
+
+Keep image/config rollback separate from data restore. Recover secrets separately;
+omit ephemeral Redis backup and extend coverage before enabling S3 media. Shared
+Firebase identities and Dify recovery are outside an app database restore. The
+shared operations guide owns storage/credential boundaries.
+
+See the [staging transition plan](implementation-plan.md#shared-infrastructure-staging-transition--2026-10-22)
+for implementation and acceptance.
+
+## Staging execution and acceptance
+
+Follow the [three-phase infrastructure runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
+It owns access, shared setup and the single configuration/progress table. This
+section owns application changes and acceptance. No live operation is performed
+by publishing these instructions.
+
+### Phase 1 — Connect and prepare
+
+**Owner/location:** agent in development checkouts and read-only provider access;
+operator establishes protected admin access and supplies missing input references
+together. The staging implementation contains these bounded adaptations, pending
+reviewed publication and live acceptance:
+
+- Repository secrets instead of unavailable private-repo environment secrets.
+- Public GHCR and anonymous digest-pull verification inside the release workflow,
+  before host activation; remove private-package and pull-credential requirements.
+- Reviewed root-owned operations invoked by the shared restricted deploy account.
+- Reuse shared staging Firebase credentials, explicit app registration/domains and
+  existing Atlas resources; retain app-scoped runtime readWrite access.
+- Compatible Compose and a free app subnet/loopback port. Keep current Redis at
+  database 0, Nginx and both worker containers.
+- Owner-managed route addition and verification of the exact hostname/private
+  Nginx target, without requiring a generic cross-repository route workflow.
+
+Do not create a separate build/publish workflow. The existing release already builds
+and publishes; adapt it to verify anonymous pull before candidate activation. Keep
+runtime secrets out of builds. Preserve credential-free local operation, worker
+health, retries, leases, quota/accounting and duplicate-prevention behavior.
+
+**Evidence/failure:** record reviewed revisions and focused validation. Missing
+interfaces remain implementation work; do not bypass them with ad hoc host commands.
+Quality warnings stay advisory; build and operational failures stop release.
+
+### Phase 2 — Bootstrap and deploy
+
+**Owner/location:** agent via reviewed provisioning/provider interfaces, existing
+tunnel owner's process and Unibase GitHub Actions. **Implementation required:**
+phase 1 adaptations and the authorized administrative access path must exist.
+
+Populate tracked staging configuration from verified bindings. Store secret values
+only in repository secrets and private runtime files. Do not reuse the colliding
+subnets, Booklet's release paths or Dify's Redis. Keep optional providers disabled.
+On interrupted setup, preview actual resources and repair only missing compatible
+bindings; preserve existing keys, shared identities and app data.
+
+| Existing file | Interface for staging | Use after adaptation |
+| --- | --- | --- |
+| `.github/workflows/deploy.yml` | Push `_staging`, or manual `environment=staging` on `_staging` | Build, publish, anonymous digest pull, deploy and health checks in one release |
+| `.github/workflows/check-deployment.yml` | Manual `environment=staging` on `_staging` | Verify deployed web/dependencies and current worker progress |
+| `.github/workflows/rollback.yml` | Manual `environment=staging` on `_staging` | Restore an actual retained healthy image/configuration |
+
+Names, inputs and branch guards were source-checked; no workflow was dispatched.
+Verify the reviewed branch head and target before release. A push triggers Release;
+do not also manually dispatch the same commit. Record workflow ID/URL, source SHA,
+image digest and retained configuration identity after the workflow produces them.
+An anonymous-pull failure must stop before candidate activation.
+
+**Failure/resume:** inspect actual workflow/candidate/prior-release state before
+retrying. On the first failed deployment there is no predecessor: stop only its
+unhealthy candidate and workers, plus any candidate timers if present. Retain data
+and configuration, then fix/redeploy a reviewed revision. Do not restore the DB
+or restart shared services. Later failures can use a verified previous image/config.
+
+### Phase 3 — Verify and hand off
+
+**Owner/location:** agent via check workflows and read-only public/private checks;
+operator completes user-facing authentication when necessary.
+
+Verify the intended public hostname, liveness/dependency readiness, login/Firebase
+helper behavior, Nginx trusted headers/streaming and app-private Redis. Check current
+maintenance and AI-worker health, including disabled-AI status. Confirm Booklet,
+Dify and legacy services remain healthy. Test retry/accounting behavior with isolated
+fixtures rather than real payments or paid AI calls. New endpoints/timers and
+shared Redis/gateway behavior are not first-release acceptance requirements.
+
+Record initial deployment verification and routine deploy/check/rollback entrypoints
+in the shared progress table. Routine operations use the restricted account;
+privileged maintenance remains separate. Failed checks stay open and use phase 2's
+failure path. Never infer acceptance from a queued workflow or green build alone.
+
+### Follow-up recovery and consolidation
+
+Keep the shared gateway, shared Redis/logical databases and app-hosted jobs as
+explicit later milestones in the implementation plan. Preserve current workers
+until the replacement is verified. Rename production to prod deliberately before
+production activation; staging does not need that rename first.
+
+The minimum manual backup/restore workflow is still **implementation required**.
+Do not block a fresh first startup on its completion, but back up before destructive
+operations/data migrations and complete off-host DB/GridFS restore rehearsal before
+relying on recovery. Use a named disposable target; verify it is empty or take a
+pre-restore backup. Keep partial/failed restores isolated and do not automatically
+resume unhealthy writers. Shared Firebase identities and Dify are excluded.
+
+Rehearse image/config rollback when a real compatible predecessor exists. Do not
+manufacture a second release just for the runbook. Mark first deployment verified
+separately from pending recovery/consolidation; track their next actions explicitly.
+
+## Restricted first-staging control path
+
+Infrastructure installs a reviewed Git archive under
+`/opt/uniwares-control/<slug>/<bundle-sha256>`. Its shared deploy account sends only
+versioned JSON selecting staging `deploy`, `check` or `rollback`; host script paths,
+Compose files and credentials cannot be uploaded through that account. The request
+must match the installed public-configuration hash and image repository. Application
+image changes use the ordinary release workflow. Changes to host control scripts or
+public configuration require a separately reviewed operator bundle update.
+
+After host bootstrap and provider bindings, the trusted root operator runs the
+installed `scripts/deploy/prepare-host.py --credentials <protected-file>` preview,
+then the same command with `--apply --indexes`. Use `python3 -B` from the reviewed
+root-owned bundle. The private JSON contains `firebase` (the existing service-account
+object), `firebaseApiKey`, `firebaseAppId`, and the new app user's `mongodbUri`.
+This command validates existing credentials, creates private runtime configuration
+and optional additive indexes; it creates no cloud resources or app containers.
+An interrupted identical setup resumes; differing existing configuration stops for
+review. The credential input stays root-readable outside the source bundle.
+
+Repository secrets for first staging: `DEPLOY_SSH_PRIVATE_KEY` (the separate
+restricted key), `DEPLOY_SSH_HOST_KEY` (verified public host key), and
+`CLOUDFLARE_READ_TOKEN` (owner-account Tunnel Read and zone DNS Read). The workflow
+uses its own `GITHUB_TOKEN` to publish. No GHCR pull credential, Google OIDC
+provisioner, Atlas administration credential or Firebase private key enters the
+release build. Firebase credentials live in private host configuration.
+
+The first GHCR publication can create a private package. Release stops before host
+contact until the package owner explicitly makes it public, then the same release
+can be retried. Anonymous digest pull is verified after publication. Record the
+actual source SHA and digest; never substitute a mutable tag.
+
+`Provision environment` no longer offers staging; `provision.sh staging` refuses
+before credential or host access. `Setup VPS` is not the restricted staging bootstrap;
+use Infrastructure's reviewed operator installer. Production provisioning and its
+private-pull path are legacy, deferred interfaces, not staging instructions.
+
 ## Environment flows
 
 | Environment | Entry point | Identity and services |
@@ -8,12 +243,13 @@
 | Staging | `_staging` push or manual Release | Shared staging Firebase account pool, app-specific web registration, database/user, Redis, Nginx port and Compose project |
 | Production | `_prod` push or manual Release | App-specific Firebase project, database/user, Redis, Nginx port and Compose project |
 
-All public hostnames use the existing host Cloudflare connector. Both release
-environments use the same existing SSH Access hostname/application. This project
+All public hostnames use the existing host Cloudflare connector. Staging uses direct SSH to the verified VPS on port 22 with the restricted account.
+The legacy production path still uses SSH Access and is not ready for activation. This project
 does not create, reinstall, restart or own that connector or Dify Community.
 `agentic-poc` remains their owner; its Terraform writes the complete tunnel route
-list. New app routes go through its registered-route workflow, never a direct
-Cloudflare API update from an app repository.
+list. The first staging route is a reviewed owner-side Terraform change. Unibase reads
+live tunnel/DNS configuration and refuses a missing, shadowed or incorrect route;
+it does not write Cloudflare configuration.
 
 Authentication-level account changes/revocations affect the shared staging Firebase
 pool; app roles and application data remain isolated in each app database.
@@ -29,7 +265,7 @@ from web readiness; disabled AI still reports process health.
 
 `deploy/environments/local.json`, `staging.json` and `production.json` own public
 application/deployment settings. GitHub configuration variables are no longer
-used, including for Android. Secrets remain GitHub environment secrets and private
+used, including for Android. Staging secrets use repository Actions secrets and private
 host files. Dev/start and administration commands load tracked local defaults after
 Next.js private env files; explicit process/private values win locally. Live images
 use generated runtime files. Builds receive no live credentials or deployment config.
@@ -49,7 +285,8 @@ Configure these fields before the first preview:
 - `deployment`: GHCR repository matching `ghcr.io/<owner>/<repository>` in lowercase
   for this workflow repository (the same in both environments), free loopback port, unused private bridge subnet,
   and verified immutable Redis, Nginx and Node administration-image digests.
-- `ssh`: existing Access hostname/operator and pinned cloudflared version/checksum.
+- `ssh`: staging uses `transport=direct`, the verified VPS hostname and restricted
+  user. Cloudflare transport also requires its pinned client version/checksum.
 - `google`: shared staging project ID; distinct production project ID and explicit
   `organizations/ID` or `folders/ID` parent; OIDC provider resource and provisioner
   service-account email. `runtime.FIREBASE_PROJECT_ID` must match `google.projectId`.
@@ -57,10 +294,11 @@ Configure these fields before the first preview:
   address (`/32` for IPv4, `/128` for IPv6). No new cluster capacity is provisioned.
 - `shared`: owner repository/ref, registered-route workflow, and existing
   tunnel/account/zone identifiers matching the owner registry.
-- `ghcr.pullUser`: account with access to the private image package.
+- `ghcr.pullUser`: unused for staging public pulls; legacy production only.
 - `android`: production wrapper hostname/package when Android delivery is needed.
 
-Connection placeholders intentionally remain unset. Validation names missing
+Staging public bindings are populated from verified discovery; production remains
+unconfigured. Validation names missing
 fields before host/provider mutation. Public settings may be committed; credentials
 must not be put in these JSON documents. The runtime allowlist remains the
 [environment catalog](environment-catalog.md).
@@ -77,136 +315,44 @@ new defaults; review those overrides to start with fresh local namespaces.
 
 ## Secrets and one-time access bootstrap
 
-Create GitHub environments `staging` and `production`. In **Repository Settings >
-Environments > selected environment > Add environment secret**, enter the following
-names and private values. Allow `main` for provisioning and the matching release
-branch (`_staging` or `_prod`) for release/check/rollback. No GitHub variables are needed.
-
-| Secret | Obtain and scope | Consumer |
-| --- | --- | --- |
-| `DEPLOY_SSH_PRIVATE_KEY` | Deployment operator's private SSH key; authorize its public key on the existing VPS | Pinned SSH workflows |
-| `DEPLOY_SSH_HOST_KEY` | Existing host's public key, verified through a trusted channel; key type and base64 key only | Strict host verification |
-| `CF_ACCESS_CLIENT_ID` | Existing SSH Access service-token client ID | cloudflared SSH |
-| `CF_ACCESS_CLIENT_SECRET` | Matching service-token secret; existing SSH Access policy must allow it | cloudflared SSH |
-| `GHCR_PULL_TOKEN` | Classic GitHub PAT with `read:packages`; account must read the private package, with organization SSO authorization if required | Provisioning installs Docker pull authentication |
-| `ATLAS_CLIENT_ID` | Atlas service-account client ID with Project Owner on the selected existing Atlas project | Add scoped users/network entries |
-| `ATLAS_CLIENT_SECRET` | Matching Atlas service-account secret; allow VPS egress in its API access policy if enforced | Atlas administration |
-| `SHARED_OWNER_TOKEN` | Fine-grained GitHub PAT selecting only the owner repository, Contents read and Actions read/write | Read registration, dispatch and observe owner workflow |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Optional client secret for `google.oauthClientId` | Enable Google provider when supplied and not already enabled |
-
-CI publishing uses automatic `GITHUB_TOKEN` with `packages:write`; never copy that
-token to the VPS. Confirm private-package visibility and actual scoped pulls during
-first release. Docker login alone does not prove package-level read authorization.
-The pinned SSH host key is obtained from the existing VPS through trusted access,
-not an unchecked network scan. Operator access must support noninteractive sudo
-for the supplied host scripts; Docker/operator access is privileged.
-
-Google administration uses GitHub OIDC rather than a stored long-lived provisioner
-key. An administrator must first create the workload identity pool/provider and
-provisioner service account in an existing administration project. Restrict trust to
-this repository, `refs/heads/main`, and the intended environment subjects. Grant
-Workload Identity User to those principals. On the existing staging project, grant
-`roles/firebase.admin`, `roles/serviceusage.serviceUsageAdmin`,
-`roles/iam.serviceAccountAdmin`, `roles/iam.serviceAccountKeyAdmin` and
-`roles/resourcemanager.projectIamAdmin`. Grant `roles/resourcemanager.projectCreator`
-on the production parent plus the corresponding administration permissions for
-created projects.
-Set provider/service-account identifiers in tracked configuration. Org policies
-that prohibit service-account keys require an explicit operator decision; scripts
-never change those policies or attach billing accounts.
-
-OAuth consent screens, OAuth web-client creation and redirect URI approval remain
-operator setup. Authorize `https://APP_HOST/__/auth/handler`. Provisioning enables
-Email/Password and merges authorized domains when Firebase Auth is initialized;
-it optionally enables a supplied Google provider. A new project may require the
-Firebase console's Authentication **Get started** step, then another provisioning
-run. The public initializeAuth API enables billing-only Identity Platform, so this
-workflow does not silently upgrade the project. Keep Firebase-hosted verification
-and password-reset action handlers and authorize the app return URL. Configure
-password policy and email-enumeration protection in the Firebase console.
-
-Cloudflare DNS/tunnel administration credentials stay in the owner repository's
-existing Infrastructure workflow, including its protected Terraform state access.
-Unibase needs no Cloudflare API token or tunnel token. Install/review the
-[owner integration](../deploy/shared-owner/README.md) before provisioning.
-
-Optional runtime Stripe, Dify, MCP and S3 credentials are needed only on activation;
-see [payments](payments.md), [Runs](runs.md) and [MCP](mcp.md). Keep encryption secrets
-stable across web/worker processes and retained accepted work. They remain private
-runtime settings, never tracked environment values.
+Use repository Actions secrets for staging, as listed in
+[the restricted control procedure](#restricted-first-staging-control-path).
+Infrastructure owns the shared key/account bootstrap and protected credential
+handoff. Do not create paid-plan GitHub environment secrets for this private repo.
+The admin key stays outside routine workflows. Verify host-key material through
+trusted operator access; do not use an unchecked scan as trust evidence.
 
 ## First provisioning
 
-The existing Linux VPS must provide Docker, Compose **2.30+**, Python 3, curl and
-flock. Provisioning checks Docker/Compose, port and subnet collisions and existing
-provider ownership. Host capacity, Docker installation/upgrades, SSH/Access setup,
-provider accounts and one-time OIDC trust remain operator prerequisites.
+For staging, use the reviewed Infrastructure installer and the installed
+`prepare-host.py` preview/apply procedure above. Reuse the shared Firebase key;
+create only the app-specific Atlas user and add the required hostname through the
+provider/tunnel owners. Root-owned configuration changes require an operator;
+the deployment account cannot provision resources or upload code.
 
-1. Fill tracked staging/production config and GitHub secrets; prepare the owner
-   registration with matching repository, slug, environment, hostname and port.
-   Enable only reviewed entries. Keep provider/connection identities out of derived
-   projects unless their shared profile is explicitly selected.
-2. Open **Actions > Provision environment > Run workflow**, select `main` and the
-   target environment, and leave **apply** off. Preview verifies owner registration,
-   pinned SSH, Google/Atlas access, Docker prerequisites, allocations and GHCR login
-   without changing provider resources or persistent app configuration.
-3. Run again with **apply** on. It creates missing production Firebase projects/web
-   apps/runtime service accounts, reuses staging Firebase, creates scoped Atlas
-   users/exact network entries, writes private host config, generates missing Redis
-   and database passwords, installs GHCR pull authentication and runs indexes in a
-   disposable pinned Node administration container. It then requests owner-managed
-   routes and waits for the correlated owner workflow result.
-4. Resolve any explicit pending Firebase/OAuth bootstrap items and rerun. Repeated
-   apply reuses generated credentials and registrations. It never rotates keys,
-   deletes resources, resets databases or starts an application release.
-5. Release `_staging`, create/verify the intended first-admin account, obtain its
-   Firebase UID and optionally rerun provisioning with **admin_uid**. Disabled or
-   unverified accounts are refused; a second active-admin bootstrap is refused.
-6. Verify staging live acceptance, then provision/release production separately.
-
-Private files live under `/etc/<slug>/<environment>/`: `runtime.env`, `firebase.json`,
-`redis-password`, `provision-state.json` and `docker/config.json`. Database passwords
-are persisted before user creation so an interrupted run can reuse them. Host
-files/directories stay private; snapshot credentials are UID 1001/mode 0400 and
-mounted read-only. Provider admin credentials use transient private request files,
-are removed on completion, and never enter runtime files or image layers.
-
-Provisioning also generates `/etc/<slug>/config.json` from the tracked environment
-documents. `deploy/config.example.json` illustrates this host format; it is not the
-configuration input for the workflows. Releases and their configuration snapshots
-live under `/opt/<slug>/<environment>/releases/`, with `current` and `previous`
-symlinks in the environment directory. The application operation lock lives at
-`/var/lib/<slug>/operation.lock`.
-
-Missing saved credentials for an existing Atlas user or Firebase key stop provisioning.
-Recover the private files through the operator's approved backup procedure rather
-than automatically replacing keys. Partial provisioning is additive; inspect the
-reported failure/pending step and rerun after correction. If an owner-route request
-times out, inspect its request ID before retrying; it may still be running.
+The historical production provisioner remains in source for a later compatibility
+milestone. It still assumes Google OIDC administration, Atlas service-account
+credentials, a registered-route interface and private GHCR pulls. It must not be
+used for first staging. Production activation requires a separate reviewed plan;
+no provisioner credentials or production resources are configured by this work.
 
 ## Operations
 
 Pushes to `_staging` and `_prod` release automatically. Manual Release must select
 the matching branch/environment. It guards branch/current remote commit before
-building and again before host access, publishes a private commit-tagged GHCR image
+building and again before host access, publishes a commit-tagged GHCR image (public for staging; legacy private production)
 and deploys its immutable digest. Build/operational failures stop release; quality
 reports remain advisory. No required quality branch checks are added.
 
-Host operations remain available from a reviewed checkout:
+Routine staging operations use the Check deployment and Rollback GitHub workflows
+on `_staging`. The shared deployment account cannot run arbitrary `sudo bash` or
+Setup VPS. Use the installed root-owned control checkout only for explicit operator
+maintenance, as described above. The first release requires `prepare-host.py` and
+additive indexes beforehand; directory setup alone is not provisioning.
 
-```sh
-bash scripts/deploy/vps.sh setup staging
-sudo bash scripts/deploy/vps.sh setup staging --apply
-sudo bash scripts/deploy/vps.sh check staging --apply
-sudo bash scripts/deploy/vps.sh rollback staging --apply
-```
-
-Setup only creates project directories; the provisioning workflow installs config
-and indexes. Check and Rollback are also manual GitHub workflows on the matching
-release branch. Operations share the app host lock and workflow concurrency group.
-Shared infrastructure operations additionally serialize in the owner repository.
-Provisioning on this VPS also takes a project-scoped shared Firebase lock, so two
-derived apps cannot overwrite each other's authorized-domain additions.
+Operations retain the existing app lock and repository Actions concurrency group.
+Use runbooks to coordinate shared maintenance and provider domain changes; there is
+no new cross-repository scheduler or host-wide orchestration system.
 
 Releases snapshot private config and merge the selected tracked runtime settings.
 Changing infrastructure/provider identity requires provisioning first. Pull and
@@ -232,7 +378,7 @@ cover preview, repeated apply, interrupted configuration, identity conflicts and
 secret-safe errors. The owner package has registry tests and mock Terraform tests.
 
 Live acceptance remains separate: verify real Firebase Google/email journeys,
-Atlas persistence, both workers, private GHCR/scoped pulls and public HTTPS. After
+Atlas persistence, both workers, staging public GHCR/anonymous pulls and public HTTPS. After
 two successful staging releases, exercise Check/Rollback and failed-candidate
 restoration; confirm production and other hosted apps are unaffected. Only then
 activate production. No live provisioning or deployment is claimed from local tests.

@@ -1,5 +1,10 @@
 # Base application architecture
 
+For pending deployment changes, see the [staging transition](deployment.md#staging-transition-status--2026-10-24)
+and [shared architecture](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/architecture.md).
+Worker, ingress and configuration descriptions below remain the current implementation
+until that transition is implemented and verified.
+
 ## Current foundation
 
 Base is one Next.js App Router application with Firebase Authentication, MongoDB profiles, a responsive shell, appearance preferences, opt-in diagnostics and PWA support. Account acceptance uses the Auth Emulator and isolated MongoDB. M3 retains a configurable Bubblewrap Android project and manual release workflow; Android compilation and live activation are pending as recorded in the implementation plan. M4 provides standalone container, isolated VPS release/check/rollback tooling and independent advisory workflows. Live deployment remains a separate activation step.

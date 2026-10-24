@@ -35,7 +35,13 @@ if [[ "$action" == setup ]]; then
   exit 0
 fi
 [[ -d "$base/releases" ]] || { echo 'Run Unibase setup first' >&2; exit 1; }
-export DOCKER_CONFIG=$config/$target/docker
+if [[ "$target" == staging ]]; then
+  anonymous_config=$(mktemp -d "$state/anonymous-docker.XXXXXXXX")
+  trap 'rm -rf -- "$anonymous_config"' EXIT
+  export DOCKER_CONFIG=$anonymous_config
+else
+  export DOCKER_CONFIG=$config/$target/docker
+fi
 compose() { docker compose --project-name "$project" --env-file "$1/compose.env" -f "$1/compose.yml" "${@:2}"; }
 report() {
   local outcome=$1 release=$2 saved_commit saved_image

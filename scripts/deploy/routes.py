@@ -11,6 +11,36 @@ from environment import ROOT, load
 from providers import API, ProviderError
 
 
+def verify_owner_managed(config, token, api=None):
+    """Read the owner's live route and DNS; never mutate its complete route list."""
+    from urllib.parse import urlsplit
+    import fnmatch
+    api = api or API({"GOOGLE_ACCESS_TOKEN": "", "ATLAS_CLIENT_ID": "", "ATLAS_CLIENT_SECRET": ""})
+    shared = config['shared']
+    host = urlsplit(config['runtime']['APP_ORIGIN']).hostname
+    headers = {'Authorization': 'Bearer ' + token}
+    endpoint = 'https://api.cloudflare.com/client/v4/'
+    value = api.request('GET', endpoint + 'accounts/' + shared['cloudflareAccountId'] +
+                        '/cfd_tunnel/' + shared['tunnelId'] + '/configurations', headers=headers)
+    if value.get('success') is not True:
+        raise ValueError('Unable to read owner tunnel configuration')
+    rules = value.get('result', {}).get('config', {}).get('ingress', [])
+    selected = next((rule for rule in rules if not rule.get('hostname') or
+                     fnmatch.fnmatchcase(host, rule['hostname'])), None)
+    if (not selected or selected.get('hostname') != host or selected.get('path') or
+            selected.get('service') not in (f"http://localhost:{config['deployment']['port']}",
+                                            f"http://127.0.0.1:{config['deployment']['port']}")):
+        raise ValueError('Owner route is missing, shadowed or targets a different listener')
+    dns = api.request('GET', endpoint + 'zones/' + shared['cloudflareZoneId'] +
+                      '/dns_records?' + urlencode({'name': host}), headers=headers)
+    records = dns.get('result', [])
+    if (dns.get('success') is not True or len(records) != 1 or records[0].get('type') != 'CNAME' or
+            records[0].get('content') != shared['tunnelId'] + '.cfargotunnel.com' or
+            records[0].get('proxied') is not True):
+        raise ValueError('DNS does not select the owner tunnel')
+    print('Owner-managed tunnel route and DNS verified; no mutation requested')
+
+
 def validate_registry(registry, config, repository, slug):
     shared = config["shared"]
     if registry.get("version") != 1 or registry.get("ownerRepository") != shared["ownerRepository"]:
@@ -69,6 +99,15 @@ if __name__ == "__main__":
         parser.add_argument("environment", choices=["staging", "production"])
         parser.add_argument("--apply", action="store_true")
         args = parser.parse_args()
+        config = load(args.environment)
+        if config['shared'].get('routeMode') == 'owner-managed':
+            if args.apply:
+                raise ValueError('Route changes must be applied by the existing owner')
+            token = os.environ.get('CLOUDFLARE_READ_TOKEN')
+            if not token:
+                raise ValueError('Missing secret: CLOUDFLARE_READ_TOKEN')
+            verify_owner_managed(config, token)
+            sys.exit(0)
         token = os.environ.get("SHARED_OWNER_TOKEN")
         if not token:
             raise ValueError("Missing secret: SHARED_OWNER_TOKEN")

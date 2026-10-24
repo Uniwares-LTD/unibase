@@ -24,10 +24,10 @@ def load(target, root=ROOT, require_connections=True):
         raise ValueError("Environment document mismatch")
     sections = {
         "deployment": {"imageRepository", "port", "ingressSubnet", "redisImage", "nginxImage", "adminImage"},
-        "ssh": {"host", "user", "cloudflaredVersion", "cloudflaredSha256"},
+        "ssh": {"host", "user", "transport", "cloudflaredVersion", "cloudflaredSha256"},
         "google": {"projectId", "parent", "workloadIdentityProvider", "provisionerServiceAccount", "oauthClientId"},
         "atlas": {"projectId", "clusterName", "mongoUser", "vpsEgressCidr"},
-        "shared": {"ownerRepository", "ownerRef", "routeWorkflow", "tunnelId", "cloudflareAccountId", "cloudflareZoneId"},
+        "shared": {"ownerRepository", "ownerRef", "routeWorkflow", "routeMode", "tunnelId", "cloudflareAccountId", "cloudflareZoneId"},
         "ghcr": {"pullUser"}, "android": {"host", "packageName"},
     }
     if set(config) - {"version", "environment", "runtime", *sections}:
@@ -56,14 +56,28 @@ def load(target, root=ROOT, require_connections=True):
         return config
     if runtime.get("AUTH_MODE") != "firebase":
         raise ValueError("Live environments require Firebase")
-    for section, keys in {
+    route_mode = config["shared"].get("routeMode") or "registry"
+    if route_mode not in ("registry", "owner-managed") or (route_mode == "owner-managed" and target != "staging"):
+        raise ValueError("Invalid route mode for this environment")
+    existing_staging = target == "staging" and route_mode == "owner-managed"
+    required_sections = {
         "deployment": ["imageRepository", "port", "ingressSubnet", "redisImage", "nginxImage", "adminImage"],
         "ssh": ["host", "user", "cloudflaredVersion", "cloudflaredSha256"],
         "google": ["projectId", "workloadIdentityProvider", "provisionerServiceAccount"],
         "atlas": ["projectId", "clusterName", "mongoUser", "vpsEgressCidr"],
         "shared": ["ownerRepository", "ownerRef", "routeWorkflow", "tunnelId", "cloudflareAccountId", "cloudflareZoneId"],
         "ghcr": ["pullUser"],
-    }.items():
+    }
+    transport = config["ssh"].get("transport") or "cloudflare"
+    if transport not in ("direct", "cloudflare"):
+        raise ValueError("Invalid SSH transport")
+    if transport == "direct":
+        required_sections["ssh"] = ["host", "user"]
+    if existing_staging:
+        required_sections["google"] = ["projectId"]
+        required_sections["shared"] = ["ownerRepository", "ownerRef", "tunnelId", "cloudflareAccountId", "cloudflareZoneId"]
+        required_sections["ghcr"] = []
+    for section, keys in required_sections.items():
         for key in keys:
             value = config[section].get(key)
             if require_connections and (value is None or value == ""):
@@ -95,6 +109,8 @@ def load(target, root=ROOT, require_connections=True):
     ssh = config["ssh"]
     for key, pattern in (("host", r"[a-zA-Z0-9.-]+"), ("user", r"[a-z_][a-z0-9_-]*"),
                          ("cloudflaredVersion", r"[0-9]+\.[0-9]+\.[0-9]+"), ("cloudflaredSha256", r"[a-f0-9]{64}")):
+        if transport == "direct" and key.startswith("cloudflared"):
+            continue
         if not re.fullmatch(pattern, ssh[key]):
             raise ValueError("Invalid SSH configuration: " + key)
     if not re.fullmatch(re.escape(prefix) + r"[A-Za-z0-9_]+", config["atlas"]["mongoUser"]):
@@ -128,6 +144,7 @@ def load(target, root=ROOT, require_connections=True):
 def exports(config):
     ssh = config["ssh"]
     return {"VPS_HOST": ssh["host"], "VPS_USER": ssh["user"],
+            "SSH_TRANSPORT": ssh.get("transport") or "cloudflare",
             "CLOUDFLARED_VERSION": ssh["cloudflaredVersion"], "CLOUDFLARED_SHA256": ssh["cloudflaredSha256"],
             "GOOGLE_WIF_PROVIDER": config["google"]["workloadIdentityProvider"],
             "GOOGLE_PROVISIONER_SERVICE_ACCOUNT": config["google"]["provisionerServiceAccount"]}
@@ -146,7 +163,7 @@ if __name__ == "__main__":
                 raise ValueError("Missing or invalid Android configuration")
         if len(sys.argv) == 3 and sys.argv[2] in ("--github-env", "--android-env"):
             with open(os.environ["GITHUB_ENV"], "a") as file:
-                file.writelines(f"{key}={value}\n" for key, value in values.items())
+                file.writelines(f"{key}={value or ''}\n" for key, value in values.items())
         else:
             print(json.dumps(config))
     except Exception as error:
