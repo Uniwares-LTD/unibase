@@ -53,7 +53,7 @@ print('verified: provider administration credentials excluded from source')
             env = dict(os.environ, PATH=str(mock) + ":" + os.environ["PATH"], RUNNER_TEMP=str(runner), GITHUB_REF="refs/heads/main")
             for key in ("GOOGLE_ACCESS_TOKEN", "ATLAS_CLIENT_ID", "ATLAS_CLIENT_SECRET", "GHCR_PULL_TOKEN"):
                 env[key] = "synthetic-transfer-" + key.lower()
-            result = subprocess.run(["bash", str(REPO / "scripts/deploy/provision.sh"), "staging", "preview"], cwd=source,
+            result = subprocess.run(["bash", str(REPO / "scripts/deploy/provision.sh"), "production", "preview"], cwd=source,
                                     env=env, capture_output=True, text=True, timeout=30)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("credentials excluded", result.stdout)

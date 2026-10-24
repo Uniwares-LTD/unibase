@@ -13,6 +13,8 @@ CONFIG = Path("/etc/unibase")
 STATE = Path("/var/lib/unibase")
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts/deploy/vps.sh"
+PUBLIC = json.loads((REPO / 'deploy/environments/staging.json').read_text())
+IMAGE = PUBLIC['deployment']['imageRepository'] or 'ghcr.io/test/unibase'
 
 
 @unittest.skipUnless(os.environ.get("UNIBASE_DEPLOY_TEST_CONTAINER") == "1" and str(REPO) == "/repo", "Requires owned Linux test container")
@@ -28,6 +30,9 @@ import json,os,sys,time
 from pathlib import Path
 args=sys.argv[1:]
 with open('/tmp/docker-operations','a') as f: f.write(json.dumps(args)+'\\n')
+if args[:1]==['--config']:
+    assert args[2]=='pull'
+    sys.exit(1 if os.environ.get('FAIL_ANONYMOUS_PULL')=='1' else 0)
 if args[0]=='login': sys.exit(0)
 if args[:2]==['image','inspect']:
     print(os.environ.get('BAD_IMAGE_REVISION') or Path('/tmp/pulled-commit').read_text())
@@ -92,13 +97,17 @@ elif endpoint.endswith('/zip'):
 else: sys.exit(1)
 ''',
             "python3": '''#!/usr/bin/env bash
-if [[ ${1:-} == *private-package.py ]]; then
+if [[ ${1:-} == *public-package.py ]]; then
   exec /usr/bin/python3 /tmp/unibase-mock-bin/package-api.py "$@"
 fi
+if [[ ${1:-} == *routes.py ]]; then exit 0; fi
 exec /usr/bin/python3 "$@"
 ''',
             "ssh": '''#!/usr/bin/env bash
 printf 'ssh\\n' >> /tmp/host-contacts
+if [[ ${!#} == operate ]]; then
+  exec /usr/bin/python3 /tmp/unibase-mock-bin/dispatch.py
+fi
 bash -c "${!#}"
 ''',
             "scp": '''#!/usr/bin/env bash
@@ -116,12 +125,18 @@ exec "$@"
             file.chmod(0o755)
         (cls.bin / "package-api.py").write_text('''import io,json,os,runpy,sys,urllib.request
 def response(request, **kwargs):
-    value={'type':'Organization'} if '/users/' in request.full_url else {'visibility':os.environ.get('MOCK_VISIBILITY','private')}
+    value={'type':'Organization'} if '/users/' in request.full_url else {'visibility':os.environ.get('MOCK_VISIBILITY','public')}
     return io.BytesIO(json.dumps(value).encode())
 urllib.request.urlopen=response
 filename=sys.argv[1]
 sys.argv=sys.argv[1:]
 runpy.run_path(filename,run_name='__main__')
+''')
+        (cls.bin / "dispatch.py").write_text('''import json,subprocess,sys
+r=json.load(sys.stdin)
+assert set(r)=={'version','project','environment','action','configurationHash','image','commit'}
+assert r['environment']=='staging' and r['project']=='unibase' and r['action']=='deploy'
+sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging','--apply',r['image'],r['commit']]).returncode)
 ''')
         cls.env = dict(os.environ, PATH=f"{cls.bin}:" + os.environ["PATH"])
         # Preview must not create directories or contact Docker.
@@ -136,7 +151,7 @@ runpy.run_path(filename,run_name='__main__')
     def run_host(cls, action, target="staging", commit=None, **extra):
         args = ["bash", str(SCRIPT), action, target, "--apply"]
         if commit:
-            args += ["ghcr.io/test/unibase@sha256:" + "b" * 64, commit]
+            args += [IMAGE + "@sha256:" + "b" * 64, commit]
         return subprocess.run(args, env=dict(cls.env, **extra), capture_output=True, text=True, timeout=20)
 
     def setUp(self):
@@ -146,7 +161,17 @@ runpy.run_path(filename,run_name='__main__')
             shutil.rmtree(ROOT / target / "releases")
             (ROOT / target / "releases").mkdir()
             Path("/tmp/active-unibase-" + target).unlink(missing_ok=True)
-        fixture(CONFIG)
+        installed=fixture(CONFIG)
+        item=installed['staging']
+        for key,value in {'origin':PUBLIC['runtime']['APP_ORIGIN'],'firebaseProject':PUBLIC['google']['projectId'],**{k:PUBLIC['deployment'][k] for k in ('ingressSubnet','redisImage','nginxImage')}}.items():
+            if value is not None: item[key]=value
+        installed['imageRepository']=IMAGE
+        (CONFIG/'config.json').write_text(json.dumps(installed))
+        runtime=CONFIG/'staging/runtime.env'
+        values=dict(line.split('=',1) for line in runtime.read_text().splitlines())
+        values.update(APP_ORIGIN=item['origin'],FIREBASE_PROJECT_ID=item['firebaseProject'])
+        runtime.write_text(''.join(f'{k}={v}\n' for k,v in values.items()))
+        credential=CONFIG/'staging/firebase.json'; saved=json.loads(credential.read_text()); saved['project_id']=item['firebaseProject']; credential.write_text(json.dumps(saved))
         Path("/tmp/docker-operations").write_text("")
         Path("/tmp/docker-built").unlink(missing_ok=True)
         Path("/tmp/host-contacts").write_text("")
@@ -240,7 +265,7 @@ runpy.run_path(filename,run_name='__main__')
         if runner.exists():
             shutil.rmtree(runner)
         runner.mkdir()
-        env = dict(self.env, GITHUB_REPOSITORY="test/unibase", GITHUB_SHA="a" * 40,
+        env = dict(self.env, GITHUB_REPOSITORY=IMAGE.removeprefix('ghcr.io/'), GITHUB_SHA="a" * 40,
                    GITHUB_REF="refs/heads/_staging", MOCK_REMOTE_SHA="a" * 40,
                    GITHUB_ACTOR="synthetic-operator", GH_TOKEN="synthetic-test-token",
                    VPS_HOST="ssh.example.test", VPS_USER="unibase", RUNNER_TEMP=str(runner),
@@ -269,16 +294,22 @@ runpy.run_path(filename,run_name='__main__')
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(Path("/tmp/host-contacts").read_text(), "")
 
-    def test_public_package_is_rejected_without_changing_visibility(self):
-        result = self.run_release(MOCK_VISIBILITY="public")
+    def test_private_package_is_rejected_without_changing_visibility(self):
+        result = self.run_release(MOCK_VISIBILITY="private")
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("must be private", result.stderr)
+        self.assertIn("visibility to public", result.stderr)
         self.assertEqual(Path("/tmp/host-contacts").read_text(), "")
         self.assertFalse(Path("/tmp/docker-built").exists())
 
+    def test_anonymous_pull_failure_never_contacts_host(self):
+        result=self.run_release(FAIL_ANONYMOUS_PULL="1")
+        self.assertNotEqual(result.returncode,0)
+        self.assertEqual(Path('/tmp/host-contacts').read_text(),'')
+        self.assertTrue(Path('/tmp/docker-built').exists())
+
     def test_host_lock_serializes_competing_releases(self):
         args = ["bash", str(SCRIPT), "deploy", "staging", "--apply",
-                "ghcr.io/test/unibase@sha256:" + "b" * 64, "a" * 40]
+                IMAGE + "@sha256:" + "b" * 64, "a" * 40]
         first = subprocess.Popen(args, env=dict(self.env, HOLD_UP="1"), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         import time
         try:

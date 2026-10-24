@@ -4,7 +4,7 @@ on:
     inputs:
       environment:
         type: choice
-        options: [staging, production]
+        options: [production]
         required: true
       apply:
         description: Apply additive provisioning (otherwise preview)
@@ -24,7 +24,6 @@ jobs:
   provision:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    environment: ${{ inputs.environment }}
     env:
       TARGET: ${{ inputs.environment }}
       DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
@@ -36,6 +35,7 @@ jobs:
       - name: Validate main and tracked configuration
         run: |
           test "$GITHUB_REF" = refs/heads/main
+          test "$TARGET" = production
           python3 scripts/deploy/environment.py "$TARGET" --github-env
       - name: Verify registered shared routes before provisioning
         env:

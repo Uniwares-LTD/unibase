@@ -220,6 +220,15 @@ Status: staged delivery accepted; live deployment remains pending. Follow the
 [three-phase infrastructure runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
 Historical implementation/verification below remains intact.
 
+Phase 1 implementation, October 24: staging uses repository secrets, a restricted
+JSON dispatcher protocol, public package/anonymous digest checks, existing-provider
+configuration preparation and owner-managed live tunnel/DNS verification. Known
+staging bindings and image digests are populated; the replacement subnet remains
+a proposal until apply-time checks. Existing workers, Redis and Nginx are retained.
+Provider reads verify Firebase web registration and enabled Google/email login;
+staging domain, Atlas user and owner route are Phase 2 additions. See
+[the preparation package](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
+
 ### First working staging deployment
 
 - [ ] Connect and prepare: complete required discovery, collect missing inputs once,
@@ -252,8 +261,8 @@ no image rollback. Backup remains required before destructive operations/migrati
 - [ ] Image/config rollback rehearsal when a real compatible predecessor exists,
   without manufacturing a release solely for that check.
 
-No live configuration, providers or release branches change in this documentation
-task. Initial deployment, recovery and consolidation each need their own verified
+No live host configuration, provider resources or release branches changed during
+Phase 1 preparation. Initial deployment, recovery and consolidation each need their own verified
 evidence. Production activation, legacy migration and broad cleanup remain separate.
 
 ## M1 Application foundation and development conventions

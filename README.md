@@ -1,6 +1,6 @@
 # Base
 
-Deployment work starts with the [staging transition status](docs/deployment.md#staging-transition-status--2026-10-22)
+Deployment work starts with the [staging transition status](docs/deployment.md#staging-transition-status--2026-10-24)
 and private [shared infrastructure inventory](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/inventory/srv1.md).
 They distinguish current tooling from pending staging setup and shared-service changes.
 

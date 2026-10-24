@@ -5,6 +5,7 @@ umask 077
 # shellcheck source=scripts/deploy/identity.sh
 source "$(dirname "${BASH_SOURCE[0]}")/identity.sh"
 target=${1:?environment required}
+[[ "$target" != staging ]] || { echo 'Staging uses reviewed operator prepare-host.py with existing providers; legacy provisioning is disabled.' >&2; exit 1; }
 mode=${2:-preview}
 case "$target:$mode" in staging:preview|staging:apply|production:preview|production:apply) ;; *) exit 1 ;; esac
 [[ ${GITHUB_REF:-} == refs/heads/main ]] || { echo 'Provisioning requires main' >&2; exit 1; }

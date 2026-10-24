@@ -4,7 +4,7 @@ on:
     inputs:
       environment:
         type: choice
-        options: [staging, production]
+        options: [production]
         required: true
       apply:
         description: Explicitly create Unibase host directories (otherwise preview)

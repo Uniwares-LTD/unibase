@@ -1,6 +1,6 @@
 # Base application architecture
 
-For pending deployment changes, see the [staging transition](deployment.md#staging-transition-status--2026-10-22)
+For pending deployment changes, see the [staging transition](deployment.md#staging-transition-status--2026-10-24)
 and [shared architecture](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/architecture.md).
 Worker, ingress and configuration descriptions below remain the current implementation
 until that transition is implemented and verified.

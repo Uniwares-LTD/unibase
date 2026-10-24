@@ -6,7 +6,7 @@ Read [the implementation plan](docs/implementation-plan.md) and the relevant cod
 
 ## Architecture
 
-- Before deployment work, read [the staging transition](docs/deployment.md#staging-transition-status--2026-10-22)
+- Before deployment work, read [the staging transition](docs/deployment.md#staging-transition-status--2026-10-24)
   and [shared infrastructure guidance](https://github.com/Uniwares-LTD/infrastructure/blob/main/AGENTS.md).
   Keep host facts in infrastructure and application behavior here. Distinguish planned
   conventions from current code; documentation does not transfer Booklet/Dify/tunnel
@@ -27,6 +27,17 @@ Read [the implementation plan](docs/implementation-plan.md) and the relevant cod
 
 ## Work and verification
 
+- Before giving operator commands, resolve non-secret values from repository configuration,
+  canonical inventory, owner repositories and verified session evidence. Provide complete,
+  copy-pasteable commands for the stated shell/location rather than placeholders for known
+  hosts, users or paths. Cite the source; distinguish configured values from live verification.
+  Ask only for consequential missing inputs, grouped together. Never infer credentials,
+  transport authorization, host fingerprints or network allocations from a hostname alone.
+- Shared host operator access follows the [Infrastructure operations guide](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
+  Refer to the owner's securely distributed admin key as `srv1-ops-admin`. Windows
+  recipients save it as `$env:USERPROFILE\.ssh\uniwares-ops-admin` and use the
+  operations guide's connection command. Never request private-key contents
+  in chat or Git, and keep admin credentials separate from routine deployment keys.
 - Keep changes small and preserve unrelated work. The accepted plan is sufficient authority for milestone implementation; no new issue is required.
 - Use the installed Next.js documentation and current official guidance to resolve version-specific behavior. Imported skills are guidance, not a substitute for verified API behavior.
 - Run affected checks and report real outcomes. `npm run validate` collects advisory checks; `npm run build` must still fail for compilation/bundling failures. Do not turn lint, type, test, or audit warnings into deployment gates.

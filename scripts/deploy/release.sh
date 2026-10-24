@@ -16,8 +16,13 @@ report() {
 }
 trap report EXIT
 bash "$script_dir/guard.sh" "$target"
-python3 "$script_dir/private-package.py" before
-for key in VPS_HOST VPS_USER CLOUDFLARED_VERSION CLOUDFLARED_SHA256 DEPLOY_SSH_PRIVATE_KEY DEPLOY_SSH_HOST_KEY CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET; do
+if [[ "$target" == staging ]]; then
+  python3 "$script_dir/routes.py" "$target"
+  python3 "$script_dir/public-package.py" before
+else
+  python3 "$script_dir/private-package.py" before
+fi
+for key in VPS_HOST VPS_USER DEPLOY_SSH_PRIVATE_KEY DEPLOY_SSH_HOST_KEY; do
   [[ -n ${!key:-} ]] || { echo "Missing $key" >&2; exit 1; }
 done
 image="ghcr.io/${GITHUB_REPOSITORY,,}"
@@ -25,13 +30,25 @@ printf '%s' "${GH_TOKEN:?}" | docker login ghcr.io -u "${GITHUB_ACTOR:?}" --pass
 docker buildx build --push --tag "$image:$GITHUB_SHA" --label "org.opencontainers.image.revision=$GITHUB_SHA" --metadata-file "$RUNNER_TEMP/image.json" .
 digest=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' "$RUNNER_TEMP/image.json")
 [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Build did not produce an immutable digest' >&2; exit 1; }
-python3 "$script_dir/private-package.py" after
+if [[ "$target" == staging ]]; then
+python3 "$script_dir/public-package.py" after
+# Fresh client configuration prevents runner credentials from authenticating this pull.
+anonymous=$(mktemp -d "$RUNNER_TEMP/anonymous-ghcr.XXXXXXXX")
+if ! docker --config "$anonymous" pull "$image@$digest"; then
+  rm -rf -- "$anonymous"
+  echo 'Anonymous digest pull failed; host deployment not attempted' >&2
+  exit 1
+fi
+rm -rf -- "$anonymous"
+else
+  python3 "$script_dir/private-package.py" after
+fi
 python3 "$script_dir/quality-summary.py" || echo 'Advisory report unavailable; build succeeded.' >> "$GITHUB_STEP_SUMMARY"
 bash "$script_dir/guard.sh" "$target"
 # Access setup exports the SSH config for this shell and later cleanup.
 bash "$script_dir/access.sh"
-export TUNNEL_SERVICE_TOKEN_ID=$CF_ACCESS_CLIENT_ID
-export TUNNEL_SERVICE_TOKEN_SECRET=$CF_ACCESS_CLIENT_SECRET
+export TUNNEL_SERVICE_TOKEN_ID=${CF_ACCESS_CLIENT_ID:-}
+export TUNNEL_SERVICE_TOKEN_SECRET=${CF_ACCESS_CLIENT_SECRET:-}
 # Recheck after downloading the access helper, immediately before host contact.
 bash "$script_dir/guard.sh" "$target"
 bash "$script_dir/host-operation.sh" deploy "$target" "$image@$digest" "$GITHUB_SHA"
