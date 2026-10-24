@@ -375,6 +375,9 @@ self-hosted Dify 1.17.1 and configure the connection/key references in
 configuration. No database is reset or migrated automatically.
 
 Restart the AI worker after rebuilding it or changing its private configuration.
+For live local Runs, the worker must be able to reach Dify and Dify must be able
+to reach the authenticated MCP endpoint. A healthy web page or worker heartbeat
+alone does not verify either connection. See [live Run recovery](docs/runs.md#local-live-service-readiness).
 The worker runs the bundled `dist/ai-worker.cjs` loaded when its process starts;
 rebuilding the file alone does not update a running process. Keep its bundle in
 sync with the web server, especially when adding persona or artifact features.

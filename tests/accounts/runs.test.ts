@@ -432,6 +432,108 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
       },
     );
     await t.test(
+      "terminal retrieval settles without a live stream and replays only uncertain decisions",
+      async () => {
+        for (const status of ["succeeded", "failed", "stopped"] as const) {
+          for (const uncertain of [false, true]) {
+            const fixture = client.db(`terminal_${status}_${uncertain}`);
+            const uid = `terminal-${status}-${uncertain}`;
+            await grantCredits(fixture, uid, "seed", {
+              amount: 10,
+              source: "purchase",
+              reference: uid,
+            });
+            const saved = await createAiJob(
+              fixture,
+              { ...actor, uid },
+              randomUUID(),
+              {
+                ...request,
+                run: { ...request.run, logicalId: fingerprint(uid) },
+              },
+            );
+            const providerId = randomUUID();
+            const result: ProviderExecution = {
+              runId: providerId,
+              workflowId: null,
+              status,
+              outputs: null,
+              usage: {
+                scope: "execution",
+                id: providerId,
+                inputTokens: 1,
+                outputTokens: 1,
+                totalTokens: 2,
+                cost: null,
+                elapsedMs: 1,
+              },
+            };
+            await aiJobs(fixture).updateOne(
+              { _id: saved._id },
+              { $set: { status: "paused", runId: providerId } },
+            );
+            if (uncertain)
+              await fixture.collection("runDecisions").insertOne({
+                jobId: saved._id,
+                nodeId: "choice",
+                status: "unknown",
+              });
+            let streams = 0;
+            let traces = 0;
+            await processOneAiJob(fixture, {
+              authorize: async () => true,
+              validateOutput: () => true,
+              terminalOutput: async () =>
+                status === "succeeded" ? "succeeded" : "failed",
+              trace: async () => {
+                traces++;
+                return [];
+              },
+              provider: () => ({
+                start: async () => {
+                  throw new Error("Must not generate again");
+                },
+                stop: async () => ({ kind: "ok", value: undefined }),
+                retrieve: async () => ({ kind: "ok", value: result }),
+                stream: async (_, __, observe) => {
+                  streams++;
+                  assert.ok(uncertain && status !== "stopped");
+                  await observe({
+                    type: "decision-filled",
+                    nodeId: "choice",
+                    action: "continue",
+                    inputs: {},
+                  });
+                  // A historical pause must not replace retrieved completion.
+                  return { kind: "ok", value: { ...result, status: "paused" } };
+                },
+              }),
+            });
+            const done = await aiJobs(fixture).findOne({ _id: saved._id });
+            assert.equal(
+              done?.status,
+              status === "stopped" ? "cancelled" : status,
+            );
+            assert.equal(streams, uncertain && status !== "stopped" ? 1 : 0);
+            assert.equal(traces, 1);
+            const wallet = await readWallet(fixture, uid);
+            assert.equal(wallet.reserved, 0);
+            assert.equal(wallet.balance, status === "succeeded" ? 9 : 10);
+            assert.equal(
+              await processOneAiJob(fixture, {
+                authorize: async () => true,
+                validateOutput: () => true,
+                provider: () => {
+                  throw new Error("Settled Run must remain settled");
+                },
+              }),
+              false,
+            );
+          }
+        }
+      },
+    );
+    await t.test(
       "terminal outcomes with unconfirmed decisions remain reviewable and keep the hold",
       async () => {
         const uid = "unconfirmed-decision";

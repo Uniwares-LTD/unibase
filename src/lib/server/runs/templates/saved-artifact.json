@@ -487,6 +487,62 @@
             "targetPosition": "left",
             "width": 244,
             "height": 100
+          },
+          {
+            "id": "declined",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "code",
+              "title": "Keep unapproved draft",
+              "code_language": "python3",
+              "code": "import json\ndef main(text: str) -> dict:\n    return {\"result\":json.dumps({\"version\":1,\"outcome\":\"partial\",\"text\":text,\"cards\":[],\"images\":[]})}\n",
+              "variables": [
+                {
+                  "variable": "text",
+                  "value_selector": ["draft", "text"]
+                }
+              ],
+              "outputs": {
+                "result": {
+                  "type": "string",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 2430,
+              "y": 650
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "declined_end",
+            "type": "custom",
+            "data": {
+              "desc": "",
+              "selected": false,
+              "type": "end",
+              "title": "Draft result",
+              "outputs": [
+                {
+                  "variable": "draft_result",
+                  "value_selector": ["declined", "result"]
+                }
+              ]
+            },
+            "position": {
+              "x": 2730,
+              "y": 650
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
           }
         ],
         "edges": [
@@ -603,9 +659,9 @@
             }
           },
           {
-            "id": "decision-finish",
+            "id": "decision-declined",
             "source": "decision",
-            "target": "finish",
+            "target": "declined",
             "sourceHandle": "decline",
             "targetHandle": "target",
             "type": "custom",
@@ -673,15 +729,29 @@
             }
           },
           {
-            "id": "approval_route-false-finish",
+            "id": "approval_route-false-declined",
             "source": "approval_route",
-            "target": "finish",
+            "target": "declined",
             "sourceHandle": "false",
             "targetHandle": "target",
             "type": "custom",
             "data": {
               "sourceType": "if-else",
               "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "declined-declined_end",
+            "source": "declined",
+            "target": "declined_end",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "code",
+              "targetType": "end",
               "isInIteration": false,
               "isInLoop": false
             }

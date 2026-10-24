@@ -4,6 +4,18 @@ import "server-only";
 // Classify bounded input into fixed messages; never serialize the raw error.
 export function workflowFailure(error: unknown): string {
   const value = typeof error === "string" ? error.slice(0, 8000) : "";
+  if (/UNITALE_IMAGE_MODEL_UNAVAILABLE/.test(value))
+    return "The Unitale image model is unavailable. Update the image tool to a supported model in Dify before starting another attempt.";
+  if (/UNITALE_IMAGE_AUTHENTICATION_FAILED/.test(value))
+    return "The Unitale image provider rejected its credentials or permissions. Check the image tool connection in Dify.";
+  if (/UNITALE_IMAGE_RATE_LIMITED/.test(value))
+    return "The Unitale image provider reached its quota or rate limit. Check provider availability before starting another attempt.";
+  if (/UNITALE_IMAGE_REQUEST_BLOCKED/.test(value))
+    return "The Unitale image provider rejected an image request under its safety policy. Review the image prompt in Dify.";
+  if (/UNITALE_IMAGE_PROVIDER_FAILED/.test(value))
+    return "The Unitale image provider returned an error instead of an image. Check the image tool execution in Dify.";
+  if (/UNITALE_IMAGE_MISSING|Expected one generated image per task/.test(value))
+    return "A Unitale image step returned no valid image. Check the image provider's model and execution details in Dify.";
   const reserved = /The variable name '(text|json|files)' is reserved\./.exec(
     value,
   );
@@ -23,7 +35,7 @@ export function workflowFailure(error: unknown): string {
   )
     return "Dify could not authenticate a workflow dependency. Check its provider credentials and permissions.";
   if (
-    /model.*(?:not found|not configured|not available)|provider.*(?:not found|not configured|not available)/i.test(
+    /model.*(?:not found|not configured|not available|does not exist)|provider.*(?:not found|not configured|not available)/i.test(
       value,
     )
   )

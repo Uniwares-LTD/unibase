@@ -67,12 +67,14 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
         nextAttemptAt: new Date(
           current.getTime() +
             (delay ??
-              Math.min(
-                (job!.run?.retryMaxSeconds ?? 300) * 1000,
-                (job!.run?.retryBaseSeconds ?? 2) *
-                  1000 *
-                  2 ** Math.min(job!.attempts, 8),
-              )),
+              (job!.runId && failure === "timeout"
+                ? (job!.run?.pollSeconds ?? 5) * 1000
+                : Math.min(
+                    (job!.run?.retryMaxSeconds ?? 300) * 1000,
+                    (job!.run?.retryBaseSeconds ?? 2) *
+                      1000 *
+                      2 ** Math.min(job!.attempts, 8),
+                  ))),
         ),
       },
       current,
@@ -331,11 +333,25 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       if (job.cancelRequested && job.taskId)
         await provider.stop(job.taskId, providerUser(job.uid));
       const state = await provider.retrieve(job.runId);
+      const terminal =
+        state.kind === "ok" &&
+        !["running", "paused"].includes(state.value.status);
+      // Completed Runs need no live stream. Replay only when a decision still
+      // needs confirmation; bounded terminal tracing is collected by finish().
+      const needsReplay =
+        !terminal ||
+        (state.kind === "ok" &&
+          state.value.status !== "stopped" &&
+          !!(await db.collection("runDecisions").findOne({
+            jobId: job._id,
+            status: { $in: ["unknown", "submitting"] },
+          })));
       outcome =
         job.run &&
         provider.stream &&
         state.kind === "ok" &&
-        !job.cancelRequested
+        !job.cancelRequested &&
+        needsReplay
           ? await provider.stream(
               job.runId,
               providerUser(job.uid),
@@ -344,14 +360,8 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
               },
             )
           : state;
-      // Completion may occur before this poll. Replay still supplies resumed
-      // node tracing; unavailable tracing must not discard verified termination.
-      if (
-        state.kind === "ok" &&
-        !["running", "paused"].includes(state.value.status) &&
-        outcome.kind !== "ok"
-      )
-        outcome = state;
+      // Historical replay snapshots cannot replace confirmed termination.
+      if (terminal) outcome = state;
     } else {
       await defer("acceptance-unknown", true);
       return true;

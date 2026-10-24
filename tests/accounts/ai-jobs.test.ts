@@ -305,6 +305,64 @@ test("durable AI jobs, credit boundaries and recovery", async (t) => {
       },
     );
     await t.test(
+      "accepted stream timeout polls on schedule instead of exponential backoff",
+      async () => {
+        const db = await fixture();
+        const saved = await createAiJob(
+          db,
+          actor,
+          "accepted-timeout",
+          request,
+          start,
+        );
+        let clock = start;
+        let starts = 0;
+        let retrieves = 0;
+        const deps = {
+          now: () => clock,
+          authorize: async () => true,
+          validateOutput: () => true,
+          provider: (): WorkflowProvider => ({
+            start: async (_, observe) => {
+              starts++;
+              await observe({ type: "identity", runId, taskId });
+              await aiJobs(db).updateOne(
+                { _id: saved._id },
+                { $set: { attempts: 8 } },
+              );
+              return { kind: "unknown", failure: "timeout" };
+            },
+            retrieve: async () => {
+              retrieves++;
+              return { kind: "ok", value: execution };
+            },
+            stop: async () => ({ kind: "ok", value: undefined }),
+          }),
+        };
+        await processOneAiJob(db, deps);
+        assert.equal(
+          (
+            await aiJobs(db).findOne({ _id: saved._id })
+          )?.nextAttemptAt.getTime(),
+          start.getTime() + 5000,
+        );
+        clock = new Date(start.getTime() + 4999);
+        assert.equal(await processOneAiJob(db, deps), false);
+        clock = new Date(start.getTime() + 5000);
+        assert.equal(await processOneAiJob(db, deps), true);
+        assert.equal(starts, 1);
+        assert.equal(retrieves, 1);
+        assert.equal(
+          (await aiJobs(db).findOne({ _id: saved._id }))?.status,
+          "succeeded",
+        );
+        assert.equal(
+          (await readWallet(db, actor.uid, { now: clock })).reserved,
+          0,
+        );
+      },
+    );
+    await t.test(
       "unknown acceptance requires review and retains credits without replay",
       async () => {
         const db = await fixture();

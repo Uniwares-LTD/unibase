@@ -160,6 +160,10 @@ User pages start Runs, list owned history and show status, tracing, decisions an
 results. Native `workflow_run_id`/`task_id` values track execution. Human Input
 submits its form token and reconnects the same provider Run. Tracing is the saved
 node-event timeline; Dify log lists are Run summaries, not full node tracing.
+Once retrieval confirms termination, the worker saves that outcome without
+waiting on a live event stream. Replay remains necessary for uncertain decision
+submissions; historical paused snapshots cannot replace confirmed termination.
+Bounded terminal node metadata supplies the tracing timeline separately.
 Raw provider prompts, credentials and other users' Runs are never shown.
 
 Manual JSON definitions, DSL routes and graph setup services have been removed.
@@ -191,6 +195,34 @@ retains sanitized progress and audit intent; provider graphs/secrets and MCP
 credentials stay in Dify. A final publication read detects a version change before
 enabling. Old mutation-intent records are retained as historical evidence but no
 active path resumes graph modifications.
+
+## Local live-service readiness
+
+Local Dify Runs need two network directions: the AI worker calls Dify, and Dify
+calls the private MCP endpoint for Run context and artifact tools. Launching a
+worker under a restricted process environment can make the web interface work
+while execution reports `transport`. A heartbeat confirms the worker loop, not
+provider or callback connectivity. Verify the configured connections from the
+actual worker environment before starting another Run.
+
+For a local callback tunnel, keep its MCP-only proxy and tunnel running. Check
+that unrelated paths return 404 and anonymous MCP requests return 401, then
+reconnect/refresh the existing provider in Dify. Temporary quick tunnels can
+reconnect intermittently; they are development ingress, not hosted reliability
+acceptance. A failed MCP step should settle at zero under success-only pricing.
+If a dispatch outcome is unknown and no execution ID was recorded, its hold
+remains for audited administrator review; do not replay the POST or erase history.
+
+The Run screen clears a read warning after successful manual or automatic
+refresh. Action errors remain visible across successful polling and clear when
+that action is retried. This keeps recovered network errors from appearing as
+ongoing failures without hiding a rejected approval or command.
+
+The saved-artifact example routes explicit Decline and interpreted non-approval
+to `draft_result` with outcome `partial`, retained text and no images. Only the
+approval path returns a successful illustrated result. Under success-only
+pricing, decline settles at zero. Updating a local template does not repair an
+existing publication; publish and re-register the reviewed graph explicitly.
 
 ## Versioned application contract
 
@@ -401,7 +433,10 @@ The package fits the existing artifact text contract and includes concept,
 outline, draft/final lists, manuscript, style and reference plans, cover-plus-three
 page layout, page bibles and expected image order. After approval, two style
 samples, two character sheets, one location sheet, a cover and three story pages
-are generated with the authorized official OpenAI image tool. The same cast,
+are generated with the authorized official OpenAI `gpt_image_2_generate` tool
+using `gpt-image-2.5-flare`. Each image result is validated before the next call;
+missing images and tool error responses stop generation with a safe diagnosis.
+The same cast,
 location and style descriptions guide each image; generated reference images are
 not yet passed back into generation. Exact lettering and visual continuity remain
 model limitations. Existing native-file handling promotes all nine into owned

@@ -1273,12 +1273,12 @@
               "provider_type": "builtin",
               "provider_id": "langgenius/openai_tool/openai",
               "provider_name": "langgenius/openai_tool/openai",
-              "tool_name": "gpt_image_generate",
-              "tool_label": "GPT Image Generate",
+              "tool_name": "gpt_image_2_generate",
+              "tool_label": "GPT Image 2 / 2.5 Generate",
               "tool_configurations": {
                 "model": {
                   "type": "constant",
-                  "value": "gpt-image-1"
+                  "value": "gpt-image-2.5-flare"
                 },
                 "size": {
                   "type": "constant",
@@ -1334,12 +1334,12 @@
               "provider_type": "builtin",
               "provider_id": "langgenius/openai_tool/openai",
               "provider_name": "langgenius/openai_tool/openai",
-              "tool_name": "gpt_image_generate",
-              "tool_label": "GPT Image Generate",
+              "tool_name": "gpt_image_2_generate",
+              "tool_label": "GPT Image 2 / 2.5 Generate",
               "tool_configurations": {
                 "model": {
                   "type": "constant",
-                  "value": "gpt-image-1"
+                  "value": "gpt-image-2.5-flare"
                 },
                 "size": {
                   "type": "constant",
@@ -1395,12 +1395,12 @@
               "provider_type": "builtin",
               "provider_id": "langgenius/openai_tool/openai",
               "provider_name": "langgenius/openai_tool/openai",
-              "tool_name": "gpt_image_generate",
-              "tool_label": "GPT Image Generate",
+              "tool_name": "gpt_image_2_generate",
+              "tool_label": "GPT Image 2 / 2.5 Generate",
               "tool_configurations": {
                 "model": {
                   "type": "constant",
-                  "value": "gpt-image-1"
+                  "value": "gpt-image-2.5-flare"
                 },
                 "size": {
                   "type": "constant",
@@ -1456,12 +1456,12 @@
               "provider_type": "builtin",
               "provider_id": "langgenius/openai_tool/openai",
               "provider_name": "langgenius/openai_tool/openai",
-              "tool_name": "gpt_image_generate",
-              "tool_label": "GPT Image Generate",
+              "tool_name": "gpt_image_2_generate",
+              "tool_label": "GPT Image 2 / 2.5 Generate",
               "tool_configurations": {
                 "model": {
                   "type": "constant",
-                  "value": "gpt-image-1"
+                  "value": "gpt-image-2.5-flare"
                 },
                 "size": {
                   "type": "constant",
@@ -1517,12 +1517,12 @@
               "provider_type": "builtin",
               "provider_id": "langgenius/openai_tool/openai",
               "provider_name": "langgenius/openai_tool/openai",
-              "tool_name": "gpt_image_generate",
-              "tool_label": "GPT Image Generate",
+              "tool_name": "gpt_image_2_generate",
+              "tool_label": "GPT Image 2 / 2.5 Generate",
               "tool_configurations": {
                 "model": {
                   "type": "constant",
-                  "value": "gpt-image-1"
+                  "value": "gpt-image-2.5-flare"
                 },
                 "size": {
                   "type": "constant",
@@ -1578,12 +1578,12 @@
               "provider_type": "builtin",
               "provider_id": "langgenius/openai_tool/openai",
               "provider_name": "langgenius/openai_tool/openai",
-              "tool_name": "gpt_image_generate",
-              "tool_label": "GPT Image Generate",
+              "tool_name": "gpt_image_2_generate",
+              "tool_label": "GPT Image 2 / 2.5 Generate",
               "tool_configurations": {
                 "model": {
                   "type": "constant",
-                  "value": "gpt-image-1"
+                  "value": "gpt-image-2.5-flare"
                 },
                 "size": {
                   "type": "constant",
@@ -1639,12 +1639,12 @@
               "provider_type": "builtin",
               "provider_id": "langgenius/openai_tool/openai",
               "provider_name": "langgenius/openai_tool/openai",
-              "tool_name": "gpt_image_generate",
-              "tool_label": "GPT Image Generate",
+              "tool_name": "gpt_image_2_generate",
+              "tool_label": "GPT Image 2 / 2.5 Generate",
               "tool_configurations": {
                 "model": {
                   "type": "constant",
-                  "value": "gpt-image-1"
+                  "value": "gpt-image-2.5-flare"
                 },
                 "size": {
                   "type": "constant",
@@ -1700,12 +1700,12 @@
               "provider_type": "builtin",
               "provider_id": "langgenius/openai_tool/openai",
               "provider_name": "langgenius/openai_tool/openai",
-              "tool_name": "gpt_image_generate",
-              "tool_label": "GPT Image Generate",
+              "tool_name": "gpt_image_2_generate",
+              "tool_label": "GPT Image 2 / 2.5 Generate",
               "tool_configurations": {
                 "model": {
                   "type": "constant",
-                  "value": "gpt-image-1"
+                  "value": "gpt-image-2.5-flare"
                 },
                 "size": {
                   "type": "constant",
@@ -1761,12 +1761,12 @@
               "provider_type": "builtin",
               "provider_id": "langgenius/openai_tool/openai",
               "provider_name": "langgenius/openai_tool/openai",
-              "tool_name": "gpt_image_generate",
-              "tool_label": "GPT Image Generate",
+              "tool_name": "gpt_image_2_generate",
+              "tool_label": "GPT Image 2 / 2.5 Generate",
               "tool_configurations": {
                 "model": {
                   "type": "constant",
-                  "value": "gpt-image-1"
+                  "value": "gpt-image-2.5-flare"
                 },
                 "size": {
                   "type": "constant",
@@ -1828,39 +1828,39 @@
                 },
                 {
                   "variable": "files1",
-                  "value_selector": ["image1", "files"]
+                  "value_selector": ["validate_image1", "files"]
                 },
                 {
                   "variable": "files2",
-                  "value_selector": ["image2", "files"]
+                  "value_selector": ["validate_image2", "files"]
                 },
                 {
                   "variable": "files3",
-                  "value_selector": ["image3", "files"]
+                  "value_selector": ["validate_image3", "files"]
                 },
                 {
                   "variable": "files4",
-                  "value_selector": ["image4", "files"]
+                  "value_selector": ["validate_image4", "files"]
                 },
                 {
                   "variable": "files5",
-                  "value_selector": ["image5", "files"]
+                  "value_selector": ["validate_image5", "files"]
                 },
                 {
                   "variable": "files6",
-                  "value_selector": ["image6", "files"]
+                  "value_selector": ["validate_image6", "files"]
                 },
                 {
                   "variable": "files7",
-                  "value_selector": ["image7", "files"]
+                  "value_selector": ["validate_image7", "files"]
                 },
                 {
                   "variable": "files8",
-                  "value_selector": ["image8", "files"]
+                  "value_selector": ["validate_image8", "files"]
                 },
                 {
                   "variable": "files9",
-                  "value_selector": ["image9", "files"]
+                  "value_selector": ["validate_image9", "files"]
                 }
               ],
               "outputs": {
@@ -1961,6 +1961,330 @@
             "position": {
               "x": 9930,
               "y": 100
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "validate_image1",
+            "type": "custom",
+            "data": {
+              "desc": "Stop if the image tool returned an error instead of a file.",
+              "selected": false,
+              "type": "code",
+              "title": "Validate image 1 before continuing",
+              "code_language": "python3",
+              "code": "import re\ndef main(files: list, error: str = \"\") -> dict:\n    if isinstance(files,list) and len(files)==1 and isinstance(files[0],dict) and files[0].get('type')=='image' and isinstance(files[0].get('url'),str) and files[0]['url'].strip():\n        return {'files':files}\n    message=error[:8000].lower() if isinstance(error,str) else ''\n    if re.search(r'model.*(does not exist|not found|not available|not configured)',message):\n        raise ValueError('UNITALE_IMAGE_MODEL_UNAVAILABLE')\n    if re.search(r'error code: (401|403)|unauthorized|invalid.*api.?key|authentication',message):\n        raise ValueError('UNITALE_IMAGE_AUTHENTICATION_FAILED')\n    if re.search(r'error code: 429|rate.limit|insufficient_quota',message):\n        raise ValueError('UNITALE_IMAGE_RATE_LIMITED')\n    if re.search(r'moderation_blocked|safety.*reject|content.*policy',message):\n        raise ValueError('UNITALE_IMAGE_REQUEST_BLOCKED')\n    if message.strip():\n        raise ValueError('UNITALE_IMAGE_PROVIDER_FAILED')\n    raise ValueError('UNITALE_IMAGE_MISSING')\n",
+              "variables": [
+                {
+                  "variable": "files",
+                  "value_selector": ["image1", "files"]
+                },
+                {
+                  "variable": "error",
+                  "value_selector": ["image1", "text"]
+                }
+              ],
+              "outputs": {
+                "files": {
+                  "type": "array[object]",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 6450,
+              "y": 280
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "validate_image2",
+            "type": "custom",
+            "data": {
+              "desc": "Stop if the image tool returned an error instead of a file.",
+              "selected": false,
+              "type": "code",
+              "title": "Validate image 2 before continuing",
+              "code_language": "python3",
+              "code": "import re\ndef main(files: list, error: str = \"\") -> dict:\n    if isinstance(files,list) and len(files)==1 and isinstance(files[0],dict) and files[0].get('type')=='image' and isinstance(files[0].get('url'),str) and files[0]['url'].strip():\n        return {'files':files}\n    message=error[:8000].lower() if isinstance(error,str) else ''\n    if re.search(r'model.*(does not exist|not found|not available|not configured)',message):\n        raise ValueError('UNITALE_IMAGE_MODEL_UNAVAILABLE')\n    if re.search(r'error code: (401|403)|unauthorized|invalid.*api.?key|authentication',message):\n        raise ValueError('UNITALE_IMAGE_AUTHENTICATION_FAILED')\n    if re.search(r'error code: 429|rate.limit|insufficient_quota',message):\n        raise ValueError('UNITALE_IMAGE_RATE_LIMITED')\n    if re.search(r'moderation_blocked|safety.*reject|content.*policy',message):\n        raise ValueError('UNITALE_IMAGE_REQUEST_BLOCKED')\n    if message.strip():\n        raise ValueError('UNITALE_IMAGE_PROVIDER_FAILED')\n    raise ValueError('UNITALE_IMAGE_MISSING')\n",
+              "variables": [
+                {
+                  "variable": "files",
+                  "value_selector": ["image2", "files"]
+                },
+                {
+                  "variable": "error",
+                  "value_selector": ["image2", "text"]
+                }
+              ],
+              "outputs": {
+                "files": {
+                  "type": "array[object]",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 6750,
+              "y": 280
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "validate_image3",
+            "type": "custom",
+            "data": {
+              "desc": "Stop if the image tool returned an error instead of a file.",
+              "selected": false,
+              "type": "code",
+              "title": "Validate image 3 before continuing",
+              "code_language": "python3",
+              "code": "import re\ndef main(files: list, error: str = \"\") -> dict:\n    if isinstance(files,list) and len(files)==1 and isinstance(files[0],dict) and files[0].get('type')=='image' and isinstance(files[0].get('url'),str) and files[0]['url'].strip():\n        return {'files':files}\n    message=error[:8000].lower() if isinstance(error,str) else ''\n    if re.search(r'model.*(does not exist|not found|not available|not configured)',message):\n        raise ValueError('UNITALE_IMAGE_MODEL_UNAVAILABLE')\n    if re.search(r'error code: (401|403)|unauthorized|invalid.*api.?key|authentication',message):\n        raise ValueError('UNITALE_IMAGE_AUTHENTICATION_FAILED')\n    if re.search(r'error code: 429|rate.limit|insufficient_quota',message):\n        raise ValueError('UNITALE_IMAGE_RATE_LIMITED')\n    if re.search(r'moderation_blocked|safety.*reject|content.*policy',message):\n        raise ValueError('UNITALE_IMAGE_REQUEST_BLOCKED')\n    if message.strip():\n        raise ValueError('UNITALE_IMAGE_PROVIDER_FAILED')\n    raise ValueError('UNITALE_IMAGE_MISSING')\n",
+              "variables": [
+                {
+                  "variable": "files",
+                  "value_selector": ["image3", "files"]
+                },
+                {
+                  "variable": "error",
+                  "value_selector": ["image3", "text"]
+                }
+              ],
+              "outputs": {
+                "files": {
+                  "type": "array[object]",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 7050,
+              "y": 280
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "validate_image4",
+            "type": "custom",
+            "data": {
+              "desc": "Stop if the image tool returned an error instead of a file.",
+              "selected": false,
+              "type": "code",
+              "title": "Validate image 4 before continuing",
+              "code_language": "python3",
+              "code": "import re\ndef main(files: list, error: str = \"\") -> dict:\n    if isinstance(files,list) and len(files)==1 and isinstance(files[0],dict) and files[0].get('type')=='image' and isinstance(files[0].get('url'),str) and files[0]['url'].strip():\n        return {'files':files}\n    message=error[:8000].lower() if isinstance(error,str) else ''\n    if re.search(r'model.*(does not exist|not found|not available|not configured)',message):\n        raise ValueError('UNITALE_IMAGE_MODEL_UNAVAILABLE')\n    if re.search(r'error code: (401|403)|unauthorized|invalid.*api.?key|authentication',message):\n        raise ValueError('UNITALE_IMAGE_AUTHENTICATION_FAILED')\n    if re.search(r'error code: 429|rate.limit|insufficient_quota',message):\n        raise ValueError('UNITALE_IMAGE_RATE_LIMITED')\n    if re.search(r'moderation_blocked|safety.*reject|content.*policy',message):\n        raise ValueError('UNITALE_IMAGE_REQUEST_BLOCKED')\n    if message.strip():\n        raise ValueError('UNITALE_IMAGE_PROVIDER_FAILED')\n    raise ValueError('UNITALE_IMAGE_MISSING')\n",
+              "variables": [
+                {
+                  "variable": "files",
+                  "value_selector": ["image4", "files"]
+                },
+                {
+                  "variable": "error",
+                  "value_selector": ["image4", "text"]
+                }
+              ],
+              "outputs": {
+                "files": {
+                  "type": "array[object]",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 7350,
+              "y": 280
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "validate_image5",
+            "type": "custom",
+            "data": {
+              "desc": "Stop if the image tool returned an error instead of a file.",
+              "selected": false,
+              "type": "code",
+              "title": "Validate image 5 before continuing",
+              "code_language": "python3",
+              "code": "import re\ndef main(files: list, error: str = \"\") -> dict:\n    if isinstance(files,list) and len(files)==1 and isinstance(files[0],dict) and files[0].get('type')=='image' and isinstance(files[0].get('url'),str) and files[0]['url'].strip():\n        return {'files':files}\n    message=error[:8000].lower() if isinstance(error,str) else ''\n    if re.search(r'model.*(does not exist|not found|not available|not configured)',message):\n        raise ValueError('UNITALE_IMAGE_MODEL_UNAVAILABLE')\n    if re.search(r'error code: (401|403)|unauthorized|invalid.*api.?key|authentication',message):\n        raise ValueError('UNITALE_IMAGE_AUTHENTICATION_FAILED')\n    if re.search(r'error code: 429|rate.limit|insufficient_quota',message):\n        raise ValueError('UNITALE_IMAGE_RATE_LIMITED')\n    if re.search(r'moderation_blocked|safety.*reject|content.*policy',message):\n        raise ValueError('UNITALE_IMAGE_REQUEST_BLOCKED')\n    if message.strip():\n        raise ValueError('UNITALE_IMAGE_PROVIDER_FAILED')\n    raise ValueError('UNITALE_IMAGE_MISSING')\n",
+              "variables": [
+                {
+                  "variable": "files",
+                  "value_selector": ["image5", "files"]
+                },
+                {
+                  "variable": "error",
+                  "value_selector": ["image5", "text"]
+                }
+              ],
+              "outputs": {
+                "files": {
+                  "type": "array[object]",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 7650,
+              "y": 280
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "validate_image6",
+            "type": "custom",
+            "data": {
+              "desc": "Stop if the image tool returned an error instead of a file.",
+              "selected": false,
+              "type": "code",
+              "title": "Validate image 6 before continuing",
+              "code_language": "python3",
+              "code": "import re\ndef main(files: list, error: str = \"\") -> dict:\n    if isinstance(files,list) and len(files)==1 and isinstance(files[0],dict) and files[0].get('type')=='image' and isinstance(files[0].get('url'),str) and files[0]['url'].strip():\n        return {'files':files}\n    message=error[:8000].lower() if isinstance(error,str) else ''\n    if re.search(r'model.*(does not exist|not found|not available|not configured)',message):\n        raise ValueError('UNITALE_IMAGE_MODEL_UNAVAILABLE')\n    if re.search(r'error code: (401|403)|unauthorized|invalid.*api.?key|authentication',message):\n        raise ValueError('UNITALE_IMAGE_AUTHENTICATION_FAILED')\n    if re.search(r'error code: 429|rate.limit|insufficient_quota',message):\n        raise ValueError('UNITALE_IMAGE_RATE_LIMITED')\n    if re.search(r'moderation_blocked|safety.*reject|content.*policy',message):\n        raise ValueError('UNITALE_IMAGE_REQUEST_BLOCKED')\n    if message.strip():\n        raise ValueError('UNITALE_IMAGE_PROVIDER_FAILED')\n    raise ValueError('UNITALE_IMAGE_MISSING')\n",
+              "variables": [
+                {
+                  "variable": "files",
+                  "value_selector": ["image6", "files"]
+                },
+                {
+                  "variable": "error",
+                  "value_selector": ["image6", "text"]
+                }
+              ],
+              "outputs": {
+                "files": {
+                  "type": "array[object]",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 7950,
+              "y": 280
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "validate_image7",
+            "type": "custom",
+            "data": {
+              "desc": "Stop if the image tool returned an error instead of a file.",
+              "selected": false,
+              "type": "code",
+              "title": "Validate image 7 before continuing",
+              "code_language": "python3",
+              "code": "import re\ndef main(files: list, error: str = \"\") -> dict:\n    if isinstance(files,list) and len(files)==1 and isinstance(files[0],dict) and files[0].get('type')=='image' and isinstance(files[0].get('url'),str) and files[0]['url'].strip():\n        return {'files':files}\n    message=error[:8000].lower() if isinstance(error,str) else ''\n    if re.search(r'model.*(does not exist|not found|not available|not configured)',message):\n        raise ValueError('UNITALE_IMAGE_MODEL_UNAVAILABLE')\n    if re.search(r'error code: (401|403)|unauthorized|invalid.*api.?key|authentication',message):\n        raise ValueError('UNITALE_IMAGE_AUTHENTICATION_FAILED')\n    if re.search(r'error code: 429|rate.limit|insufficient_quota',message):\n        raise ValueError('UNITALE_IMAGE_RATE_LIMITED')\n    if re.search(r'moderation_blocked|safety.*reject|content.*policy',message):\n        raise ValueError('UNITALE_IMAGE_REQUEST_BLOCKED')\n    if message.strip():\n        raise ValueError('UNITALE_IMAGE_PROVIDER_FAILED')\n    raise ValueError('UNITALE_IMAGE_MISSING')\n",
+              "variables": [
+                {
+                  "variable": "files",
+                  "value_selector": ["image7", "files"]
+                },
+                {
+                  "variable": "error",
+                  "value_selector": ["image7", "text"]
+                }
+              ],
+              "outputs": {
+                "files": {
+                  "type": "array[object]",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 8250,
+              "y": 280
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "validate_image8",
+            "type": "custom",
+            "data": {
+              "desc": "Stop if the image tool returned an error instead of a file.",
+              "selected": false,
+              "type": "code",
+              "title": "Validate image 8 before continuing",
+              "code_language": "python3",
+              "code": "import re\ndef main(files: list, error: str = \"\") -> dict:\n    if isinstance(files,list) and len(files)==1 and isinstance(files[0],dict) and files[0].get('type')=='image' and isinstance(files[0].get('url'),str) and files[0]['url'].strip():\n        return {'files':files}\n    message=error[:8000].lower() if isinstance(error,str) else ''\n    if re.search(r'model.*(does not exist|not found|not available|not configured)',message):\n        raise ValueError('UNITALE_IMAGE_MODEL_UNAVAILABLE')\n    if re.search(r'error code: (401|403)|unauthorized|invalid.*api.?key|authentication',message):\n        raise ValueError('UNITALE_IMAGE_AUTHENTICATION_FAILED')\n    if re.search(r'error code: 429|rate.limit|insufficient_quota',message):\n        raise ValueError('UNITALE_IMAGE_RATE_LIMITED')\n    if re.search(r'moderation_blocked|safety.*reject|content.*policy',message):\n        raise ValueError('UNITALE_IMAGE_REQUEST_BLOCKED')\n    if message.strip():\n        raise ValueError('UNITALE_IMAGE_PROVIDER_FAILED')\n    raise ValueError('UNITALE_IMAGE_MISSING')\n",
+              "variables": [
+                {
+                  "variable": "files",
+                  "value_selector": ["image8", "files"]
+                },
+                {
+                  "variable": "error",
+                  "value_selector": ["image8", "text"]
+                }
+              ],
+              "outputs": {
+                "files": {
+                  "type": "array[object]",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 8550,
+              "y": 280
+            },
+            "sourcePosition": "right",
+            "targetPosition": "left",
+            "width": 244,
+            "height": 100
+          },
+          {
+            "id": "validate_image9",
+            "type": "custom",
+            "data": {
+              "desc": "Stop if the image tool returned an error instead of a file.",
+              "selected": false,
+              "type": "code",
+              "title": "Validate image 9 before continuing",
+              "code_language": "python3",
+              "code": "import re\ndef main(files: list, error: str = \"\") -> dict:\n    if isinstance(files,list) and len(files)==1 and isinstance(files[0],dict) and files[0].get('type')=='image' and isinstance(files[0].get('url'),str) and files[0]['url'].strip():\n        return {'files':files}\n    message=error[:8000].lower() if isinstance(error,str) else ''\n    if re.search(r'model.*(does not exist|not found|not available|not configured)',message):\n        raise ValueError('UNITALE_IMAGE_MODEL_UNAVAILABLE')\n    if re.search(r'error code: (401|403)|unauthorized|invalid.*api.?key|authentication',message):\n        raise ValueError('UNITALE_IMAGE_AUTHENTICATION_FAILED')\n    if re.search(r'error code: 429|rate.limit|insufficient_quota',message):\n        raise ValueError('UNITALE_IMAGE_RATE_LIMITED')\n    if re.search(r'moderation_blocked|safety.*reject|content.*policy',message):\n        raise ValueError('UNITALE_IMAGE_REQUEST_BLOCKED')\n    if message.strip():\n        raise ValueError('UNITALE_IMAGE_PROVIDER_FAILED')\n    raise ValueError('UNITALE_IMAGE_MISSING')\n",
+              "variables": [
+                {
+                  "variable": "files",
+                  "value_selector": ["image9", "files"]
+                },
+                {
+                  "variable": "error",
+                  "value_selector": ["image9", "text"]
+                }
+              ],
+              "outputs": {
+                "files": {
+                  "type": "array[object]",
+                  "children": null
+                }
+              }
+            },
+            "position": {
+              "x": 8850,
+              "y": 280
             },
             "sourcePosition": "right",
             "targetPosition": "left",
@@ -2265,13 +2589,13 @@
           },
           {
             "id": "image1-source-image2",
-            "source": "image1",
+            "source": "validate_image1",
             "target": "image2",
             "sourceHandle": "source",
             "targetHandle": "target",
             "type": "custom",
             "data": {
-              "sourceType": "tool",
+              "sourceType": "code",
               "targetType": "tool",
               "isInIteration": false,
               "isInLoop": false
@@ -2279,13 +2603,13 @@
           },
           {
             "id": "image2-source-image3",
-            "source": "image2",
+            "source": "validate_image2",
             "target": "image3",
             "sourceHandle": "source",
             "targetHandle": "target",
             "type": "custom",
             "data": {
-              "sourceType": "tool",
+              "sourceType": "code",
               "targetType": "tool",
               "isInIteration": false,
               "isInLoop": false
@@ -2293,13 +2617,13 @@
           },
           {
             "id": "image3-source-image4",
-            "source": "image3",
+            "source": "validate_image3",
             "target": "image4",
             "sourceHandle": "source",
             "targetHandle": "target",
             "type": "custom",
             "data": {
-              "sourceType": "tool",
+              "sourceType": "code",
               "targetType": "tool",
               "isInIteration": false,
               "isInLoop": false
@@ -2307,13 +2631,13 @@
           },
           {
             "id": "image4-source-image5",
-            "source": "image4",
+            "source": "validate_image4",
             "target": "image5",
             "sourceHandle": "source",
             "targetHandle": "target",
             "type": "custom",
             "data": {
-              "sourceType": "tool",
+              "sourceType": "code",
               "targetType": "tool",
               "isInIteration": false,
               "isInLoop": false
@@ -2321,13 +2645,13 @@
           },
           {
             "id": "image5-source-image6",
-            "source": "image5",
+            "source": "validate_image5",
             "target": "image6",
             "sourceHandle": "source",
             "targetHandle": "target",
             "type": "custom",
             "data": {
-              "sourceType": "tool",
+              "sourceType": "code",
               "targetType": "tool",
               "isInIteration": false,
               "isInLoop": false
@@ -2335,13 +2659,13 @@
           },
           {
             "id": "image6-source-image7",
-            "source": "image6",
+            "source": "validate_image6",
             "target": "image7",
             "sourceHandle": "source",
             "targetHandle": "target",
             "type": "custom",
             "data": {
-              "sourceType": "tool",
+              "sourceType": "code",
               "targetType": "tool",
               "isInIteration": false,
               "isInLoop": false
@@ -2349,13 +2673,13 @@
           },
           {
             "id": "image7-source-image8",
-            "source": "image7",
+            "source": "validate_image7",
             "target": "image8",
             "sourceHandle": "source",
             "targetHandle": "target",
             "type": "custom",
             "data": {
-              "sourceType": "tool",
+              "sourceType": "code",
               "targetType": "tool",
               "isInIteration": false,
               "isInLoop": false
@@ -2363,13 +2687,13 @@
           },
           {
             "id": "image8-source-image9",
-            "source": "image8",
+            "source": "validate_image8",
             "target": "image9",
             "sourceHandle": "source",
             "targetHandle": "target",
             "type": "custom",
             "data": {
-              "sourceType": "tool",
+              "sourceType": "code",
               "targetType": "tool",
               "isInIteration": false,
               "isInLoop": false
@@ -2377,13 +2701,13 @@
           },
           {
             "id": "image9-source-finish",
-            "source": "image9",
+            "source": "validate_image9",
             "target": "finish",
             "sourceHandle": "source",
             "targetHandle": "target",
             "type": "custom",
             "data": {
-              "sourceType": "tool",
+              "sourceType": "code",
               "targetType": "code",
               "isInIteration": false,
               "isInLoop": false
@@ -2455,6 +2779,132 @@
             "data": {
               "sourceType": "code",
               "targetType": "end",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "image1-validate_image1",
+            "source": "image1",
+            "target": "validate_image1",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "image2-validate_image2",
+            "source": "image2",
+            "target": "validate_image2",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "image3-validate_image3",
+            "source": "image3",
+            "target": "validate_image3",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "image4-validate_image4",
+            "source": "image4",
+            "target": "validate_image4",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "image5-validate_image5",
+            "source": "image5",
+            "target": "validate_image5",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "image6-validate_image6",
+            "source": "image6",
+            "target": "validate_image6",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "image7-validate_image7",
+            "source": "image7",
+            "target": "validate_image7",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "image8-validate_image8",
+            "source": "image8",
+            "target": "validate_image8",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
+              "isInIteration": false,
+              "isInLoop": false
+            }
+          },
+          {
+            "id": "image9-validate_image9",
+            "source": "image9",
+            "target": "validate_image9",
+            "sourceHandle": "source",
+            "targetHandle": "target",
+            "type": "custom",
+            "data": {
+              "sourceType": "tool",
+              "targetType": "code",
               "isInIteration": false,
               "isInLoop": false
             }

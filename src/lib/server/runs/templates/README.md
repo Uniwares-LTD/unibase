@@ -24,6 +24,12 @@ Use supported node/output contracts and verify the embedded Code with actual too
 outputs and the Unibase answer format. Refresh Dify tool metadata before creation.
 
 - `saved-artifact.json`: private Run context → owned draft read/save → revision-bound approval/decline → synthetic retained image. Start this from an owned artifact.
+
+Both explicit Decline and interpreted non-approval return only `draft_result`
+with outcome `partial` and no image. The successful image-producing `finish` node
+is reachable only through `approve_artifact_v1`; success-only billing therefore
+does not charge for a declined draft.
+
 - `story-panel.json` (Unitale): real J01-J13 comic workflow with User/Persona narrative and visual feedback, human-only saved-package approval, and nine real provider images. Requires the configured text model, authorized OpenAI image tool, Dify Code sandbox and private MCP.
 
 Private tools bind the server-filled `context` directly; never send that
@@ -54,10 +60,16 @@ from a Persona. Asking to stop at the visual review returns partial before savin
 or generating images. Final approval binds the saved revision/hash and requires a
 human takeover even in Persona mode. Final Continue/Decline returns partial.
 
-After approval, nine sequential `gpt_image_generate` calls produce two style
+After approval, nine sequential `gpt_image_2_generate` calls produce two style
 samples, two character sheets, one location sheet, a cover and three pages. The
-34-node graph uses `gpt-4.1-mini` and the configured official OpenAI image provider
-with `gpt-image-1`; destination credentials remain in Dify. The image prompts share
+43-node graph uses `gpt-4.1-mini` and the configured official OpenAI image provider
+with `gpt-image-2.5-flare`; destination credentials remain in Dify. Each image call
+is followed by a Code validator: a tool response without exactly one image stops
+before the next paid call, with a fixed, safe error classification. Existing Dify
+apps require an explicit update/publication and re-registration; editing this
+template does not migrate their accepted workflow versions. OpenAI retired
+`gpt-image-1` on [October 23, 2026](https://developers.openai.com/api/docs/deprecations#2026-04-22-legacy-gpt-model-snapshots).
+The image prompts share
 the same cast/location/style descriptions, but do not consume the generated
 reference images yet. Caption spelling and visual consistency remain model
 limitations. Provider costs apply alongside configured Run/Persona credit prices.

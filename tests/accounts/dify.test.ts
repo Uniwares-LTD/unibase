@@ -307,6 +307,38 @@ test("failed Dify executions retain a safe diagnosis through streaming and retri
     ],
     [null, "workflow failed in Dify"],
     [
+      "ValueError: UNITALE_IMAGE_MODEL_UNAVAILABLE private-secret https://private.example",
+      "Unitale image model is unavailable",
+    ],
+    [
+      "ValueError: UNITALE_IMAGE_AUTHENTICATION_FAILED secret-canary",
+      "rejected its credentials",
+    ],
+    [
+      "ValueError: UNITALE_IMAGE_RATE_LIMITED secret-canary",
+      "quota or rate limit",
+    ],
+    [
+      "ValueError: UNITALE_IMAGE_REQUEST_BLOCKED secret-canary",
+      "safety policy",
+    ],
+    [
+      "ValueError: UNITALE_IMAGE_PROVIDER_FAILED private-secret",
+      "returned an error instead of an image",
+    ],
+    [
+      "ValueError: UNITALE_IMAGE_MISSING private-secret",
+      "returned no valid image",
+    ],
+    [
+      "ValueError: Expected one generated image per task private-secret",
+      "returned no valid image",
+    ],
+    [
+      "Failed to generate image: The model 'gpt-image-1' does not exist. private-secret",
+      "model or provider is unavailable",
+    ],
+    [
       "Failed to connect to MCP server: 502 https://private.example private-secret",
       "could not connect to the MCP server",
     ],

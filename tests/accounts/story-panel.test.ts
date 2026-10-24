@@ -256,6 +256,88 @@ test("real file outputs use existing native image contract and require all nine 
   );
 });
 
+test("image provider errors stop each sequential task before further calls and expose no raw secrets", () => {
+  const image = {
+    type: "image",
+    transfer_method: "tool_file",
+    related_id: "fixture",
+    url: "/files/tools/fixture.png",
+  };
+  const failures = [
+    [
+      "Failed to generate image: The model 'gpt-image-1' does not exist.",
+      "UNITALE_IMAGE_MODEL_UNAVAILABLE",
+    ],
+    ["Error code: 401 invalid API key", "UNITALE_IMAGE_AUTHENTICATION_FAILED"],
+    ["Error code: 429 insufficient_quota", "UNITALE_IMAGE_RATE_LIMITED"],
+    ["moderation_blocked", "UNITALE_IMAGE_REQUEST_BLOCKED"],
+    ["unexpected provider error", "UNITALE_IMAGE_PROVIDER_FAILED"],
+    ["", "UNITALE_IMAGE_MISSING"],
+  ];
+  for (let i = 1; i <= 9; i++) {
+    const validation = "validate_image" + i;
+    const task = node("image" + i);
+    assert.equal(task.data.tool_name, "gpt_image_2_generate");
+    assert.equal(
+      (task.data.tool_configurations as { model: { value: string } }).model
+        .value,
+      "gpt-image-2.5-flare",
+    );
+    assert.deepEqual(code(validation, { files: [image], error: "" }).files, [
+      image,
+    ]);
+    for (const [error, expected] of failures) {
+      let caught: Error | undefined;
+      try {
+        code(validation, {
+          files: [],
+          error: error
+            ? error + " private-secret https://private.example"
+            : error,
+        });
+      } catch (e) {
+        caught = e as Error;
+      }
+      assert.ok(caught);
+      assert.ok(caught.message.includes(expected));
+      assert.ok(!caught.message.includes("private-secret"));
+      assert.ok(!caught.message.includes("private.example"));
+    }
+    for (const files of [
+      null,
+      {},
+      [image, image],
+      [{ type: "document" }],
+      [{ type: "image" }],
+      [{ ...image, url: "" }],
+    ])
+      assert.throws(
+        () => code(validation, { files, error: "" }),
+        /UNITALE_IMAGE_MISSING/,
+      );
+    assert.deepEqual(
+      template.workflow.graph.edges
+        .filter((e) => e.source === task.id)
+        .map((e) => e.target),
+      [validation],
+    );
+    assert.deepEqual(
+      template.workflow.graph.edges
+        .filter((e) => e.source === validation)
+        .map((e) => e.target),
+      [i === 9 ? "finish" : "image" + (i + 1)],
+    );
+    const variables = node("finish").data.variables as {
+      variable: string;
+      value_selector: string[];
+    }[];
+    assert.deepEqual(
+      variables.find((v) => v.variable === "files" + i)?.value_selector,
+      [validation, "files"],
+    );
+  }
+});
+
 test("only exact human approval permits real image calls; declines keep partial text", () => {
   const draft = layout().text;
   const ui = parseUiForm(
@@ -305,5 +387,5 @@ test("only exact human approval permits real image calls; declines keep partial 
   );
   assert.equal(tools.length, 9);
   for (const tool of tools)
-    assert.equal(tool.data.tool_name, "gpt_image_generate");
+    assert.equal(tool.data.tool_name, "gpt_image_2_generate");
 });
