@@ -231,9 +231,15 @@ staging domain, Atlas user and owner route are Phase 2 additions. See
 
 ### First working staging deployment
 
-- [ ] Connect and prepare: complete required discovery, collect missing inputs once,
+- [x] Connect and prepare: complete required discovery, collect missing inputs once,
   review restricted deployment access, repository secrets, public images and shared
   staging Firebase/Atlas bindings.
+
+  Verified October 24 at implementation commit `6edc411`: all 47 Linux deployment
+  tests passed in CI. Environment/docs/skills, TypeScript, lint, formatting,
+  application/account tests and ShellCheck passed. CI retained advisory warnings
+  for stale client translation sections, dependency audit findings and unavailable
+  Actionlint; separate local Actionlint passed. No live setup or deployment occurred.
 - [ ] Bootstrap and deploy: verify compatible Compose and free app subnet/port; use
   an owner-managed tunnel route to existing app Nginx with adapted route verification.
   One release builds, publishes, anonymously pulls the digest, deploys and checks health.
