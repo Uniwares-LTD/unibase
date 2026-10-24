@@ -380,6 +380,11 @@ outcome. When terminal snapshots omit historical nodes, the
 worker reads bounded Console node metadata for its accepted app/Run and saves only
 titles, statuses and timings. Raw inputs/outputs are discarded. Trace transport
 failure does not invalidate verified termination or charge the Run twice.
+An accepted execution's transport timeout schedules the next retrieval at its
+saved polling interval, rather than exponential backoff that could outlast a
+generated file's signed download URL. Provider-specified retry delays retain
+priority. Already staged owned image bytes remain reusable after provider links
+expire; an unstaged expired link still needs provider-authorized renewal.
 
 App keys use AES-256-GCM in `difyCredentials`; `difyCredentialAcquisitions` serializes
 reuse/creation and retains uncertain create intent. Web/workers resolve only private

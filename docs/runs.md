@@ -164,6 +164,9 @@ Once retrieval confirms termination, the worker saves that outcome without
 waiting on a live event stream. Replay remains necessary for uncertain decision
 submissions; historical paused snapshots cannot replace confirmed termination.
 Bounded terminal node metadata supplies the tracing timeline separately.
+Accepted-execution timeouts use the saved polling interval; explicit provider
+retry delays still take precedence. Generated files use short-lived signed links,
+so collection must not wait for a long transport-error backoff.
 Raw provider prompts, credentials and other users' Runs are never shown.
 
 Manual JSON definitions, DSL routes and graph setup services have been removed.
