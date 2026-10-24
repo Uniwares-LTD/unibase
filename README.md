@@ -38,7 +38,8 @@ credentials, caches, browser state, databases or the generated Android wrapper.
 
 3. In the new directory, run `npm.cmd ci`, copy `.env.example` to `.env.local`, and
    review origin/connections before starting emulators. Run `npm.cmd run check:env`
-   and `npm.cmd run db:indexes`. Create a verified account and bootstrap its UID;
+   and `npm.cmd run db:indexes`. Sign up and verify `admin@uniwares.co.uk` for
+   automatic first-admin initialization, or explicitly bootstrap a verified UID;
    no admin password or automatic credit grant is shipped.
 4. Application mode starts with providers inactive and examples hidden. Examples
    mode explicitly selects local fake Runs and simulated payments; it never
@@ -264,8 +265,18 @@ commit together. Stop your existing `npm run emulators:mongo` runner before
 restarting it with the updated script; it keeps `.cache/mongodb-data`. Do not delete
 development data for this migration. Atlas also needs transaction support.
 
-To appoint the first admin, create and verify an email or Google account, obtain
-its exact UID from the Auth Emulator/Firebase console, then run:
+In every environment, the first verified sign-in for `admin@uniwares.co.uk`
+automatically appoints that account as the initial administrator, provided no
+administrator exists. Other emails remain members; unverified accounts cannot
+initialize administration. This server-only, case-insensitive email match uses
+Firebase-verified identity claims, never a submitted username. The appointment,
+audit entry and durable initializer marker commit together. Concurrent sign-ins
+appoint once. Suspended administrators block automatic replacement, and later
+demotion or account deletion does not reset the marker. No password or credits
+are seeded. Later roles are managed through administration.
+
+Alternatively, create and verify an email or Google account, obtain its exact UID
+from the Auth Emulator/Firebase console, then run:
 
 ```sh
 npm run db:indexes
@@ -274,7 +285,8 @@ npm run admin:bootstrap -- FIREBASE_UID
 
 This explicit operator command checks the configured provider/database, refuses
 disabled/unverified accounts and refuses a second bootstrap when an active admin
-exists. Keep the environment configuration pointed at the intended environment;
+exists. It also consumes the automatic initializer. Keep the environment
+configuration pointed at the intended environment;
 never put an admin allowlist in browser config. Later role changes use user
 management. Self-demotion/suspension and removal of the last active admin are
 rejected, including concurrent changes. User search accepts an exact email or UID.

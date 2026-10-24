@@ -30,6 +30,12 @@ The first MongoDB start downloads its binary and can take several minutes. Docke
 
 If these services are already running, reuse them rather than launching duplicates. Stop a service with Ctrl+C in its terminal when finished.
 
+The Auth Emulator runner loads the same local environment as the web process and
+uses its configured `FIREBASE_PROJECT_ID` (a `demo-` project). The emulator's default
+project must match the app: its client API assigns demo API keys to that project.
+A mismatch can allow registration/verification while server session creation fails.
+Restart the emulator after changing this setting; emulator accounts are ephemeral.
+
 | Address                                                         | Purpose                                    |
 | --------------------------------------------------------------- | ------------------------------------------ |
 | [localhost:3000/account](http://localhost:3000/account)         | Start the account tests here               |

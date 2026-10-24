@@ -121,7 +121,14 @@ to an empty string, while supplied notes retain their length bounds. A common co
 document serializes permission changes to prevent snapshot-isolation races where
 admins remove each other. The actor's current access is checked again inside that
 transaction. No browser role cache or old session claim authorizes the mutation.
-The first admin is appointed explicitly by UID through an operator command.
+Session creation verifies the Firebase ID token, recent authentication and account
+access before initializing the first administrator. In all environments a verified
+`admin@uniwares.co.uk` email (case-insensitive) is eligible while no administrator,
+including suspended administrators, exists. The role, audit record and durable
+`control/signup-admin-initializer` marker share the serialized access transaction.
+The marker prevents repeat appointment after demotion or deletion. The explicit
+UID operator command remains available and consumes the same marker. All other
+accounts retain member access; no browser-supplied role or email grants access.
 Local development and transactional tests use single-node replica sets and retain
 the existing development directory. Stripe code is locally verified; live provider
 acceptance and Play billing remain separate checkpoints in

@@ -4,6 +4,31 @@ This plan builds Base as one Next.js application for the web and Android, with s
 
 Status: M1 and M2 implementation are complete and locally verified on 2026-10-03; the user also confirmed the local account journeys work. M3 diagnostics/PWA implementation is locally verified. Android project/workflow preparation exists, but package/hostname configuration and successful Android compilation remain pending. M4 deployment tooling is locally verified on 2026-10-04; live Firebase/Atlas/VPS activation and M5 integrated handoff remain pending. Update each checkbox only after its completion criteria have been verified, and record external acceptance checks separately.
 
+## First-admin initialization — 2026-10-24
+
+Accepted scope: initialize administration in every environment on the first
+verified sign-in for `admin@uniwares.co.uk`, only while no administrator exists.
+Use server-verified Firebase claims and the serialized access/audit transaction;
+retain a durable one-time marker, including for explicit operator appointments.
+Other signups remain members. Keep verification, suspension and recent-login
+checks. Local account reset retains accepted Runs, artifacts and accounting.
+The local Auth Emulator runner must use the same configured demo project as web.
+
+Verified locally: two access/initializer tests, all ten isolated production HTTP
+checks, separate TypeScript, production web/worker build, affected-file lint and
+formatting, documentation links, i18n and skill integrity passed. The initializer
+checks cover verified email matching, concurrent appointment, existing admins,
+suspension/revocation fences, one-time behavior and audit rollback. The HTTP test
+confirms real Firebase session creation grants admin after verification and does
+not restore a demoted admin. A separate read-only review found no outstanding
+defect. No live-environment deployment was performed.
+
+The requested local reset cleared Auth Emulator accounts in both demo namespaces
+and the configured local database's profiles/access records. Runs, artifacts,
+audit and accounting records were retained. The emulator was restarted with the
+configured demo project, and a temporary local signup, verification-link and
+session journey passed; its synthetic account was removed afterward.
+
 ## Agreed decisions
 
 | Area           | Decision                                                                                                                                     |
