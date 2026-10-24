@@ -7,6 +7,8 @@ import {
   accessPermitsSession,
   appointFirstAdmin,
   changeAccess,
+  initializeSignupAdmin,
+  type AccountAccess,
 } from "../../src/lib/server/store/access";
 
 test("admin access is immediate, audited, transactional and safe under competing removals", async () => {
@@ -144,6 +146,77 @@ test("admin access is immediate, audited, transactional and safe under competing
       await db.collection("auditEvents").countDocuments(),
       auditCount,
     );
+  } finally {
+    await client.close();
+    await mongo.stop();
+  }
+});
+
+test("signup admin initialization requires a verified matching email and is atomic and one-time", async () => {
+  const mongo = await MongoMemoryReplSet.create({
+    binary: { downloadDir: ".cache/mongodb-binaries" },
+    replSet: { count: 1, ip: "127.0.0.1", storageEngine: "wiredTiger" },
+  });
+  const client = new MongoClient(mongo.getUri());
+  const identity = {
+    uid: "first-admin",
+    email: "admin@uniwares.co.uk",
+    email_verified: true,
+    auth_time: Math.floor(Date.now() / 1000),
+  };
+  try {
+    const db = client.db("signup_admin_test");
+    for (const invalid of [
+      { ...identity, email_verified: false },
+      { ...identity, email: undefined },
+      { ...identity, email: "admin@uniwares.co.uk.attacker.test" },
+      { ...identity, email: "member@example.test" },
+    ])
+      assert.equal(await initializeSignupAdmin(db, invalid), false);
+    assert.equal(await db.collection("accountAccess").countDocuments(), 0);
+    const race = await Promise.all([
+      initializeSignupAdmin(db, identity),
+      initializeSignupAdmin(db, { ...identity, email: "ADMIN@UNIWARES.CO.UK" }),
+    ]);
+    assert.equal(race.filter(Boolean).length, 1);
+    assert.equal((await accountAccess(db, identity.uid)).role, "admin");
+    assert.equal(await db.collection("auditEvents").countDocuments(), 1);
+    assert.equal(await initializeSignupAdmin(db, identity), false);
+    // Removing access does not reset the durable initializer or transfer it to a new UID.
+    await db.collection("accountAccess").deleteMany({});
+    assert.equal(
+      await initializeSignupAdmin(db, { ...identity, uid: "replacement" }),
+      false,
+    );
+    assert.equal((await accountAccess(db, "replacement")).role, "member");
+
+    const existing = client.db("existing_admin_test");
+    await appointFirstAdmin(existing, "operator-admin", "Fixture operator");
+    assert.equal(await initializeSignupAdmin(existing, identity), false);
+    await existing.collection("accountAccess").deleteMany({});
+    assert.equal(await initializeSignupAdmin(existing, identity), false);
+
+    const suspended = client.db("suspended_signup_test");
+    await suspended.collection<AccountAccess>("accountAccess").insertOne({
+      ...(await accountAccess(suspended, identity.uid)),
+      status: "suspended",
+    });
+    assert.equal(await initializeSignupAdmin(suspended, identity), false);
+    await suspended
+      .collection<AccountAccess>("accountAccess")
+      .updateOne(
+        { _id: identity.uid },
+        { $set: { status: "active", notBefore: identity.auth_time + 1 } },
+      );
+    assert.equal(await initializeSignupAdmin(suspended, identity), false);
+
+    const rollback = client.db("signup_audit_rollback_test");
+    await rollback.createCollection("auditEvents", {
+      validator: { impossibleField: true },
+    });
+    await assert.rejects(initializeSignupAdmin(rollback, identity));
+    assert.equal((await accountAccess(rollback, identity.uid)).role, "member");
+    assert.equal(await rollback.collection("control").countDocuments(), 0);
   } finally {
     await client.close();
     await mongo.stop();

@@ -4,7 +4,11 @@ import { AppError, requireRecentLogin, SESSION_SECONDS } from "../auth-policy";
 import { adminAuth } from "./firebase";
 import { cookieName, cookieOptions } from "./http";
 import { database } from "./mongo";
-import { accountAccess, accessPermitsSession } from "./store/access";
+import {
+  accountAccess,
+  accessPermitsSession,
+  initializeSignupAdmin,
+} from "./store/access";
 
 export async function getSession() {
   const value = (await cookies()).get(cookieName("session"))?.value;
@@ -87,6 +91,7 @@ export async function createSession(idToken: string) {
   const value = await auth.createSessionCookie(idToken, {
     expiresIn: SESSION_SECONDS * 1000,
   });
+  await initializeSignupAdmin(database(), claims);
   (await cookies()).set(cookieName("session"), value, {
     ...cookieOptions(),
     maxAge: SESSION_SECONDS,

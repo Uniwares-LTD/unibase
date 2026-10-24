@@ -88,9 +88,8 @@ async function identity(method, body) {
   );
   return { status: response.status, body: await response.json() };
 }
-async function account() {
-  const email = `${randomUUID()}@example.test`,
-    password = "test-password-1234";
+async function account(email = `${randomUUID()}@example.test`) {
+  const password = "test-password-1234";
   const result = await identity("signUp", {
     email,
     password,
@@ -615,6 +614,58 @@ test("admin reports store sanitized request outcomes and reject stale permission
       .collection("accountAccess")
       .updateOne({ _id: user.localId }, { $set: { role: "member" } });
     assert.equal((await request("/api/admin/reports")).status, 403);
+  } finally {
+    await client.close();
+  }
+});
+
+test("verified first-admin email initializes administration through real session creation once", async () => {
+  const user = await account("admin@uniwares.co.uk");
+  const request = browser();
+  const csrf = (await (await request("/api/auth/csrf")).json()).token;
+  const login = () =>
+    request("/api/auth/session", {
+      method: "POST",
+      headers: { "x-csrf-token": csrf },
+      body: JSON.stringify({ idToken: user.idToken }),
+    });
+  const client = new MongoClient(process.env.MONGODB_URI);
+  try {
+    const db = client.db(process.env.MONGODB_DATABASE);
+    assert.equal((await login()).status, 200);
+    assert.equal((await request("/api/admin/users")).status, 403);
+    assert.equal(
+      await db.collection("accountAccess").countDocuments({ role: "admin" }),
+      0,
+    );
+    await auth.updateUser(user.localId, { emailVerified: true });
+    user.idToken = (
+      await identity("signInWithPassword", {
+        email: user.email,
+        password: user.password,
+        returnSecureToken: true,
+      })
+    ).body.idToken;
+    assert.equal((await login()).status, 200);
+    assert.equal((await request("/api/admin/users")).status, 200);
+    assert.equal(
+      await db
+        .collection("auditEvents")
+        .countDocuments({ event: "admin-bootstrap", targetUid: user.localId }),
+      1,
+    );
+    assert.equal((await login()).status, 200);
+    await db
+      .collection("accountAccess")
+      .updateOne({ _id: user.localId }, { $set: { role: "member" } });
+    assert.equal((await login()).status, 200);
+    assert.equal((await request("/api/admin/users")).status, 403);
+    assert.equal(
+      await db
+        .collection("auditEvents")
+        .countDocuments({ event: "admin-bootstrap", targetUid: user.localId }),
+      1,
+    );
   } finally {
     await client.close();
   }

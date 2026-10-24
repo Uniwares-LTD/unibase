@@ -83,6 +83,7 @@ function Decision({
   const active = decision.status === "pending" && !cancelRequested;
   const raw = "responseMode" in decision && decision.responseMode === "raw-v1";
   async function submit(action: string) {
+    setError("");
     setBusy(true);
     try {
       await api(
@@ -107,6 +108,7 @@ function Decision({
     }
   }
   async function upload(name: string, files: FileList) {
+    setError("");
     setBusy(true);
     try {
       const ids: string[] = [];
@@ -276,6 +278,7 @@ export function RunDetail({ initial }: { initial: Detail }) {
   const common = useTranslations("common");
 
   const [data, setData] = useState(initial);
+  const [readError, setReadError] = useState("");
   const [pages, setPages] = useState<Record<string, string>>({});
   const pageQuery = new URLSearchParams(pages).toString();
   const [error, setError] = useState("");
@@ -293,8 +296,9 @@ export function RunDetail({ initial }: { initial: Detail }) {
         z.custom<Detail>(),
       );
       setData(result);
+      setReadError("");
     } catch (e) {
-      setError(message(e, translate));
+      setReadError(message(e, translate));
     }
   }
   useEffect(() => {
@@ -310,9 +314,12 @@ export function RunDetail({ initial }: { initial: Detail }) {
             signal: controller.signal,
           },
         );
-        if (!stopped) setData(next);
+        if (!stopped) {
+          setData(next);
+          setReadError("");
+        }
       } catch (e) {
-        if (!stopped) setError(message(e, translate));
+        if (!stopped) setReadError(message(e, translate));
       }
       if (!stopped)
         timer = setTimeout(() => void poll(), initial.pollSeconds * 1000);
@@ -335,6 +342,7 @@ export function RunDetail({ initial }: { initial: Detail }) {
       | "retry-application",
     stage?: string,
   ) {
+    setError("");
     setBusy(true);
     try {
       await api(`/api/runs/${data.id}`, responseSchema, {
@@ -368,6 +376,7 @@ export function RunDetail({ initial }: { initial: Detail }) {
     }
   }
   async function uploadRestart(name: string, file: File) {
+    setError("");
     setBusy(true);
     try {
       const form = new FormData();
@@ -495,7 +504,7 @@ export function RunDetail({ initial }: { initial: Detail }) {
           ))}
         </section>
       )}
-      <p role="status">{error}</p>
+      <p role="status">{error || readError}</p>
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">{translate("m69e561abfb58")}</h2>
         {data.events

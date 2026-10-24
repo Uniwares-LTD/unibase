@@ -107,49 +107,102 @@ export async function accessTransaction<T>(
 }
 
 export async function appointFirstAdmin(db: Db, uid: string, reason: string) {
+  return accessTransaction(db, null, (session) =>
+    appointAdmin(db, uid, reason, session),
+  );
+}
+
+// Only call with identity claims verified by the configured Firebase Admin SDK.
+export async function initializeSignupAdmin(
+  db: Db,
+  identity: {
+    uid: string;
+    email?: string;
+    email_verified?: boolean;
+    auth_time: number;
+  },
+) {
+  if (
+    identity.email_verified !== true ||
+    identity.email?.toLowerCase() !== "admin@uniwares.co.uk"
+  )
+    return false;
   return accessTransaction(db, null, async (session) => {
-    if (
-      await collection(db).countDocuments(
-        { role: "admin", status: "active" },
-        { session },
-      )
+    const initialized = await db
+      .collection<{ _id: string }>("control")
+      .findOne({ _id: "signup-admin-initializer" }, { session });
+    if (initialized) return false;
+    // Suspended administrators also prevent automatic replacement.
+    if (await collection(db).countDocuments({ role: "admin" }, { session }))
+      return false;
+    const access = await accountAccess(db, identity.uid, session);
+    if (!accessPermitsSession(access, identity.auth_time)) return false;
+    await appointAdmin(
+      db,
+      identity.uid,
+      "Verified first-admin email initializer",
+      session,
+      "initializer",
+    );
+    return true;
+  });
+}
+
+async function appointAdmin(
+  db: Db,
+  uid: string,
+  reason: string,
+  session: ClientSession,
+  actorUid = "operator",
+) {
+  if (
+    await collection(db).countDocuments(
+      { role: "admin", status: "active" },
+      { session },
     )
-      throw new AppError(
-        "ADMIN_EXISTS",
-        "An active admin already exists; use user management.",
-        409,
-      );
-    const before = await accountAccess(db, uid, session);
-    if (before.status !== "active")
-      throw new AppError(
-        "ACCOUNT_SUSPENDED",
-        "Reactivate this account before appointing it.",
-        409,
-      );
-    await collection(db).replaceOne(
-      { _id: uid },
-      {
-        ...before,
-        role: "admin",
-        revision: before.revision + 1,
-        updatedAt: new Date(),
-      },
+  )
+    throw new AppError(
+      "ADMIN_EXISTS",
+      "An active admin already exists; use user management.",
+      409,
+    );
+  const before = await accountAccess(db, uid, session);
+  if (before.status !== "active")
+    throw new AppError(
+      "ACCOUNT_SUSPENDED",
+      "Reactivate this account before appointing it.",
+      409,
+    );
+  await collection(db).replaceOne(
+    { _id: uid },
+    {
+      ...before,
+      role: "admin",
+      revision: before.revision + 1,
+      updatedAt: new Date(),
+    },
+    { upsert: true, session },
+  );
+  await db.collection<AuditEntry>("auditEvents").insertOne(
+    {
+      _id: randomUUID(),
+      event: "admin-bootstrap",
+      actorUid,
+      targetUid: uid,
+      reason,
+      timestamp: new Date(),
+      before: { role: before.role },
+      after: { role: "admin" },
+    },
+    { session },
+  );
+  await db
+    .collection<{ _id: string; uid: string }>("control")
+    .updateOne(
+      { _id: "signup-admin-initializer" },
+      { $setOnInsert: { uid } },
       { upsert: true, session },
     );
-    await db.collection<AuditEntry>("auditEvents").insertOne(
-      {
-        _id: randomUUID(),
-        event: "admin-bootstrap",
-        actorUid: "operator",
-        targetUid: uid,
-        reason,
-        timestamp: new Date(),
-        before: { role: before.role },
-        after: { role: "admin" },
-      },
-      { session },
-    );
-  });
 }
 
 export async function changeAccess(

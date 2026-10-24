@@ -4,6 +4,178 @@ This plan builds Base as one Next.js application for the web and Android, with s
 
 Status: M1 and M2 implementation are complete and locally verified on 2026-10-03; the user also confirmed the local account journeys work. M3 diagnostics/PWA implementation is locally verified. Android project/workflow preparation exists, but package/hostname configuration and successful Android compilation remain pending. M4 deployment tooling is locally verified on 2026-10-04; live Firebase/Atlas/VPS activation and M5 integrated handoff remain pending. Update each checkbox only after its completion criteria have been verified, and record external acceptance checks separately.
 
+## First-admin initialization — 2026-10-24
+
+Accepted scope: initialize administration in every environment on the first
+verified sign-in for `admin@uniwares.co.uk`, only while no administrator exists.
+Use server-verified Firebase claims and the serialized access/audit transaction;
+retain a durable one-time marker, including for explicit operator appointments.
+Other signups remain members. Keep verification, suspension and recent-login
+checks. Local account reset retains accepted Runs, artifacts and accounting.
+The local Auth Emulator runner must use the same configured demo project as web.
+
+Verified locally: two access/initializer tests, all ten isolated production HTTP
+checks, separate TypeScript, production web/worker build, affected-file lint and
+formatting, documentation links, i18n and skill integrity passed. The initializer
+checks cover verified email matching, concurrent appointment, existing admins,
+suspension/revocation fences, one-time behavior and audit rollback. The HTTP test
+confirms real Firebase session creation grants admin after verification and does
+not restore a demoted admin. A separate read-only review found no outstanding
+defect. No live-environment deployment was performed.
+
+The requested local reset cleared Auth Emulator accounts in both demo namespaces
+and the configured local database's profiles/access records. Runs, artifacts,
+audit and accounting records were retained. The emulator was restarted with the
+configured demo project, and a temporary local signup, verification-link and
+session journey passed; its synthetic account was removed afterward.
+
+## Saved-artifact live regression and recovery — 2026-10-24
+
+The supplied local admin account reproduced two operational failures: the AI
+worker could not reach Dify under OS egress restrictions, and the prior MCP
+callback tunnel was offline. With explicit session approval, the worker was
+restarted with network access and the existing `unibase_starter` provider was
+reconnected through a verified MCP-only temporary tunnel. Public app paths return
+404 and anonymous MCP returns 401. No provider identity or credential was replaced.
+
+Two defects were corrected locally: recovered Run reads no longer leave a stale
+error, and saved-artifact Decline no longer reaches the successful image output.
+Read and command errors have separate state; polling recovery cannot hide a
+rejected command. Both direct Decline and interpreted non-approval return partial
+`draft_result` text without images. Python/graph regressions cover both branches,
+the unchanged success image and unique End output names.
+
+After explicit publication approval, the existing saved-artifact Dify app
+`379aec94-2ed4-440f-87c1-2cfa43cd7a6d` was updated, published and re-registered as
+`5f150845-d8a3-48ed-8928-a77b9ff2cbe1`. Earlier accepted Runs retain their versions.
+The corrected live Run `c1b3ce9c5a5f01c8ae40d387ce0c52db323312ea11f4897746eb0db946a27070`
+verified Decline at zero credits with no image, then Approve at one credit with
+the image applied to owned artifact revision 4. The intervening confirmed tunnel
+failure charged zero. The old publication's decline bug was retained as evidence;
+historical charges and outputs were not rewritten.
+
+Verification: 63 pure tests and all 183 account/service checks passed. Account,
+Run, pricing and synthetic Stripe HTTP suites passed; account/Run HTTP checks
+were repeated after the Run UI build. TypeScript, final web/worker build, lint,
+formatting, documentation, i18n and pinned-skill checks passed. Browser checks
+visited 18 member/admin routes in English/Arabic at 1440px/390px (72 visits), with
+no unexpected console/page errors or horizontal overflow. The approved PNG
+decoded in all four layouts, returned authenticated 200/image/png and rejected
+anonymous access with 401. Injected read failures verified manual/poll recovery;
+mocked command failures remained visible across successful reads and cleared on
+retry. Local simulated purchase success, replay and refund preserved exact balances.
+
+The temporary tunnel still reconnects intermittently; one retry encountered its
+connection failure. This establishes the tested local journey, not an error-free
+app or reliable hosted ingress. The two earlier user Runs without dispatch
+confirmation remain reviewable. With explicit user approval, an audited
+non-expiring one-credit grant compensated the reproduced old-publication decline
+charge, and an audited release settled only this session's OS-denied QA hold.
+The two earlier user holds were untouched. A final cancellation request was
+accepted, then ended with a confirmed provider connection failure at zero charge;
+live provider-stopped cancellation was not established by that attempt. A
+separate read-only review found no outstanding in-scope source defect. No commit,
+Git publication, VPS release or live payment activation was performed.
+
+## Unitale completed-result recovery — 2026-10-24
+
+The subsequent user Run
+`774505e87a44685bb0ab1fe69f4276b0da55effad8388f4e12f544fd0d70496a`
+confirmed that the replacement model and all nine image validators work live.
+Dify completed the existing provider Run with nine images. Locally, a stream
+timeout deferred retrieval using exponential backoff; the oldest signed image
+link expired before collection. Later attempts retained terminal evidence but
+failed image import with HTTP 403, leaving the visible status paused.
+
+The worker now polls accepted executions at their saved interval after transport
+timeouts, preserving explicit provider retry delays. Confirmed terminal retrieval
+avoids live replay unless a non-stopped Run has an uncertain decision submission.
+Historical replay cannot replace confirmed termination; bounded node metadata
+still supplies tracing. Existing decision, ownership, lease and settlement checks
+remain in place.
+
+For this recovery, authenticated Dify Code-only calls rehydrated the nine existing
+native file references through the verified existing validator, producing fresh
+signed URLs without calling an image tool. File identities and the original
+provider Run were preserved. The standard retention, settlement and product-save
+paths then completed the same attempt. Artifact
+`cff9d4c9-9e21-443f-a25d-0763a3721a59` retains approved revision 1 and all nine
+1536-by-1024 images. The Run succeeded at three total credits: one main credit
+and two Persona answers. No new generation, attempt, manual financial adjustment
+or workflow publication occurred. An unstaged expired link still requires
+provider-authorized renewal; staged owned bytes no longer depend on that link.
+
+Verification: 40 affected worker, Run, Dify and tracing tests passed, including
+timeout scheduling, successful/failed/stopped retrieval, uncertain decisions,
+historical pauses and exactly-once settlement. TypeScript, production web/worker
+build, affected-file lint/formatting, documentation, i18n and skill checks passed.
+Browser checks decoded all nine images on both the Run and artifact pages from
+first-party routes. No browser errors occurred; existing Next.js image sizing/LCP
+warnings remain advisory. A separate read-only review found no remaining
+in-scope defect. The normal AI worker was restored with the tested correction.
+No Git commit or application deployment was performed.
+
+## Unitale image-model recovery — 2026-10-24
+
+The reported Run `66783167a2eac40b01b4f27dd84a5ad0f4b2dedceea2c2c6df2de1c273373a90`
+completed its reviews and human approval, but all nine image tools returned
+`gpt-image-1` model-not-found errors as successful text responses with empty files.
+The final collector then failed. OpenAI's deprecation notice confirms that model
+was retired on October 23. The original failed Run and its two completed Persona
+charges remain unchanged; the main Run charged zero.
+
+The current template uses the installed official `gpt_image_2_generate` tool with
+`gpt-image-2.5-flare`, retaining the image dimensions, quality, prompts and approval
+boundary. Nine Code validators stop immediately when a tool fails to return one
+image with a nonempty URL. Fixed error markers produce safe model, credential,
+quota, safety and provider diagnoses without exposing raw tool error text.
+
+With explicit publication-only authorization, existing app
+`580e148c-2b8c-44f4-bb90-b5d64d92b103` was backed up, updated, published and
+re-registered as workflow `c4c2f3c9-ee4f-44b4-a67b-d6936a72c47b` (43 nodes).
+Published/draft graph equality, registration revision 2, credential identity and
+the original Run's frozen workflow were verified. The idle AI worker was rebuilt
+and restarted; its heartbeat is healthy. Admin discovery showed Ready after a
+transient availability warning cleared on refresh.
+
+Verification: all 184 service tests passed; the final nine focused
+template/private-context tests, TypeScript, web/worker build, affected-file lint,
+documentation, i18n and skill checks passed. Separate read-only review found no
+remaining in-scope defect. Dify Code-only probes confirmed the missing-model and
+empty-file failure markers without invoking an image tool. The user declined a
+paid image test, so replacement-model account access, actual image generation and
+the complete nine-image path remain unverified. No new Run, image-provider call,
+accounting correction, Git publication or application deployment was performed.
+
+## Unitale Persona draft trial — 2026-10-24
+
+At the user's request, a new Unitale orchestrator was created through the admin
+template flow, published and registered without changing older apps or Runs:
+app `580e148c-2b8c-44f4-bb90-b5d64d92b103`, workflow
+`03752e87-415d-445d-86d1-54360e1c8f9e`. The single test Run
+`ec9837dbe4731a3c0668044db52b0564a81635d05317cb6317804bd01c3a63e1`
+used Teenager Persona revision 4 and a sample about Mina and repair robot Pip
+restoring a lighthouse. Both automatic creative reviews succeeded in ordinary
+prose and advanced through the model interpretation steps. The exact package was
+saved as artifact `d40c3a20-9d79-4bc2-8a23-77ee4b2ba262`, revision 1.
+
+The final human-only approval correctly blocked image generation. The user chose
+to keep the draft without images; the test took over and selected **Keep draft
+and stop**. It finished as intentionally partial, with revision 1 unapproved,
+zero assets and zero image calls. Dify reported 22 executed nodes, none failed;
+the decline Code and End nodes succeeded. Browser error/warning counts were zero.
+The two completed Persona answers settled at two credits total; the main Run
+charged zero. No new attempt, retry or duplicate generation was created.
+
+Eight focused Unitale/template/private-context checks passed. Saved-draft access,
+human-approval fencing, native Persona responses, final decline and settlement
+were verified live; image generation was intentionally not tested in this trial.
+A separate read-only review checked the registration, single-attempt evidence,
+unapproved revision, zero image calls and accounting result. Existing staged
+source changes and earlier unresolved user Runs were preserved. The existing
+temporary MCP tunnel's reliability limit still applies. No commit or deployment
+was performed.
+
 ## Agreed decisions
 
 The [shared infrastructure staging transition](#shared-infrastructure-staging-transition--2026-10-22)

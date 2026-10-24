@@ -126,7 +126,14 @@ to an empty string, while supplied notes retain their length bounds. A common co
 document serializes permission changes to prevent snapshot-isolation races where
 admins remove each other. The actor's current access is checked again inside that
 transaction. No browser role cache or old session claim authorizes the mutation.
-The first admin is appointed explicitly by UID through an operator command.
+Session creation verifies the Firebase ID token, recent authentication and account
+access before initializing the first administrator. In all environments a verified
+`admin@uniwares.co.uk` email (case-insensitive) is eligible while no administrator,
+including suspended administrators, exists. The role, audit record and durable
+`control/signup-admin-initializer` marker share the serialized access transaction.
+The marker prevents repeat appointment after demotion or deletion. The explicit
+UID operator command remains available and consumes the same marker. All other
+accounts retain member access; no browser-supplied role or email grants access.
 Local development and transactional tests use single-node replica sets and retain
 the existing development directory. Stripe code is locally verified; live provider
 acceptance and Play billing remain separate checkpoints in
@@ -273,6 +280,13 @@ form tokens/intent, safe outputs and private bytes/references. Queries always us
 the verified session UID. Server pages read services directly; clients poll
 uncached owned HTTP snapshots.
 
+Run detail keeps read failures separate from command failures. Successful manual
+refresh or polling clears a recovered read warning; it does not dismiss a failed
+approval, upload or command. Retrying an action clears its previous error before
+reporting the new outcome. The saved-artifact template's decline paths return a
+partial `draft_result` without images; only its approval tool reaches the success
+output, preserving success-only settlement.
+
 Dispatch intent precedes the generation POST. Unknown acceptance cannot dispatch
 again. The worker fences stale leases, retrieves saved provider identity and
 reconnects by workflow-run ID with matching end-user identity and state snapshots.
@@ -364,11 +378,18 @@ API access and Human Input WebApp delivery. Create merges its confirmed app into
 the client list and refreshes discovery. The starter uses zero inputs, an authorized reference MCP
 tool, a Human Input Generative UI choice and prompted LLM/End native text output. MCP
 structured content is consumed from `json`, because Dify may leave `text` empty.
-Reconnect consumes events following historical pauses; polling completed Runs
-also replays available events. When terminal snapshots omit historical nodes, the
+Reconnect consumes events following historical pauses. Polling uses confirmed
+terminal retrieval directly, replaying only when a non-stopped Run still has an
+uncertain decision submission. Historical replay cannot downgrade that terminal
+outcome. When terminal snapshots omit historical nodes, the
 worker reads bounded Console node metadata for its accepted app/Run and saves only
 titles, statuses and timings. Raw inputs/outputs are discarded. Trace transport
 failure does not invalidate verified termination or charge the Run twice.
+An accepted execution's transport timeout schedules the next retrieval at its
+saved polling interval, rather than exponential backoff that could outlast a
+generated file's signed download URL. Provider-specified retry delays retain
+priority. Already staged owned image bytes remain reusable after provider links
+expire; an unstaged expired link still needs provider-authorized renewal.
 
 App keys use AES-256-GCM in `difyCredentials`; `difyCredentialAcquisitions` serializes
 reuse/creation and retains uncertain create intent. Web/workers resolve only private
@@ -499,7 +520,11 @@ each model/Code boundary. Two ordinary-language review decisions
 accept User or Persona feedback. Model steps interpret both natural text and form
 answers. A final exact saved-package approval requires a human; raw Continue never
 supplies that approval. Nine image-tool calls generate style samples, character
-and location references, a cover and three pages after approval. Existing native
+and location references, a cover and three pages after approval. The official
+`gpt_image_2_generate` tool uses `gpt-image-2.5-flare`. Each call is followed by a
+validator that stops on a missing or invalid image before another paid call;
+fixed error markers expose safe model, credential, quota and provider diagnoses.
+Existing native
 file promotion retains the images as owned Run/product assets. Shared text
 descriptions guide visual consistency; generated reference images are not yet
 fed back into the page generator. The `story-panel` ID remains stable
