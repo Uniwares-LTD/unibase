@@ -336,39 +336,28 @@ new defaults; review those overrides to start with fresh local namespaces.
 
 #### AI activation in progress
 
-The approved next activation enables Dify, MCP and Persona completion while retaining
-disabled payments, Mongo assets and existing workers. It is not yet deployed.
-The supplied ignored `.env.local` is a credential source only: never copy emulator
-authentication, loopback MongoDB/origin or simulated payments into staging.
+The AI runtime/control update is installed and Release
+[40188936199](https://github.com/Uniwares-LTD/unibase/actions/runs/40188936199)
+succeeded on 2026-10-25. Payments remain disabled; Mongo assets, existing workers,
+Redis and Nginx are retained. Infrastructure's
+[current release record](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md#current-unibase-release--2026-10-25)
+owns source, image digest and installed control/configuration identity.
 
-Read-only checks on 2026-10-25: the supplied Dify management credential successfully
-listed the configured workspace through PowerShell; the execution credential returned
-401 and matched none of the 33 accessible app key lists. Earlier Python requests
-returned non-JSON 403 and did not establish invalid management credentials. Persona
-model-list access succeeded; no completion was executed. The selected source is the
-bundled document-summary starter, not the app associated with `DIFY_KEY_TEST`.
-The dedicated app `9a7a43be-7513-490b-9cbc-8099f9d0d345` was imported and tagged
-`app:unibase-staging`. Its staging MCP synchronization, publication and application
-acceptance remain pending. Existing Dify apps were preserved.
+| Checkpoint | Verified state | Remaining action |
+| --- | --- | --- |
+| Provider preparation | Dify management access and Persona model access passed; dedicated document-summary app `9a7a43be-7513-490b-9cbc-8099f9d0d345` imported with tag `app:unibase-staging` | Synchronize the staging MCP provider and publish the bound workflow |
+| Private configuration | Dedicated execution/MCP/encryption keys and selected management/Persona credentials installed; operator reported successful preview/encryption validation and `AI_CONFIGURATION_PREPARED` | Confirm secure Credentials channel handoff of the new exports |
+| Release | Normal staging workflow passed build, public pull, deployment and readiness checks | Complete post-release authentication/MCP and application AI acceptance |
+| Dify acceptance | Starter preserves human input and uses available `gpt-4.1-mini`, capped at 256 output tokens | One bounded application Run; verify persisted result and accounting |
+| Persona acceptance | Provider/model access verified; runtime connection enabled | Save application-level model/settings, then one bounded completion with persistence/accounting checks |
 
-The candidate public JSON enables Dify/MCP/Persona; it is not evidence of installed
-configuration. Dedicated execution/MCP/encryption exports and reused management/Persona
-exports are prepared in protected local storage. Secure Credentials channel handoff
-has not yet been confirmed. The starter uses the available `gpt-4.1-mini` model with
-a 256-token output cap for acceptance. Persona also needs a saved application-level
-model selection. No bounded execution has occurred yet.
-
-Activation requires dedicated staging MCP and encryption secrets, a separate app
-execution key, matching public bindings, and operator installation. Persona additionally
-needs administrator-selected enabled model/settings in the application; runtime mode
-alone does not enable completion. Verify results/accounting through one bounded live
-run per provider after release, not direct provider calls that bypass application state.
-
-Infrastructure's operator update tool is prepared locally, not installed/accepted
-on srv1. It previews optional AI/MCP changes, preserves base provider credentials,
-checks encryption compatibility and retains private recovery copies. Do not rerun
-initial preparation to apply these changes. Operator handoff and live acceptance
-remain pending; the current basic staging deployment remains the serving baseline.
+A healthy release does not establish successful AI execution. Neither bounded live
+execution has been completed. Inspect uncertain outcomes before retrying billable work.
+Use the bundled starter; `DIFY_KEY_TEST` is not an initialization requirement.
+Never copy `.env.local` wholesale: local emulator, loopback and payment-simulation
+settings are not staging bindings. For updates, use the
+[operator procedure](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md#optional-ai-configuration-update),
+not initial preparation replay. Runtime mode alone does not enable Persona completion.
 
 GitHub Actions configuration variables are unused for application deployment.
 Public settings are reviewed in `deploy/environments/*.json`; credentials must not
