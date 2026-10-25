@@ -41,6 +41,44 @@ def environment_fixture(root):
     return environment.load("staging", root)
 
 
+class HostPreflightTests(unittest.TestCase):
+    def check_networks(self, networks):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = environment_fixture(root)
+            host = provisioning.Host(config, "unibase", root / "private")
+
+            def run(args, **kwargs):
+                if args == ["docker", "info"]:
+                    output = ""
+                elif args == ["docker", "compose", "version", "--short"]:
+                    output = "5.6.1"
+                elif args == ["docker", "network", "ls", "-q"]:
+                    output = "host none bridge"
+                elif args == ["docker", "network", "inspect", "host", "none", "bridge"]:
+                    output = json.dumps(networks)
+                else:
+                    raise AssertionError(args)
+                return provisioning.subprocess.CompletedProcess(args, 0, stdout=output)
+
+            with patch.object(provisioning.subprocess, "run", side_effect=run), patch.object(provisioning.socket, "socket"):
+                host.preflight()
+
+    def test_builtin_networks_with_null_ipam_do_not_block_preflight(self):
+        self.check_networks([
+            {"Name": "host", "Labels": None, "IPAM": {"Config": None}},
+            {"Name": "none", "IPAM": None},
+            {"Name": "bridge", "IPAM": {"Config": [{"Subnet": "192.0.2.0/24"}]}},
+        ])
+
+    def test_null_ipam_does_not_hide_an_allocated_subnet(self):
+        with self.assertRaisesRegex(ValueError, "subnet is already allocated"):
+            self.check_networks([
+                {"Name": "host", "Labels": None, "IPAM": {"Config": None}},
+                {"Name": "other-app", "IPAM": {"Config": [{"Subnet": "0.0.0.0/0"}]}},
+            ])
+
+
 class FakeAPI:
     def __init__(self, config):
         self.config = config

@@ -231,6 +231,16 @@ staging domain, Atlas user and owner route are Phase 2 additions. See
 
 ### First working staging deployment
 
+October 25 bootstrap progress: provider bindings and the owner-managed tunnel/DNS
+route were applied. The operator installed Compose 5.6.1 and the restricted
+deployment account/control bundle; Docker Engine and existing services were retained.
+Runtime preparation stopped before writing application credentials or creating
+indexes: Docker's built-in networks returned null IPAM configuration. The preflight
+fix accepts networks without address allocations while still rejecting subnet
+overlap. Its targeted tests pass locally; live runtime preparation and the first
+release remain pending. Resume configuration preparation with the reviewed fixed
+bundle; do not repeat the successful package/account bootstrap.
+
 - [x] Connect and prepare: complete required discovery, collect missing inputs once,
   review restricted deployment access, repository secrets, public images and shared
   staging Firebase/Atlas bindings.

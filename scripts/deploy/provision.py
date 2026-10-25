@@ -115,9 +115,9 @@ class Host:
             inspected = subprocess.run(["docker", "network", "inspect", *networks.stdout.split()], capture_output=True, text=True, timeout=30, check=True)
             desired = ip_network(self.config["deployment"]["ingressSubnet"])
             for network in json.loads(inspected.stdout):
-                if network.get("Labels", {}).get("com.docker.compose.project") == self.slug + "-" + self.config["environment"]:
+                if (network.get("Labels") or {}).get("com.docker.compose.project") == self.slug + "-" + self.config["environment"]:
                     continue
-                for entry in network.get("IPAM", {}).get("Config", []):
+                for entry in (network.get("IPAM") or {}).get("Config") or []:
                     if entry.get("Subnet") and ip_network(entry["Subnet"]).version == desired.version and ip_network(entry["Subnet"]).overlaps(desired):
                         raise ValueError("Configured Docker subnet is already allocated")
 
