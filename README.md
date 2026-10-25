@@ -4,6 +4,10 @@ Deployment work starts with the [staging transition status](docs/deployment.md#s
 and private [shared infrastructure inventory](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/inventory/srv1.md).
 They record the verified staging handoff and deferred recovery/shared-service work.
 
+For new applications, follow [derived-project deployment initialization](docs/deployment.md#derived-project-deployment-initialization)
+and its named credential checklist. Public settings live in tracked environment JSON;
+GitHub Actions configuration variables are unused for deployment.
+
 Base is a Next.js application foundation with PWA support and a prepared Android Trusted Web Activity project. It uses TypeScript, Tailwind CSS, shadcn/ui, Firebase Authentication, MongoDB profiles, admin and credit management, optional Dify execution, and Classic/Glass/Soft Blue styles and persisted light/dark/system themes. See [the implementation plan](docs/implementation-plan.md) for verification status and remaining Android, production and recovery acceptance.
 
 These guides describe the reusable Base project. `APP_NAME` controls the web

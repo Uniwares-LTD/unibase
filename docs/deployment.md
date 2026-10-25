@@ -332,6 +332,99 @@ new defaults; review those overrides to start with fresh local namespaces.
 
 ## Secrets and one-time access bootstrap
 
+### Configuration sources and credential preparation
+
+GitHub Actions configuration variables are unused for application deployment.
+Public settings are reviewed in `deploy/environments/*.json`; credentials must not
+be committed there. Current staging uses repository Actions secrets
+`DEPLOY_SSH_PRIVATE_KEY`, `DEPLOY_SSH_HOST_KEY` (verified public trust material),
+and `CLOUDFLARE_READ_TOKEN`. GitHub supplies `GITHUB_TOKEN` for image publication.
+Legacy production/optional workflows mention other secrets; they are not staging inputs.
+
+The canonical [credential inventory and checklist](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/provider-access.md)
+defines password-manager names, local exports, acquisition, permissions and rotation.
+Use protected references, never chat-based secret handoffs. Preserve working filenames.
+
+For new setup, prompt the operator to retrieve the initialization files from the
+secure **Credentials** channel and provide only their protected local directory.
+The shared inventory lists exact channel filenames and how to use them. Reuse
+shared staging access, but create the child's Firebase web registration/database
+user and rebuild its preparation bundle. The supplied `unibase-staging-*` files
+are Unibase-specific, not child deployment credentials. Keep public configuration
+in tracked environment JSON and public host trust in Infrastructure guidance.
+
+Runtime credentials are currently on the VPS, **not runtime Actions secrets**.
+`/etc/<slug>/staging/runtime.env` consumes `MONGODB_URI`, authenticated `REDIS_URL`
+and Firebase web identifiers. Sibling `firebase.json` contains the Admin identity;
+`redis-password` authenticates app Redis. Compose mounts Firebase JSON read-only and
+sets `GOOGLE_APPLICATION_CREDENTIALS` to its container path. Releases retain private
+snapshots. `FIREBASE_API_KEY` and `FIREBASE_APP_ID` are public browser identifiers.
+
+Initial `prepare-host.py` expects a protected JSON object with exactly `firebase`
+(Admin JSON object), `mongodbUri`, `firebaseApiKey`, `firebaseAppId`. It generates
+Redis authentication on the host. It is not a general restore/update command:
+existing networks/configuration may reject replay. Missing files require operator
+review today. Runtime-secret restoration and automated initialization are
+**implementation required**, with prerequisites and acceptance in the shared inventory.
+
+### Publication and operator intervention
+
+Every PR prepared for publication must include **Operator intervention: none**,
+or list each action with owner, execution location, ordering relative to release,
+verification and failure/resume instructions. An image-only change normally needs
+no operator; root-owned control scripts, registered configuration, provider bindings,
+credentials and data migrations require explicit impact assessment. An app image
+cannot update the registered control bundle or provision resources.
+
+A binding change must identify the operator/control update before release, owner
+route change if needed, and checks before resuming. Where tooling is absent, say
+**implementation required** with prerequisites and acceptance, not invented commands.
+Publication alone does not prove live readiness or authorize data restoration.
+
+### Derived-project deployment initialization
+
+1. **Workstation / project owner:** run the README initializer from a reviewed
+   committed revision with a unique identity. Explicitly select shared public
+   connections with `--infrastructure-profile`; credentials are excluded. Review
+   generated JSON, image namespace, database/user, paths, origin and suggested
+   listener/subnet against current host inventory. Suggestions are not allocations.
+2. **Workstation / agent and operator:** fill the shared credential checklist with
+   protected references. Reuse shared deploy/staging Firebase keys and scoped
+   Cloudflare read access; acquire app-specific web registration and MongoDB user.
+   Collect missing inputs once. GitHub's secrets API cannot retrieve values; children
+   inherit no source-repo secrets. Keep operator/provider administration access separate.
+3. **Provider consoles/owner workflows:** register the web app in shared staging
+   Firebase; configure authorized domain, sign-in and matching OAuth origin/redirect
+   entries without removing existing apps. Create the app database user with scoped
+   `readWrite` and approve destination egress. The existing tunnel owner adds the
+   hostname pointing to private app Nginx. Leave optional integrations disabled.
+4. **VPS / authorized operator:** for a new host establish operator access, pin host
+   identity and install reviewed restricted tooling/compatible Compose. Existing
+   hosts reuse shared accounts. Register the derived app's reviewed immutable control
+   bundle/configuration and prepare private files/indexes. Do not replay historical
+   Unibase root batches or copy its database, subnet or paths.
+5. **GitHub / setup operator or authorized agent:** initialize the destination repo,
+   enable public GHCR publication as needed and populate the three staging secrets
+   from protected originals, preserving SSH key bytes. Setup uses individual reviewed
+   operations today; a single initialization command is **implementation required**.
+6. **GitHub Actions / application:** release a reviewed `_staging` revision through
+   its own build → publish → anonymous digest pull → restricted deploy → health flow.
+   Verify login/session persistence, database/Redis and both workers; record release
+   identity and handoff. Inspect state and resume the failed checkpoint. A failed
+   first release stops only its candidate, preserving config/data; no automatic DB restore.
+
+**Production:** desired `_prod → prod` requires the pending compatibility milestone;
+current tooling still uses `production` and legacy provisioning assumptions. Select
+a separate Firebase project per application, production registration and separate
+database/runtime credentials, allocations and recovery policy. Do not activate
+`_prod` by copying staging secrets; verify the public-image/restricted path through
+the separately reviewed production plan first.
+
+**Relocation/recovery:** credentials do not recreate a host or data. Revalidate host
+trust, control registration, networking, egress and tunnel bindings. Preserve the
+old destination until acceptance and coordinated cutover. MongoDB/GridFS restoration
+requires a separately tested recovery procedure.
+
 Use repository Actions secrets for staging, as listed in
 [the restricted control procedure](#restricted-first-staging-control-path).
 Infrastructure owns the shared key/account bootstrap and protected credential

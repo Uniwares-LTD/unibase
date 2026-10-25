@@ -59,6 +59,11 @@ subnet are installed, not merely candidates.
 
 ### Later consolidation and recovery
 
+- [ ] Automated derived-deployment initialization and restricted runtime-secret
+  restoration: follow the shared inventory; validate destination identity, preserve
+  conflicting files, resume safely and prevent secrets in logs/artifacts. Current
+  operator preparation is not a restore interface.
+
 - [ ] Shared gateway: preserve Firebase helper, trusted headers and streaming.
 - [ ] Shared non-Dify Redis: allocate logical DBs and adapt validation/readiness.
 - [ ] App-hosted AI/events/maintenance endpoints and timers: retain leases,
