@@ -15,7 +15,12 @@ The wrapper/project inherits Bubblewrap's Apache-2.0 notices; its license is ret
 
 ## Signing and manual workflow
 
-Create/provide an Android upload keystore outside Git and keep a secure backup. Do not send keys or passwords in chat. Configure a GitHub environment named `android-release` with these secrets. Set `android.host` and `android.packageName` in `deploy/environments/production.json` to match your local build settings:
+Create/provide an Android upload keystore outside Git and keep a secure backup. Do not send keys or passwords in chat. The current workflow declares the `android-release` GitHub environment. Private
+repository environment secrets require a paid plan; adapting this deferred Android
+workflow to GitHub Free repository secrets is **implementation required** before
+using it here. Do not treat the prepared workflow as a validated Free-plan release
+path or enable a paid plan as part of staging handoff. On a supported plan, configure
+that environment with these secrets. Set `android.host` and `android.packageName` in `deploy/environments/production.json` to match your local build settings:
 
 | Secret                      | Purpose                                                                          |
 | --------------------------- | -------------------------------------------------------------------------------- |

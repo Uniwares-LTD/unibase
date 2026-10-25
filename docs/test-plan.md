@@ -6,7 +6,7 @@ execution. Record results against the actual commit/diff and environment tested.
 
 ## Start here before cloning a derived project
 
-Documentation reconciled with the working tree on 2026-10-13. This is the master
+Account-initialization guidance updated on 2026-10-25; this is not a new regression run. This is the master
 acceptance checklist; linked guides supply detailed setup and troubleshooting.
 Earlier recorded passes are historical evidence, not your new acceptance run.
 
@@ -22,8 +22,10 @@ Run this in four sessions:
    HTTPS staging and signed Android (sections 8-9). Record missing environments
    as Blocked or Not run; these are not claimed by local simulation.
 
-There is **no shipped admin username/password**. Create your own verified emulator
-account, then appoint its UID. Regular verified members can buy simulated credits
+There is **no shipped password**. A verified `admin@uniwares.co.uk` identity
+initializes the first admin only while no admin/initialization marker exists.
+For another test identity, explicitly appoint its exact Firebase UID. See the
+[current admin contract](architecture.md#administrator-access). Regular verified members can buy simulated credits
 and use AI; admin is required only for administration, adjustments and resolutions.
 No real money/model calls are needed for the first three sessions.
 
@@ -82,9 +84,9 @@ impersonation and account deletion are not part of the implemented feature set.
    verified **Admin B**, two verified **Members A/B** and an **Unverified member**.
    Use Google for one member to cover both providers. Separate browser profiles
    help keep these sessions distinct.
-6. If no active admin exists, obtain Admin A's exact UID in the Auth Emulator and
-   run `npm.cmd run admin:bootstrap -- FIREBASE_UID`. Otherwise use an existing
-   authorized local admin. Bootstrap must refuse to replace an existing admin.
+6. Use the verified first-admin initializer when testing that contract, or obtain
+   Admin A's exact UID and run `npm.cmd run admin:bootstrap -- FIREBASE_UID` if
+   bootstrap is available. Otherwise use an existing authorized local admin. Bootstrap must refuse to replace an existing admin.
    Admin A can promote Admin B through user management.
 7. Use different fresh members for adjustment and purchase arithmetic below.
    Record their starting balances. Auth identities reset when its emulator stops;

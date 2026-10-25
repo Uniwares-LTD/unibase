@@ -55,6 +55,13 @@ export function proxy(request: NextRequest) {
   forwarded.set("x-pathname", path);
   forwarded.set("Content-Security-Policy", csp);
   const response = NextResponse.next({ request: { headers: forwarded } });
+  // HTML must reach React unchanged. Cloudflare email obfuscation otherwise
+  // rewrites server-rendered text and injects a decoder without our CSP nonce.
+  // Keep personalized documents private and uncacheable as well.
+  response.headers.set(
+    "Cache-Control",
+    "private, no-cache, no-store, max-age=0, must-revalidate, no-transform",
+  );
   response.headers.set("Content-Security-Policy", csp);
   response.headers.set("X-Frame-Options", helper ? "SAMEORIGIN" : "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");

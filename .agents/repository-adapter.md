@@ -11,7 +11,11 @@
 
 - Setup and commands: README.md.
 - Current architecture: docs/architecture.md.
-- Milestones and acceptance: docs/implementation-plan.md.
+- Milestones and remaining acceptance: docs/implementation-plan.md.
+- Application deployment/acceptance: docs/deployment.md; shared host/access/progress:
+  Infrastructure's docs/operations.md (linked from the deployment guide).
+- Historical trials: docs/history/. Preserve dated evidence and existing anchor links;
+  never treat an archived command or a past test result as current readiness.
 - Skill provenance and local guidance: docs/agent-tooling.md and skills-lock.json.
 - Add durable lessons to the nearest relevant document; do not create an incident diary or a competing source of truth.
 

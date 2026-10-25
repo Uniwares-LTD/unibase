@@ -2,9 +2,13 @@
 
 Deployment work starts with the [staging transition status](docs/deployment.md#staging-transition-status--2026-10-24)
 and private [shared infrastructure inventory](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/inventory/srv1.md).
-They distinguish current tooling from pending staging setup and shared-service changes.
+They record the verified staging handoff and deferred recovery/shared-service work.
 
-Base is a Next.js application foundation with PWA support and a prepared Android Trusted Web Activity project. It uses TypeScript, Tailwind CSS, shadcn/ui, Firebase Authentication, MongoDB profiles, admin and credit management, optional Dify execution, and Classic/Glass/Soft Blue styles and persisted light/dark/system themes. See [the implementation plan](docs/implementation-plan.md) for verification status and remaining Android/VPS activation.
+For new applications, follow [derived-project deployment initialization](docs/deployment.md#derived-project-deployment-initialization)
+and its named credential checklist. Public settings live in tracked environment JSON;
+GitHub Actions configuration variables are unused for deployment.
+
+Base is a Next.js application foundation with PWA support and a prepared Android Trusted Web Activity project. It uses TypeScript, Tailwind CSS, shadcn/ui, Firebase Authentication, MongoDB profiles, admin and credit management, optional Dify execution, and Classic/Glass/Soft Blue styles and persisted light/dark/system themes. See [the implementation plan](docs/implementation-plan.md) for verification status and remaining Android, production and recovery acceptance.
 
 These guides describe the reusable Base project. `APP_NAME` controls the web
 shell, metadata and install manifest at runtime; the credential-free default is
@@ -517,13 +521,17 @@ command publishes source, activates a live provider or deploys infrastructure.
 
 ## Environment provisioning
 
-Use [the deployment guide](docs/deployment.md) for the environment flows, exact
-secret inventory, one-time Google OIDC setup and first provisioning sequence.
-Non-secret settings live in `deploy/environments/local.json`, `staging.json` and
-`production.json`; GitHub variables are no longer required. Private local overrides
-remain in `.env.local`. **Provision environment** runs manually on `main`, previews
-by default and never starts a release. Staging shares an explicitly selected
-Firebase account pool; each production app has its own Firebase project.
-The existing Atlas cluster, SSH tunnel and Dify Community installation are reused.
-[The owner integration](deploy/shared-owner/README.md) keeps shared routes in
-`agentic-poc` Terraform and records tunnel/Dify ownership-transfer follow-ups.
+Use [deployment guidance](docs/deployment.md) for staging setup, exact secret
+consumers and the restricted control interface. Current staging uses Infrastructure's
+reviewed root-owned bootstrap/preparation tooling and existing Firebase/Atlas
+bindings. Routine release/check/rollback uses the installed restricted dispatcher;
+it cannot provision providers or replace root-owned host control code.
+
+Public settings live in `deploy/environments/local.json`, `staging.json` and
+`production.json`; private local overrides remain in `.env.local`. Staging uses
+repository secrets, public GHCR and its own workflows. The legacy **Provision
+environment** workflow refuses staging and requires production compatibility work
+before activation; Google OIDC/private-pull instructions describe that legacy path.
+Shared tunnel/Dify ownership remains with agentic-poc. The optional
+[owner integration](deploy/shared-owner/README.md) is a generic reference, not a
+first-staging prerequisite or a transfer of ownership.

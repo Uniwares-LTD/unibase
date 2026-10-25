@@ -2,7 +2,7 @@
 
 ## Scope and authority
 
-Read [the implementation plan](docs/implementation-plan.md) and the relevant code before editing. The user's current request and the accepted milestone define scope. Do not implement later milestones merely because a dependency or skill suggests them. Repository-specific workflow details live in [.agents/repository-adapter.md](.agents/repository-adapter.md); they override generic imported skill guidance.
+Read [the current implementation plan](docs/implementation-plan.md) and the relevant code before editing. Historical evidence under `docs/history/` is reference material, not the current task queue. The user's current request and the accepted milestone define scope. Do not implement later milestones merely because a dependency or skill suggests them. Repository-specific workflow details live in [.agents/repository-adapter.md](.agents/repository-adapter.md); they override generic imported skill guidance.
 
 ## Architecture
 
@@ -26,6 +26,14 @@ Read [the implementation plan](docs/implementation-plan.md) and the relevant cod
 - Use semantic CSS variables for themes. Verify desktop/mobile navigation, keyboard focus, and hydration after UI changes.
 
 ## Work and verification
+
+- For deployment initialization, first ask for the secure **Credentials** channel
+  files to be saved outside Git and for their local directory reference. Follow
+  Infrastructure's filename/reuse map; never print values or copy Unibase-specific
+  database/web/preparation bindings into a child. Keep public configuration in docs/JSON.
+
+- Every PR prepared for publication follows [operator intervention reporting](docs/deployment.md#publication-and-operator-intervention): state none or list actions, owner, location, ordering, verification and failure/resume.
+- New deployments follow [derived-project initialization](docs/deployment.md#derived-project-deployment-initialization) and the linked shared credential inventory. Collect missing protected references once; never print values. Public deployment settings belong in tracked JSON, not Actions variables. Distinguish installed behavior from proposed recovery automation.
 
 - Before giving operator commands, resolve non-secret values from repository configuration,
   canonical inventory, owner repositories and verified session evidence. Provide complete,

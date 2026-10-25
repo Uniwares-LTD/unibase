@@ -3,6 +3,21 @@ import { test } from "node:test";
 import { NextRequest } from "next/server";
 import { proxy } from "../src/proxy";
 
+test("personalized HTML rejects intermediary transforms without weakening document CSP", () => {
+  const response = proxy(new NextRequest("https://app.example/account"))!;
+  const cache = response.headers.get("cache-control")!;
+  for (const directive of ["private", "no-store", "no-transform"])
+    assert.ok(
+      cache
+        .split(",")
+        .map((value) => value.trim())
+        .includes(directive),
+    );
+  const csp = response.headers.get("content-security-policy")!;
+  assert.match(csp, /script-src 'self' 'nonce-[^']+' 'strict-dynamic'/);
+  assert.doesNotMatch(csp, /script-src[^;]*'unsafe-inline'/);
+});
+
 test("document CSP follows only local loopback emulator ports and excludes untrusted origins", () => {
   const previousEnvironment = process.env.APP_ENV;
   const previousHost = process.env.FIREBASE_AUTH_EMULATOR_HOST;
