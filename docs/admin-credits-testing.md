@@ -5,8 +5,9 @@ checkpoint state is in [the plan](admin-credits-plan.md); [README](../README.md)
 owns setup. Real Stripe/Play payments remain separate acceptance.
 
 For the complete current regression, including AI spending and pricing, use
-[the full test plan](test-plan.md). No default admin username/password is shipped;
-use credentials you create in the emulator, then appoint that exact Firebase UID.
+[the full test plan](test-plan.md). No password is shipped. Verified
+`admin@uniwares.co.uk` can initialize the first admin once; other test identities
+use explicit UID appointment. See [administrator access](architecture.md#administrator-access).
 
 ## Start and appoint an admin
 
@@ -20,8 +21,11 @@ use credentials you create in the emulator, then appoint that exact Firebase UID
 4. Register and verify two test accounts at `http://localhost:3000/account`.
    Google emulator accounts can also be used. Obtain the intended admin's exact
    UID from the Auth Emulator UI at `http://127.0.0.1:4000`.
-5. Run `npm run admin:bootstrap -- FIREBASE_UID` once. Existing admins appoint
-   further admins through user management. Sign in as the admin to see its link.
+5. Use the first verified `admin@uniwares.co.uk` sign-in, or run
+   `npm run admin:bootstrap -- FIREBASE_UID` for a chosen verified identity when
+   no admin exists. The durable initialization marker prevents automatic
+   reappointment after demotion/deletion. Existing admins appoint further admins
+   through user management. Sign in as the admin to see its link.
 
 ## User management and adjustments
 

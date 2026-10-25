@@ -2,7 +2,7 @@
 
 ## Scope and authority
 
-Read [the implementation plan](docs/implementation-plan.md) and the relevant code before editing. The user's current request and the accepted milestone define scope. Do not implement later milestones merely because a dependency or skill suggests them. Repository-specific workflow details live in [.agents/repository-adapter.md](.agents/repository-adapter.md); they override generic imported skill guidance.
+Read [the current implementation plan](docs/implementation-plan.md) and the relevant code before editing. Historical evidence under `docs/history/` is reference material, not the current task queue. The user's current request and the accepted milestone define scope. Do not implement later milestones merely because a dependency or skill suggests them. Repository-specific workflow details live in [.agents/repository-adapter.md](.agents/repository-adapter.md); they override generic imported skill guidance.
 
 ## Architecture
 

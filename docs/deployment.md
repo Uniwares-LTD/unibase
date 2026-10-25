@@ -17,7 +17,9 @@ time. October 25 operator evidence confirms compatible plugin installation,
 restricted account/control installation, private runtime configuration and additive
 index preparation. Firebase/Atlas bindings and the owner-managed tunnel/DNS route
 are applied. The first staging release and independent Check deployment passed;
-actual user sign-in and recovery rehearsal remain Phase 3/follow-up acceptance.
+Google admin sign-in is user-confirmed and the existing session, profile persistence,
+administration access and logout were browser-verified. Remaining acceptance is
+recorded below; data recovery rehearsal remains later work.
 
 ### First deployment and later consolidation
 
@@ -110,86 +112,77 @@ by publishing these instructions.
 
 ### Phase 1 — Connect and prepare
 
-**Owner/location:** agent in development checkouts and read-only provider access;
-operator establishes protected admin access and supplies missing input references
-together. The staging implementation contains these bounded adaptations; their
-reviewed setup is installed and application acceptance remains separate:
-
-- Repository secrets instead of unavailable private-repo environment secrets.
-- Public GHCR and anonymous digest-pull verification inside the release workflow,
-  before host activation; remove private-package and pull-credential requirements.
-- Reviewed root-owned operations invoked by the shared restricted deploy account.
-- Reuse shared staging Firebase credentials, explicit app registration/domains and
-  existing Atlas resources; retain app-scoped runtime readWrite access.
-- Compatible Compose and a free app subnet/loopback port. Keep current Redis at
-  database 0, Nginx and both worker containers.
-- Owner-managed route addition and verification of the exact hostname/private
-  Nginx target, without requiring a generic cross-repository route workflow.
-
-Do not create a separate build/publish workflow. The existing release already builds
-and publishes; adapt it to verify anonymous pull before candidate activation. Keep
-runtime secrets out of builds. Preserve credential-free local operation, worker
-health, retries, leases, quota/accounting and duplicate-prevention behavior.
-
-**Evidence/failure:** record reviewed revisions and focused validation. Missing
-interfaces remain implementation work; do not bypass them with ad hoc host commands.
-Quality warnings stay advisory; build and operational failures stop release.
+Completed. Infrastructure owns access, remaining discovery and the shared
+configuration checklist. Current application inputs live in tracked environment
+JSON; secret consumers and the installed staging interface are described under
+[restricted control](#restricted-first-staging-control-path). Historical preparation
+is linked from the shared runbook; do not rerun it for acceptance.
 
 ### Phase 2 — Bootstrap and deploy
 
-Verified October 25: [Release attempt 3](https://github.com/Uniwares-LTD/unibase/actions/runs/40168299056/attempts/3)
-and [independent Check deployment](https://github.com/Uniwares-LTD/unibase/actions/runs/40168997418)
-passed for source `edcc21de9a501b21f63e353da9a75cdf5efb5e65`. The deployed public
-image is `ghcr.io/uniwares-ltd/unibase@sha256:2e4e1ffac7ba401b924c657fe1b9d155cf926dd75d35a47aca0c2ca6fcd7ac1b`.
-Anonymous digest pull, local/public readiness and both existing worker probes passed.
-The account page loads and hydrates with email/Google controls enabled; this does
-not prove an end-to-end user login. Shared-host post-check status is canonical in
-Infrastructure's operations table. Do not repeat completed host preparation.
-
-**Owner/location:** agent via reviewed provisioning/provider interfaces, existing
-tunnel owner's process and Unibase GitHub Actions. The phase 1 adaptations and
-root-only preparation are installed; routine release/check uses restricted dispatch.
-
-Populate tracked staging configuration from verified bindings. Store secret values
-only in repository secrets and private runtime files. Do not reuse the colliding
-subnets, Booklet's release paths or Dify's Redis. Keep optional providers disabled.
-On interrupted setup, preview actual resources and repair only missing compatible
-bindings; preserve existing keys, shared identities and app data.
-
-| Existing file | Interface for staging | Use after adaptation |
-| --- | --- | --- |
-| `.github/workflows/deploy.yml` | Push `_staging`, or manual `environment=staging` on `_staging` | Build, publish, anonymous digest pull, deploy and health checks in one release |
-| `.github/workflows/check-deployment.yml` | Manual `environment=staging` on `_staging` | Verify deployed web/dependencies and current worker progress |
-| `.github/workflows/rollback.yml` | Manual `environment=staging` on `_staging` | Restore an actual retained healthy image/configuration |
-
-Names, inputs and branch guards were source-checked.
-Verify the reviewed branch head and target before release. A push triggers Release;
-do not also manually dispatch the same commit. Record workflow ID/URL, source SHA,
-image digest and retained configuration identity after the workflow produces them.
-An anonymous-pull failure must stop before candidate activation.
-
-**Failure/resume:** inspect actual workflow/candidate/prior-release state before
-retrying. On the first failed deployment there is no predecessor: stop only its
-unhealthy candidate and workers, plus any candidate timers if present. Retain data
-and configuration, then fix/redeploy a reviewed revision. Do not restore the DB
-or restart shared services. Later failures can use a verified previous image/config.
+Completed. Use the shared runbook for installed source/digest/config identity and
+bootstrap evidence. Staging's release workflow builds, publishes, anonymously
+pulls the immutable image, dispatches deployment and verifies local/public readiness
+and existing workers. Routine instructions and failure/resume handling are in the
+[shared runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md#3-verify-and-hand-off).
+A failed first release has no predecessor; stop only its candidate and retain
+configuration/data. Never restore the DB or restart shared services automatically.
 
 ### Phase 3 — Verify and hand off
 
-**Owner/location:** agent via check workflows and read-only public/private checks;
-operator completes user-facing authentication when necessary.
+**Owner/location:** agent through Unibase check workflows and browser verification;
+operator handles credentials/MFA, email delivery and protected-store access.
+Start with one consolidated request for any remaining manual results. Never ask
+for passwords, private keys, session cookies or OAuth callback URLs in chat.
 
-Verify the intended public hostname, liveness/dependency readiness, login/Firebase
-helper behavior, Nginx trusted headers/streaming and app-private Redis. Check current
-maintenance and AI-worker health, including disabled-AI status. Confirm Booklet,
-Dify and legacy services remain healthy. Test retry/accounting behavior with isolated
-fixtures rather than real payments or paid AI calls. New endpoints/timers and
-shared Redis/gateway behavior are not first-release acceptance requirements.
+**Acceptance record, 2026-10-25, runtime `edcc21d`:**
 
-Record initial deployment verification and routine deploy/check/rollback entrypoints
-in the shared progress table. Routine operations use the restricted account;
-privileged maintenance remains separate. Failed checks stay open and use phase 2's
-failure path. Never infer acceptance from a queued workflow or green build alone.
+| Check | Evidence/result | Remaining action |
+| --- | --- | --- |
+| Google admin sign-in | Operator confirmed initial login; browser completed a fresh Google redirect after logout | None |
+| Server session and app persistence | Browser reload retained the profile; temporary display-name change survived reload; original name restored and rechecked | None |
+| Administration | Reloaded `/admin` rendered administrator navigation and one active admin | None; no role/credit mutation needed |
+| Logout and anonymous access | Logout showed sign-in; reloading `/admin` redirected to sign-in without profile/admin data | None |
+| Google re-login | First return stayed pending and reload showed the interrupted-login message; fresh retry subsequently completed, and a further reload retained the restored profile | Passed with an interrupted-attempt limitation; no latency guarantee |
+| Email/password | Operator reported incognito login/logout completed using the requested email/password journey | Console errors below must be resolved before acceptance; no identity reset |
+| Runtime/dependencies/workers | [Check 40170666438](https://github.com/Uniwares-LTD/unibase/actions/runs/40170666438) succeeded against the installed source; both worker probes and local/public readiness passed | None |
+| Firebase helper/proxy | Same-origin helper configuration and Nginx trusted headers/unbuffered proxy reviewed; initial live Google login confirmed | Streaming behavior is configuration-reviewed, not a paid AI execution test |
+| Isolated safeguards | All 64 pure tests passed, including the document no-transform/CSP regression, after restoring pinned dependencies, including redirect/session/CSRF policy and exact credit arithmetic | MongoDB-backed lease/accounting/notification fixture run was stopped during its uncached 781 MB binary download; no fresh result claimed and runtime source was unchanged |
+| Operational access | Restricted routine Check succeeded; authenticated workstation has repository ADMIN access; pinned SSH using the documented local `srv1-ops-admin` key returned the expected operator identity | New devices still require the protected key handoff; no general sudo established |
+
+The private [shared runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md#configuration-and-progress)
+owns overall phase status, installed release/config identity and shared access.
+Keep detailed app results here. Dated completed evidence remains valid until its
+inputs change; do not rerun bootstrap or monitor Booklet to close app acceptance.
+The Phase 2 shared-host baseline is already recorded. Recheck unrelated services
+only when a new shared-host change could affect them.
+
+**Console regression:** the operator reported the Cloudflare `email-decode.min.js`
+CSP violation and React hydration error 418. Browser reproduction confirmed the
+injected decoder and hydration failure on an authenticated account reload. The
+reviewed correction adds `Cache-Control: no-transform` to private, no-store document
+responses, preserving nonce/strict-dynamic CSP and immutable asset caching. It must
+be verified in a production response and deployed before closing Phase 3. Do not
+allow the decoder through CSP or suppress hydration warnings. Cloudflare documents
+[no-transform as an opt-out](https://developers.cloudflare.com/waf/tools/scrape-shield/email-address-obfuscation/#troubleshoot-email-obfuscation).
+
+**Procedure:** test Google and email sign-in, refresh, a harmless profile save/reload,
+logout, protected-route denial and re-login. Restore any changed profile value.
+Keep optional Dify/Stripe/MCP disabled; validate lease/retry/accounting and notification
+duplicate prevention with isolated fixtures, never real charges. Existing worker
+containers remain the runtime; endpoint/timer work is deferred.
+
+**Failure/resume:** keep failed checks open and retain a sanitized error/request ID.
+An interrupted Google flow may report a safe retry message after reload; retry from
+Continue with Google, preserving normal storage/security protections. A repeatable
+failure requires diagnosis, not declaring acceptance or clearing shared identities.
+Use the [operations failure path](#operations) for runtime failures. No predecessor
+means no image rollback; data restoration is never automatic.
+
+**Completion:** all required app checks pass and an authorized operator can follow
+the shared routine runbook without this conversation. Record remaining recovery,
+Android, production and optional-provider limits separately; they are not Phase 3
+completion claims.
 
 ### Follow-up recovery and consolidation
 
@@ -393,11 +386,11 @@ SSH, registry and Docker; they never provision production services. Provider tes
 cover preview, repeated apply, interrupted configuration, identity conflicts and
 secret-safe errors. The owner package has registry tests and mock Terraform tests.
 
-Live acceptance remains separate: verify real Firebase Google/email journeys,
-Atlas persistence, both workers, staging public GHCR/anonymous pulls and public HTTPS. After
-two successful staging releases, exercise Check/Rollback and failed-candidate
-restoration; confirm production and other hosted apps are unaffected. Only then
-activate production. No live provisioning or deployment is claimed from local tests.
+Use the [Phase 3 acceptance record](#phase-3--verify-and-hand-off) for current hosted
+results and remaining checks. Earlier isolated tests are historical evidence, not
+new live certification. Rehearse image/config rollback when a real compatible
+predecessor exists; do not manufacture a release. Recovery and production activation
+require their own reviewed scope and acceptance.
 
 ## Shared ownership follow-ups
 

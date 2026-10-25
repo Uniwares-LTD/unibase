@@ -2,12 +2,12 @@
 
 For deployment status and remaining changes, see the [staging transition](deployment.md#staging-transition-status--2026-10-24)
 and [shared architecture](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/architecture.md).
-Worker, ingress and configuration descriptions below remain the current implementation
-until that transition is implemented and verified.
+Current staging retains worker containers, app Redis and private Nginx.
+Shared-service and job-endpoint consolidation remains deferred.
 
 ## Current foundation
 
-Base is one Next.js App Router application with Firebase Authentication, MongoDB profiles, a responsive shell, appearance preferences, opt-in diagnostics and PWA support. Account acceptance uses the Auth Emulator and isolated MongoDB. M3 retains a configurable Bubblewrap Android project and manual release workflow; Android compilation and live activation are pending as recorded in the implementation plan. M4 provides standalone container, isolated VPS release/check/rollback tooling and independent advisory workflows. Live deployment remains a separate activation step.
+Base is one Next.js App Router application with Firebase Authentication, MongoDB profiles, a responsive shell, appearance preferences, opt-in diagnostics and PWA support. Account acceptance uses the Auth Emulator and isolated MongoDB. M3 retains a configurable Bubblewrap Android project and manual release workflow; Android compilation and live activation are pending as recorded in the implementation plan. M4 provides standalone container, isolated VPS release/check/rollback tooling and independent advisory workflows. The first staging release is verified; production and Android activation remain separate.
 
 `src/app` owns routes, layouts, metadata, loading, and recovery pages. Server Components provide page content by default. `src/components` owns the application shell and interactive appearance/navigation controls; `src/components/ui` contains CLI-generated shadcn primitives. `src/lib/server` owns server-only access, starting with configuration. `src/lib/config` contains pure schemas and the explicitly public configuration type. `src/lib/utils` is the shadcn class-name helper.
 
@@ -673,6 +673,16 @@ The fresh namespace installation does not migrate or reconnect legacy payment
 provider records; keep old deployments/databases isolated during an explicit handoff.
 See [reusable services](services.md) for quotas, references, limits and transactions.
 
+## Intermediary HTML integrity
+
+Document responses use private/no-store cache directives plus `no-transform`.
+Cloudflare's email obfuscation otherwise rewrites server-rendered email text and
+injects a decoder without the page nonce, producing CSP violations and hydration
+mismatches. Keep the strict document CSP and prevent edge rewriting rather than
+allowing an injected decoder or suppressing hydration errors. The proxy matcher
+excludes immutable Next.js assets and API paths. See [deployment acceptance](deployment.md#phase-3--verify-and-hand-off)
+for current live verification; adding the source header alone is not deployment.
+
 ## Provisioning ownership
 
 Tracked environment JSON owns public application/deployment configuration.
@@ -681,19 +691,23 @@ Provisioning renders runtime settings by merging selected tracked values with
 private host credentials. Release snapshots that configuration and merges tracked
 runtime settings; rollback retains the previous snapshot without reading new config.
 
-`Provision environment` is separate from release, defaults to preview and runs on
-`main`. Google administration uses OIDC; scoped Atlas and GHCR credentials are
-transient inputs. Generated secrets persist privately before dependent resources
-are created. Reruns reuse them, and incompatible identities require explicit recovery.
-A disposable administration container installs indexes/bootstrap tooling outside
-production images. Maintenance and AI worker containers retain coordinated release
-and health behavior with the web application.
+Staging provisioning uses Infrastructure's reviewed root-owned installer and
+`prepare-host.py`, existing shared Firebase credentials, an app-scoped Atlas user
+and an owner-managed route. Routine release/check/rollback uses the installed
+restricted dispatcher over direct pinned SSH, repository secrets and public GHCR.
+It cannot change provider bindings or upload replacement host control code.
+Maintenance and AI workers share the web release image and retain separate health probes.
 
-Staging uses a shared Firebase identity pool with app-specific web registrations,
-databases and roles; production uses an app-specific Firebase project. Atlas cluster
-capacity remains externally owned. The existing shared Cloudflare connector and
-SSH Access application remain owned by `agentic-poc`, whose canonical Terraform
-registry/workflow writes all routes. App workflows select registered routes rather
-than supplying arbitrary endpoints. Dify Community remains owned there as well.
-The [deployment follow-ups](deployment.md#shared-ownership-follow-ups) record both
-ownership transfers without changing either service lifecycle now.
+The legacy `Provision environment` workflow remains for deferred production work:
+it assumes Google OIDC administration, Atlas administrative credentials, a route
+registration interface and private GHCR pulls. It refuses staging and is not the
+current staging setup path. See [deployment guidance](deployment.md) for exact
+interfaces and pending production compatibility.
+
+Staging shares Firebase identities with explicit web registrations and app-specific
+MongoDB data/roles; production requires a separate Firebase project per app. Atlas
+capacity is externally owned. agentic-poc owns the existing tunnel/SSH Access/Dify
+and its Terraform writes the complete route list. Unibase verifies its owner-managed
+route; it does not install a route controller or use Booklet's deployment workflow.
+The [ownership follow-ups](deployment.md#shared-ownership-follow-ups) require an
+explicit migration before authority changes.

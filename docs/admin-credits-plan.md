@@ -2,7 +2,8 @@
 
 Accepted contract: the six-checkpoint plan agreed on 2026-10-04. Preserve the
 single Next.js application, Firebase identities, MongoDB and shadcn primitives.
-No provider activation, publication, deployment or iOS application is authorized.
+The original milestone excluded provider activation, publication, deployment and
+iOS work; later session authorization and the current implementation plan govern new work.
 
 Current status: C1-C5 are implemented and locally verified; C6 is unimplemented.
 AI consumption and variable pricing were added separately in [AI foundation](ai-foundation.md).
@@ -138,8 +139,11 @@ Server Components read server modules directly; web admin mutations are Server
 Actions with fresh authorization/origin protection. HTTP contracts cover own-wallet
 reads, checkout and authenticated Stripe notifications. Play verification remains
 a planned C6 contract, not an implemented route.
-Secrets and catalog mappings are validated server configuration. Initial admin is
-explicitly appointed by Firebase UID, never by email or public sign-up.
+Secrets and catalog mappings are validated server configuration. The initial
+UID-appointment-only rule was superseded by the verified one-time first-admin
+initializer. Current [administrator access](architecture.md#administrator-access)
+allows verified `admin@uniwares.co.uk` only while no admin/marker exists; explicit
+UID bootstrap remains available. No password or automatic credits are shipped.
 
 Existing users start active/member with zero credits. No transfers, cash withdrawal,
 subscriptions, automatic signup grant, hard account deletion or impersonation.
