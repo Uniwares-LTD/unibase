@@ -169,6 +169,16 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
         (CONFIG/'config.json').write_text(json.dumps(installed))
         runtime=CONFIG/'staging/runtime.env'
         values=dict(line.split('=',1) for line in runtime.read_text().splitlines())
+        # Match tracked public bindings using synthetic secrets only. Docker and
+        # HTTP are mocked, so optional live modes never contact real providers.
+        values.update({key: value for key, value in PUBLIC['runtime'].items() if value is not None})
+        values.update(DIFY_MANAGEMENT_KEY='synthetic-management',
+                      DIFY_CREDENTIAL_ENCRYPTION_KEY='a' * 64,
+                      PERSONA_COMPLETION_API_KEY='synthetic-persona')
+        for binding in json.loads(values.get('DIFY_ORCHESTRATORS_JSON', '[]')):
+            values[binding['keyEnv']] = 'synthetic-execution'
+        for client in json.loads(values.get('MCP_CLIENTS_JSON', '[]')):
+            values[client['tokenEnv']] = 'synthetic-mcp-token-' + 'x' * 32
         values.update(APP_ORIGIN=item['origin'],FIREBASE_PROJECT_ID=item['firebaseProject'])
         runtime.write_text(''.join(f'{k}={v}\n' for k,v in values.items()))
         credential=CONFIG/'staging/firebase.json'; saved=json.loads(credential.read_text()); saved['project_id']=item['firebaseProject']; credential.write_text(json.dumps(saved))

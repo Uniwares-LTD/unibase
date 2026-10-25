@@ -27,13 +27,22 @@ Read [the current implementation plan](docs/implementation-plan.md) and the rele
 
 ## Work and verification
 
-- For deployment initialization, first ask for the secure **Credentials** channel
-  files to be saved outside Git and for their local directory reference. Follow
-  Infrastructure's filename/reuse map; never print values or copy Unibase-specific
-  database/web/preparation bindings into a child. Keep public configuration in docs/JSON.
+- Optional-provider activation must use allowlisted credential exports, not copy a
+  local environment file. Verify source-app identity and provider response provenance;
+  a non-JSON edge error alone does not prove a key is invalid. Keep public bindings
+  tracked, private values protected, and first encryption installation separate from
+  migration of existing ciphertext. Report operator update and live acceptance status.
 
-- Every PR prepared for publication follows [operator intervention reporting](docs/deployment.md#publication-and-operator-intervention): state none or list actions, owner, location, ordering, verification and failure/resume.
-- New deployments follow [derived-project initialization](docs/deployment.md#derived-project-deployment-initialization) and the linked shared credential inventory. Collect missing protected references once; never print values. Public deployment settings belong in tracked JSON, not Actions variables. Distinguish installed behavior from proposed recovery automation.
+- For new deployments follow [guided initialization](docs/deployment.md#guided-setup-helper)
+  and Infrastructure's named credential inventory. Request secure Credentials channel
+  exports outside Git and collect missing references once. Never print values or copy
+  parent-specific database/web/host bindings. Public settings use tracked JSON, not
+  Actions variables. Preserve generated keys and uncertain-operation markers; inspect
+  before retrying. Report implementation, publication, operator installation, release
+  and live acceptance separately; a successful workflow is not AI acceptance.
+- Every publication PR follows [operator intervention reporting](docs/deployment.md#publication-and-operator-intervention):
+  state none or list owner, location, ordering, verification and failure/resume. Do not
+  ask operators to repeat a completed installation for a documentation-only merge.
 
 - Before giving operator commands, resolve non-secret values from repository configuration,
   canonical inventory, owner repositories and verified session evidence. Provide complete,

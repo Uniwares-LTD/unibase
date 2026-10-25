@@ -76,4 +76,22 @@ class StagingTests(unittest.TestCase):
                         with self.assertRaises(ValueError): prepare.materialize(config,value,destination,'r'*43)
                     else: prepare.materialize(config,value,destination,'r'*43)
 
+    def test_prepared_redis_password_must_match_installed_selection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary); config=environment_fixture(root)
+            credentials={'firebase':{},'firebaseApiKey':'public','firebaseAppId':'public','mongodbUri':'synthetic','redisPassword':'s'*43}
+            with self.assertRaisesRegex(ValueError, 'Redis credential differs'):
+                prepare.materialize(config,credentials,root/'candidate','r'*43)
+
+    def test_initial_ai_requires_allowlisted_secrets_and_retained_encryption_key(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary); config=environment_fixture(root)
+            credentials={'firebase':{},'firebaseApiKey':'public','firebaseAppId':'public','mongodbUri':'synthetic','ai':{'APP_ORIGIN':'http://localhost'}}
+            with self.assertRaisesRegex(ValueError,'forbidden'):
+                prepare.materialize(config,credentials,root/'candidate','r'*43)
+            credentials['ai']={}
+            config['runtime']['MCP_ENABLED']='true'
+            with self.assertRaisesRegex(ValueError,'retained explicit encryption'):
+                prepare.materialize(config,credentials,root/'candidate','r'*43)
+
 if __name__=='__main__': unittest.main()

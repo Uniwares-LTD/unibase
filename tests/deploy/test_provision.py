@@ -27,6 +27,10 @@ def environment_fixture(root):
     for i, target in enumerate(("staging", "production")):
         config = json.loads((REPO / f"deploy/environments/{target}.json").read_text())
         config["runtime"].update(APP_ORIGIN=f"https://{target}.example.test", FIREBASE_PROJECT_ID=f"unibase-{target}-fixture")
+        # Initial preparation fixtures stay independent of optional live staging activation.
+        config["runtime"].update(DIFY_MODE="disabled", MCP_ENABLED="false", PERSONA_COMPLETION_MODE="disabled")
+        for key in ("DIFY_ORCHESTRATORS_JSON", "MCP_CLIENTS_JSON"):
+            config["runtime"].pop(key, None)
         config["deployment"].update(imageRepository="ghcr.io/test/unibase", redisImage="redis@sha256:" + "a" * 64,
                                     nginxImage="nginx@sha256:" + "b" * 64, adminImage="node@sha256:" + "c" * 64)
         config["ssh"].update(host="ssh.example.test", user="operator", cloudflaredVersion="2026.1.0", cloudflaredSha256="d" * 64)
