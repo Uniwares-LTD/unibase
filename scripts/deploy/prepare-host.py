@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import secrets
 import stat
+import re
 import subprocess
 import sys
 import tempfile
@@ -27,17 +28,30 @@ def trusted_existing(path):
 
 
 def materialize(config, credentials, destination, redis_password):
-    if set(credentials) != {'firebase', 'mongodbUri', 'firebaseApiKey', 'firebaseAppId'}:
+    if set(credentials) - {'redisPassword', 'ai'} != {'firebase', 'mongodbUri', 'firebaseApiKey', 'firebaseAppId'}:
         raise ValueError('Expected firebase, mongodbUri, firebaseApiKey and firebaseAppId')
+    if 'redisPassword' in credentials and (not isinstance(credentials['redisPassword'], str) or not re.fullmatch(r'[A-Za-z0-9_-]{43,256}', credentials['redisPassword']) or credentials['redisPassword'] != redis_password):
+        raise ValueError('Prepared Redis credential differs or has invalid format')
     runtime = {k: v for k, v in config['runtime'].items() if v is not None}
     runtime.update(FIREBASE_API_KEY=credentials['firebaseApiKey'], FIREBASE_APP_ID=credentials['firebaseAppId'],
                    MONGODB_URI=credentials['mongodbUri'], REDIS_URL='redis://default:' + redis_password + '@redis:6379')
+    ai = credentials.get('ai', {})
+    if not isinstance(ai, dict):
+        raise ValueError('AI credentials must be an explicit allowlisted object')
+    for key, value in ai.items():
+        if key not in {'DIFY_MANAGEMENT_KEY', 'DIFY_CREDENTIAL_ENCRYPTION_KEY', 'PERSONA_COMPLETION_API_KEY'} and not re.fullmatch(r'(DIFY_KEY_|MCP_TOKEN_)[A-Z0-9_]+', key):
+            raise ValueError('AI input contains a forbidden field')
+        if not isinstance(value, str) or not value:
+            raise ValueError('Missing AI credential')
+    runtime.update(ai)
     for value in runtime.values():
         if not isinstance(value, str) or any(c in value for c in '\r\n\0'):
             raise ValueError('Invalid runtime value')
-    if any(runtime.get(k, default) != default for k, default in
-           [('DIFY_MODE', 'disabled'), ('PAYMENTS_MODE', 'disabled'), ('MCP_ENABLED', 'false'), ('PERSONA_COMPLETION_MODE', 'disabled')]):
-        raise ValueError('Initial staging requires optional providers disabled')
+    if runtime.get('PAYMENTS_MODE', 'disabled') != 'disabled' or runtime.get('ASSET_STORE', 'mongo') != 'mongo':
+        raise ValueError('Initial staging requires payments disabled and MongoDB assets')
+    if runtime.get('DIFY_MODE', 'disabled') == 'live' or runtime.get('MCP_ENABLED', 'false') == 'true':
+        if not re.fullmatch(r'[a-fA-F0-9]{64}', ai.get('DIFY_CREDENTIAL_ENCRYPTION_KEY', '')):
+            raise ValueError('AI activation requires a retained explicit encryption key')
     directory = destination / 'staging'
     directory.mkdir(mode=0o700)
     private_write(destination / 'config.json', json.dumps(host_config(ROOT)))
@@ -71,7 +85,7 @@ def main():
     credentials = json.loads(args.credentials.read_text())
     existing = host.directory / 'redis-password'
     trusted_existing(existing)
-    password = existing.read_text().strip() if existing.exists() else secrets.token_urlsafe(32)
+    password = existing.read_text().strip() if existing.exists() else credentials.get('redisPassword', secrets.token_urlsafe(32))
     with tempfile.TemporaryDirectory(prefix=slug + '-prepare-') as temporary:
         candidate = Path(temporary)
         materialize(config, credentials, candidate, password)

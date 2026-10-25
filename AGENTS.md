@@ -6,6 +6,12 @@ Read [the current implementation plan](docs/implementation-plan.md) and the rele
 
 ## Architecture
 
+- For derived staging, use the [guided initialization checklist](docs/deployment.md#guided-setup-helper).
+  Retrieve named exports from the secure Credentials channel by directory reference;
+  never print values or copy `.env.local` wholesale. Distinguish helper automation,
+  provider-console/owner actions, reviewed root installation and live acceptance.
+  Preserve uncertain operation markers and generated keys; inspect before retrying.
+
 - Before deployment work, read [the staging transition](docs/deployment.md#staging-transition-status--2026-10-24)
   and [shared infrastructure guidance](https://github.com/Uniwares-LTD/infrastructure/blob/main/AGENTS.md).
   Keep host facts in infrastructure and application behavior here. Distinguish planned
@@ -26,6 +32,12 @@ Read [the current implementation plan](docs/implementation-plan.md) and the rele
 - Use semantic CSS variables for themes. Verify desktop/mobile navigation, keyboard focus, and hydration after UI changes.
 
 ## Work and verification
+
+- Optional-provider activation must use allowlisted credential exports, not copy a
+  local environment file. Verify source-app identity and provider response provenance;
+  a non-JSON edge error alone does not prove a key is invalid. Keep public bindings
+  tracked, private values protected, and first encryption installation separate from
+  migration of existing ciphertext. Report operator update and live acceptance status.
 
 - For deployment initialization, first ask for the secure **Credentials** channel
   files to be saved outside Git and for their local directory reference. Follow

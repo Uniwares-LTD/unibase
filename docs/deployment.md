@@ -334,6 +334,42 @@ new defaults; review those overrides to start with fresh local namespaces.
 
 ### Configuration sources and credential preparation
 
+#### AI activation in progress
+
+The approved next activation enables Dify, MCP and Persona completion while retaining
+disabled payments, Mongo assets and existing workers. It is not yet deployed.
+The supplied ignored `.env.local` is a credential source only: never copy emulator
+authentication, loopback MongoDB/origin or simulated payments into staging.
+
+Read-only checks on 2026-10-25: the supplied Dify management credential successfully
+listed the configured workspace through PowerShell; the execution credential returned
+401 and matched none of the 33 accessible app key lists. Earlier Python requests
+returned non-JSON 403 and did not establish invalid management credentials. Persona
+model-list access succeeded; no completion was executed. The selected source is the
+bundled document-summary starter, not the app associated with `DIFY_KEY_TEST`.
+The dedicated app `9a7a43be-7513-490b-9cbc-8099f9d0d345` was imported and tagged
+`app:unibase-staging`. Its staging MCP synchronization, publication and application
+acceptance remain pending. Existing Dify apps were preserved.
+
+The candidate public JSON enables Dify/MCP/Persona; it is not evidence of installed
+configuration. Dedicated execution/MCP/encryption exports and reused management/Persona
+exports are prepared in protected local storage. Secure Credentials channel handoff
+has not yet been confirmed. The starter uses the available `gpt-4.1-mini` model with
+a 256-token output cap for acceptance. Persona also needs a saved application-level
+model selection. No bounded execution has occurred yet.
+
+Activation requires dedicated staging MCP and encryption secrets, a separate app
+execution key, matching public bindings, and operator installation. Persona additionally
+needs administrator-selected enabled model/settings in the application; runtime mode
+alone does not enable completion. Verify results/accounting through one bounded live
+run per provider after release, not direct provider calls that bypass application state.
+
+Infrastructure's operator update tool is prepared locally, not installed/accepted
+on srv1. It previews optional AI/MCP changes, preserves base provider credentials,
+checks encryption compatibility and retains private recovery copies. Do not rerun
+initial preparation to apply these changes. Operator handoff and live acceptance
+remain pending; the current basic staging deployment remains the serving baseline.
+
 GitHub Actions configuration variables are unused for application deployment.
 Public settings are reviewed in `deploy/environments/*.json`; credentials must not
 be committed there. Current staging uses repository Actions secrets
@@ -360,12 +396,15 @@ and Firebase web identifiers. Sibling `firebase.json` contains the Admin identit
 sets `GOOGLE_APPLICATION_CREDENTIALS` to its container path. Releases retain private
 snapshots. `FIREBASE_API_KEY` and `FIREBASE_APP_ID` are public browser identifiers.
 
-Initial `prepare-host.py` expects a protected JSON object with exactly `firebase`
-(Admin JSON object), `mongodbUri`, `firebaseApiKey`, `firebaseAppId`. It generates
-Redis authentication on the host. It is not a general restore/update command:
+Initial `prepare-host.py` expects a protected JSON object with `firebase`
+(Admin JSON object), `mongodbUri`, `firebaseApiKey`, `firebaseAppId`, optionally
+`redisPassword` and an allowlisted `ai` object. A supplied Redis password must match
+any installed password; otherwise initial preparation generates one on the host.
+Live AI/MCP requires the retained explicit encryption key and matching public bindings.
+This is initial preparation, not a general restore/update command:
 existing networks/configuration may reject replay. Missing files require operator
-review today. Runtime-secret restoration and automated initialization are
-**implementation required**, with prerequisites and acceptance in the shared inventory.
+review today. Restricted runtime-secret restoration remains **implementation required**.
+The guided helper below automates a subset of initialization; it does not install hosts.
 
 ### Publication and operator intervention
 
@@ -397,7 +436,8 @@ Publication alone does not prove live readiness or authorize data restoration.
    Firebase; configure authorized domain, sign-in and matching OAuth origin/redirect
    entries without removing existing apps. Create the app database user with scoped
    `readWrite` and approve destination egress. The existing tunnel owner adds the
-   hostname pointing to private app Nginx. Leave optional integrations disabled.
+   hostname pointing to private app Nginx. Select optional integrations explicitly;
+   use a separate Dify starter app and per-app/environment credentials for AI.
 4. **VPS / authorized operator:** for a new host establish operator access, pin host
    identity and install reviewed restricted tooling/compatible Compose. Existing
    hosts reuse shared accounts. Register the derived app's reviewed immutable control
@@ -405,13 +445,88 @@ Publication alone does not prove live readiness or authorize data restoration.
    Unibase root batches or copy its database, subnet or paths.
 5. **GitHub / setup operator or authorized agent:** initialize the destination repo,
    enable public GHCR publication as needed and populate the three staging secrets
-   from protected originals, preserving SSH key bytes. Setup uses individual reviewed
-   operations today; a single initialization command is **implementation required**.
+   from protected originals, preserving SSH key bytes. The guided helper supports these
+   three secrets; it does not change organization publishing policy automatically.
 6. **GitHub Actions / application:** release a reviewed `_staging` revision through
    its own build → publish → anonymous digest pull → restricted deploy → health flow.
    Verify login/session persistence, database/Redis and both workers; record release
    identity and handoff. Inspect state and resume the failed checkpoint. A failed
    first release stops only its candidate, preserving config/data; no automatic DB restore.
+
+#### Guided setup helper
+
+Run `scripts/deploy/staging-setup.py` on the operator workstation from the generated
+application checkout. Python 3 is required; provider operations additionally require
+the `cryptography` package. GitHub setup uses an authenticated `gh` CLI. Retrieve the
+named files from the secure **Credentials** channel into an access-restricted directory
+outside Git. On Windows, restrict its ACL to the operator and SYSTEM; on Linux use
+mode 0700 for the directory and 0600 for private files. Never paste values into chat.
+
+```powershell
+$project = (Get-Content project.config.json -Raw | ConvertFrom-Json).slug
+$revision = git rev-parse HEAD
+$credentials = Join-Path $env:USERPROFILE ".config\$project"
+python scripts/deploy/staging-setup.py --project $project --revision $revision --credential-directory $credentials
+```
+
+The tracked `deploy/environments/staging.json` is the reviewed public profile.
+Preview reports missing/invalid filenames together, destination allocations and
+remaining manual checks. It does **not** establish that a proposed port/subnet is free.
+Add `--providers` for read-only provider discovery. After reviewing that exact output,
+repeat the same command with `--apply-preview <previewDigest>` to reconcile supported
+Firebase web registration/authorized-domain and Atlas scoped-user operations. A read
+credential may fail on writes; obtain write-capable setup access or perform the named
+provider action. Atlas network access is never broadened automatically. OAuth origin,
+redirect/consent and tunnel-owner operations remain explicit operator checkpoints.
+
+Provider apply retains destination web/database/host-input files and public operation
+markers. Rerun preview without `--providers` to prepare local generated credentials.
+With `--github --host-key-file <verified-public-record>` the reviewed apply uploads only
+`DEPLOY_SSH_PRIVATE_KEY`, `DEPLOY_SSH_HOST_KEY`, `CLOUDFLARE_READ_TOKEN`. Do not combine
+provider and GitHub apply: provider reconciliation returns first and requires a fresh
+preview. No Actions variables or new runtime-secret interfaces are created.
+
+| File in the protected directory | Purpose and reuse |
+| --- | --- |
+| `firebase-staging-service-account.json` | Shared staging Admin identity; reuse after project/permission checks |
+| `atlas-discovery.json` | Atlas API key (`publicKey`/`privateKey`) or service account (`clientId`/`clientSecret`); verify setup permissions |
+| `cloudflare-discovery.json` | Scoped read token; never tunnel/DNS write authority |
+| `uniwares-deploy-user` | Shared deploy private key; operator private key is not uploaded |
+| `<project>-staging-web.json` | Child's own Firebase registration; Unibase preserves `firebase-staging-web.json` |
+| `<project>-staging-database.json` | Child database/user/password; never copy Unibase's file |
+| `<project>-staging-host-input.json` | Provider-prepared base input; assembled from verified cluster endpoint and app registration |
+| `<project>/staging/staging-redis-password.txt` | Generated once for a new app; preserve it and refuse replacement |
+| `<project>/staging/staging-mcp-token-dify.txt` | Dedicated generated MCP bearer token |
+| `<project>/staging/staging-dify-credential-encryption.txt` | Dedicated 64-hex encryption key; retain with DB backups |
+| `<project>/staging/staging-dify-management.txt` | Explicitly selected shared Dify management access |
+| `<project>/staging/staging-dify-execution-<project>.txt` | Dedicated app execution key obtained from that app, never `DIFY_KEY_TEST` |
+| `<project>/staging/staging-persona-completion.txt` | Selected Persona provider API credential |
+
+Initially preview/apply with optional providers disabled to generate the app's MCP,
+encryption and Redis files. Create the dedicated Dify document-summary app, set its
+tag `app:<project>-staging`, select an available model, and retain its execution key.
+Set the tracked public AI endpoints/workspace/app/key-variable references and MCP
+permissions; copy selected management/Persona files into the app's protected subdirectory.
+Preview again. The helper supports one starter binding and one MCP client; multiple
+bindings require explicit operator preparation. It builds a separate `*-host-input-ai.json`
+candidate without overwriting the earlier base input. Dify MCP synchronization and
+application Persona settings still require agent/administrator operations after the
+endpoint is live; runtime mode alone is insufficient. Application-mode children retain
+`examples:false`; a demo starter needing demo references must be deliberately adapted
+or tested in an examples-mode child, not silently granted sample data.
+
+For a new app, use the final reviewed private input with initial host preparation in
+one reviewed root batch. Existing apps use Infrastructure's operator configuration
+update, never initial preparation replay. Generate/checksum the batch only after
+provider bindings, allocations, candidate files and tests are concrete. Routine release
+remains the existing `_staging` workflow. Save generated private originals back to the
+protected store/secure channel; the helper does not publish them there.
+
+On interruption, inspect `provider-progress` and current provider state before retry.
+An uncertain create is not retried automatically. Matching existing registrations/users
+are reused; conflicting identities/permissions stop. Keep generated secrets unchanged.
+After permission changes or successful provider mutations, obtain a new preview digest.
+The helper is guided initialization, not an unattended host/provisioning orchestrator.
 
 **Production:** desired `_prod → prod` requires the pending compatibility milestone;
 current tooling still uses `production` and legacy provisioning assumptions. Select

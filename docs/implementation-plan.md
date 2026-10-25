@@ -59,7 +59,14 @@ subnet are installed, not merely candidates.
 
 ### Later consolidation and recovery
 
-- [ ] Automated derived-deployment initialization and restricted runtime-secret
+- [ ] Approved staging AI activation: separate Dify app, staging MCP/encryption
+  credentials, Persona model settings, reviewed operator configuration update and
+  one bounded live smoke per provider. The dedicated bundled document-summary app
+  and protected AI exports are prepared; host installation and live acceptance remain
+  pending. Guided setup/provider reconciliation and operator update are under local
+  validation; see deployment guidance for exact automation/manual boundaries.
+
+- [ ] Guided derived-deployment initialization acceptance and restricted runtime-secret
   restoration: follow the shared inventory; validate destination identity, preserve
   conflicting files, resume safely and prevent secrets in logs/artifacts. Current
   operator preparation is not a restore interface.
