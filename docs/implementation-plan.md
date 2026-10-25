@@ -2,7 +2,7 @@
 
 This plan builds Base as one Next.js application for the web and Android, with shadcn/ui, Firebase Authentication, MongoDB Atlas, and deployment to our VPS. It provides a reusable application foundation, optional AI execution and deployment tooling manageable by a small team.
 
-Status: M1 and M2 implementation are complete and locally verified on 2026-10-03; the user also confirmed the local account journeys work. M3 diagnostics/PWA implementation is locally verified. Android project/workflow preparation exists, but package/hostname configuration and successful Android compilation remain pending. M4 deployment tooling is locally verified on 2026-10-04; live Firebase/Atlas/VPS activation and M5 integrated handoff remain pending. Update each checkbox only after its completion criteria have been verified, and record external acceptance checks separately.
+Status: M1 and M2 implementation are complete and locally verified on 2026-10-03; the user also confirmed the local account journeys work. M3 diagnostics/PWA implementation is locally verified. Android project/workflow preparation exists, but package/hostname configuration and successful Android compilation remain pending. M4 deployment tooling was locally verified on 2026-10-04; the first live staging release and independent deployment check passed on 2026-10-25. Real user sign-in, production activation and M5 integrated handoff remain pending. Update each checkbox only after its completion criteria have been verified, and record external acceptance checks separately.
 
 ## First-admin initialization — 2026-10-24
 
@@ -215,7 +215,8 @@ Android project preparation can finish before VPS activation. Digital Asset Link
 
 ## Shared infrastructure staging transition — 2026-10-22
 
-Status: staged delivery accepted; live deployment remains pending. Follow the
+Status: first staging deployment verified October 25; user acceptance/handoff
+and later recovery remain pending. Follow the
 [application runbook](deployment.md#staging-execution-and-acceptance) and
 [three-phase infrastructure runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
 Historical implementation/verification below remains intact.
@@ -231,15 +232,24 @@ staging domain, Atlas user and owner route are Phase 2 additions. See
 
 ### First working staging deployment
 
-October 25 bootstrap progress: provider bindings and the owner-managed tunnel/DNS
-route were applied. The operator installed Compose 5.6.1 and the restricted
-deployment account/control bundle; Docker Engine and existing services were retained.
-Runtime preparation stopped before writing application credentials or creating
-indexes: Docker's built-in networks returned null IPAM configuration. The preflight
-fix accepts networks without address allocations while still rejecting subnet
-overlap. Its targeted tests pass locally; live runtime preparation and the first
-release remain pending. Resume configuration preparation with the reviewed fixed
-bundle; do not repeat the successful package/account bootstrap.
+October 25 live evidence: provider bindings and the owner-managed tunnel/DNS route
+were applied. The operator installed compatible plugins, the restricted deployment
+account/control bundle and the reviewed null-IPAM preflight fix, then completed
+private runtime preparation and additive indexes. All 49 Linux deployment tests
+pass at `edcc21d`. Docker Engine and legacy configuration were retained.
+
+Release [40168299056, attempt 3](https://github.com/Uniwares-LTD/unibase/actions/runs/40168299056/attempts/3)
+deployed source `edcc21de9a501b21f63e353da9a75cdf5efb5e65` as public image
+`ghcr.io/uniwares-ltd/unibase@sha256:2e4e1ffac7ba401b924c657fe1b9d155cf926dd75d35a47aca0c2ca6fcd7ac1b`.
+Its anonymous pull, local/public readiness and both worker checks passed. Independent
+[Check deployment 40168997418](https://github.com/Uniwares-LTD/unibase/actions/runs/40168997418)
+also passed. The account page loads with enabled email/Google controls; actual
+user sign-in, recovery rehearsal and production acceptance remain separate.
+
+The first two release attempts stopped before host activation (private package,
+then malformed runner-key serialization). The approved organization/package
+visibility change and raw-byte re-upload of the same working deploy key resolved
+them. No server key rotation or repeat plugin/account bootstrap was needed.
 
 - [x] Connect and prepare: complete required discovery, collect missing inputs once,
   review restricted deployment access, repository secrets, public images and shared
@@ -250,7 +260,7 @@ bundle; do not repeat the successful package/account bootstrap.
   application/account tests and ShellCheck passed. CI retained advisory warnings
   for stale client translation sections, dependency audit findings and unavailable
   Actionlint; separate local Actionlint passed. No live setup or deployment occurred.
-- [ ] Bootstrap and deploy: verify compatible Compose and free app subnet/port; use
+- [x] Bootstrap and deploy: verify compatible Compose and free app subnet/port; use
   an owner-managed tunnel route to existing app Nginx with adapted route verification.
   One release builds, publishes, anonymously pulls the digest, deploys and checks health.
 - [ ] Verify and hand off: login, readiness, current workers, private app Redis,

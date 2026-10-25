@@ -2,8 +2,9 @@
 
 ## Staging transition status — 2026-10-24
 
-Existing commands below describe the **current implementation**, not a ready-to-run
-staging installation. Shared host facts are canonical in the private
+Updated October 25 after successful staging release and independent deployment check.
+
+Shared host facts are canonical in the private
 [infrastructure inventory](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/inventory/srv1.md);
 shared conventions and ownership are in its
 [architecture](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/architecture.md)
@@ -11,11 +12,12 @@ and [operations](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/o
 
 The staging path now uses repository secrets, public GHCR, direct pinned SSH and
 Infrastructure's restricted dispatcher. Tracked staging bindings identify the
-verified shared providers and a proposed `172.30.241.0/24` subnet; allocation is
-rechecked at apply time. Compose is still 2.28.1 on the host. Candidate 5.6.1 parsed
-this application's definition with synthetic inputs but is not installed or
-runtime-validated. Its package upgrade also upgrades Buildx; include that in the
-reviewed Phase 2 scope. No provider resources or application release were changed.
+verified shared providers and `172.30.241.0/24`; allocation is rechecked at apply
+time. October 25 operator evidence confirms compatible plugin installation,
+restricted account/control installation, private runtime configuration and additive
+index preparation. Firebase/Atlas bindings and the owner-managed tunnel/DNS route
+are applied. The first staging release and independent Check deployment passed;
+actual user sign-in and recovery rehearsal remain Phase 3/follow-up acceptance.
 
 ### First deployment and later consolidation
 
@@ -36,7 +38,7 @@ and production naming changes are later work, not first-release acceptance gates
 | --- | --- |
 | Ownership | Unibase and children deploy independently; infrastructure owns new shared components. Booklet, Dify and the existing tunnel retain their owner until explicit transfer. |
 | Branches | `main` for development; `_staging` targets `staging`; `_prod` targets `prod`. Current code/config uses `production`; rename deliberately while preserving retained snapshots. Keep `NODE_ENV=production`. |
-| SSH | Shared `uniwares-ops-admin` for privileged setup; `uniwares-deploy-user` for restricted routine dispatch, without general sudo or Docker-group membership. Staging sends data to Infrastructure's root-owned dispatcher; installation remains pending. |
+| SSH | Shared `uniwares-ops-admin` for privileged setup; `uniwares-deploy-user` for restricted routine dispatch, without general sudo or Docker-group membership. The dispatcher is installed; operator access currently permits only fixed privileged discovery, so root-only maintenance still needs the trusted root session. |
 | Secrets | One deploy key copied into trusted repository secrets; separate admin credential. Replace private-repository environment-secret dependence; use environment prefixes where values differ. Retain private runtime snapshots. |
 | Images | Public GHCR and anonymous digest pulls. Staging verifies public visibility and anonymous pulls; production compatibility remains deferred. Builds remain credential-free. |
 | Firebase | Shared staging project and credentials across Unibase/children; explicit app registrations/domains. Production has a separate Firebase project per application. Adapt per-app credential provisioning without deleting existing keys. |
@@ -47,7 +49,7 @@ and production naming changes are later work, not first-release acceptance gates
 | Database | Runtime database-scoped `readWrite`; separate workflow recovery credentials. Verify required backup/restore actions rather than assuming `dbAdmin` alone is sufficient. |
 
 Shared-service targets remain deferred; the staging adaptations below are implemented
-locally. Live installation, owner route apply and runtime Compose compatibility remain open. Shared gateway,
+and installed. User acceptance remains separate. Shared gateway,
 shared Redis and off-host backup decisions follow the staged infrastructure plan.
 
 ### Current and proposed background scheduling
@@ -110,8 +112,8 @@ by publishing these instructions.
 
 **Owner/location:** agent in development checkouts and read-only provider access;
 operator establishes protected admin access and supplies missing input references
-together. The staging implementation contains these bounded adaptations, pending
-reviewed publication and live acceptance:
+together. The staging implementation contains these bounded adaptations; their
+reviewed setup is installed and application acceptance remains separate:
 
 - Repository secrets instead of unavailable private-repo environment secrets.
 - Public GHCR and anonymous digest-pull verification inside the release workflow,
@@ -135,9 +137,18 @@ Quality warnings stay advisory; build and operational failures stop release.
 
 ### Phase 2 — Bootstrap and deploy
 
+Verified October 25: [Release attempt 3](https://github.com/Uniwares-LTD/unibase/actions/runs/40168299056/attempts/3)
+and [independent Check deployment](https://github.com/Uniwares-LTD/unibase/actions/runs/40168997418)
+passed for source `edcc21de9a501b21f63e353da9a75cdf5efb5e65`. The deployed public
+image is `ghcr.io/uniwares-ltd/unibase@sha256:2e4e1ffac7ba401b924c657fe1b9d155cf926dd75d35a47aca0c2ca6fcd7ac1b`.
+Anonymous digest pull, local/public readiness and both existing worker probes passed.
+The account page loads and hydrates with email/Google controls enabled; this does
+not prove an end-to-end user login. Shared-host post-check status is canonical in
+Infrastructure's operations table. Do not repeat completed host preparation.
+
 **Owner/location:** agent via reviewed provisioning/provider interfaces, existing
-tunnel owner's process and Unibase GitHub Actions. **Implementation required:**
-phase 1 adaptations and the authorized administrative access path must exist.
+tunnel owner's process and Unibase GitHub Actions. The phase 1 adaptations and
+root-only preparation are installed; routine release/check uses restricted dispatch.
 
 Populate tracked staging configuration from verified bindings. Store secret values
 only in repository secrets and private runtime files. Do not reuse the colliding
@@ -151,7 +162,7 @@ bindings; preserve existing keys, shared identities and app data.
 | `.github/workflows/check-deployment.yml` | Manual `environment=staging` on `_staging` | Verify deployed web/dependencies and current worker progress |
 | `.github/workflows/rollback.yml` | Manual `environment=staging` on `_staging` | Restore an actual retained healthy image/configuration |
 
-Names, inputs and branch guards were source-checked; no workflow was dispatched.
+Names, inputs and branch guards were source-checked.
 Verify the reviewed branch head and target before release. A push triggers Release;
 do not also manually dispatch the same commit. Record workflow ID/URL, source SHA,
 image digest and retained configuration identity after the workflow produces them.
@@ -319,6 +330,11 @@ Use repository Actions secrets for staging, as listed in
 [the restricted control procedure](#restricted-first-staging-control-path).
 Infrastructure owns the shared key/account bootstrap and protected credential
 handoff. Do not create paid-plan GitHub environment secrets for this private repo.
+Preserve the deploy key's complete OpenSSH file bytes, line breaks and final
+newline. Upload the existing file through a byte-preserving `gh secret set` stdin
+operation or paste it into the repository secret editor; avoid shell text encoding
+conversions. A runner `error in libcrypto` before SSH authentication requires
+checking secret serialization before changing the working server key.
 The admin key stays outside routine workflows. Verify host-key material through
 trusted operator access; do not use an unchecked scan as trust evidence.
 
