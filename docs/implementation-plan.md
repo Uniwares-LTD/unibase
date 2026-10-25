@@ -1,8 +1,8 @@
 # Base implementation plan
 
 Current state, 2026-10-25: the first staging release is running. Phase 1 preparation
-and Phase 2 deployment are verified; Phase 3 operational and authentication checks
-are in progress. Production activation, Android/device acceptance and recovery
+and Phase 2 deployment are verified. Phase 3 staging authentication, operations
+and documentation handoff are verified, including the corrective no-transform release. Production activation, Android/device acceptance and recovery
 rehearsals remain separate. Do not repeat successful bootstrap or manufacture a
 second release to demonstrate rollback.
 
@@ -32,10 +32,10 @@ Quality checks are advisory; build and operational failures retain real failures
 | Milestone | Current state | Outstanding acceptance |
 | --- | --- | --- |
 | M1 Application foundation | Implemented and locally verified | Revalidate affected UI after changes |
-| M2 Authentication/profiles | Implemented; live Google admin login confirmed | Complete the hosted account acceptance record |
+| M2 Authentication/profiles | Implemented; staging acceptance verified | Revalidate affected journeys after changes |
 | M3 Diagnostics/PWA/Android | Web/PWA locally verified; wrapper/workflow prepared | Android configuration, GitHub Free workflow compatibility, compilation and device/domain checks |
 | M4 Deployment | First staging release and restricted Check succeeded | Later recovery/rollback rehearsal; production compatibility and activation |
-| M5 Integrated handoff | Phase 3 in progress | Close remaining live/manual checks and publish reviewed operating docs |
+| M5 Integrated handoff | Staging Phase 3 verified | Broader Android/production/optional-provider acceptance remains separate |
 
 ## Shared infrastructure staging transition — 2026-10-22
 
@@ -52,8 +52,10 @@ subnet are installed, not merely candidates.
   restricted shared deployment account and owner-managed tunnel route.
 - [x] Compatible Compose/Buildx, private runtime configuration and additive indexes;
   first release plus independent staging checks.
-- [ ] Phase 3: finish authentication acceptance and operator handoff; retain
-  explicit limitations until their checks are complete.
+- [x] Phase 3: Google admin/session/profile/logout/re-login, operator-reported
+  incognito email login/logout, runtime checks and operator access verified.
+  Cloudflare rewriting/CSP hydration regression corrected, deployed and browser-verified.
+  Canonical operations and guidance consolidated; remaining limitations are explicit.
 
 ### Later consolidation and recovery
 

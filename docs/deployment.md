@@ -18,8 +18,8 @@ restricted account/control installation, private runtime configuration and addit
 index preparation. Firebase/Atlas bindings and the owner-managed tunnel/DNS route
 are applied. The first staging release and independent Check deployment passed;
 Google admin sign-in is user-confirmed and the existing session, profile persistence,
-administration access and logout were browser-verified. Remaining acceptance is
-recorded below; data recovery rehearsal remains later work.
+administration access and logout were browser-verified. Verified Phase 3 results
+are recorded below; data recovery rehearsal remains later work.
 
 ### First deployment and later consolidation
 
@@ -51,12 +51,12 @@ and production naming changes are later work, not first-release acceptance gates
 | Database | Runtime database-scoped `readWrite`; separate workflow recovery credentials. Verify required backup/restore actions rather than assuming `dbAdmin` alone is sufficient. |
 
 Shared-service targets remain deferred; the staging adaptations below are implemented
-and installed. User acceptance remains separate. Shared gateway,
+and installed. User acceptance is recorded below. Shared gateway,
 shared Redis and off-host backup decisions follow the staged infrastructure plan.
 
 ### Current and proposed background scheduling
 
-This consolidation is deferred until staging works; first-release acceptance uses
+This consolidation is deferred to a later milestone; first-release acceptance uses
 existing workers and their health checks. Current entrypoints are `scripts/ai-worker.ts` and `scripts/payment-worker.ts`.
 Each sleeps two seconds **after** a completed cycle, not on a fixed two-second
 deadline. No GitHub Actions cron is configured for these application jobs.
@@ -135,7 +135,10 @@ operator handles credentials/MFA, email delivery and protected-store access.
 Start with one consolidated request for any remaining manual results. Never ask
 for passwords, private keys, session cookies or OAuth callback URLs in chat.
 
-**Acceptance record, 2026-10-25, runtime `edcc21d`:**
+**Acceptance record, 2026-10-25: Phase 3 staging handoff verified.**
+Initial account journeys used `edcc21d`; the corrective release `215044b` retained
+the session/profile and passed fresh account/admin hydration and runtime checks.
+Installed source/digest/config identities are canonical in the shared runbook.
 
 | Check | Evidence/result | Remaining action |
 | --- | --- | --- |
@@ -144,10 +147,10 @@ for passwords, private keys, session cookies or OAuth callback URLs in chat.
 | Administration | Reloaded `/admin` rendered administrator navigation and one active admin | None; no role/credit mutation needed |
 | Logout and anonymous access | Logout showed sign-in; reloading `/admin` redirected to sign-in without profile/admin data | None |
 | Google re-login | First return stayed pending and reload showed the interrupted-login message; fresh retry subsequently completed, and a further reload retained the restored profile | Passed with an interrupted-attempt limitation; no latency guarantee |
-| Email/password | Operator reported incognito login/logout completed using the requested email/password journey | Console errors below must be resolved before acceptance; no identity reset |
-| Runtime/dependencies/workers | [Check 40170666438](https://github.com/Uniwares-LTD/unibase/actions/runs/40170666438) succeeded against the installed source; both worker probes and local/public readiness passed | None |
+| Email/password | Operator reported incognito login/logout completed using the requested email/password journey | Reported console regression corrected and browser-verified below; no identity reset |
+| Runtime/dependencies/workers | [Corrective release 40176352821](https://github.com/Uniwares-LTD/unibase/actions/runs/40176352821) and [independent Check 40176659441](https://github.com/Uniwares-LTD/unibase/actions/runs/40176659441) succeeded for `215044b`; public readiness reports that source and both workers passed | None |
 | Firebase helper/proxy | Same-origin helper configuration and Nginx trusted headers/unbuffered proxy reviewed; initial live Google login confirmed | Streaming behavior is configuration-reviewed, not a paid AI execution test |
-| Isolated safeguards | All 64 pure tests passed, including the document no-transform/CSP regression, after restoring pinned dependencies, including redirect/session/CSRF policy and exact credit arithmetic | MongoDB-backed lease/accounting/notification fixture run was stopped during its uncached 781 MB binary download; no fresh result claimed and runtime source was unchanged |
+| Isolated safeguards | Local 64 pure tests, TypeScript, web/worker build, focused lint/format and production HTTP header smoke passed. [PR validation 40176262861](https://github.com/Uniwares-LTD/unibase/actions/runs/40176262861) passed 186 account/service tests and 49 Linux deployment tests | Local Mongo-backed attempt stopped during its binary download; CI supplies the fresh coverage. Advisory limitations below remain |
 | Operational access | Restricted routine Check succeeded; authenticated workstation has repository ADMIN access; pinned SSH using the documented local `srv1-ops-admin` key returned the expected operator identity | New devices still require the protected key handoff; no general sudo established |
 
 The private [shared runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md#configuration-and-progress)
@@ -160,11 +163,21 @@ only when a new shared-host change could affect them.
 **Console regression:** the operator reported the Cloudflare `email-decode.min.js`
 CSP violation and React hydration error 418. Browser reproduction confirmed the
 injected decoder and hydration failure on an authenticated account reload. The
-reviewed correction adds `Cache-Control: no-transform` to private, no-store document
-responses, preserving nonce/strict-dynamic CSP and immutable asset caching. It must
-be verified in a production response and deployed before closing Phase 3. Do not
-allow the decoder through CSP or suppress hydration warnings. Cloudflare documents
+correction in `215044b` adds `Cache-Control: no-transform` to private, no-store
+document responses, preserving nonce/strict-dynamic CSP and immutable asset caching.
+The production HTTP fixture and public response both preserve these headers. Fresh
+authenticated account and administrator loads contain zero decoder scripts and
+produce no new console errors. Retained errors from the previous document were
+excluded by comparing the captured log baseline. Do not allow the decoder through
+CSP or suppress hydration warnings. Cloudflare documents
 [no-transform as an opt-out](https://developers.cloudflare.com/waf/tools/scrape-shield/email-address-obfuscation/#troubleshoot-email-obfuscation).
+
+The CI artifact for the PR test merge of `215044b` reports passing environment,
+docs, skill integrity, TypeScript, lint, formatting, pure/account/deployment tests
+and shell checks. Advisory warnings remain for stale client translation sections,
+dependency audit findings (one critical, 22 high, ten moderate across the audited
+dependency set) and unavailable Actionlint. These were not suppressed or promoted
+to deployment gates; dependency/tooling maintenance remains separate work.
 
 **Procedure:** test Google and email sign-in, refresh, a harmless profile save/reload,
 logout, protected-route denial and re-login. Restore any changed profile value.
