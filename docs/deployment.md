@@ -334,7 +334,7 @@ new defaults; review those overrides to start with fresh local namespaces.
 
 ### Configuration sources and credential preparation
 
-#### AI activation in progress
+#### AI activation and acceptance
 
 The AI runtime/control update is installed and Release
 [40188936199](https://github.com/Uniwares-LTD/unibase/actions/runs/40188936199)
@@ -345,14 +345,33 @@ owns source, image digest and installed control/configuration identity.
 
 | Checkpoint | Verified state | Remaining action |
 | --- | --- | --- |
-| Provider preparation | Dify management access and Persona model access passed; dedicated document-summary app `9a7a43be-7513-490b-9cbc-8099f9d0d345` imported with tag `app:unibase-staging` | Synchronize the staging MCP provider and publish the bound workflow |
-| Private configuration | Dedicated execution/MCP/encryption keys and selected management/Persona credentials installed; operator reported successful preview/encryption validation and `AI_CONFIGURATION_PREPARED` | Confirm secure Credentials channel handoff of the new exports |
-| Release | Normal staging workflow passed build, public pull, deployment and readiness checks | Complete post-release authentication/MCP and application AI acceptance |
-| Dify acceptance | Starter preserves human input and uses available `gpt-4.1-mini`, capped at 256 output tokens | One bounded application Run; verify persisted result and accounting |
-| Persona acceptance | Provider/model access verified; runtime connection enabled | Save application-level model/settings, then one bounded completion with persistence/accounting checks |
+| Provider preparation | Dedicated app `9a7a43be-7513-490b-9cbc-8099f9d0d345`, tag `app:unibase-staging`; staging MCP connection authorized with four read-only tools; published version `e23dcf70-f1a3-464c-9efe-c9c056b24b1b` registered successfully | Recheck affected bindings after provider/configuration changes |
+| Private configuration | Dedicated execution/MCP/encryption keys installed; all five protected exports exist and pass format checks | Confirm secure Credentials channel handoff of the new exports |
+| Release and access | Restricted check passes for app, Redis and both workers; public readiness returns the expected commit; fresh administrator sign-in verified | No additional release needed for the saved application settings |
+| Dify acceptance | One application Run succeeded with a successful MCP reference fetch and persisted summary; `gpt-4.1-mini` output capped at 256 tokens | Revalidate after changes affecting the workflow |
+| Persona acceptance | One Parent completion succeeded in the same Run; response persisted, 270 total tokens reported; model output capped at 256 tokens | Revalidate after changes affecting completion settings |
 
-A healthy release does not establish successful AI execution. Neither bounded live
-execution has been completed. Inspect uncertain outcomes before retrying billable work.
+Live acceptance on 2026-10-25 used
+[Run 936a7ec8](https://unibase-staging.uniwares.co.uk/runs/936a7ec8978784c6d4a8ba3c97126ede25888dfe25413a8478c490f7b2402359).
+Attempt 1 succeeded in 15 seconds. After a full reload, the saved Persona response,
+MCP trace and summary remained visible. Two explicitly approved promotional credits
+were granted: one main charge and one Persona charge settled; the final account
+balance, reserved credits and debt were zero, with no active holds. No payment or
+execution retry was submitted. No browser console warning/error was captured.
+
+Runs are enabled at the existing fixed one-credit successful-attempt price. Parent
+is enabled at one credit per answer, with one answer maximum per attempt (revision 2).
+Other example Personas remain disabled. Shared completion settings use
+`gpt-4.1-mini` and `max_completion_tokens=256`. These are saved application settings,
+not environment JSON defaults; derived apps must configure their own settings.
+
+For acceptance, refresh administrator authentication before registration/settings or
+credit changes. Review the selected workflow, Persona answer limit and total maximum
+reservation before submitting once. Preserve leases, idempotency and accounting;
+inspect uncertain outcomes before retrying billable work. A healthy release alone
+does not replace these application checks. Fresh derived provider-write deployment
+and off-host recovery acceptance remain separate milestones.
+
 Use the bundled starter; `DIFY_KEY_TEST` is not an initialization requirement.
 Never copy `.env.local` wholesale: local emulator, loopback and payment-simulation
 settings are not staging bindings. For updates, use the
