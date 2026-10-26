@@ -4,7 +4,7 @@
 
 - Project: Base. Resolve the actual repository identity from `git remote -v`; do not assume the extracted repository already exists. Default development branch: main.
 - Accepted implementation contract: docs/implementation-plan.md plus the user's current request.
-- A milestone in that plan does not need another issue or approval. Localized fixes may use the user's request directly. Clarify only material unresolved scope or architecture decisions.
+- Already accepted milestones in that plan, including the accepted handbook onboarding plan, need no retroactive issue or approval. New substantial work uses issues under handbook policy; small standalone changes may use the user's request directly. Clarify only material unresolved scope or architecture decisions.
 - Preserve the current branch and existing changes. Publication and branch creation follow explicit session authorization, not imported skill defaults.
 
 ## Canonical documentation
@@ -29,11 +29,29 @@
 
 ## Publication and external actions
 
-Skills do not authorize commits, pushes, pull requests, issue comments, merges, deployment, releases, or project metadata changes. Perform these only within the user's explicit session authorization. Documentation synchronization is local by default.
+For assigned issue work, handbook policy authorizes enrollment of its existing issue,
+nonterminal status/blocker maintenance and concise evidence comments. Confirm the acting
+member from the assignment; credentials alone do not establish ownership. Human approval
+is required for new issues/sub-issues; humans close/reopen issues and mark Done.
+Commits, pushes, PR publication, merges, deployment, releases, permission changes and
+other project configuration changes retain explicit session authorization.
 
 ## Skill adaptations
 
-Imported skills remain pinned to the reviewed source. This adapter overrides their generic workflow defaults: no mandatory issue for accepted work, no automatic publication or issue evidence comments, no mandatory stop after a fixed number of correction cycles, and no quality-warning release gates. Continue safely within the authorized scope.
+Four local domain skills remain pinned. Six shared workflow skills resolve from the
+handbook baseline returned at task start, without per-consumer version pins. Retain
+accepted milestone authority, proportional checks, no arbitrary retry limit, and no
+quality-warning release gates. Local application contracts remain authoritative;
+resolve actual conflicts without silently weakening authority.
+
+For feature planning, resolve module selection, owned domain/file references, notifications,
+locale/RTL behavior and accepted-history compatibility through the service contracts.
+For reuse review, check initializer isolation/secret exclusions, module admission versus
+visibility, accepted adapters, scoped pagination, quota/reference transactions and outbox
+replay. For UI, check navigation, dictionaries, RTL and document nonces.
+Documentation synchronization reconciles generated environment/translation inventories
+with canonical sources and distinguishes current JSON templates from historical YAML.
+Preserve dated evidence; add useful lessons to existing canonical docs first.
 
 Playwright's Bash examples are portable examples. On Windows use npx.cmd with the same CLI, a workspace-local npm cache, and headless operation unless an interactive window is requested. This local browser verification needs no cloud credentials or permission ceremony.
 

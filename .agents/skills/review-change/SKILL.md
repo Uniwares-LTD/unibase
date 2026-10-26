@@ -1,42 +1,15 @@
 ---
 name: review-change
-description: Perform an independent read-only review of a proposed code or documentation change. Use after implementation or when explicitly asked to review a diff; do not edit, publish, or manage issue state.
+description: Review a proposed code or documentation diff read-only against its contract, acceptance and verification evidence.
 ---
 
-# Review Change
+Use this repository's handbook baseline for the current task. If none is resolved,
+run `npm run handbook:check` from the repository root (or `node scripts/handbook.mjs check`).
+Read `.agents/skills/review-change/SKILL.md` from the returned handbook path and revision
+using `git -C <path> show <revision>:.agents/skills/review-change/SKILL.md`.
+Resolve its policy, role and resource references inside that same handbook revision.
+Read this consumer's [repository adapter](../../repository-adapter.md) for local contracts.
 
-Read the repository adapter, task contract, plan, complete diff against the intended
-base, relevant code and tests, live issue acceptance criteria when applicable, and
-validation evidence. Follow `.agents/agents/reviewer.md`.
-
-Prioritize correctness, regressions, unsafe behavior, missing acceptance criteria,
-public or persisted contract compatibility, production/test/documentation gaps,
-and unnecessary parallel abstractions where a suitable existing surface should be
-extended. Identify validation that is missing or stale because relevant inputs
-changed, and require affected checks after every correction. Leave documentation
-reconciliation to `sync-docs-issues`.
-
-Return only actionable defects, ordered by severity, with stable IDs, precise
-evidence, affected paths, and bounded corrections. Keep style preferences and
-optional improvements as non-blocking notes. Return `Pass` when no actionable
-defect remains; distinguish verified results from missing evidence.
-
-When a change-surface forecast exists, the change is risky or cross-cutting, the
-plan materially changed, or the user requests it, finish with a compact
-`Final comparison`. Compare forecast or plan with the actual reviewed diff for
-changed and unchanged surfaces, acceptance-criteria coverage, validation,
-documentation impact, material divergence, and residual risk. Mark each relevant
-category `Matched` or `Diverged`. Harmless variance is a non-blocking note.
-Report missing or stale validation and explain its practical limit. An advisory
-check failure is not an automatic release gate. Call out divergence when it exposes
-an actionable defect, missing required documentation or a material contract gap.
-A localized low-risk change may omit this comparison.
-
-Stay read-only: never correct the diff, commit, push, publish, merge, close issues,
-or change project metadata.
-
-For repository reuse changes, review initializer source/destination isolation and
-secret exclusions, module admission versus visibility, accepted adapter versions,
-scoped pagination, quota/reference transactions and outbox replay behavior. For
-localized UI, include client navigation, dictionary completeness, RTL and document
-nonce behavior. Use the repository adapter's checks and current service contracts.
+Cached guidance is usable; mention refresh limitations briefly when relevant. If no
+baseline is available, continue under local guidance and pause only handbook-dependent
+decisions. Do not treat this entrypoint as permission to create issues, publish or deploy.

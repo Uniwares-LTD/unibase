@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
+import { sharedSkills } from "./handbook.mjs";
 
 const root = process.cwd();
 const source = "karpishe-experiments/agentic-poc";
@@ -9,6 +10,7 @@ const sourceRef = "4e1478355843e42e1b27fdc8e33212476a4d4fa3";
 const names = [
   "capture-project-learnings",
   "compile-feature-spec",
+  "manage-issues",
   "next-best-practices",
   "playwright",
   "review-change",
@@ -64,10 +66,7 @@ assert.deepEqual(
   names,
   "Installed skills must match the approved set.",
 );
-const supportFiles = [
-  ".agents/agents/implementation.md",
-  ".agents/agents/reviewer.md",
-];
+const supportFiles = [];
 
 if (process.argv.includes("--write")) {
   // Refresh only after reviewing an intentional import/update. Preserve the
@@ -81,19 +80,29 @@ if (process.argv.includes("--write")) {
   const skills = Object.fromEntries(
     names.map((name) => [
       name,
-      {
-        source,
-        sourceRef,
-        sourcePath: `.agents/skills/${name}`,
-        upstream: old?.skills[name]?.upstream ??
-          upstream?.skills[name] ?? { source, sourceRef },
-        files: fileHashes(`.agents/skills/${name}`),
-      },
+      sharedSkills.includes(name)
+        ? {
+            ...old?.skills[name],
+            kind: "handbook-entrypoint",
+            source: "Uniwares-LTD/handbook",
+            sourcePath: `.agents/skills/${name}`,
+            channel: "main",
+            files: fileHashes(`.agents/skills/${name}`),
+          }
+        : {
+            ...old?.skills[name],
+            source: old?.skills[name]?.source ?? source,
+            sourceRef: old?.skills[name]?.sourceRef ?? sourceRef,
+            sourcePath: `.agents/skills/${name}`,
+            upstream: old?.skills[name]?.upstream ??
+              upstream?.skills[name] ?? { source, sourceRef },
+            files: fileHashes(`.agents/skills/${name}`),
+          },
     ]),
   );
   writeFileSync(
     "skills-lock.json",
-    `${JSON.stringify({ version: 1, hashFormat: "sha256 per file; LF-normalized text, raw binary", source, sourceRef, skills, supportFiles: Object.fromEntries(supportFiles.map((file) => [file, digest(file)])) }, null, 2)}\n`,
+    `${JSON.stringify({ ...old, version: 2, hashFormat: "sha256 per file; LF-normalized text, raw binary", source, sourceRef, skills, supportFiles: Object.fromEntries(supportFiles.map((file) => [file, digest(file)])) }, null, 2)}\n`,
   );
   console.log(
     "Updated skills-lock.json. Review the changed provenance and hashes before committing.",
@@ -102,6 +111,16 @@ if (process.argv.includes("--write")) {
   const lock = JSON.parse(readFileSync("skills-lock.json", "utf8"));
   assert.deepEqual(Object.keys(lock.skills).sort(), names);
   for (const name of names) {
+    if (sharedSkills.includes(name)) {
+      assert.equal(lock.skills[name].kind, "handbook-entrypoint");
+      assert.equal(lock.skills[name].source, "Uniwares-LTD/handbook");
+      const text = readFileSync(`.agents/skills/${name}/SKILL.md`, "utf8");
+      assert.ok(
+        text.includes("handbook:check") &&
+          text.includes(`.agents/skills/${name}/SKILL.md`),
+        `Invalid shared entrypoint: ${name}`,
+      );
+    }
     assert.ok(
       existsSync(`.agents/skills/${name}/SKILL.md`),
       `Missing SKILL.md for ${name}`,
@@ -119,6 +138,6 @@ if (process.argv.includes("--write")) {
       `Changed supporting contract: ${file}`,
     );
   console.log(
-    `Verified ${names.length} skills and ${supportFiles.length} supporting contracts, including bundled references and licenses.`,
+    `Verified ${sharedSkills.length} handbook entrypoints and ${names.length - sharedSkills.length} local skills, including bundled references and licenses (offline).`,
   );
 }

@@ -28,6 +28,10 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     "public/offline.html": "namespace=unibase",
     "public/offline-locale.js": "unibase-offline-locale",
     "README.md": "reviewed source",
+    "scripts/handbook.mjs":
+      "throw new Error('initializer must not run handbook setup');",
+    ".agents/skills/manage-issues/SKILL.md": "shared entrypoint fixture",
+    ".cache/handbook/baseline.json": "PRIVATE_HANDBOOK_CACHE",
     ".github/workflows/deploy.yml":
       "name: Release Unibase\non: workflow_dispatch\n",
     ".env.local": "PRIVATE_SENTINEL",
@@ -91,6 +95,24 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     await readFile(path.join(destination, "README.md"), "utf8"),
     "reviewed source",
   );
+  assert.equal(
+    await readFile(path.join(destination, "scripts/handbook.mjs"), "utf8"),
+    files["scripts/handbook.mjs"],
+  );
+  assert.equal(
+    await readFile(
+      path.join(destination, ".agents/skills/manage-issues/SKILL.md"),
+      "utf8",
+    ),
+    "shared entrypoint fixture",
+  );
+  await assert.rejects(
+    readFile(path.join(destination, ".cache/handbook/baseline.json")),
+    { code: "ENOENT" },
+  );
+  await assert.rejects(readdir(path.join(root, "handbook")), {
+    code: "ENOENT",
+  });
   assert.match(
     await readFile(
       path.join(destination, ".github/workflows/deploy.yml"),

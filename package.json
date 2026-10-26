@@ -45,7 +45,11 @@
     "test:initializer": "node --import tsx --test tests/initializer.test.ts",
     "test:initialized-projects": "node --import tsx scripts/test-initialized-projects.ts",
     "check:docs": "node scripts/check-docs.mjs && node scripts/environment-docs.mjs --check",
-    "provision:preview": "python scripts/deploy/provision.py"
+    "provision:preview": "python scripts/deploy/provision.py",
+    "handbook:setup": "node scripts/handbook.mjs setup",
+    "handbook:check": "node scripts/handbook.mjs check",
+    "handbook:doctor": "node scripts/handbook.mjs doctor",
+    "test:handbook": "node --test tests/handbook.test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1147.0",

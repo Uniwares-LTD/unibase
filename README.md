@@ -20,6 +20,27 @@ Use [the full feature test plan](docs/test-plan.md) for regression coverage and
 for historical evidence and external limits. Current reuse acceptance is recorded in
 [the hardening extension](docs/implementation-plan.md#accepted-reuse-and-service-hardening-extension---2026-10-13).
 
+## Agent setup
+
+For the Codex VS Code extension and Codex desktop app, run once from this repository
+with Node.js and Git available and Git read access to the private handbook:
+
+```powershell
+npm.cmd run handbook:setup
+```
+
+No application dependency installation is needed for this command. It uses a sibling
+`handbook` checkout, or `-- --path PATH` / `UNIWARES_HANDBOOK_PATH` for a local override.
+At task start the agent runs `npm run handbook:check`: it checks for updates only after
+four hours, reuses cached guidance when offline, and preserves local handbook edits.
+There is no scheduler. Use `npm run handbook:doctor` for diagnosis and
+`npm run handbook:check -- --force` for an immediate refresh.
+See [agent tooling](docs/agent-tooling.md) for cached reads, skill discovery and troubleshooting.
+
+Derived projects receive the launcher and guidance but creation stays offline: it does
+not clone handbook, migrate queues, or enroll the new repository in Uniwares projects.
+Their maintainers review the inherited guidance and perform this setup separately.
+
 ## Start a derived project
 
 Use the initializer from a reviewed source revision. It creates a separate empty
