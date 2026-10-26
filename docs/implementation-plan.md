@@ -13,6 +13,15 @@ The shared runbook owns the three-phase status table and installed release ident
 the application guide owns detailed acceptance. Update those records rather than
 copying changing status or image digests into this plan.
 
+## Shared handbook onboarding — 2026-10-26
+
+The accepted onboarding change adds four-hour lazy handbook checks, setup/doctor
+commands and six shared skill entrypoints. Existing accepted milestones below retain
+their authority without retroactive issues; new substantial work uses handbook issue
+policy. Application architecture, deployment permissions and local domain skills remain
+owned here. See [agent tooling](agent-tooling.md) for setup, validation and client limits.
+No backlog migration or deployment is part of this change.
+
 ## Agreed decisions
 
 One Next.js App Router application serves web/PWA and the prepared Android TWA.

@@ -1,37 +1,36 @@
 {
-  "version": 1,
+  "version": 2,
   "hashFormat": "sha256 per file; LF-normalized text, raw binary",
   "source": "karpishe-experiments/agentic-poc",
   "sourceRef": "4e1478355843e42e1b27fdc8e33212476a4d4fa3",
   "skills": {
     "capture-project-learnings": {
-      "source": "karpishe-experiments/agentic-poc",
-      "sourceRef": "4e1478355843e42e1b27fdc8e33212476a4d4fa3",
+      "kind": "handbook-entrypoint",
+      "source": "Uniwares-LTD/handbook",
       "sourcePath": ".agents/skills/capture-project-learnings",
-      "upstream": {
-        "source": "karpishe-experiments/agentic-poc",
-        "sourceRef": "4e1478355843e42e1b27fdc8e33212476a4d4fa3"
-      },
+      "channel": "main",
       "files": {
-        ".agents/skills/capture-project-learnings/SKILL.md": "f9606a6e5e9ef8674abe811d03a36568f3b1402130ef2875478b92cedfae1722",
-        ".agents/skills/capture-project-learnings/agents/openai.yaml": "88d64c14af35b5804e217a0f9fd61142e8fc712a8a2e5fb9d734408014b1c512",
-        ".agents/skills/capture-project-learnings/assets/lessons-learned-template.md": "bfde5451de0dd602d6214e2b164935ab8801e9f15c1863bf2ee86d7ea8771a33"
+        ".agents/skills/capture-project-learnings/SKILL.md": "ac26b30268392ae189279f8538d8c6c9c5d1813f1ee8ffb74742b86bc6d6320d",
+        ".agents/skills/capture-project-learnings/agents/openai.yaml": "88d64c14af35b5804e217a0f9fd61142e8fc712a8a2e5fb9d734408014b1c512"
       }
     },
     "compile-feature-spec": {
-      "source": "karpishe-experiments/agentic-poc",
-      "sourceRef": "4e1478355843e42e1b27fdc8e33212476a4d4fa3",
+      "kind": "handbook-entrypoint",
+      "source": "Uniwares-LTD/handbook",
       "sourcePath": ".agents/skills/compile-feature-spec",
-      "upstream": {
-        "source": "karpishe-experiments/core-agent-skills",
-        "sourceType": "github",
-        "sourceRef": "v0.4.0",
-        "skillPath": "skills/compile-feature-spec/SKILL.md",
-        "computedHash": "6eb42d774a921197d17876592d60de23f54b789e3d8a001449e8d1259d7ae134"
-      },
+      "channel": "main",
       "files": {
-        ".agents/skills/compile-feature-spec/SKILL.md": "401671dbc19bda70cb0d3fd3c026260b4c46dcc96a9bcc0a32b59253179bf6e9",
+        ".agents/skills/compile-feature-spec/SKILL.md": "ba5e980f07ea95ee7ea3ccd27e9577d67498675ddc38e13b059eef049345a84e",
         ".agents/skills/compile-feature-spec/agents/openai.yaml": "4294ee2e6f4fa0ea97df363330f9dee8b07c490d5679477224c7acf97aa869a9"
+      }
+    },
+    "manage-issues": {
+      "kind": "handbook-entrypoint",
+      "source": "Uniwares-LTD/handbook",
+      "sourcePath": ".agents/skills/manage-issues",
+      "channel": "main",
+      "files": {
+        ".agents/skills/manage-issues/SKILL.md": "27d6175ab99efe42b514265d8c4fcd30c08b24d5026eb26bcf451d0fd6c789f3"
       }
     },
     "next-best-practices": {
@@ -90,34 +89,22 @@
       }
     },
     "review-change": {
-      "source": "karpishe-experiments/agentic-poc",
-      "sourceRef": "4e1478355843e42e1b27fdc8e33212476a4d4fa3",
+      "kind": "handbook-entrypoint",
+      "source": "Uniwares-LTD/handbook",
       "sourcePath": ".agents/skills/review-change",
-      "upstream": {
-        "source": "karpishe-experiments/core-agent-skills",
-        "sourceType": "github",
-        "sourceRef": "v0.4.0",
-        "skillPath": "skills/review-change/SKILL.md",
-        "computedHash": "4b5459cb948348b950785eedbd530dacccd26cac83bc36b5c6633bed76aa7fd1"
-      },
+      "channel": "main",
       "files": {
-        ".agents/skills/review-change/SKILL.md": "b028e5a124b2255d2babe849b2610bd0605b2873f30bf910ec722452ef2bf908",
+        ".agents/skills/review-change/SKILL.md": "ecbdcf899569ca5cc90aa3fc561ddfd3ee20b28b5dbd5d6b0bcd383c56540c55",
         ".agents/skills/review-change/agents/openai.yaml": "a89e4bc18623e21f2fe83121b268e208a8ab85bd3a2f10d200806cb9092a57ec"
       }
     },
     "sync-docs-issues": {
-      "source": "karpishe-experiments/agentic-poc",
-      "sourceRef": "4e1478355843e42e1b27fdc8e33212476a4d4fa3",
+      "kind": "handbook-entrypoint",
+      "source": "Uniwares-LTD/handbook",
       "sourcePath": ".agents/skills/sync-docs-issues",
-      "upstream": {
-        "source": "karpishe-experiments/core-agent-skills",
-        "sourceType": "github",
-        "sourceRef": "v0.4.0",
-        "skillPath": "skills/sync-docs-issues/SKILL.md",
-        "computedHash": "e81070870cde72ede433dfa063dc303276c2ebb0437a7410bc82be91300d4e8f"
-      },
+      "channel": "main",
       "files": {
-        ".agents/skills/sync-docs-issues/SKILL.md": "6fb54f9af1e1d4489b5c4200c1daee3c0bbfbd8f2b60d28801eb024496d5ac2c",
+        ".agents/skills/sync-docs-issues/SKILL.md": "59cde2e43ab17596fb1045c3585201e8bf0609784c3658845e255edd669f227b",
         ".agents/skills/sync-docs-issues/agents/openai.yaml": "a70469432fe0b50814a8387931d9c91d44264d798479418f35ed6c0c5e09fcbf"
       }
     },
@@ -225,6 +212,81 @@
       }
     },
     "work-on-task": {
+      "kind": "handbook-entrypoint",
+      "source": "Uniwares-LTD/handbook",
+      "sourcePath": ".agents/skills/work-on-task",
+      "channel": "main",
+      "files": {
+        ".agents/skills/work-on-task/SKILL.md": "8e8e7bc04cd55fe8d210b638efcb85ffea91daa836508d848b20809883393ee1",
+        ".agents/skills/work-on-task/agents/openai.yaml": "fd46b629795ad6275ad1dfcfe6ab07e897b4857727639a75d8235c2b72dfdf92"
+      }
+    }
+  },
+  "supportFiles": {},
+  "retiredImports": {
+    "capture-project-learnings": {
+      "source": "karpishe-experiments/agentic-poc",
+      "sourceRef": "4e1478355843e42e1b27fdc8e33212476a4d4fa3",
+      "sourcePath": ".agents/skills/capture-project-learnings",
+      "upstream": {
+        "source": "karpishe-experiments/agentic-poc",
+        "sourceRef": "4e1478355843e42e1b27fdc8e33212476a4d4fa3"
+      },
+      "files": {
+        ".agents/skills/capture-project-learnings/SKILL.md": "f9606a6e5e9ef8674abe811d03a36568f3b1402130ef2875478b92cedfae1722",
+        ".agents/skills/capture-project-learnings/agents/openai.yaml": "88d64c14af35b5804e217a0f9fd61142e8fc712a8a2e5fb9d734408014b1c512",
+        ".agents/skills/capture-project-learnings/assets/lessons-learned-template.md": "bfde5451de0dd602d6214e2b164935ab8801e9f15c1863bf2ee86d7ea8771a33"
+      }
+    },
+    "compile-feature-spec": {
+      "source": "karpishe-experiments/agentic-poc",
+      "sourceRef": "4e1478355843e42e1b27fdc8e33212476a4d4fa3",
+      "sourcePath": ".agents/skills/compile-feature-spec",
+      "upstream": {
+        "source": "karpishe-experiments/core-agent-skills",
+        "sourceType": "github",
+        "sourceRef": "v0.4.0",
+        "skillPath": "skills/compile-feature-spec/SKILL.md",
+        "computedHash": "6eb42d774a921197d17876592d60de23f54b789e3d8a001449e8d1259d7ae134"
+      },
+      "files": {
+        ".agents/skills/compile-feature-spec/SKILL.md": "401671dbc19bda70cb0d3fd3c026260b4c46dcc96a9bcc0a32b59253179bf6e9",
+        ".agents/skills/compile-feature-spec/agents/openai.yaml": "4294ee2e6f4fa0ea97df363330f9dee8b07c490d5679477224c7acf97aa869a9"
+      }
+    },
+    "review-change": {
+      "source": "karpishe-experiments/agentic-poc",
+      "sourceRef": "4e1478355843e42e1b27fdc8e33212476a4d4fa3",
+      "sourcePath": ".agents/skills/review-change",
+      "upstream": {
+        "source": "karpishe-experiments/core-agent-skills",
+        "sourceType": "github",
+        "sourceRef": "v0.4.0",
+        "skillPath": "skills/review-change/SKILL.md",
+        "computedHash": "4b5459cb948348b950785eedbd530dacccd26cac83bc36b5c6633bed76aa7fd1"
+      },
+      "files": {
+        ".agents/skills/review-change/SKILL.md": "b028e5a124b2255d2babe849b2610bd0605b2873f30bf910ec722452ef2bf908",
+        ".agents/skills/review-change/agents/openai.yaml": "a89e4bc18623e21f2fe83121b268e208a8ab85bd3a2f10d200806cb9092a57ec"
+      }
+    },
+    "sync-docs-issues": {
+      "source": "karpishe-experiments/agentic-poc",
+      "sourceRef": "4e1478355843e42e1b27fdc8e33212476a4d4fa3",
+      "sourcePath": ".agents/skills/sync-docs-issues",
+      "upstream": {
+        "source": "karpishe-experiments/core-agent-skills",
+        "sourceType": "github",
+        "sourceRef": "v0.4.0",
+        "skillPath": "skills/sync-docs-issues/SKILL.md",
+        "computedHash": "e81070870cde72ede433dfa063dc303276c2ebb0437a7410bc82be91300d4e8f"
+      },
+      "files": {
+        ".agents/skills/sync-docs-issues/SKILL.md": "6fb54f9af1e1d4489b5c4200c1daee3c0bbfbd8f2b60d28801eb024496d5ac2c",
+        ".agents/skills/sync-docs-issues/agents/openai.yaml": "a70469432fe0b50814a8387931d9c91d44264d798479418f35ed6c0c5e09fcbf"
+      }
+    },
+    "work-on-task": {
       "source": "karpishe-experiments/agentic-poc",
       "sourceRef": "4e1478355843e42e1b27fdc8e33212476a4d4fa3",
       "sourcePath": ".agents/skills/work-on-task",
@@ -241,7 +303,7 @@
       }
     }
   },
-  "supportFiles": {
+  "retiredSupportFiles": {
     ".agents/agents/implementation.md": "7278f47e7b1251b2e0709587c686619217426ed09c43062795d6f875356ad2bd",
     ".agents/agents/reviewer.md": "5ff09201c69e897962ccb5720f8b174f9cf2dcbee5a5bf526eb889730c217a00"
   }

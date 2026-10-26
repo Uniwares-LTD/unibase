@@ -4,6 +4,23 @@
 
 Read [the current implementation plan](docs/implementation-plan.md) and the relevant code before editing. Historical evidence under `docs/history/` is reference material, not the current task queue. The user's current request and the accepted milestone define scope. Do not implement later milestones merely because a dependency or skill suggests them. Repository-specific workflow details live in [.agents/repository-adapter.md](.agents/repository-adapter.md); they override generic imported skill guidance.
 
+## Shared handbook
+
+At task start run `npm run handbook:check` (or `node scripts/handbook.mjs check`).
+The helper lazily checks main every four hours; no scheduler or version pin is needed.
+Read `docs/work-policy.md`, `docs/project.md` and relevant shared skills from its
+returned path/revision with `git show`, plus this repository's adapter. Keep that
+baseline for the task. Cached/offline guidance is usable; report limitations only
+when relevant. If unavailable, use local instructions and pause only handbook-dependent
+decisions. See [agent tooling](docs/agent-tooling.md) for setup and troubleshooting.
+
+New substantial work uses issues under handbook policy. Already accepted milestones
+in the implementation plan, including the accepted onboarding plan, remain authorized
+without retroactive issues. Small standalone changes may remain untracked. For assigned
+issue work, agents may enroll the existing issue, maintain nonterminal status/blockers
+and post concise evidence. New issues need human approval; humans own closure and Done.
+Publication, merges, deployments, releases and permissions retain separate authorization.
+
 ## Architecture
 
 - Before deployment work, read [the staging transition](docs/deployment.md#staging-transition-status--2026-10-24)
@@ -65,13 +82,15 @@ Read [the current implementation plan](docs/implementation-plan.md) and the rele
 
 ## Available project skills
 
-Skills are pinned with resources and provenance in skills-lock.json:
+Four local domain skills remain pinned; six shared entrypoints follow handbook main.
+Local resource integrity and provenance are recorded in skills-lock.json:
 
 - next-best-practices and vercel-react-best-practices: Next.js boundaries and React implementation.
 - web-design-guidelines and playwright: UI review and real-browser verification.
 - work-on-task and review-change: proportional implementation and read-only review.
 - compile-feature-spec: bounded specifications for unclear feature work.
-- sync-docs-issues and capture-project-learnings: keep verified documentation current; external writes still require session authorization.
+- sync-docs-issues and capture-project-learnings: keep verified documentation current.
+- manage-issues: maintain assigned issue/project evidence within the shared authority policy.
 
 Read only the skills relevant to the work. System-provided skills remain system-owned. See docs/agent-tooling.md for import provenance, local adaptations, and integrity checks.
 

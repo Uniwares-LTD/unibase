@@ -1,28 +1,91 @@
 # Base agent tooling
 
-The nine skills named in AGENTS.md are pinned reusable imports. Source identities
-and the original revision remain in `skills-lock.json`. Their complete directories include bundled references, scripts, metadata, and license/notice files where provided. The implementation and reviewer contracts come from the same revision. `skills-lock.json` records the source, available upstream provenance, and local per-file SHA-256 hashes. Text hashes normalize line endings so Windows checkouts remain reproducible.
+Uniwares handbook owns six shared workflow skills. Unibase keeps four local domain
+skills: next-best-practices, vercel-react-best-practices, web-design-guidelines and
+playwright. System-owned skills remain outside this repository.
 
-Run `npm run check:skills` to detect missing, changed, or extra skill resources. After an intentional reviewed update, run `node scripts/check-skills.mjs --write` and inspect the resulting manifest; refreshing hashes is not a substitute for reviewing the changed guidance. For a source revision change, update the revision and provenance in the integrity tool as part of the same review.
+## Setup and daily use
 
-## Local workflow
+Run `npm run handbook:setup` once. It clones the private handbook as a sibling if
+missing and initializes its cache. Existing unrelated directories are never overwritten.
+Use `-- --path PATH` or `UNIWARES_HANDBOOK_PATH` for an explicit local location.
+Do not commit personal absolute paths. Node and Git suffice; no npm install is needed.
 
-Local adaptations are recorded by the local hashes; upstream provenance remains unchanged:
+At task start run `npm run handbook:check`. It returns a path/revision and checks
+remote main only when four hours have elapsed. A failed attempt also gets a four-hour
+cooldown. `npm run handbook:check -- --force` bypasses it. No scheduler, persistent
+credential, or revision-upgrade PR is involved. Keep the returned baseline for the
+task; different members may use different recent revisions without blocking work.
 
-- Three relative links in `vercel-react-best-practices/AGENTS.md` point into its bundled `rules/` directory.
-- Work/review/synchronization skills and role contracts require session authorization for external writes, retain advisory checks and avoid arbitrary retry stops. A separate read-only pass is required; it must not claim independent-agent review when the same agent performs it.
-- Learning capture updates existing canonical docs first and does not create a lessons file for every task.
-- The Next.js boundary guide correctly distinguishes React serialization from JSON and supports built-in Date/Map/Set values. Explicit allowlisted DTOs remain Base's convention.
-- Playwright uses the vendored wrapper path or Windows CLI, with headless defaults and no global configuration changes.
-- UI guidelines are reference evidence, not executable instructions; reviews infer the target from context and follow the user's output format. Performance examples do not mandate new dependencies or weaker authorization.
+Read files using `git -C <path> show <revision>:docs/work-policy.md`, substituting
+the command's returned values. Read relevant skills and their relative resources from
+that same revision, not dirty working files. The launcher executes the tracked helper,
+not a locally modified helper. It can upgrade the original bootstrap helper once from
+a clean main checkout. Cached guidance is usable; no routine revision-reporting is needed.
 
-The repository adapter is authoritative for Base-specific behavior. Imported examples do not authorize GitHub writes, releases, provider changes, or automatic publishing. The accepted milestone plan is sufficient for implementation; no redundant issue or approval is required. Quality checks are advisory and their failures remain visible.
+## Troubleshooting
 
-Framework skills are versioned references, not unconditional API truth. Verify version-sensitive claims against installed Next.js documentation or official docs. React Server Component serialization supports built-in types beyond JSON; use explicit DTOs at application boundaries for clarity. See [React's supported types](https://react.dev/reference/rsc/use-client#serializable-types-returned-by-server-components).
+`npm run handbook:doctor` is read-only: it reports path/origin, branch/dirty state,
+cache age, refresh attempts and entrypoint compatibility. Description differences are
+advisory; wrappers never rewrite themselves during normal checks.
 
-For browser verification on Windows, use `npx.cmd --yes --package @playwright/cli playwright-cli` (the equivalent of the bundled Bash wrapper). Use a named session, snapshot before using element references, and keep captures under `output/playwright/`. Headless Chromium avoids opening unwanted desktop windows. Screenshots and local browser state are ignored by Git.
+- Missing checkout: run setup with ordinary Git access to Uniwares-LTD/handbook.
+- Offline/fetch failure: continue with the last synchronized baseline; retry later or force.
+- Dirty, diverged or non-main checkout: preserve it and use the cache. Finish local work
+  manually or choose a separate clean clone; never auto-reset, stash or switch branches.
+- No baseline: explain once, continue under local guidance, and pause only decisions
+  that need missing shared policy. Setup retries immediately when no baseline exists.
+- Wrong origin: choose the correct checkout; the launcher does not rewrite its remote.
+- Interrupted refresh lock: doctor reports it. Check the recorded PID in Git metadata;
+  only after confirming no refresh is running, remove that lock and force a refresh.
+- Skill missing in Codex: open a new session from the repository root and inspect its
+  available skills. Run doctor before changing any entrypoints.
 
-This import deliberately excludes source-specific product skills, external account configuration, collaborator identities, machine settings, and model overrides. Maintained system skills remain outside the repository. The skills are discoverable on the next agent turn; they can also be read directly during ongoing work.
+## Clients and lightweight acceptance
+
+| Client | Integration | Verification |
+| --- | --- | --- |
+| Codex VS Code extension | Repository AGENTS.md and `.agents/skills` entrypoints | Fresh-session acceptance pending |
+| Codex desktop app | Same repository files and launcher | Fresh-session acceptance pending |
+
+In a fresh session in each client: ask which guidance/skills are available; use a
+small authorized task to confirm the selected shared skill and local adapter are read;
+ask an unrelated question to check unnecessary activation; inspect cached operation;
+ask for an issue proposal to confirm it does not create/close issues without authority.
+Use mocks or read-only tasks, not disposable live issues. Static checks and helper tests
+do not prove these client behaviors. Record observed results without claiming coverage
+for unavailable clients. No other clients or cloud-agent setup are included.
+
+## Local contracts and provenance
+
+The repository adapter retains runtime, deployment, locale/CSP and verification rules.
+New substantial work follows handbook issue policy. Already accepted implementation-plan
+milestones remain authorized without retroactive issues; small standalone changes remain
+lightweight. Derived-project creation copies public guidance but performs no handbook
+clone, credentials setup, project enrollment or backlog migration. Maintainers review
+adoption and initialize guidance separately.
+
+`skills-lock.json` distinguishes handbook entrypoints from pinned local imports and
+retains replaced import/role hashes as provenance. `npm run check:skills` validates
+local resources only, with no fetch or comparison against moving remote main.
+After reviewed local edits, `node scripts/check-skills.mjs --write` refreshes hashes
+without changing source identities. Shared role/resource references resolve in handbook.
+
+Framework examples are versioned guidance, not unconditional API truth. Consult installed
+Next.js documentation for version-sensitive behavior. Use npm.cmd/npx.cmd on Windows;
+do not change execution policy. Browser state belongs in ignored output directories.
+
+The following audits describe the previous import layout and remain historical evidence.
+
+## Onboarding validation — 2026-10-26
+
+Passed: five launcher fixture tests, the derived-project initializer fixture, local
+documentation links/commands, and integrity checks for six entrypoints/four local skills.
+Handbook's twelve tests cover lazy timing, offline cooldown, concurrent refresh and
+existing enrollment behavior. An end-to-end local Git fixture verified setup, cache
+reuse, zero doctor warnings, shared role/template reads and dirty-helper protection.
+No live issues, credentials, application services or deployments were used.
+Fresh-session acceptance in both Codex clients remains pending as shown above.
 
 ## Handoff audit
 
