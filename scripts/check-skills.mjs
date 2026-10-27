@@ -2,7 +2,17 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import { sharedSkills } from "./handbook.mjs";
+const integration = JSON.parse(readFileSync("handbook.json", "utf8"));
+const sharedSkills = [
+  "capture-project-learnings",
+  "compile-feature-spec",
+  "manage-issues",
+  "maintain-project",
+  "review-change",
+  "sync-docs-issues",
+  "work-on-task",
+  ...integration.technologySkills,
+];
 
 const root = process.cwd();
 const source = "karpishe-experiments/agentic-poc";
@@ -10,6 +20,7 @@ const sourceRef = "4e1478355843e42e1b27fdc8e33212476a4d4fa3";
 const names = [
   "capture-project-learnings",
   "compile-feature-spec",
+  "maintain-project",
   "manage-issues",
   "next-best-practices",
   "playwright",
@@ -66,7 +77,7 @@ assert.deepEqual(
   names,
   "Installed skills must match the approved set.",
 );
-const supportFiles = [];
+const supportFiles = ["CLAUDE.md", ...files(".claude/skills")];
 
 if (process.argv.includes("--write")) {
   // Refresh only after reviewing an intentional import/update. Preserve the
@@ -131,6 +142,11 @@ if (process.argv.includes("--write")) {
       `Skill files differ from lock: ${name}`,
     );
   }
+  assert.deepEqual(
+    Object.keys(lock.supportFiles).sort(),
+    [...supportFiles].sort(),
+    "Supporting contract files differ from lock.",
+  );
   for (const file of supportFiles)
     assert.equal(
       digest(file),
@@ -138,6 +154,6 @@ if (process.argv.includes("--write")) {
       `Changed supporting contract: ${file}`,
     );
   console.log(
-    `Verified ${sharedSkills.length} handbook entrypoints and ${names.length - sharedSkills.length} local skills, including bundled references and licenses (offline).`,
+    `Verified ${sharedSkills.length} Handbook entrypoints, Claude references and retained notices (offline).`,
   );
 }

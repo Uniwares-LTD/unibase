@@ -5,7 +5,8 @@ const root = process.cwd(),
 const files = [
   "README.md",
   "AGENTS.md",
-  ...["docs", ".agents", "dify", "src/lib/server/runs/templates"].flatMap(
+  "CLAUDE.md",
+  ...["docs", ".agents", ".claude", "dify", "src/lib/server/runs/templates"].flatMap(
     (dir) =>
       fs
         .readdirSync(dir, { recursive: true })

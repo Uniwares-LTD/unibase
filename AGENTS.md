@@ -2,17 +2,24 @@
 
 ## Scope and authority
 
-Read [the current implementation plan](docs/implementation-plan.md) and the relevant code before editing. Historical evidence under `docs/history/` is reference material, not the current task queue. The user's current request and the accepted milestone define scope. Do not implement later milestones merely because a dependency or skill suggests them. Repository-specific workflow details live in [.agents/repository-adapter.md](.agents/repository-adapter.md); they override generic imported skill guidance.
+Read [the current implementation plan](docs/implementation-plan.md) and the relevant code before editing. Historical evidence under `docs/history/` is reference material, not the current task queue. The user's current request and the accepted milestone define scope. Do not implement later milestones merely because a dependency or skill suggests them. Repository-specific workflow details live in [.agents/repository-adapter.md](.agents/repository-adapter.md). Preserve the accepted local adaptations there and resolve actual conflicts explicitly; shared guidance does not change application ownership or session authority.
 
 ## Shared handbook
 
 At task start run `npm run handbook:check` (or `node scripts/handbook.mjs check`).
 The helper lazily checks main every four hours; no scheduler or version pin is needed.
-Read `docs/work-policy.md`, `docs/project.md` and relevant shared skills from its
+Read `docs/bootstrap.md`, `docs/work-policy.md`, `docs/project.md` and relevant shared skills from its
 returned path/revision with `git show`, plus this repository's adapter. Keep that
 baseline for the task. Cached/offline guidance is usable; report limitations only
 when relevant. If unavailable, use local instructions and pause only handbook-dependent
-decisions. See [agent tooling](docs/agent-tooling.md) for setup and troubleshooting.
+decisions. Read the project-owned [source map](docs/source-map.md) and `handbook.json`
+for selected technology skills. Carry the task path/revision through subsequent skills,
+resource reads and handoff/resume summaries. Recover a lost baseline from context first;
+if unavailable, establish a new one explicitly and report the discontinuity.
+After skill metadata or routing changes, run `npm run handbook:sync` and
+`npm run handbook:entrypoints`; reconcile custom content and refresh local integrity
+hashes after review. Normal refresh never rewrites instructions. See
+[agent tooling](docs/agent-tooling.md) for setup and troubleshooting.
 
 New substantial work uses issues under handbook policy. Already accepted milestones
 in the implementation plan, including the accepted onboarding plan, remain authorized
@@ -82,8 +89,9 @@ Publication, merges, deployments, releases and permissions retain separate autho
 
 ## Available project skills
 
-Four local domain skills remain pinned; six shared entrypoints follow handbook main.
-Local resource integrity and provenance are recorded in skills-lock.json:
+Eleven local entrypoints follow Handbook main: seven workflow skills and four selected
+technology/UI skills. Local integrity is recorded in skills-lock.json; historical import
+provenance is retained in provenance/handbook-migration.json:
 
 - next-best-practices and vercel-react-best-practices: Next.js boundaries and React implementation.
 - web-design-guidelines and playwright: UI review and real-browser verification.
@@ -91,6 +99,7 @@ Local resource integrity and provenance are recorded in skills-lock.json:
 - compile-feature-spec: bounded specifications for unclear feature work.
 - sync-docs-issues and capture-project-learnings: keep verified documentation current.
 - manage-issues: maintain assigned issue/project evidence within the shared authority policy.
+- maintain-project: reconcile local guidance, source maps and explicit integration updates.
 
 Read only the skills relevant to the work. System-provided skills remain system-owned. See docs/agent-tooling.md for import provenance, local adaptations, and integrity checks.
 

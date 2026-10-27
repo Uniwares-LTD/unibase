@@ -33,6 +33,9 @@ function fixture(t) {
   mkdirSync(root);
   mkdirSync(origin);
   mkdirSync(path.join(origin, "scripts"));
+  mkdirSync(path.join(origin, "docs"));
+  for (const file of ["work-policy.md", "project.md", "onboarding.md"])
+    writeFileSync(path.join(origin, "docs", file), "Fixture guidance\n");
   // A deliberately small helper fixture isolates launcher delegation from refresh tests.
   writeFileSync(
     path.join(origin, "scripts/refresh-handbook.mjs"),
@@ -125,8 +128,8 @@ test("dirty helper is never executed; cached tracked helper remains usable", asy
 });
 test("missing checkout and wrong origin do not initialize or overwrite during check/doctor", async (t) => {
   const f = fixture(t);
-  await assert.rejects(runHandbook("check", f), /not installed/);
-  await assert.rejects(runHandbook("doctor", f), /not installed/);
+  await assert.rejects(runHandbook("check", f), /Handbook unavailable/);
+  await assert.rejects(runHandbook("doctor", f), /Handbook unavailable/);
   assert(!existsSync(f.directory));
   await runHandbook("setup", f);
   git(
@@ -142,24 +145,18 @@ test("missing checkout and wrong origin do not initialize or overwrite during ch
     "https://example.invalid/unrelated.git",
   );
 });
-test("original helper baseline remains readable during one-time launcher migration", async (t) => {
-  const f = fixture(t),
-    helper = path.join(f.origin, "scripts/refresh-handbook.mjs");
-  const current = readFileSync(helper, "utf8");
-  const legacy =
-    current
-      .replace("export function diagnose(", "function legacyState(")
-      .replace("state=diagnose(", "state=legacyState(") +
-    '\nif (process.argv[1]) { throw new Error("CLI footer must not run in an import"); }\n';
-  writeFileSync(helper, legacy);
-  git(f.origin, "commit", "-am", "legacy fixture");
-  const first = await runHandbook("setup", f);
-  assert.equal(first.mode, "cached");
-  assert.match(first.limitation, /Legacy helper retained/);
-  writeFileSync(helper, current);
-  git(f.origin, "commit", "-am", "upgrade fixture");
-  git(f.directory, "pull", "--ff-only");
-  const next = await runHandbook("check", f);
-  assert.notEqual(next.revision, first.revision);
-  assert.deepEqual((await runHandbook("doctor", f)).warnings, []);
+test("unsupported ancient helpers require explicit bootstrap reconciliation", async (t) => {
+  const f = fixture(t);
+  writeFileSync(
+    path.join(f.origin, "scripts/refresh-handbook.mjs"),
+    "export function refresh() {}\n",
+  );
+  git(f.origin, "commit", "-am", "unsupported helper");
+  await assert.rejects(
+    runHandbook("setup", f),
+    /Incompatible committed helper/,
+  );
+  assert(
+    !existsSync(path.join(f.directory, ".git/uniwares-handbook-baseline.json")),
+  );
 });

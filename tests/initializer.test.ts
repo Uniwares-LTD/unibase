@@ -31,6 +31,11 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     "scripts/handbook.mjs":
       "throw new Error('initializer must not run handbook setup');",
     ".agents/skills/manage-issues/SKILL.md": "shared entrypoint fixture",
+    "scripts/handbook-integration.mjs": "// offline integration tooling",
+    "handbook.json": '{"version":1,"kind":"consumer"}',
+    "CLAUDE.md": "@AGENTS.md\n",
+    ".claude/skills/manage-issues/SKILL.md": "thin Claude reference",
+    "docs/source-map.md": "project-owned navigation",
     ".cache/handbook/baseline.json": "PRIVATE_HANDBOOK_CACHE",
     ".github/workflows/deploy.yml":
       "name: Release Unibase\non: workflow_dispatch\n",
@@ -106,6 +111,17 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     ),
     "shared entrypoint fixture",
   );
+  for (const name of [
+    "scripts/handbook-integration.mjs",
+    "handbook.json",
+    "CLAUDE.md",
+    ".claude/skills/manage-issues/SKILL.md",
+    "docs/source-map.md",
+  ])
+    assert.equal(
+      await readFile(path.join(destination, name), "utf8"),
+      files[name],
+    );
   await assert.rejects(
     readFile(path.join(destination, ".cache/handbook/baseline.json")),
     { code: "ENOENT" },

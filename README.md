@@ -22,7 +22,7 @@ for historical evidence and external limits. Current reuse acceptance is recorde
 
 ## Agent setup
 
-For the Codex VS Code extension and Codex desktop app, run once from this repository
+For Codex and Claude Code, run once from this repository
 with Node.js and Git available and Git read access to the private handbook:
 
 ```powershell
@@ -35,7 +35,14 @@ At task start the agent runs `npm run handbook:check`: it checks for updates onl
 four hours, reuses cached guidance when offline, and preserves local handbook edits.
 There is no scheduler. Use `npm run handbook:doctor` for diagnosis and
 `npm run handbook:check -- --force` for an immediate refresh.
-See [agent tooling](docs/agent-tooling.md) for cached reads, skill discovery and troubleshooting.
+Shared procedures resolve through eleven local .agents entrypoints; Claude references
+them through .claude/skills and CLAUDE.md. Project facts remain in the
+[adapter](.agents/repository-adapter.md) and [source map](docs/source-map.md), selected
+by handbook.json. Use `npm run handbook:ready` offline for advisory structural warnings.
+After reviewed integration/skill changes, run `npm run handbook:sync` and
+`npm run handbook:entrypoints`; full shared updates use a committed resource snapshot
+as documented in [agent tooling](docs/agent-tooling.md). Preserve custom instructions.
+Normal refresh never rewrites entrypoints. Static checks do not certify native clients.
 
 Derived projects receive the launcher and guidance but creation stays offline: it does
 not clone handbook, migrate queues, or enroll the new repository in Uniwares projects.
@@ -242,7 +249,7 @@ when running outside Docker.
 | `npm run worker`           | Start payment reconciliation and credit maintenance using configured resources.                                                                                                                                   |
 | `npm run worker:ai`        | Start AI dispatch and recovery using configured resources.                                                                                                                                                        |
 | `npm run test:integration` | Test the production build against isolated local auth/database services.                                                                                                                                          |
-| `npm run check:skills`     | Verify vendored skill resources against their recorded hashes.                                                                                                                                                    |
+| `npm run check:skills`     | Verify local skill references and retained notices against their recorded hashes.                                                                                                                                                    |
 | `npm run validate`         | Run all local quality checks and write an advisory report to `output/validation/results.json`.                                                                                                                    |
 | `npm run icons:generate`   | Render the existing Base SVG into install icons.                                                                                                                                                                  |
 | `npm run android:generate` | Regenerate Bubblewrap using `ANDROID_HOST` / `ANDROID_PACKAGE_NAME` from `.env.local` or process environment, and version fields from `android/config.json`. Add `-- --release` to reject placeholder identities. |
