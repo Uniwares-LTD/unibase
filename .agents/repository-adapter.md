@@ -16,7 +16,8 @@
   Infrastructure's docs/operations.md (linked from the deployment guide).
 - Historical trials: docs/history/. Preserve dated evidence and existing anchor links;
   never treat an archived command or a past test result as current readiness.
-- Skill provenance and local guidance: docs/agent-tooling.md and skills-lock.json.
+- Skill provenance and local guidance: docs/agent-tooling.md, skills-lock.json and provenance/handbook-migration.json.
+- Project-owned navigation and verified boundaries: docs/source-map.md; integration selection: handbook.json.
 - Add durable lessons to the nearest relevant document; do not create an incident diary or a competing source of truth.
 
 ## Validation and review
@@ -38,8 +39,8 @@ other project configuration changes retain explicit session authorization.
 
 ## Skill adaptations
 
-Four local domain skills remain pinned. Six shared workflow skills resolve from the
-handbook baseline returned at task start, without per-consumer version pins. Retain
+Seven workflow and four technology/UI skills resolve from the Handbook baseline
+returned at task start, without per-consumer version pins. Retain
 accepted milestone authority, proportional checks, no arbitrary retry limit, and no
 quality-warning release gates. Local application contracts remain authoritative;
 resolve actual conflicts without silently weakening authority.
@@ -78,3 +79,22 @@ After relevant edits, run `npm run check:docs`, `npm run check:i18n` and
 for reviewed changes. Historical verification stays separate from current setup.
 Initializer tests may create synthetic Git objects inside disposable fixtures;
 they must never mutate the working repository's index, refs or history.
+
+## Shared integration maintenance
+
+Maintain docs/source-map.md when component boundaries, canonical sources, commands,
+generated areas or ownership change. Keep application facts here; propose reusable
+procedure changes to Handbook. After skill metadata/routing edits, explicitly sync
+and check entrypoints; preserve custom content and review hashes before updating them.
+Claude imports AGENTS.md and reads thin references to canonical .agents entrypoints.
+These files install no hooks, permissions, subagents or runtime dependencies.
+
+Preserved technology adaptations: prefer allowlisted DTOs (including explicit timestamp
+representations) without claiming React cannot transport Date/Map/Set. Performance
+examples do not require new caching/concurrency dependencies; retain fresh authorization
+and never cache protected data across users. UI review covers English/Arabic, desktop
+and 390px widths, logical layout, Radix direction, bidirectional identifiers, focus and
+translated recovery copy without translating user/model content. Browser verification
+uses named sessions, a workspace-local npm cache and ignored output/playwright captures;
+use npx.cmd on Windows, or the task's committed snapshot wrapper from the consumer cwd.
+No global CLI installation or execution-policy change is required.

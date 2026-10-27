@@ -18,8 +18,9 @@ copying changing status or image digests into this plan.
 The accepted onboarding change adds four-hour lazy handbook checks, setup/doctor
 commands and six shared skill entrypoints. Existing accepted milestones below retain
 their authority without retroactive issues; new substantial work uses handbook issue
-policy. Application architecture, deployment permissions and local domain skills remain
-owned here. See [agent tooling](agent-tooling.md) for setup, validation and client limits.
+policy. Application architecture, deployment permissions and local skill adaptations remain
+owned here. The 2026-10-27 reconciliation uses eleven shared entrypoints, adds a local
+source map and explicit Codex/Claude synchronization after Handbook PR #3 merged. See [agent tooling](agent-tooling.md) for setup, validation and client limits.
 No backlog migration or deployment is part of this change.
 
 ## Agreed decisions

@@ -1,81 +1,109 @@
 # Base agent tooling
 
-Uniwares handbook owns six shared workflow skills. Unibase keeps four local domain
-skills: next-best-practices, vercel-react-best-practices, web-design-guidelines and
-playwright. System-owned skills remain outside this repository.
+Handbook owns seven workflow and four selected technology/UI skills. Canonical local
+.agents/skills entrypoints read shared procedures at the task revision. Claude's thin
+.claude/skills references route to them; CLAUDE.md imports @AGENTS.md. Project facts and
+adaptations remain in the [adapter](../.agents/repository-adapter.md) and
+[source map](source-map.md), declared by [handbook.json](../handbook.json).
 
 ## Setup and daily use
 
-Run `npm run handbook:setup` once. It clones the private handbook as a sibling if
-missing and initializes its cache. Existing unrelated directories are never overwritten.
-Use `-- --path PATH` or `UNIWARES_HANDBOOK_PATH` for an explicit local location.
-Do not commit personal absolute paths. Node and Git suffice; no npm install is needed.
+Run `npm run handbook:setup` once with Node, Git and read access to the private Handbook.
+No application dependency installation is needed. It uses a sibling checkout unless
+`-- --path PATH` or UNIWARES_HANDBOOK_PATH supplies a local override. Never commit machine paths.
+At task start run `npm run handbook:check` and retain the full path/revision in conversation
+context through later skills and handoff/resume. Read shared text with git show at that
+revision, including docs/bootstrap.md, policy and relevant skills. A later refresh or
+`--force` does not replace the active task revision. Recover lost context first; explicitly
+establish a new baseline and report discontinuity only when recovery fails.
 
-At task start run `npm run handbook:check`. It returns a path/revision and checks
-remote main only when four hours have elapsed. A failed attempt also gets a four-hour
-cooldown. `npm run handbook:check -- --force` bypasses it. No scheduler, persistent
-credential, or revision-upgrade PR is involved. Keep the returned baseline for the
-task; different members may use different recent revisions without blocking work.
+The launcher runs committed helper content. Required guidance/helper compatibility is
+checked before promotion; cached/offline guidance stays usable. Follow-main refresh has
+a four-hour success/failure cooldown, explicit force and no scheduler. No persistent
+task records or per-consumer revision pins are added.
 
-Read files using `git -C <path> show <revision>:docs/work-policy.md`, substituting
-the command's returned values. Read relevant skills and their relative resources from
-that same revision, not dirty working files. The launcher executes the tracked helper,
-not a locally modified helper. It can upgrade the original bootstrap helper once from
-a clean main checkout. Cached guidance is usable; no routine revision-reporting is needed.
+## Explicit integration updates
+
+Review Handbook's merged onboarding instructions at the task revision before reconciling
+launcher/offline-tool copies. Preserve local scope, accepted milestones and advisory checks.
+Materialize filesystem resources with `node scripts/handbook.mjs resources --path PATH --revision SHA`,
+using the actual retained path/SHA. Run `npm run handbook:sync -- --source SNAPSHOT` with its
+returned resourcePath, then `npm run handbook:entrypoints -- --source SNAPSHOT`.
+This explicitly updates managed Codex references and thin Claude wrappers. Without
+--source, sync maintains Claude references from local canonical skill metadata.
+Customized/unmanaged content is preserved and reported for manual reconciliation.
+Normal refresh never rewrites entrypoints. Read assets from the same committed snapshot;
+run project commands from this consumer, not the snapshot directory.
+
+Run `npm run handbook:ready` offline after updates. Missing files, invalid references and
+incomplete source-map structure produce warnings without readiness exit-code gates.
+It needs no clone, credentials or network and does not certify prose/ownership accuracy.
+Run `npm run check:skills` and `npm run check:docs`; after reviewing intentional edits,
+`node scripts/check-skills.mjs --write` updates local integrity hashes. Update the map when
+navigation, commands, generated boundaries or ownership changes.
 
 ## Troubleshooting
 
-`npm run handbook:doctor` is read-only: it reports path/origin, branch/dirty state,
-cache age, refresh attempts and entrypoint compatibility. Description differences are
-advisory; wrappers never rewrite themselves during normal checks.
-
-- Missing checkout: run setup with ordinary Git access to Uniwares-LTD/handbook.
-- Offline/fetch failure: continue with the last synchronized baseline; retry later or force.
-- Dirty, diverged or non-main checkout: preserve it and use the cache. Finish local work
-  manually or choose a separate clean clone; never auto-reset, stash or switch branches.
-- No baseline: explain once, continue under local guidance, and pause only decisions
-  that need missing shared policy. Setup retries immediately when no baseline exists.
-- Wrong origin: choose the correct checkout; the launcher does not rewrite its remote.
-- Interrupted refresh lock: doctor reports it. Check the recorded PID in Git metadata;
-  only after confirming no refresh is running, remove that lock and force a refresh.
-- Skill missing in Codex: open a new session from the repository root and inspect its
-  available skills. Run doctor before changing any entrypoints.
+`npm run handbook:doctor` is read-only. It reports origin, cached revision, checkout state,
+attempts and local entrypoint warnings. `npm run handbook:check -- --force` bypasses cooldown.
+Preserve dirty/non-main/ahead/diverged checkouts. Never reset/stash/switch to force refresh.
+Wrong-origin directories are rejected, not repaired. With no baseline, run setup/repair
+and continue unrelated work under local guidance; pause only Handbook-dependent decisions.
+Ancient helpers without refresh/diagnose exports need explicit bootstrap reconciliation.
+After an interrupted lock, inspect its PID and remove it only after confirming no active refresh.
 
 ## Clients and lightweight acceptance
 
-| Client | Integration | Verification |
-| --- | --- | --- |
-| Codex VS Code extension | Repository AGENTS.md and `.agents/skills` entrypoints | Fresh-session acceptance pending |
-| Codex desktop app | Same repository files and launcher | Fresh-session acceptance pending |
-
-In a fresh session in each client: ask which guidance/skills are available; use a
-small authorized task to confirm the selected shared skill and local adapter are read;
-ask an unrelated question to check unnecessary activation; inspect cached operation;
-ask for an issue proposal to confirm it does not create/close issues without authority.
-Use mocks or read-only tasks, not disposable live issues. Static checks and helper tests
-do not prove these client behaviors. Record observed results without claiming coverage
-for unavailable clients. No other clients or cloud-agent setup are included.
+Codex discovery uses .agents/skills. Claude uses CLAUDE.md imports and .claude/skills.
+Markdown references install no hooks, permissions, subagents or dependencies.
+Fresh-session Codex discovery/activation, local reads, refresh and handoff/resume acceptance
+remain pending. Normal-permission Node child-process Git execution previously encountered
+spawnSync git EPERM; elevated terminal success is not native-client acceptance.
+Claude runtime checks are explicitly deferred. Verify relevant activation and local map/adapter
+reads in each actual client without creating issues or live demonstration projects.
 
 ## Local contracts and provenance
 
-The repository adapter retains runtime, deployment, locale/CSP and verification rules.
-New substantial work follows handbook issue policy. Already accepted implementation-plan
-milestones remain authorized without retroactive issues; small standalone changes remain
-lightweight. Derived-project creation copies public guidance but performs no handbook
-clone, credentials setup, project enrollment or backlog migration. Maintainers review
-adoption and initialize guidance separately.
+The adapter retains runtime, deployment, Windows browser, locale/CSP, DTO and performance
+adaptations. Accepted implementation-plan milestones need no retroactive issues. Warnings
+remain advisory; build/runtime failures are real failures. Derived creation copies reviewed
+guidance, references, metadata and offline tooling, but never clones Handbook, copies its
+cache, sets credentials, enrolls projects or migrates backlogs. Maintainers reconcile the
+inherited source map and ownership before adoption.
 
-`skills-lock.json` distinguishes handbook entrypoints from pinned local imports and
-retains replaced import/role hashes as provenance. `npm run check:skills` validates
-local resources only, with no fetch or comparison against moving remote main.
-After reviewed local edits, `node scripts/check-skills.mjs --write` refreshes hashes
-without changing source identities. Shared role/resource references resolve in handbook.
+skills-lock.json records local entrypoint hashes. Historical imports, original upstream
+identities and resource hashes are preserved in provenance/handbook-migration.json.
+Duplicated technology procedures/resources moved to Handbook with licenses/notices and
+provenance; Playwright LICENSE.txt and NOTICE.txt also remain locally. Shared snapshots
+retain relative resources. System-owned skills are unchanged.
 
-Framework examples are versioned guidance, not unconditional API truth. Consult installed
-Next.js documentation for version-sensitive behavior. Use npm.cmd/npx.cmd on Windows;
-do not change execution policy. Browser state belongs in ignored output directories.
+## Shared-guidance adoption verification — 2026-10-27
 
-The following audits describe the previous import layout and remain historical evidence.
+Adopted after [Handbook PR #3](https://github.com/Uniwares-LTD/handbook/pull/3)
+merged. The reviewed committed source is recorded in migration provenance; routine
+consumer checks continue to follow main without pinning it.
+
+Passed: all twelve launcher/integration fixture tests, the derived-project isolation
+fixture, local skill/Claude integrity, documentation links/commands, environment docs,
+translation checks, offline readiness and drift checks against the committed snapshot.
+Readiness and drift reported no warnings. Elevated check/doctor access verified
+the merged baseline and zero doctor warnings. The copied test fixture initially assumed
+a Handbook source checkout; it now uses synthetic offline source metadata and passes.
+Finalization corrected an integrity-check gap: deleted Claude references now fail
+the supporting-file inventory comparison, with a regression fixture covering removal.
+All 100 removed resources exist in the retained Handbook revision; launcher/offline
+tool copies match that revision, and historical provenance matches the previous lock.
+The final review is a separate read-only pass by the same agent, not independent review.
+
+Normal-permission check and doctor still fail with spawnSync git EPERM in this environment;
+the Node test runner also requires elevated subprocess access here. The twelve fixture
+tests passed with that access; read-only elevated doctor reported zero warnings.
+That is not a passing native-client check. Claude runtime and fresh-session Codex
+acceptance remain deferred. Application build/full service suites were not rerun for
+this guidance/bootstrap-only change. No runtime deployment or operator intervention
+is required. Changes remain local pending consumer publication.
+
+The following audits describe earlier layouts and remain dated historical evidence.
 
 ## Onboarding validation — 2026-10-26
 

@@ -4,6 +4,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 const checks = [
   "check:env",
   "check:skills",
+  "handbook:ready",
+  "handbook:entrypoints",
+  "test:handbook",
   "check:docs",
   "check:i18n",
   "typecheck",
