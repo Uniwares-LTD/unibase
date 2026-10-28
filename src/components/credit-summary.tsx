@@ -3,7 +3,13 @@ import { EmptyState, Notice } from "./page-patterns";
 import Link from "next/link";
 import type { CreditAccount } from "@/lib/contracts/credits";
 import { Button } from "./ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "./ui/card";
 import {
   Table,
   TableHeader,
@@ -16,9 +22,12 @@ import {
 export function CreditSummary({
   account,
   historyPath,
+  paged = true,
 }: {
   account: CreditAccount;
   historyPath: string;
+  /** Whether an older history page is shown; the "Latest activity" link is hidden otherwise. */
+  paged?: boolean;
 }) {
   const translate = useTranslations("ui");
   const format = useFormatter();
@@ -26,6 +35,8 @@ export function CreditSummary({
   const common = useTranslations("common");
   const date = (iso: string) =>
     format.dateTime(new Date(iso), { dateStyle: "medium", timeStyle: "short" });
+  const signed = (value: number) =>
+    format.number(value, { signDisplay: "exceptZero" });
   const eventNames: Record<string, string> = {
     grant: translate("me1945c17a649"),
     deduction: translate("m8b73157e6304"),
@@ -42,12 +53,30 @@ export function CreditSummary({
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          [translate("me674447337e8"), account.available],
-          [translate("m3385ffe67470"), account.reserved],
-          [translate("m026e2f9afbc7"), account.debt],
-          [translate("m412d5e16235c"), account.balance],
-        ].map(([label, number], index) => (
+        {(
+          [
+            [
+              translate("me674447337e8"),
+              account.available,
+              translate("m3226c9c682c0"),
+            ],
+            [
+              translate("m3385ffe67470"),
+              account.reserved,
+              translate("m48a913c726ab"),
+            ],
+            [
+              translate("m026e2f9afbc7"),
+              account.debt,
+              translate("m2770b72dfe2f"),
+            ],
+            [
+              translate("m412d5e16235c"),
+              account.balance,
+              translate("mc1a2499dc729"),
+            ],
+          ] as const
+        ).map(([label, number, description], index) => (
           <Card
             key={label}
             className={
@@ -56,10 +85,13 @@ export function CreditSummary({
           >
             <CardHeader>
               <CardTitle className="text-sm">{label}</CardTitle>
+              <CardDescription className="text-xs">
+                {description}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="break-all text-3xl tabular-nums">
-                {typeof number === "number" ? format.number(number) : number}
+                {format.number(number)}
               </p>
             </CardContent>
           </Card>
@@ -67,7 +99,7 @@ export function CreditSummary({
       </div>
       {account.debt > 0 && (
         <Notice tone="warning" title={translate("mc44f06cbf34f")}>
-          {translate("m95686cd6e2bf")}{" "}
+          {translate("m95686cd6e2bf")}
         </Notice>
       )}
       <div className="grid gap-4 md:grid-cols-2">
@@ -77,14 +109,16 @@ export function CreditSummary({
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p className="text-muted-foreground">
-              {common("zone", { zone: zone ?? "UTC" })}{" "}
+              {common("zone", { zone: zone ?? "UTC" })}
             </p>
             {account.upcoming.length ? (
               <ul className="space-y-2">
                 {account.upcoming.map((item, i) => (
                   <li key={i}>
-                    {format.number(item.credits)} {translate("mea96a424e259")}{" "}
-                    {date(item.expiresAt)} {zone}{" "}
+                    {translate("m47aec6ab3d81", {
+                      credits: item.credits,
+                      date: date(item.expiresAt),
+                    })}
                   </li>
                 ))}
               </ul>
@@ -99,16 +133,18 @@ export function CreditSummary({
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p className="text-muted-foreground">
-              {translate("m401a2600d293")}{" "}
+              {translate("mdfa98ada8fef")}
             </p>
             {account.holds.length ? (
               <ul className="space-y-2">
                 {account.holds.map((item) => (
                   <li key={item.id}>
-                    {format.number(item.credits)} {translate("mea96a424e259")}{" "}
                     {item.managedJobId
-                      ? translate("mcc1ed331632f")
-                      : common("until", { date: date(item.expiresAt) })}
+                      ? translate("m54b12745cfa3", { credits: item.credits })
+                      : translate("md01e2947e509", {
+                          credits: item.credits,
+                          date: date(item.expiresAt),
+                        })}
                   </li>
                 ))}
               </ul>
@@ -127,7 +163,7 @@ export function CreditSummary({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{translate("ma4528df6c39b")}</TableHead>
+                  <TableHead>{translate("m36ce88eca338")}</TableHead>
                   <TableHead>{translate("m4e1f49a9c8ae")}</TableHead>
                   <TableHead>{translate("m2a6b24ad2872")}</TableHead>
                   <TableHead>{translate("m7f1d4110839d")}</TableHead>
@@ -151,15 +187,13 @@ export function CreditSummary({
                       )}
                     </TableCell>
                     <TableCell className="tabular-nums">
-                      {item.delta > 0 ? "+" : ""}
-                      {item.delta}
+                      {signed(item.delta)}
                     </TableCell>
                     <TableCell className="tabular-nums">
-                      {item.reservedDelta > 0 ? "+" : ""}
-                      {item.reservedDelta}
+                      {signed(item.reservedDelta)}
                     </TableCell>
                     <TableCell className="tabular-nums">
-                      {item.balanceAfter}
+                      {format.number(item.balanceAfter)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -171,18 +205,22 @@ export function CreditSummary({
               description={translate("m41f64e2322eb")}
             />
           )}
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" asChild>
-              <Link href={historyPath}>{translate("m08ee9e0b3d0b")}</Link>
-            </Button>
-            {account.nextBefore && (
-              <Button variant="outline" asChild>
-                <Link href={`${historyPath}?before=${account.nextBefore}`}>
-                  {translate("m0eed19abab86")}{" "}
-                </Link>
-              </Button>
-            )}
-          </div>
+          {(paged || account.nextBefore) && (
+            <div className="flex flex-wrap gap-2">
+              {paged && (
+                <Button variant="outline" asChild>
+                  <Link href={historyPath}>{translate("m08ee9e0b3d0b")}</Link>
+                </Button>
+              )}
+              {account.nextBefore && (
+                <Button variant="outline" asChild>
+                  <Link href={`${historyPath}?before=${account.nextBefore}`}>
+                    {translate("m0eed19abab86")}
+                  </Link>
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

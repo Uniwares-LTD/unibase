@@ -8,6 +8,7 @@ import { api, ApiError } from "@/lib/client/api";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import { Notice } from "./page-patterns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,10 +34,13 @@ export function AiResolution({
   const router = useRouter();
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<{
+    tone: "success" | "error";
+    text: string;
+  } | null>(null);
   async function resolve(decision: "accept" | "release") {
     setBusy(true);
-    setMessage("");
+    setMessage(null);
     try {
       await api(
         `/api/admin/ai/jobs/${jobId}/resolve`,
@@ -47,11 +51,15 @@ export function AiResolution({
         },
       );
       router.refresh();
-      setMessage(translate("m157fea7c0bc1"));
+      setMessage({ tone: "success", text: translate("m157fea7c0bc1") });
     } catch (error) {
-      setMessage(
-        error instanceof ApiError ? error.message : translate("m2371ba76283f"),
-      );
+      setMessage({
+        tone: "error",
+        text:
+          error instanceof ApiError
+            ? error.message
+            : translate("m2371ba76283f"),
+      });
     } finally {
       setBusy(false);
     }
@@ -69,26 +77,45 @@ export function AiResolution({
       />
       <div className="flex flex-wrap gap-2">
         {canAccept && (
-          <Button
-            disabled={busy}
-            onClick={() => {
-              void resolve("accept");
-            }}
-          >
-            {translate("me404048f0463")}{" "}
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button disabled={busy}>{translate("me404048f0463")}</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {translate("m54134a56ccdb")}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {translate("m54f5ae56a858")}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>
+                  {translate("md0d1f332872a")}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    void resolve("accept");
+                  }}
+                >
+                  {translate("m5f1832b2b9b3")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="outline" disabled={busy}>
-              {translate("m2f4de33927e0")}{" "}
+              {translate("m2f4de33927e0")}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>{translate("m25929b7a63f6")}</AlertDialogTitle>
               <AlertDialogDescription>
-                {translate("m9f8a061314b8")}{" "}
+                {translate("m9f8a061314b8")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -100,17 +127,13 @@ export function AiResolution({
                   void resolve("release");
                 }}
               >
-                {translate("m068930c9fe98")}{" "}
+                {translate("m068930c9fe98")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
-      {message && (
-        <p role="status" className="text-sm">
-          {message}
-        </p>
-      )}
+      {message && <Notice tone={message.tone} title={message.text} />}
     </div>
   );
 }

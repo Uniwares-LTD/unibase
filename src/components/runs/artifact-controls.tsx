@@ -5,7 +5,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { api, ApiError } from "@/lib/client/api";
+import { Notice } from "@/components/page-patterns";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 export function ArtifactControls({ id }: { id: string }) {
   const translate = useTranslations("ui");
 
@@ -14,6 +26,7 @@ export function ArtifactControls({ id }: { id: string }) {
   const [message, setMessage] = useState("");
   async function submit() {
     setBusy(true);
+    setMessage("");
     try {
       await api(`/api/artifacts/${id}`, z.object({ id: z.string() }), {
         method: "POST",
@@ -30,15 +43,32 @@ export function ArtifactControls({ id }: { id: string }) {
     }
   }
   return (
-    <div className="space-y-2">
-      <Button
-        variant="destructive"
-        disabled={busy}
-        onClick={() => void submit()}
-      >
-        {translate("mc5f3e9c14d36")}{" "}
-      </Button>
-      <p role="status">{message}</p>
+    <div className="space-y-3">
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive" disabled={busy}>
+            {translate("mc5f3e9c14d36")}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{translate("m3f72dfa3a2be")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {translate("medb6a491842a")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{translate("m19766ed6ccb2")}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => void submit()}
+            >
+              {translate("mc5f3e9c14d36")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {message && <Notice tone="error" title={message} />}
     </div>
   );
 }

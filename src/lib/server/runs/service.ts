@@ -19,6 +19,7 @@ import {
   parseUiForm,
   validateAnswers,
   type OrchestratorDefinition,
+  type RunStatus,
 } from "@/lib/contracts/runs";
 import { snapshotPersona, guardPersona, personaChoices } from "./personas";
 import { maximumCredits } from "@/lib/config/ai-pricing";
@@ -319,7 +320,7 @@ export async function startRun(input: unknown) {
   requireModule("runs");
   return createAttempt(parseInput(runStartSchema, input));
 }
-function status(job: AiJob, result?: unknown) {
+function status(job: AiJob, result?: unknown): RunStatus {
   if (job.status === "succeeded") return "succeeded";
   if (
     job.status === "failed" &&
@@ -329,17 +330,19 @@ function status(job: AiJob, result?: unknown) {
     result.outcome === "partial"
   )
     return "partially completed";
-  return {
-    queued: "queued",
-    dispatching: "starting",
-    running: "running",
-    paused: "awaiting input",
-    unknown: "reconciling",
-    "needs-review": "needs-review",
-    "settlement-blocked": "needs-review",
-    failed: "failed",
-    cancelled: "cancelled",
-  }[job.status];
+  return (
+    {
+      queued: "queued",
+      dispatching: "starting",
+      running: "running",
+      paused: "awaiting input",
+      unknown: "reconciling",
+      "needs-review": "needs-review",
+      "settlement-blocked": "needs-review",
+      failed: "failed",
+      cancelled: "cancelled",
+    } satisfies Record<Exclude<AiJob["status"], "succeeded">, RunStatus>
+  )[job.status as Exclude<AiJob["status"], "succeeded">];
 }
 export async function listRuns(cursor?: string, filter?: string) {
   const actor = await requireSession();

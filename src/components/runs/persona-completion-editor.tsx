@@ -1,6 +1,7 @@
 "use client";
 import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Notice } from "@/components/page-patterns";
 import { z } from "zod";
 import { api, ApiError } from "@/lib/client/api";
 import {
@@ -227,7 +228,7 @@ export function CompletionEditor({
               {busy ? translate("m23e39291d613") : translate("md599b2bbf718")}
             </Button>
           </fieldset>
-          <p role="status">{message}</p>
+          {message && <Notice title={message} />}
         </form>
       </CardContent>
     </Card>

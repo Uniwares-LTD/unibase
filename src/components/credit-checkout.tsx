@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { namespace } from "@/lib/project";
 import { Notice } from "./page-patterns";
@@ -25,6 +25,21 @@ export function CreditCheckout({
   }[];
 }) {
   const translate = useTranslations("ui");
+  const format = useFormatter();
+  const price = (amountMinor?: number, currency?: string) => {
+    if (!amountMinor || !currency) return null;
+    const code = currency.toUpperCase();
+    // Stripe amounts use the currency's minor unit (e.g. cents, or none for JPY).
+    const digits =
+      new Intl.NumberFormat("en", {
+        style: "currency",
+        currency: code,
+      }).resolvedOptions().maximumFractionDigits ?? 2;
+    return format.number(amountMinor / 10 ** digits, {
+      style: "currency",
+      currency: code,
+    });
+  };
 
   const [state, action, pending] = useActionState(
     checkoutCredits.bind(null, uid),
@@ -70,7 +85,7 @@ export function CreditCheckout({
   if (context === "play")
     return (
       <p role="status" className="text-sm text-muted-foreground">
-        {translate("m67ae882d6ded")}{" "}
+        {translate("m616340fd038f")}
       </p>
     );
   return (
@@ -80,24 +95,38 @@ export function CreditCheckout({
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          {translate("m5a12455b2151")}{" "}
+          {translate("m5a12455b2151")}
         </p>
         <form action={action} className="flex flex-wrap gap-3">
           <input type="hidden" name="key" value={initialKey} />
-          {packs.map((pack) => (
-            <Button
-              key={pack.id}
-              type="submit"
-              name="packId"
-              value={pack.id}
-              disabled={pending || context !== "web"}
-            >
-              {pack.label} · {pack.credits} {translate("mbe379a30f1aa")}{" "}
-            </Button>
-          ))}
+          {packs.map((pack) => {
+            const amount = price(pack.amountMinor, pack.currency);
+            return (
+              <Button
+                key={pack.id}
+                type="submit"
+                name="packId"
+                value={pack.id}
+                disabled={pending || context !== "web"}
+              >
+                {amount
+                  ? translate("ma351e232280b", {
+                      label: pack.label,
+                      credits: pack.credits,
+                      price: amount,
+                    })
+                  : translate("meaf8dfc7740c", {
+                      label: pack.label,
+                      credits: pack.credits,
+                    })}
+              </Button>
+            );
+          })}
         </form>
-        <p className="text-sm text-muted-foreground">
-          {translate("m75fada4bbaf4")}{" "}
+        <p role="status" className="text-sm text-muted-foreground">
+          {context === "checking"
+            ? translate("m00b134e2a81b")
+            : translate("m75fada4bbaf4")}
         </p>
         {state.message && <Notice tone={"error"} title={state.message} />}
       </CardContent>

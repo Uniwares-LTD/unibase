@@ -37,6 +37,7 @@ export function AdminCreditControls({
   const [key, setKey] = useState(initialKey);
   const [expiry, setExpiry] = useState("default");
   const [direction, setDirection] = useState("grant");
+  const [summary, setSummary] = useState("");
   const [state, action, pending] = useActionState(
     async (previous: { message: string; saved: boolean }, form: FormData) => {
       const result = await adjustUserCredits(actorUid, uid, previous, form);
@@ -113,7 +114,7 @@ export function AdminCreditControls({
           {direction === "grant" && expiry === "custom" && (
             <div className="space-y-2">
               <Label htmlFor={`${id}-expires`}>
-                {translate("m69ac01f0a993")}{" "}
+                {translate("m69ac01f0a993")}
               </Label>
               <Input
                 type="datetime-local"
@@ -125,9 +126,7 @@ export function AdminCreditControls({
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor={`${id}-reason`}>
-              {translate("m7019eb977268")}{" "}
-            </Label>
+            <Label htmlFor={`${id}-reason`}>{translate("m7019eb977268")}</Label>
             <Input
               id={`${id}-reason`}
               name="reason"
@@ -136,13 +135,32 @@ export function AdminCreditControls({
               autoComplete="off"
             />
             <p className="text-xs text-muted-foreground">
-              {translate("m693900292adb")}{" "}
+              {translate("m693900292adb")}
             </p>
           </div>
           <p className="text-sm text-muted-foreground">
-            {translate("me12e1f257817")}{" "}
+            {translate("me12e1f257817")}
           </p>
-          <AlertDialog>
+          <AlertDialog
+            onOpenChange={(open) => {
+              if (!open || !formRef.current) return;
+              // Echo the submitted values so the confirmation names the exact change.
+              const data = new FormData(formRef.current);
+              const amount = Number(data.get("amount") || 0);
+              setSummary(
+                direction === "deduct"
+                  ? translate("m8ea21f8a681f", { amount })
+                  : expiry === "perpetual"
+                    ? translate("mdc13adcc281f", { amount })
+                    : expiry === "custom"
+                      ? translate("mcbf58d3d9378", {
+                          amount,
+                          date: `${String(data.get("expiresAt") ?? "").replace("T", " ")} UTC`,
+                        })
+                      : translate("m04c6076cf344", { amount }),
+              );
+            }}
+          >
             <AlertDialogTrigger asChild>
               <Button type="button" disabled={pending}>
                 {pending
@@ -156,7 +174,10 @@ export function AdminCreditControls({
                   {translate("m4809e4db7cb4")}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  {translate("m7f1e0ccdb520")}{" "}
+                  <span className="block font-medium text-foreground">
+                    {summary}
+                  </span>
+                  {translate("m7f1e0ccdb520")}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -167,12 +188,13 @@ export function AdminCreditControls({
                   <Button
                     type="submit"
                     form={id}
+                    variant={direction === "deduct" ? "destructive" : "default"}
                     onClick={(event) => {
                       if (!formRef.current?.reportValidity())
                         event.preventDefault();
                     }}
                   >
-                    {translate("m402f34285a9b")}{" "}
+                    {translate("m402f34285a9b")}
                   </Button>
                 </AlertDialogAction>
               </AlertDialogFooter>

@@ -1,22 +1,23 @@
 "use client";
 import { useTranslations } from "next-intl";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { z } from "zod";
 import { api } from "@/lib/client/api";
-import {
-  notificationPageSchema,
-  notificationPreferencesSchema,
-} from "@/lib/contracts/notifications";
+import { notificationPageSchema } from "@/lib/contracts/notifications";
+import { DateLabel } from "./localized-value";
+import { EmptyState, Notice } from "./page-patterns";
 import { Button } from "./ui/button";
-import { Checkbox } from "./ui/checkbox";
-import { Label } from "./ui/label";
+import { Card, CardContent } from "./ui/card";
 type Page = z.infer<typeof notificationPageSchema>;
-function useUnread(initial = 0) {
-  const [unread, setUnread] = useState(initial);
+
+// One unread poll per document, shared by the header badge and the inbox.
+const UnreadContext = createContext<number | null>(null);
+export function UnreadProvider({ children }: { children: React.ReactNode }) {
+  const [unread, setUnread] = useState<number | null>(null);
   useEffect(() => {
     let controller: AbortController | undefined;
     const refresh = () => {
@@ -40,13 +41,15 @@ function useUnread(initial = 0) {
       window.removeEventListener("notifications-changed", refresh);
     };
   }, []);
-  return unread;
+  return (
+    <UnreadContext.Provider value={unread}>{children}</UnreadContext.Provider>
+  );
 }
 export function NotificationBadge() {
   const translate = useTranslations("ui");
   const common = useTranslations("common");
 
-  const unread = useUnread();
+  const unread = useContext(UnreadContext) ?? 0;
   return (
     <Button asChild variant="ghost">
       <Link
@@ -65,134 +68,148 @@ export function NotificationInbox({ initial }: { initial: Page }) {
   const common = useTranslations("common");
 
   const [page, setPage] = useState(initial),
+    [cursor, setCursor] = useState<string>(),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
-  const unread = useUnread(page.unread);
+    [failed, setFailed] = useState(false);
+  const unread = useContext(UnreadContext) ?? page.unread;
   async function perform(action: () => Promise<unknown>) {
     setBusy(true);
-    setError("");
+    setFailed(false);
     try {
       await action();
       window.dispatchEvent(new Event("notifications-changed"));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : translate("me6c5c7ec5c6b"));
+    } catch {
+      setFailed(true);
     } finally {
       setBusy(false);
     }
   }
-  async function refresh(cursor?: string) {
+  async function load(next?: string) {
     setPage(
       await api(
         "/api/notifications" +
-          (cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""),
+          (next ? `?cursor=${encodeURIComponent(next)}` : ""),
         notificationPageSchema,
       ),
     );
+    setCursor(next);
   }
   return (
-    <section className="space-y-6">
-      <h1 className="text-2xl font-semibold">{translate("m788011833a5a")}</h1>
-      <p>{common("unread", { count: unread })}</p>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          disabled={busy}
-          onClick={() =>
-            void perform(async () => {
-              await api("/api/notifications", z.object({ ok: z.boolean() }), {
-                method: "PATCH",
-                body: { all: true },
-              });
-              await refresh();
-            })
-          }
-        >
-          {translate("m3bc62a9e6a39")}{" "}
-        </Button>
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={() => void perform(() => refresh())}
-        >
-          {translate("m0e9161011702")}{" "}
-        </Button>
-      </div>
-      <fieldset className="space-y-3">
-        <legend>{translate("m19a58710832b")}</legend>
-        {(["runs", "credits", "account"] as const).map((category) => (
-          <div key={category} className="flex items-center gap-3">
-            <Checkbox
-              id={`notifications-${category}`}
-              checked={page.preferences[category]}
-              disabled={busy}
-              onCheckedChange={(value) =>
-                void perform(async () => {
-                  const preferences = await api(
-                    "/api/notifications/preferences",
-                    notificationPreferencesSchema,
-                    {
-                      method: "PATCH",
-                      body: { ...page.preferences, [category]: value === true },
-                    },
-                  );
-                  setPage((old) => ({ ...old, preferences }));
-                })
-              }
-            />
-            <Label htmlFor={`notifications-${category}`}>
-              {category === "runs"
-                ? translate("m848f54e89660")
-                : category === "credits"
-                  ? translate("m2a6b24ad2872")
-                  : translate("m7738853a0f09")}
-            </Label>
-          </div>
-        ))}
-      </fieldset>
-      {error && <p role="alert">{error}</p>}
-      <ul className="space-y-3">
-        {page.rows.map((row) => (
-          <li
-            key={row.id}
-            className="flex flex-wrap items-center gap-3 rounded border p-3"
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {common("unread", { count: unread })}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            disabled={busy || unread === 0}
+            onClick={() =>
+              void perform(async () => {
+                await api("/api/notifications", z.object({ ok: z.boolean() }), {
+                  method: "PATCH",
+                  body: { all: true },
+                });
+                await load(cursor);
+              })
+            }
           >
-            <Link href={row.href} className={row.read ? "" : "font-semibold"}>
-              {row.text}
+            {translate("m3bc62a9e6a39")}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => void perform(() => load(cursor))}
+          >
+            {translate("m0e9161011702")}
+          </Button>
+          <Button variant="ghost" asChild>
+            <Link href="/preferences#notifications">
+              {translate("m868cb91d007c")}
             </Link>
-            {!row.read && (
-              <Button
-                variant="outline"
-                disabled={busy}
-                onClick={() =>
-                  void perform(async () => {
-                    await api(
-                      "/api/notifications",
-                      z.object({ ok: z.boolean() }),
-                      { method: "PATCH", body: { ids: [row.id] } },
-                    );
-                    setPage((old) => ({
-                      ...old,
-                      rows: old.rows.map((item) =>
-                        item.id === row.id ? { ...item, read: true } : item,
-                      ),
-                    }));
-                  })
-                }
-              >
-                {translate("mb49c9b6cdf43")}{" "}
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-      {!page.rows.length && <p>{translate("mca02c722b098")}</p>}
-      {page.next && (
-        <Button
-          disabled={busy}
-          onClick={() => void perform(() => refresh(page.next!))}
-        >
-          {translate("ma503a8160702")}{" "}
-        </Button>
+          </Button>
+        </div>
+      </div>
+      {failed && <Notice tone="error" title={translate("me6c5c7ec5c6b")} />}
+      {page.rows.length ? (
+        <ul className="space-y-3">
+          {page.rows.map((row) => (
+            <li key={row.id}>
+              <Card className="shadow-none">
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+                  <div className="min-w-0 space-y-1">
+                    <Link
+                      href={row.href}
+                      className={
+                        row.read
+                          ? "underline-offset-4 hover:underline"
+                          : "font-semibold underline-offset-4 hover:underline"
+                      }
+                    >
+                      {row.text}
+                    </Link>
+                    <p className="text-xs text-muted-foreground">
+                      <DateLabel value={row.createdAt} />
+                    </p>
+                  </div>
+                  {!row.read && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() =>
+                        void perform(async () => {
+                          await api(
+                            "/api/notifications",
+                            z.object({ ok: z.boolean() }),
+                            { method: "PATCH", body: { ids: [row.id] } },
+                          );
+                          setPage((old) => ({
+                            ...old,
+                            rows: old.rows.map((item) =>
+                              item.id === row.id
+                                ? { ...item, read: true }
+                                : item,
+                            ),
+                          }));
+                        })
+                      }
+                    >
+                      {translate("mb49c9b6cdf43")}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState
+          title={translate("mca02c722b098")}
+          description={translate("ma5d6e4446495")}
+        />
       )}
-    </section>
+      {(cursor || page.next) && (
+        <div className="flex flex-wrap gap-2">
+          {cursor && (
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => void perform(() => load())}
+            >
+              {translate("m0d8a7f399c78")}
+            </Button>
+          )}
+          {page.next && (
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => void perform(() => load(page.next!))}
+            >
+              {translate("ma503a8160702")}
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

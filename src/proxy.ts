@@ -43,7 +43,7 @@ export function proxy(request: NextRequest) {
     "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com" +
       emulatorSources +
       (dev ? " ws: wss:" : ""),
-    "frame-src 'self' https://accounts.google.com",
+    "frame-src 'self' https://accounts.google.com" + emulatorSources,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self' https://accounts.google.com",

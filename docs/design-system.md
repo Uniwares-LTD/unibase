@@ -161,6 +161,22 @@ public/design-system/cover.svg; the showcase remains development-only.
 - Keep visible keyboard focus and the shell's skip link. Respect reduced motion.
   Coarse-pointer buttons, inputs and selects have a minimum height of 44px.
 
+## Page frame conventions
+
+- Pages use `page-stack` with `PageHeader` (title, description, and `actions`
+  for the page's primary button) from `src/components/page-patterns.tsx`, and set
+  a `generateMetadata` title; detail pages use the entity name.
+- Empty lists use `EmptyState`; success and error feedback use `Notice` rather
+  than bare status paragraphs.
+- Show dates with `DateLabel`, numbers with `NumberLabel` or the formatter,
+  enum values with `StateLabel`, and file sizes with `BytesLabel`
+  (`src/components/localized-value.tsx`). Never show raw ISO strings, codes or JSON.
+- Write each visible sentence as one ICU message with placeholders and plurals;
+  do not join translated fragments or embed English in components.
+- Paginated lists render "Newest" next to "Older …" once a cursor is active,
+  after the list and its empty state.
+- Destructive or paid actions confirm in an `AlertDialog` that states the change.
+
 These are presentation conventions. The feature preview does not add models,
 schemas, persistence, approval operations, generation or Dify integration.
 

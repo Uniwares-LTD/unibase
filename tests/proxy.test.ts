@@ -31,6 +31,11 @@ test("document CSP follows only local loopback emulator ports and excludes untru
     assert.match(policy(), /http:\/\/127\.0\.0\.1:9199/);
     assert.match(policy(), /http:\/\/localhost:9199/);
     assert.doesNotMatch(policy(), /:9099/);
+    const framePolicy = policy()
+      .split("; ")
+      .find((directive) => directive.startsWith("frame-src "))!;
+    assert.match(framePolicy, /http:\/\/127\.0\.0\.1:9199/);
+    assert.match(framePolicy, /http:\/\/localhost:9199/);
     for (const host of [
       "localhost:9199 https://untrusted.example",
       "remote.example:9199",

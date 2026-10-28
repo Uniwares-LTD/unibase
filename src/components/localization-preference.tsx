@@ -1,10 +1,11 @@
 "use client";
 import { useLocale, useTranslations, useTimeZone } from "next-intl";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { localeCookie } from "@/lib/locale";
 import { project } from "@/lib/project";
 import { api } from "@/lib/client/api";
 import { profileSchema } from "@/lib/contracts/profile";
+import { Notice } from "./page-patterns";
 import {
   Select,
   SelectContent,
@@ -12,8 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import {
   Card,
@@ -22,73 +21,92 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
+
+// Each language is named in itself so it stays recognisable whatever is active.
+const languageName = (value: string) =>
+  new Intl.DisplayNames([value], { type: "language" }).of(value) ?? value;
+
 export function LocalizationPreference({ canSave }: { canSave: boolean }) {
   const locale = useLocale(),
     t = useTranslations("locale"),
-    zone = useTimeZone();
-  const [timeZone, setTimeZone] = useState(zone ?? "UTC"),
-    [message, setMessage] = useState(""),
-    [busy, setBusy] = useState(false);
+    zone = useTimeZone() ?? "UTC";
+  const [busy, setBusy] = useState(false),
+    [failed, setFailed] = useState(false);
+  const zones = useMemo(() => {
+    const all = Intl.supportedValuesOf("timeZone");
+    return [...new Set(["UTC", zone, ...all])];
+  }, [zone]);
+  // Signed-in choices are saved to the profile first; the cookie then applies them here.
+  function apply(next: { locale: string; timeZone: string }) {
+    const commit = () => {
+      document.cookie = `${localeCookie}=${next.locale}; Path=/; SameSite=Lax; Max-Age=31536000${location.protocol === "https:" ? "; Secure" : ""}`;
+      location.reload();
+    };
+    if (!canSave) return commit();
+    setBusy(true);
+    setFailed(false);
+    void api("/api/profile/localization", profileSchema, {
+      method: "PATCH",
+      body: next,
+    })
+      .then(commit)
+      .catch(() => {
+        setFailed(true);
+        setBusy(false);
+      });
+  }
   return (
     <Card className="shadow-none">
       <CardHeader>
         <CardTitle>{t("heading")}</CardTitle>
-        <CardDescription>{t("browser")}</CardDescription>
+        <CardDescription>
+          {canSave ? t("account") : t("browser")}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="locale-choice">{t("language")}</Label>
           <Select
             value={locale}
-            onValueChange={(value) => {
-              document.cookie = `${localeCookie}=${value}; Path=/; SameSite=Lax; Max-Age=31536000${location.protocol === "https:" ? "; Secure" : ""}`;
-              location.reload();
-            }}
+            disabled={busy}
+            onValueChange={(value) => apply({ locale: value, timeZone: zone })}
           >
             <SelectTrigger id="locale-choice">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {project.locales.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {value === "ar" ? "العربية" : "English"}
+                <SelectItem key={value} value={value} lang={value}>
+                  {languageName(value)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         {canSave ? (
-          <form
-            className="space-y-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setBusy(true);
-              setMessage("");
-              void api("/api/profile/localization", profileSchema, {
-                method: "PATCH",
-                body: { locale, timeZone },
-              })
-                .then(() => location.reload())
-                .catch(() => setMessage(t("failed")))
-                .finally(() => setBusy(false));
-            }}
-          >
+          <div className="space-y-2">
             <Label htmlFor="time-zone">{t("timeZone")}</Label>
-            <Input
-              id="time-zone"
-              dir="ltr"
-              value={timeZone}
-              onChange={(e) => setTimeZone(e.target.value)}
-              maxLength={100}
+            <Select
+              value={zone}
               disabled={busy}
-              placeholder="UTC"
-            />
-            <Button disabled={busy}>{t("save")}</Button>
-            <p role="status">{message}</p>
-          </form>
+              onValueChange={(value) => apply({ locale, timeZone: value })}
+            >
+              <SelectTrigger id="time-zone" dir="ltr">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent dir="ltr" className="max-h-80">
+                {zones.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {value.replaceAll("_", " ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">{t("signIn")}</p>
         )}
+        {failed && <Notice tone="error" title={t("failed")} />}
       </CardContent>
     </Card>
   );

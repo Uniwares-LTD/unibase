@@ -12,6 +12,34 @@ export const domainAdapterSchema = z.strictObject({
   version: z.string().regex(/^[a-zA-Z0-9.-]{1,32}$/),
 });
 export const runIdSchema = z.string().regex(/^[a-f0-9]{64}$/);
+export const uuidSchema = z.string().uuid();
+// Display statuses returned for runs and attempts; each has a "states" label.
+export const runStatuses = [
+  "queued",
+  "starting",
+  "running",
+  "awaiting input",
+  "reconciling",
+  "needs-review",
+  "succeeded",
+  "partially completed",
+  "failed",
+  "cancelled",
+] as const;
+export type RunStatus = (typeof runStatuses)[number];
+export const activeRunStatuses: readonly string[] = [
+  "queued",
+  "starting",
+  "running",
+  "awaiting input",
+  "reconciling",
+] satisfies RunStatus[];
+export const terminalRunStatuses: readonly string[] = [
+  "succeeded",
+  "partially completed",
+  "failed",
+  "cancelled",
+] satisfies RunStatus[];
 export const inputFieldSchema = z.strictObject({
   name: z.string().regex(/^[a-z][a-z0-9_]{0,63}$/),
   label: z.string().min(1).max(100),

@@ -247,7 +247,7 @@ function SummaryBody({ content, disabled, respond }: CardBodyProps) {
         variant="outline"
         onClick={() => respond("acknowledge", null)}
       >
-        {translate("mf9236d9e87b6")}{" "}
+        {translate("mf9236d9e87b6")}
       </Button>
     </div>
   );
@@ -276,7 +276,7 @@ function GalleryBody({
             />
           ) : (
             <p className="text-sm text-muted-foreground">
-              {translate("m8d25d2b1ce81")}{" "}
+              {translate("m8d25d2b1ce81")}
             </p>
           )}
           <p>{item.label}</p>
@@ -323,14 +323,14 @@ function IssueBody({ content, disabled, respond }: CardBodyProps) {
         ))}
       </ul>
       <p className="text-sm text-muted-foreground">
-        {translate("me289c76a8970")}{" "}
+        {translate("me289c76a8970")}
       </p>
       <Button
         disabled={disabled}
         variant="outline"
         onClick={() => respond("acknowledge", null)}
       >
-        {translate("mf9236d9e87b6")}{" "}
+        {translate("mf9236d9e87b6")}
       </Button>
     </div>
   );
@@ -372,7 +372,7 @@ export function RegisteredCard({
   } catch {
     return (
       <p role="status" className="rounded-md border p-3">
-        {translate("m1b069b7cfe37")}{" "}
+        {translate("m1b069b7cfe37")}
       </p>
     );
   }

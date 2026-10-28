@@ -35,35 +35,37 @@ export default async function CreditsPage({
     catalog.mode === "simulation" ? await currentSimulatedPurchases() : [];
   return (
     <PageMessages path="/credits">
-      {
-        <div className="page-stack">
-          <PageHeader
-            title={translate("m2a6b24ad2872")}
-            description={translate("me2c4efc7ff16")}
+      <div className="page-stack">
+        <PageHeader
+          title={translate("m2a6b24ad2872")}
+          description={translate("me2c4efc7ff16")}
+        />
+        <CreditSummary
+          account={account}
+          historyPath="/credits"
+          paged={cursor !== undefined}
+        />
+        {catalog.mode === "simulation" ? (
+          <PurchaseSimulator
+            key={session.uid}
+            uid={session.uid}
+            initialKey={randomUUID()}
+            packs={catalog.packs}
+            orders={orders}
           />
-          <CreditSummary account={account} historyPath="/credits" />
-          {catalog.mode === "simulation" ? (
-            <PurchaseSimulator
-              key={session.uid}
-              uid={session.uid}
-              initialKey={randomUUID()}
-              packs={catalog.packs}
-              orders={orders}
-            />
-          ) : catalog.mode === "stripe" ? (
-            <CreditCheckout
-              key={session.uid}
-              uid={session.uid}
-              initialKey={randomUUID()}
-              packs={catalog.packs}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              {translate("mdb42aceed2c1")}{" "}
-            </p>
-          )}
-        </div>
-      }
+        ) : catalog.mode === "stripe" ? (
+          <CreditCheckout
+            key={session.uid}
+            uid={session.uid}
+            initialKey={randomUUID()}
+            packs={catalog.packs}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {translate("mdb42aceed2c1")}
+          </p>
+        )}
+      </div>
     </PageMessages>
   );
 }

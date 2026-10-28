@@ -2,6 +2,26 @@ import { useFormatter, useTranslations } from "next-intl";
 export function NumberLabel({ value }: { value: number }) {
   return <bdi>{useFormatter().number(value)}</bdi>;
 }
+const byteUnits = ["byte", "kilobyte", "megabyte", "gigabyte"] as const;
+export function useBytes() {
+  const format = useFormatter();
+  return (value: number) => {
+    let unit = 0;
+    while (value >= 1000 && unit < byteUnits.length - 1) {
+      value /= 1000;
+      unit += 1;
+    }
+    return format.number(value, {
+      style: "unit",
+      unit: byteUnits[unit],
+      unitDisplay: "short",
+      maximumFractionDigits: unit ? 1 : 0,
+    });
+  };
+}
+export function BytesLabel({ value }: { value: number }) {
+  return <bdi>{useBytes()(value)}</bdi>;
+}
 export function CurrencyLabel({
   amount,
   currency,

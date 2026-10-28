@@ -3,14 +3,8 @@ import { useTranslations } from "next-intl";
 
 import { NotificationBadge } from "./notifications";
 import { moduleEnabled } from "@/lib/project";
-import {
-  ChevronDown,
-  LogIn,
-  Settings2,
-  UserRound,
-  Wallet,
-  ShieldCheck,
-} from "lucide-react";
+import { ChevronDown, LogIn, UserRound, ShieldCheck } from "lucide-react";
+import { useAccountRoutes } from "@/components/app-shell";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,11 +22,16 @@ import { SessionControls } from "@/components/session-controls";
 export function AccountMenuControls({
   hasSession,
   isAdmin,
+  email,
+  displayName,
 }: {
   hasSession: boolean;
   isAdmin: boolean;
+  email: string | null;
+  displayName: string | null;
 }) {
   const translate = useTranslations("ui");
+  const routes = useAccountRoutes();
   const pathname = usePathname();
 
   if (!hasSession)
@@ -59,8 +58,12 @@ export function AccountMenuControls({
                 <UserRound className="size-4" aria-hidden="true" />
               </AvatarFallback>
             </Avatar>
-            <span className="hidden text-sm sm:inline">
-              {translate("mdbb5f6371b6a")}
+            <span className="hidden max-w-40 truncate text-sm sm:inline">
+              {displayName ? (
+                <bdi>{displayName}</bdi>
+              ) : (
+                translate("mdbb5f6371b6a")
+              )}
             </span>
             <ChevronDown
               className="size-4 text-muted-foreground"
@@ -68,29 +71,23 @@ export function AccountMenuControls({
             />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuLabel>{translate("m478e47e459be")}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link href="/account">
-              <UserRound aria-hidden="true" />
-              {translate("m7e1b0d5641f2")}
-            </Link>
-          </DropdownMenuItem>
-          {moduleEnabled("credits") && (
-            <DropdownMenuItem asChild>
-              <Link href="/credits">
-                <Wallet aria-hidden="true" />
-                {translate("m2a6b24ad2872")}
+        <DropdownMenuContent align="end" className="w-60">
+          {email && (
+            <>
+              <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
+                <bdi>{email}</bdi>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          {routes.map(({ href, label, Icon }) => (
+            <DropdownMenuItem key={href} asChild>
+              <Link href={href}>
+                <Icon aria-hidden="true" />
+                {label}
               </Link>
             </DropdownMenuItem>
-          )}
-          <DropdownMenuItem asChild>
-            <Link href="/preferences">
-              <Settings2 aria-hidden="true" />
-              {translate("m66962f72a088")}
-            </Link>
-          </DropdownMenuItem>
+          ))}
           {isAdmin && (
             <DropdownMenuItem asChild>
               <Link href="/admin">

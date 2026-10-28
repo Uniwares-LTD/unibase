@@ -19,7 +19,8 @@ import { GOOGLE_REDIRECT_KEY, redirectUser } from "@/lib/client/redirect-state";
 import { api, ApiError } from "@/lib/client/api";
 import { announceSessionChange } from "@/lib/client/session-lifecycle";
 import { safeReturnPath } from "@/lib/return-path";
-import { sessionResultSchema } from "@/lib/contracts/profile";
+import { profileSchema, sessionResultSchema } from "@/lib/contracts/profile";
+import { applyAccountAppearance } from "@/lib/client/appearance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,6 +58,10 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
     });
     await signOut(auth);
     sessionStorage.removeItem(GOOGLE_REDIRECT_KEY);
+    // Signing in must still complete if the saved appearance can't be read.
+    await api("/api/profile", profileSchema)
+      .then(applyAccountAppearance)
+      .catch(() => {});
     announceSessionChange(
       safeReturnPath(new URL(location.href).searchParams.get("next")),
     );

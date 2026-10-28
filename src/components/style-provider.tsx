@@ -9,11 +9,11 @@ import {
   type ReactNode,
 } from "react";
 import {
-  STYLE_COOKIE,
   resolveStyle,
   type DesignStyle,
   type StylePreference,
 } from "@/lib/appearance";
+import { writeStyleCookie } from "@/lib/client/appearance";
 import { watchPageCover } from "@/lib/page-cover";
 
 const StyleContext = createContext<{
@@ -54,13 +54,7 @@ export function StyleProvider({
         value,
         defaultStyle,
       );
-      // This public appearance cookie is read by the server before rendering.
-      // No credentials or account authority are stored here.
-      try {
-        document.cookie = `${STYLE_COOKIE}=${value}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
-      } catch {
-        /* Appearance still works when browser persistence is unavailable. */
-      }
+      writeStyleCookie(value);
       setState(value);
     },
     [defaultStyle],

@@ -1,7 +1,11 @@
 "use client";
-import { CurrencyLabel, StateLabel } from "@/components/localized-value";
+import {
+  CurrencyLabel,
+  DateLabel,
+  StateLabel,
+} from "@/components/localized-value";
 
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { useEffect, useId, useState } from "react";
 import Link from "next/link";
@@ -10,7 +14,13 @@ import { z } from "zod";
 import { api, ApiError } from "@/lib/client/api";
 import { PricingDescription } from "@/components/pricing-description";
 import { cardRegistry, type SavedCard } from "@/lib/runs/cards";
-import { uiPayloadSchema } from "@/lib/contracts/runs";
+import {
+  activeRunStatuses,
+  terminalRunStatuses,
+  uiPayloadSchema,
+} from "@/lib/contracts/runs";
+import { maximumCredits } from "@/lib/config/ai-pricing";
+import { Notice } from "@/components/page-patterns";
 import { RegisteredCard } from "./registered-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +38,18 @@ import { Badge } from "@/components/ui/badge";
 import type { runDetail } from "@/lib/server/runs/service";
 
 import { AnswererSelect } from "./answerer-select";
+import { RunInputField } from "./dynamic-field";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Detail = Awaited<ReturnType<typeof runDetail>>;
 const responseSchema = z.object({ id: z.string() });
@@ -36,6 +58,17 @@ function message(
   translate: ReturnType<typeof useTranslations<"ui">>,
 ) {
   return error instanceof ApiError ? error.message : translate("m96f22b8e7ee5");
+}
+// Human-input variables have no label of their own; show "due_date" as "Due date".
+function fieldLabel(name: string) {
+  const text = name.replace(/[_-]+/g, " ").trim();
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+function answerText(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+  if (Array.isArray(value)) return value.map(answerText).join(", ");
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
 }
 function savedCard(
   card: z.infer<typeof uiPayloadSchema>["cards"][number],
@@ -147,17 +180,19 @@ function Decision({
         </Badge>
       </CardHeader>
       <CardContent className="space-y-4">
-        {"error" in decision && <p role="status">{decision.error}</p>}
+        {"error" in decision && decision.error && (
+          <Notice tone="warning" title={decision.error} />
+        )}
         {"automaticError" in decision && decision.automaticError && (
-          <p role="status">{decision.automaticError}</p>
+          <Notice tone="warning" title={decision.automaticError} />
         )}
         {"answerSource" in decision && decision.answerSource && (
-          <p>
-            {translate("m1cbdadbedf5c")}{" "}
+          <p className="text-sm text-muted-foreground">
             {decision.answerSource.type === "persona"
-              ? `persona revision ${decision.answerSource.personaRevision}`
-              : translate("mb512d97e7cbf")}
-            .
+              ? translate("m7d27a307d119", {
+                  revision: decision.answerSource.personaRevision ?? "",
+                })
+              : translate("mac408f9af0dc")}
           </p>
         )}
         {"description" in decision && (
@@ -177,7 +212,7 @@ function Decision({
               }
             />
             {card.id in answers && (
-              <p role="status">{translate("m66127c4a57df")} </p>
+              <p role="status">{translate("m66127c4a57df")}</p>
             )}
           </div>
         ))}
@@ -185,7 +220,7 @@ function Decision({
           decision.inputs.map((field) => (
             <div key={field.output_variable_name} className="space-y-2">
               <Label htmlFor={`${prefix}-${field.output_variable_name}`}>
-                {field.output_variable_name}
+                {fieldLabel(field.output_variable_name)}
               </Label>
               {field.type === "select" ? (
                 <Select
@@ -264,17 +299,27 @@ function Decision({
           </div>
         )}
         {!active && "answers" in decision && decision.answers && (
-          <pre className="overflow-auto whitespace-pre-wrap break-words text-sm">
-            {JSON.stringify(decision.answers, null, 2)}
-          </pre>
+          <dl className="space-y-2 text-sm">
+            {Object.entries(decision.answers as Record<string, unknown>).map(
+              ([name, value]) => (
+                <div key={name}>
+                  <dt className="text-muted-foreground">{fieldLabel(name)}</dt>
+                  <dd className="whitespace-pre-wrap break-words">
+                    {answerText(value) || translate("m2afe0daa0861")}
+                  </dd>
+                </div>
+              ),
+            )}
+          </dl>
         )}
-        <p role="status">{error}</p>
+        {error && <Notice tone="error" title={error} />}
       </CardContent>
     </Card>
   );
 }
 export function RunDetail({ initial }: { initial: Detail }) {
   const translate = useTranslations("ui");
+  const format = useFormatter();
   const common = useTranslations("common");
 
   const [data, setData] = useState(initial);
@@ -283,13 +328,19 @@ export function RunDetail({ initial }: { initial: Detail }) {
   const pageQuery = new URLSearchParams(pages).toString();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [restartInputs, setRestartInputs] = useState(
     initial.attempts.at(-1)!.inputs,
   );
   const current = data.attempts.at(-1)!;
   const [restartAnswerer, setRestartAnswerer] = useState("user");
   const selectedPersona = data.personas.find((p) => p.id === restartAnswerer);
+  const restartPricing = data.configuration?.pricing ?? {
+    mode: "fixed" as const,
+    credits: 1,
+  };
   async function refresh() {
+    setRefreshing(true);
     try {
       const result = await api(
         `/api/runs/${data.id}?${pageQuery}`,
@@ -299,6 +350,8 @@ export function RunDetail({ initial }: { initial: Detail }) {
       setReadError("");
     } catch (e) {
       setReadError(message(e, translate));
+    } finally {
+      setRefreshing(false);
     }
   }
   useEffect(() => {
@@ -403,131 +456,185 @@ export function RunDetail({ initial }: { initial: Detail }) {
           <StateLabel value={data.status} />
         </Badge>
         <p>
-          {translate("mc934cc71493d")} {current.number} ·{" "}
-          {current.elapsedSeconds}
-          {translate("m564d3c6236c7")}{" "}
           {current.chargedCredits === null
-            ? `${current.credits} credits reserved`
-            : `${current.chargedCredits} credits charged`}
+            ? translate("mcbc2c3aa78b8", {
+                number: current.number,
+                seconds: current.elapsedSeconds,
+                credits: current.credits,
+              })
+            : translate("m9a18dae00f69", {
+                number: current.number,
+                seconds: current.elapsedSeconds,
+                credits: current.chargedCredits,
+              })}
         </p>
-        <Button variant="outline" onClick={() => void refresh()}>
-          {translate("m0e9161011702")}{" "}
+        <Button
+          variant="outline"
+          disabled={refreshing}
+          onClick={() => void refresh()}
+        >
+          {refreshing ? translate("mdeb3d3cea7fa") : translate("m0e9161011702")}
         </Button>
-        {[
-          "queued",
-          "starting",
-          "running",
-          "awaiting input",
-          "reconciling",
-        ].includes(data.status) && (
-          <Button
-            variant="outline"
-            disabled={busy || current.cancelRequested}
-            onClick={() => void command("cancel")}
-          >
-            {current.cancelRequested
-              ? translate("mab1da702bdb4")
-              : translate("m56bccd9d49b0")}
-          </Button>
+        {activeRunStatuses.includes(data.status) && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={busy || current.cancelRequested}
+              >
+                {current.cancelRequested
+                  ? translate("mab1da702bdb4")
+                  : translate("m56bccd9d49b0")}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {translate("m885030d80baf")}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {translate("mdf3be7427abf")}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>
+                  {translate("m00099c7194db")}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={() => void command("cancel")}
+                >
+                  {translate("m56bccd9d49b0")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </div>
       {current.answerer && (
         <div className="space-y-2">
           <p>
-            {translate("m35573822af5f")}{" "}
             {current.takenOver
-              ? translate("mfdcbb104a862")
-              : `${current.answerer.name}, revision ${current.answerer.revision}`}
-            .
+              ? translate("m6ef59ce56d3d")
+              : translate("m824e561989c5", {
+                  name: current.answerer.name,
+                  revision: current.answerer.revision,
+                })}
           </p>
-          {!current.takenOver &&
-            [
-              "queued",
-              "starting",
-              "running",
-              "awaiting input",
-              "reconciling",
-            ].includes(data.status) && (
-              <Button
-                variant="outline"
-                disabled={busy}
-                onClick={() => void command("take-over")}
-              >
-                {translate("m66abfef02cd8")}{" "}
-              </Button>
-            )}
-          <p>
-            {translate("medc4cfc4982a")} {current.parentCharge ?? "pending"}
-            {translate("med42bd5f120f")} {current.responderCharge}{" "}
-            {translate("meb492cb82670")}{" "}
+          {!current.takenOver && activeRunStatuses.includes(data.status) && (
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => void command("take-over")}
+            >
+              {translate("m66abfef02cd8")}
+            </Button>
+          )}
+          <p className="text-sm text-muted-foreground">
+            {current.parentCharge === null
+              ? translate("m03933c64d12f", {
+                  persona: current.responderCharge,
+                })
+              : translate("m56a439f6713c", {
+                  main: current.parentCharge,
+                  persona: current.responderCharge,
+                })}
           </p>
         </div>
       )}
       {current.application && (
-        <p>
-          {translate("me8d51a5ad1cd")} {current.application}
+        <div className="flex flex-wrap items-center gap-3">
+          <span>{translate("me8d51a5ad1cd")}</span>
+          <Badge variant="outline">
+            <StateLabel value={current.application} />
+          </Badge>
           {current.application === "failed" && (
             <Button
               variant="outline"
               disabled={busy}
               onClick={() => void command("retry-application")}
             >
-              {translate("me4a8905b1395")}{" "}
+              {translate("me4a8905b1395")}
             </Button>
           )}
-        </p>
+        </div>
       )}
       {current.artifactId && (
         <Link className="underline" href={`/artifacts/${current.artifactId}`}>
-          {translate("m5c2d5c2c1036")}{" "}
+          {translate("m5c2d5c2c1036")}
         </Link>
       )}
       {data.responders.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-xl font-semibold">
-            {translate("m7ccd4bca1a1d")}
-          </h2>
-          {data.responders.map((r) => (
-            <p key={r.id}>
-              <StateLabel value={r.status} /> ·{" "}
-              {r.totalTokens ?? common("unknown")} {translate("mf28ea827611f")}{" "}
-              {r.settledCredits === null
-                ? common("settlementPending")
-                : common("settled", { count: r.settledCredits })}
-              {r.cost && (
-                <CurrencyLabel
-                  amount={r.cost.amount}
-                  currency={r.cost.currency}
-                />
-              )}
-            </p>
-          ))}
-        </section>
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <h2>{translate("m7ccd4bca1a1d")}</h2>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {data.responders.map((r) => (
+              <p key={r.id}>
+                <StateLabel value={r.status} /> ·{" "}
+                {translate("md274fdd8b592", {
+                  tokens: r.totalTokens ?? common("unknown"),
+                })}{" "}
+                ·{" "}
+                {r.settledCredits === null
+                  ? common("settlementPending")
+                  : common("settled", { count: r.settledCredits })}
+                {r.cost && (
+                  <>
+                    {" "}
+                    ·{" "}
+                    <CurrencyLabel
+                      amount={r.cost.amount}
+                      currency={r.cost.currency}
+                    />
+                  </>
+                )}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
       )}
-      <p role="status">{error || readError}</p>
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">{translate("m69e561abfb58")}</h2>
-        {data.events
-          .filter((e) => e.event.type === "stage")
-          .map((e) => (
-            <p key={e.id}>
-              {e.event.title} · {e.event.status}
-              {e.event.elapsedMs !== null ? ` · ${e.event.elapsedMs} ms` : ""}
+      {(error || readError) && (
+        <Notice tone="error" title={error || readError} />
+      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h2>{translate("m69e561abfb58")}</h2>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {data.events
+            .filter((e) => e.event.type === "stage")
+            .map((e) => (
+              <p key={e.id}>
+                {e.event.title} · <StateLabel value={e.event.status} />
+                {e.event.elapsedMs != null && (
+                  <>
+                    {" "}
+                    ·{" "}
+                    {translate("m7d53c10ba2b5", {
+                      seconds: format.number(e.event.elapsedMs / 1000, {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      }),
+                    })}
+                  </>
+                )}
+              </p>
+            ))}
+          {!data.events.some((e) => e.event.type === "stage") && (
+            <p className="text-muted-foreground">
+              {terminalRunStatuses.includes(current.status)
+                ? translate("m9f173522b4e5")
+                : translate("m0cf47511f846")}
             </p>
-          ))}
-        {!data.events.some((e) => e.event.type === "stage") && (
-          <p>
-            {[
-              "succeeded",
-              "failed",
-              "cancelled",
-              "partially completed",
-            ].includes(current.status)
-              ? translate("m9f173522b4e5")
-              : translate("m0cf47511f846")}
-          </p>
-        )}
-      </section>
+          )}
+        </CardContent>
+      </Card>
       {data.decisions.map((decision) => (
         <Decision
           key={decision.id}
@@ -569,7 +676,7 @@ export function RunDetail({ initial }: { initial: Detail }) {
         )}
         {Object.keys(pages).length > 0 && (
           <Button variant="outline" onClick={() => setPages({})}>
-            {translate("m58515cdc3981")}{" "}
+            {translate("m58515cdc3981")}
           </Button>
         )}
       </nav>
@@ -577,14 +684,16 @@ export function RunDetail({ initial }: { initial: Detail }) {
         <Card key={attempt.id}>
           <CardHeader>
             <CardTitle>
-              {translate("mc934cc71493d")} {attempt.number}
+              {translate("mc934cc71493d", { number: attempt.number })}
             </CardTitle>
             <Badge>
               <StateLabel value={attempt.status} />
             </Badge>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p>{attempt.createdAt}</p>
+            <p className="text-sm text-muted-foreground">
+              <DateLabel value={attempt.createdAt} />
+            </p>
             {attempt.failure && (
               <p role="alert" className="break-words text-destructive">
                 {attempt.failure}
@@ -596,7 +705,7 @@ export function RunDetail({ initial }: { initial: Detail }) {
                   {attempt.result.text}
                 </p>
                 {attempt.result.failure && (
-                  <p role="status">{attempt.result.failure}</p>
+                  <Notice tone="warning" title={attempt.result.failure} />
                 )}
                 {attempt.result.images.map(
                   (image: { id: string; name: string }) => (
@@ -641,117 +750,89 @@ export function RunDetail({ initial }: { initial: Detail }) {
               onChange={setRestartAnswerer}
             />
             {selectedPersona && (
-              <p>
-                {translate("me019adcccad2")} {selectedPersona.maximum}{" "}
-                {translate("mfd1308912dd1")} {selectedPersona.maxCalls}{" "}
-                {translate("m3c28816ad03e")}{" "}
+              <p className="text-sm text-muted-foreground">
+                {translate("m02f69969e239", {
+                  calls: selectedPersona.maxCalls,
+                  credits: selectedPersona.maximum,
+                })}
               </p>
             )}
             {data.configuration.inputs.map((field) => (
-              <div key={field.name} className="space-y-2">
-                <Label htmlFor={`restart-${field.name}`}>{field.label}</Label>
-                {field.kind === "select" ? (
-                  <Select
-                    value={String(restartInputs[field.name] ?? "")}
-                    onValueChange={(value) =>
-                      setRestartInputs((v) => ({ ...v, [field.name]: value }))
-                    }
-                  >
-                    <SelectTrigger id={`restart-${field.name}`}>
-                      <SelectValue placeholder={translate("mc7f937836f5d")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {field.options.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : field.kind === "paragraph" ? (
-                  <Textarea
-                    id={`restart-${field.name}`}
-                    value={String(restartInputs[field.name] ?? "")}
-                    onChange={(e) =>
-                      setRestartInputs((v) => ({
-                        ...v,
-                        [field.name]: e.target.value,
-                      }))
-                    }
-                  />
-                ) : (
-                  <Input
-                    id={`restart-${field.name}`}
-                    type={
-                      field.kind === "number"
-                        ? "number"
-                        : field.kind === "file"
-                          ? "file"
-                          : "text"
-                    }
-                    {...(field.kind === "file"
-                      ? {}
-                      : { value: String(restartInputs[field.name] ?? "") })}
-                    onChange={(e) => {
-                      if (field.kind === "file" && e.target.files?.[0])
-                        void uploadRestart(field.name, e.target.files[0]);
-                      else
-                        setRestartInputs((v) => ({
-                          ...v,
-                          [field.name]:
-                            field.kind === "number"
-                              ? Number(e.target.value)
-                              : e.target.value,
-                        }));
-                    }}
-                  />
-                )}
-              </div>
-            ))}
-            <p>
-              <PricingDescription
-                pricing={
-                  data.configuration.pricing ?? { mode: "fixed", credits: 1 }
+              <RunInputField
+                key={field.name}
+                field={field}
+                id={`restart-${field.name}`}
+                value={restartInputs[field.name] as string | number | undefined}
+                onChange={(value) =>
+                  setRestartInputs((v) => ({ ...v, [field.name]: value }))
                 }
+                onFile={(file) => void uploadRestart(field.name, file)}
               />
+            ))}
+            <p className="text-sm text-muted-foreground">
+              <PricingDescription pricing={restartPricing} />
             </p>
             <p className="text-sm text-muted-foreground">
               {data.configuration.failureCharging === "verified-usage"
                 ? translate("m5d401b01fc4f")
                 : translate("m2790bb24347a")}
             </p>
-            <Button
-              disabled={busy || !data.configuration.ready}
-              onClick={() => void command("restart")}
-            >
-              {translate("md07c9916a5c9")}{" "}
-            </Button>
-            {data.isAdmin &&
-              data.configuration.recovery?.diagnostic &&
-              data.configuration.recovery.stages.map((stage) => (
-                <Button
-                  key={stage}
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => void command("test-stage", stage)}
-                >
-                  {translate("m532eaabd9574")} {stage}{" "}
-                  {translate("mc7ff6dcd94d7")}{" "}
-                </Button>
-              ))}
-            {current.result?.checkpoint &&
-              data.configuration.recovery?.version ===
-                current.result.checkpoint.version && (
-                <Button
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() =>
-                    void command("recover", current.result.checkpoint.stage)
-                  }
-                >
-                  {translate("m65e466bf2710")}{" "}
-                </Button>
-              )}
+            <div className="flex flex-wrap gap-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button disabled={busy || !data.configuration.ready}>
+                    {translate("md07c9916a5c9")}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      {translate("mbbddb3abf8e9")}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {translate("m97bd1795b8bf", {
+                        credits:
+                          maximumCredits(restartPricing) +
+                          (selectedPersona?.maximum ?? 0),
+                      })}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>
+                      {translate("m19766ed6ccb2")}
+                    </AlertDialogCancel>
+                    <AlertDialogAction onClick={() => void command("restart")}>
+                      {translate("md07c9916a5c9")}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              {data.isAdmin &&
+                data.configuration.recovery?.diagnostic &&
+                data.configuration.recovery.stages.map((stage) => (
+                  <Button
+                    key={stage}
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => void command("test-stage", stage)}
+                  >
+                    {translate("mc5609a1c3ba7", { stage })}
+                  </Button>
+                ))}
+              {current.result?.checkpoint &&
+                data.configuration.recovery?.version ===
+                  current.result.checkpoint.version && (
+                  <Button
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() =>
+                      void command("recover", current.result.checkpoint.stage)
+                    }
+                  >
+                    {translate("m65e466bf2710")}
+                  </Button>
+                )}
+            </div>
           </CardContent>
         </Card>
       )}

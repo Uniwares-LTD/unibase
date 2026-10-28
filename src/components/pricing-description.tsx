@@ -18,13 +18,16 @@ export function PricingDescription({ pricing }: { pricing: AiPricing }) {
             input: rule.rate.inputCreditsPerMillion,
             output: rule.rate.outputCreditsPerMillion,
           });
+  const max = format.number(pricing.maxCredits);
   return (
     <>
       {pricing.mode === "hybrid"
-        ? t("base", { amount: format.number(pricing.baseCredits) })
-        : ""}
-      {usage}
-      {t("maximum", { amount: format.number(pricing.maxCredits) })}
+        ? t("hybridSummary", {
+            base: format.number(pricing.baseCredits),
+            usage,
+            max,
+          })
+        : t("summary", { usage, max })}
     </>
   );
 }

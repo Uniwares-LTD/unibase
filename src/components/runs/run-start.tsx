@@ -17,9 +17,9 @@ import { PricingDescription } from "@/components/pricing-description";
 import type { personaChoices } from "@/lib/server/runs/personas";
 import type { orchestrators } from "@/lib/server/runs/orchestrators";
 import type { runStartSchema } from "@/lib/contracts/runs";
+import { EmptyState, Notice } from "@/components/page-patterns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -39,6 +39,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AnswererSelect } from "./answerer-select";
+import { RunInputField } from "./dynamic-field";
 
 type Choice = Awaited<ReturnType<typeof orchestrators>>[number];
 export type ArtifactOption = { id: string; title: string; revision: number };
@@ -171,7 +172,7 @@ export function RunLanding({
       );
       if (missing)
         return invalid(
-          `Complete ${missing.label} before starting.`,
+          translate("m54583b4ae772", { label: missing.label }),
           `${prefix}-${missing.name}`,
         );
       if (choice.requiresArtifact && artifactMode === "existing" && !artifact)
@@ -267,19 +268,10 @@ export function RunLanding({
   }
 
   const emptyState = (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2>{translate("ma22a3795f07a")}</h2>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p>{translate("m90bf6d210a70")} </p>
-        <Button asChild variant="outline" className="mt-4">
-          <Link href="/runs">{translate("m171aba14962f")}</Link>
-        </Button>
-      </CardContent>
-    </Card>
+    <EmptyState
+      title={translate("ma22a3795f07a")}
+      description={translate("m90bf6d210a70")}
+    />
   );
 
   return (
@@ -297,7 +289,7 @@ export function RunLanding({
               <CardTitle>
                 <h2>{translate("mc2fe29ab435d")}</h2>
               </CardTitle>
-              <CardDescription>{translate("m80aedcc89540")} </CardDescription>
+              <CardDescription>{translate("m80aedcc89540")}</CardDescription>
             </CardHeader>
             <CardContent>
               <fieldset disabled={frozen} className="space-y-6">
@@ -342,92 +334,17 @@ export function RunLanding({
                   </p>
                 </div>
                 {choice?.inputs.map((field) => (
-                  <div key={field.name} className="space-y-2">
-                    <Label htmlFor={`${prefix}-${field.name}`}>
-                      {field.label}
-                      {field.required ? " (required)" : ""}
-                    </Label>
-                    {field.kind === "paragraph" ? (
-                      <Textarea
-                        id={`${prefix}-${field.name}`}
-                        name={field.name}
-                        autoComplete="off"
-                        required={field.required}
-                        disabled={frozen}
-                        maxLength={field.maxLength ?? 4000}
-                        value={values[field.name] ?? ""}
-                        onChange={(e) =>
-                          setValues((v) => ({
-                            ...v,
-                            [field.name]: e.target.value,
-                          }))
-                        }
-                      />
-                    ) : field.kind === "select" ? (
-                      <Select
-                        value={String(values[field.name] ?? "")}
-                        disabled={frozen}
-                        onValueChange={(value) =>
-                          setValues((v) => ({ ...v, [field.name]: value }))
-                        }
-                      >
-                        <SelectTrigger
-                          id={`${prefix}-${field.name}`}
-                          className="w-full"
-                        >
-                          <SelectValue
-                            placeholder={translate("maef4076f194a")}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {field.options.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        id={`${prefix}-${field.name}`}
-                        name={field.name}
-                        autoComplete="off"
-                        required={
-                          field.required &&
-                          !(field.kind === "file" && values[field.name])
-                        }
-                        disabled={frozen}
-                        type={
-                          field.kind === "file"
-                            ? "file"
-                            : field.kind === "number"
-                              ? "number"
-                              : "text"
-                        }
-                        step={field.kind === "number" ? "any" : undefined}
-                        maxLength={
-                          field.kind === "text"
-                            ? (field.maxLength ?? 4000)
-                            : undefined
-                        }
-                        {...(field.kind === "file"
-                          ? {}
-                          : { value: values[field.name] ?? "" })}
-                        onChange={(e) => {
-                          if (field.kind === "file") {
-                            if (e.target.files?.[0])
-                              void upload(field.name, e.target.files[0]);
-                          } else
-                            setValues((v) => ({
-                              ...v,
-                              [field.name]:
-                                field.kind === "number" && e.target.value !== ""
-                                  ? Number(e.target.value)
-                                  : e.target.value,
-                            }));
-                        }}
-                      />
-                    )}
+                  <RunInputField
+                    key={field.name}
+                    field={field}
+                    id={`${prefix}-${field.name}`}
+                    value={values[field.name]}
+                    disabled={frozen}
+                    onChange={(value) =>
+                      setValues((v) => ({ ...v, [field.name]: value }))
+                    }
+                    onFile={(file) => void upload(field.name, file)}
+                  >
                     {field.kind === "file" && moduleEnabled("files") && (
                       <ManagedFilePicker
                         orchestratorId={selected}
@@ -440,10 +357,10 @@ export function RunLanding({
                     )}
                     {field.kind === "file" && values[field.name] && (
                       <p className="text-sm text-muted-foreground">
-                        {translate("m3b785af06b03")}{" "}
+                        {translate("m3b785af06b03")}
                       </p>
                     )}
-                  </div>
+                  </RunInputField>
                 ))}
                 {choice?.requiresArtifact && (
                   <section
@@ -456,10 +373,10 @@ export function RunLanding({
                         id={`${prefix}-save-heading`}
                         className="font-semibold"
                       >
-                        {translate("m600dd253a092")}{" "}
+                        {translate("m600dd253a092")}
                       </h2>
                       <p className="text-sm text-muted-foreground">
-                        {translate("m15806ddb33a4")}{" "}
+                        {translate("m15806ddb33a4")}
                       </p>
                     </div>
                     <RadioGroup
@@ -474,7 +391,7 @@ export function RunLanding({
                         className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 has-[[aria-checked=true]]:border-primary has-[[aria-checked=true]]:bg-accent/50"
                       >
                         <RadioGroupItem id={`${prefix}-new`} value="new" />
-                        {translate("m9b7560405862")}{" "}
+                        {translate("m9b7560405862")}
                       </Label>
                       <Label
                         htmlFor={`${prefix}-existing`}
@@ -485,13 +402,13 @@ export function RunLanding({
                           value="existing"
                           disabled={!artifacts.length}
                         />
-                        {translate("m3f1e4c236b23")}{" "}
+                        {translate("m3f1e4c236b23")}
                       </Label>
                     </RadioGroup>
                     {artifactMode === "new" ? (
                       <div className="space-y-2">
                         <Label htmlFor={`${prefix}-title`}>
-                          {translate("m96ccf50319c0")}{" "}
+                          {translate("m96ccf50319c0")}
                         </Label>
                         <Input
                           id={`${prefix}-title`}
@@ -504,13 +421,13 @@ export function RunLanding({
                           onChange={(e) => setTitle(e.target.value)}
                         />
                         <p className="text-sm text-muted-foreground">
-                          {translate("mdb47707c45f4")}{" "}
+                          {translate("mdb47707c45f4")}
                         </p>
                       </div>
                     ) : (
                       <div className="space-y-2">
                         <Label htmlFor={`${prefix}-artifact-search`}>
-                          {translate("mc71436cce0eb")}{" "}
+                          {translate("mc71436cce0eb")}
                         </Label>
                         <Input
                           id={`${prefix}-artifact-search`}
@@ -534,7 +451,7 @@ export function RunLanding({
                           disabled={artifactSearching}
                           onClick={() => void findArtifacts()}
                         >
-                          {translate("m49c266baaaa7")}{" "}
+                          {translate("m49c266baaaa7")}
                         </Button>
                         {artifactNext && (
                           <Button
@@ -543,11 +460,11 @@ export function RunLanding({
                             disabled={artifactSearching}
                             onClick={() => void findArtifacts(true)}
                           >
-                            {translate("m17ef296818cd")}{" "}
+                            {translate("m17ef296818cd")}
                           </Button>
                         )}
                         <Label htmlFor={`${prefix}-artifact`}>
-                          {translate("ma4a34f6cfd5c")}{" "}
+                          {translate("ma4a34f6cfd5c")}
                         </Label>
                         <Select
                           value={selectedArtifact}
@@ -565,8 +482,10 @@ export function RunLanding({
                           <SelectContent>
                             {artifacts.map((a) => (
                               <SelectItem key={a.id} value={a.id}>
-                                {a.title} {translate("m8d8560f759ff")}{" "}
-                                {a.revision}
+                                {translate("ma5d75a4f4a56", {
+                                  title: a.title,
+                                  revision: a.revision,
+                                })}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -587,7 +506,7 @@ export function RunLanding({
                     )}
                     {!artifacts.length && (
                       <p className="text-sm text-muted-foreground">
-                        {translate("me6b5a40f17cd")}{" "}
+                        {translate("me6b5a40f17cd")}
                       </p>
                     )}
                   </section>
@@ -610,7 +529,7 @@ export function RunLanding({
               />
               <p className="text-sm text-muted-foreground">
                 {persona
-                  ? `${persona.name} will answer questions automatically. You can take over during the Run.`
+                  ? translate("m7fe8dfcc6b82", { name: persona.name })
                   : translate("m29cda917e844")}
               </p>
               <Separator />
@@ -638,7 +557,7 @@ export function RunLanding({
                     {translate("m012bc7eea71e")}
                   </dt>
                   <dd className="font-medium">
-                    {maximum} {maximum === 1 ? "credit" : "credits"}
+                    {translate("m420376141061", { count: maximum })}
                   </dd>
                 </div>
               </dl>
@@ -648,9 +567,10 @@ export function RunLanding({
                 </p>
                 {persona && (
                   <p>
-                    {translate("m7d007ec06761")} {persona.maxCalls}{" "}
-                    {translate("m72390859c9ec")} {persona.maximum}{" "}
-                    {translate("mbc6ad7bdc5d6")}{" "}
+                    {translate("m0f24fdc55588", {
+                      calls: persona.maxCalls,
+                      credits: persona.maximum,
+                    })}
                   </p>
                 )}
                 <p>
@@ -660,20 +580,12 @@ export function RunLanding({
                 </p>
               </div>
               {!choice?.ready && (
-                <p role="status">{translate("m5ba6fd0ba107")} </p>
+                <Notice tone="warning" title={translate("m5ba6fd0ba107")} />
               )}
-              {error && (
-                <p role="alert" className="text-sm text-destructive">
-                  {error}
-                </p>
-              )}
+              {error && <Notice tone="error" title={error} />}
               {locked && !busy && (
                 <p className="text-sm text-muted-foreground">
-                  {translate("m4d0bdaa2f2b6")}{" "}
-                  <Link href="/runs" className="underline">
-                    {translate("m7939b61ddc05")}{" "}
-                  </Link>
-                  .
+                  {translate("m4d0bdaa2f2b6")}
                 </p>
               )}
               <Button
@@ -698,11 +610,16 @@ export function RunLanding({
         </form>
       )}
       {unfinished.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-xl font-semibold">
-            {translate("m53845582bd6c")}
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+            <CardTitle>
+              <h2>{translate("m53845582bd6c")}</h2>
+            </CardTitle>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/runs">{translate("md79ea2fab3c7")}</Link>
+            </Button>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
             {unfinished.map((run) => (
               <Link
                 key={run.id}
@@ -717,8 +634,8 @@ export function RunLanding({
                 </Badge>
               </Link>
             ))}
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

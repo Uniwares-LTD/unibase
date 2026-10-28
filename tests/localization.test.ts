@@ -3,6 +3,11 @@ import { test } from "node:test";
 import en from "../messages/en.json";
 import ar from "../messages/ar.json";
 import {
+  parse,
+  TYPE,
+  type MessageFormatElement,
+} from "@formatjs/icu-messageformat-parser";
+import {
   resolveLocale,
   localizationSchema,
   timeZoneSchema,
@@ -56,14 +61,33 @@ test("locale precedence and time zones reject invalid preferences without changi
   assert.equal(profile.timeZone, "UTC");
   assert.equal(profile.style, "glass");
 });
+// ICU argument names (not plural/select branch text); parsing also rejects malformed messages.
+function argumentsOf(message: string, path: string) {
+  const names = new Set<string>();
+  function walk(elements: MessageFormatElement[]) {
+    for (const element of elements) {
+      if ("value" in element && element.type !== TYPE.literal)
+        names.add(String(element.value));
+      if ("options" in element)
+        for (const option of Object.values(element.options)) walk(option.value);
+      if ("children" in element) walk(element.children);
+    }
+  }
+  try {
+    walk(parse(message, { ignoreTag: true }));
+  } catch (error) {
+    assert.fail(`${path}: ${(error as Error).message}`);
+  }
+  return [...names].sort();
+}
 test("every translation has matching keys and interpolation parameters", () => {
   function check(a: unknown, b: unknown, path = "") {
     if (typeof a === "string") {
       assert.equal(typeof b, "string", path);
       assert.ok((b as string).trim(), path);
       assert.deepEqual(
-        [...a.matchAll(/\{([a-zA-Z]\w*)/g)].map((m) => m[1]).sort(),
-        [...(b as string).matchAll(/\{([a-zA-Z]\w*)/g)].map((m) => m[1]).sort(),
+        argumentsOf(a, path),
+        argumentsOf(b as string, path),
         path,
       );
       return;

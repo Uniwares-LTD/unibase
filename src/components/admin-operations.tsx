@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,6 +13,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import { Notice } from "./page-patterns";
 import {
   Select,
   SelectContent,
@@ -32,9 +33,12 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
 
+type Message = { tone: "success" | "error"; text: string };
+
 export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
   const translate = useTranslations("ui");
   const common = useTranslations("common");
+  const format = useFormatter();
 
   const router = useRouter();
   const [days, setDays] = useState(String(defaultDays));
@@ -43,10 +47,10 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
   const [reason, setReason] = useState("");
   const [report, setReport] = useState<CleanupReportView | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<Message | null>(null);
   async function run(execute: boolean) {
     setBusy(true);
-    setMessage("");
+    setMessage(null);
     try {
       const saved = await api(
         `/api/admin/operations/cleanup/${execute ? "execute" : "preview"}`,
@@ -61,26 +65,31 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
       );
       setReport(saved);
       router.refresh();
-      setMessage(
-        execute
+      setMessage({
+        tone: "success",
+        text: execute
           ? common("cleanupResult", {
               changed: saved.changed,
               skipped: saved.skipped,
               pending: saved.storagePending,
             })
           : translate("m542774327097"),
-      );
+      });
     } catch (error) {
-      setMessage(
-        error instanceof ApiError ? error.message : translate("mce7eacc0c6ea"),
-      );
+      setMessage({
+        tone: "error",
+        text:
+          error instanceof ApiError
+            ? error.message
+            : translate("mce7eacc0c6ea"),
+      });
     } finally {
       setBusy(false);
     }
   }
   return (
     <div className="space-y-4">
-      <p>{translate("m35792baf7fcd")} </p>
+      <p>{translate("m35792baf7fcd")}</p>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
@@ -129,12 +138,12 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
             <SelectContent>
               <SelectItem value="jobs">{translate("m927295b89ae4")}</SelectItem>
               <SelectItem value="failed-files">
-                {translate("m75f3eb58d023")}{" "}
+                {translate("m75f3eb58d023")}
               </SelectItem>
               <SelectItem value="both">{translate("mb6c1d862f9f7")}</SelectItem>
 
               <SelectItem value="abandoned-uploads">
-                {translate("m2b9345e24621")}{" "}
+                {translate("m2b9345e24621")}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -152,18 +161,22 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
         }
         onClick={() => void run(false)}
       >
-        {translate("m44dd7c57aa6f")}{" "}
+        {translate("m44dd7c57aa6f")}
       </Button>
       {report && (
         <div className="space-y-3">
           <p>
-            {report.jobs} {translate("m9846d894263b")} {report.files}{" "}
-            {translate("mfa279f78ec54")} {report.abandonedUploads}{" "}
-            {translate("m60f631a63ef0")} {report.cutoff.slice(0, 10)}{" "}
-            {translate("m7e5f76c94a63")}{" "}
+            {translate("m05e6f6947516", {
+              jobs: report.jobs,
+              files: report.files,
+              abandoned: report.abandonedUploads,
+              cutoff: format.dateTime(new Date(report.cutoff), {
+                dateStyle: "medium",
+              }),
+            })}
           </p>
 
-          <p className="text-sm">{translate("mb2926688070e")} </p>
+          <p className="text-sm">{translate("mb2926688070e")}</p>
           <Button
             variant="outline"
             onClick={() => {
@@ -179,12 +192,12 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
               setTimeout(() => URL.revokeObjectURL(url), 1000);
             }}
           >
-            {translate("m6c68ad180780")}{" "}
+            {translate("m6c68ad180780")}
           </Button>
           {report.state === "preview" && (
             <>
               <Label htmlFor="cleanup-reason">
-                {translate("mdc2a867b85b6")}{" "}
+                {translate("mdc2a867b85b6")}
               </Label>
               <Textarea
                 id="cleanup-reason"
@@ -202,16 +215,16 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
                       report.jobs + report.files + report.abandonedUploads === 0
                     }
                   >
-                    {translate("m32a06aa8e2b4")}{" "}
+                    {translate("m32a06aa8e2b4")}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      {translate("mad6d7832fb38")}{" "}
+                      {translate("mad6d7832fb38")}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      {translate("mb419ef9fb491")}{" "}
+                      {translate("mb419ef9fb491")}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -219,7 +232,7 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
                       {translate("m19766ed6ccb2")}
                     </AlertDialogCancel>
                     <AlertDialogAction onClick={() => void run(true)}>
-                      {translate("m2c456b847520")}{" "}
+                      {translate("m2c456b847520")}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -228,7 +241,7 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
           )}
         </div>
       )}
-      {message && <p role="status">{message}</p>}
+      {message && <Notice tone={message.tone} title={message.text} />}
     </div>
   );
 }
@@ -242,11 +255,11 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
   const [sessionId, setSessionId] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<Message | null>(null);
   const [key, setKey] = useState<string | null>(null);
   async function reconcile() {
     setBusy(true);
-    setMessage("");
+    setMessage(null);
     const requestKey = key ?? crypto.randomUUID();
     setKey(requestKey);
     try {
@@ -264,20 +277,27 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
           },
         },
       );
-      setMessage(common("verification", { state: result.state }));
+      setMessage({
+        tone: "success",
+        text: common("verification", { state: result.state }),
+      });
       setKey(null);
       router.refresh();
     } catch (error) {
-      setMessage(
-        error instanceof ApiError ? error.message : translate("m8800cc777df4"),
-      );
+      setMessage({
+        tone: "error",
+        text:
+          error instanceof ApiError
+            ? error.message
+            : translate("m8800cc777df4"),
+      });
     } finally {
       setBusy(false);
     }
   }
   return (
     <div className="space-y-3">
-      <p>{translate("m6da46287930a")} </p>
+      <p>{translate("m6da46287930a")}</p>
       {!enabled && <p>{translate("me00023c11aff")}</p>}
       <Label htmlFor="payment-order">{translate("md89d8487ce82")}</Label>
       <Input
@@ -289,7 +309,7 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
           setKey(null);
         }}
       />
-      <Label htmlFor="payment-session">{translate("mce0713af4770")} </Label>
+      <Label htmlFor="payment-session">{translate("mce0713af4770")}</Label>
       <Input
         id="payment-session"
         value={sessionId}
@@ -310,13 +330,30 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
           setKey(null);
         }}
       />
-      <Button
-        disabled={!enabled || busy || !/^[a-f0-9]{64}$/.test(orderId)}
-        onClick={() => void reconcile()}
-      >
-        {translate("m60f56b618433")}{" "}
-      </Button>
-      {message && <p role="status">{message}</p>}
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            disabled={!enabled || busy || !/^[a-f0-9]{64}$/.test(orderId)}
+          >
+            {translate("m60f56b618433")}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{translate("mb9e55cd63279")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {translate("m1c1fb02fcf3d", { order: orderId.slice(0, 12) })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{translate("m19766ed6ccb2")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void reconcile()}>
+              {translate("m97d4a98b53c2")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {message && <Notice tone={message.tone} title={message.text} />}
     </div>
   );
 }

@@ -112,7 +112,7 @@ export function ReportFiltersForm({ filters }: { filters: ReportFilters }) {
         <Button type="submit">{translate("md80ab19b7edb")}</Button>
         <Button variant="outline" asChild>
           <Link href={`/admin/reports?kind=${filters.kind}`}>
-            {translate("m7179ea0035fc")}{" "}
+            {translate("m7179ea0035fc")}
           </Link>
         </Button>
       </div>

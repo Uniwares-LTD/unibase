@@ -11,9 +11,26 @@ import { database } from "@/lib/server/mongo";
 export const viewerState = cache(async () => {
   let hasSession = !!(await cookies()).get(cookieName("session"))?.value;
   let isAdmin = false;
+  let email: string | null = null;
+  let displayName: string | null = null;
   try {
     const session = await getSession();
     hasSession = !!session;
+    email = session?.email ?? null;
+    if (session) {
+      // Read-only lookup: the profile is created on first account access, not here.
+      const profile = await database()
+        .collection<{ uid: string; displayName?: string }>("profiles")
+        .findOne(
+          { uid: session.uid },
+          { projection: { _id: 0, displayName: 1 } },
+        );
+      displayName =
+        profile?.displayName ??
+        (session.name ? String(session.name) : null) ??
+        email?.split("@")[0] ??
+        null;
+    }
     isAdmin =
       !!session?.email_verified &&
       (await accountAccess(database(), session!.uid)).role === "admin";
@@ -23,5 +40,5 @@ export const viewerState = cache(async () => {
     if (!(error instanceof AppError) || error.code !== "SERVICE_UNAVAILABLE")
       throw error;
   }
-  return { hasSession, isAdmin };
+  return { hasSession, isAdmin, email, displayName };
 });

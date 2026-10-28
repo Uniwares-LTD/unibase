@@ -2,6 +2,7 @@
 import { useTranslations } from "next-intl";
 
 import { Notice } from "./page-patterns";
+import { DateLabel, StateLabel } from "./localized-value";
 import { useActionState, useId, useState } from "react";
 import { applySimulation, startSimulation } from "@/app/credits/actions";
 import type { PublicOrder, PublicPack } from "@/lib/contracts/credits";
@@ -37,14 +38,13 @@ function Order({ order, uid }: { order: PublicOrder; uid: string }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base">
-          {order.label} · {order.status}
+          {order.label} · <StateLabel value={order.status} />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="break-all text-xs text-muted-foreground">
-          {translate("m45314e97b0c2")} {order.id.slice(0, 12)} ·{" "}
-          {order.createdAt.slice(0, 16).replace("T", " ")}{" "}
-          {translate("m7e5f76c94a63")}{" "}
+          {translate("m45314e97b0c2")} <bdi>{order.id.slice(0, 12)}</bdi> ·{" "}
+          <DateLabel value={order.createdAt} />
         </p>
         <form action={action} className="flex flex-wrap gap-2">
           {options.map(([event, label]) => (
@@ -96,10 +96,10 @@ export function PurchaseSimulator({
   return (
     <section className="space-y-4" aria-labelledby={`${id}-heading`}>
       <h2 id={`${id}-heading`} className="text-xl font-semibold">
-        {translate("m061fcef1b9a2")}{" "}
+        {translate("m061fcef1b9a2")}
       </h2>
       <Notice title={translate("m14228c03b90c")}>
-        {translate("m7736681e7fd8")}{" "}
+        {translate("m7736681e7fd8")}
       </Notice>
       <Card>
         <CardContent className="py-6">
@@ -107,7 +107,7 @@ export function PurchaseSimulator({
             <input type="hidden" name="key" value={key} />
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">
-                {translate("me15ea8da07f3")}{" "}
+                {translate("me15ea8da07f3")}
               </legend>
               <RadioGroup
                 name="packId"
@@ -137,7 +137,7 @@ export function PurchaseSimulator({
         </CardContent>
       </Card>
       <p className="text-sm text-muted-foreground">
-        {translate("mce1133187be7")}{" "}
+        {translate("mce1133187be7")}
       </p>
       <div className="space-y-4">
         {orders.map((order) => (

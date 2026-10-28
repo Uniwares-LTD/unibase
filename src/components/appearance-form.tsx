@@ -2,16 +2,17 @@
 import { StateLabel } from "./localized-value";
 import { useTranslations } from "next-intl";
 
-import { useActionState, useEffect, useEffectEvent } from "react";
+import { useActionState, useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 import { saveAppearance } from "@/app/account/actions";
 import type { Profile } from "@/lib/contracts/profile";
 import { Notice } from "./page-patterns";
 import { StylePreference } from "./style-preference";
-import { useStyle } from "./style-provider";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+
+const subscribe = () => () => {};
 
 export function AppearanceForm({ profile }: { profile: Profile }) {
   const translate = useTranslations("ui");
@@ -20,17 +21,14 @@ export function AppearanceForm({ profile }: { profile: Profile }) {
     saveAppearance.bind(null, profile.uid),
     { message: "", saved: false },
   );
-  const { setTheme } = useTheme();
-  const { setPreference } = useStyle();
-  const applySavedTheme = useEffectEvent((theme: Profile["theme"]) => {
-    setTheme(theme);
-  });
-  useEffect(() => {
-    applySavedTheme(profile.theme);
-  }, [profile.theme]);
-  useEffect(() => {
-    setPreference(profile.style);
-  }, [profile.style, setPreference]);
+  // Show and save this browser's current look; the account look is applied at
+  // sign-in, so opening this page never overrides a choice made here.
+  const { theme, setTheme } = useTheme();
+  const hydrated = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
   return (
     <form
       action={action}
@@ -47,21 +45,21 @@ export function AppearanceForm({ profile }: { profile: Profile }) {
         </legend>
         <RadioGroup
           name="theme"
-          defaultValue={profile.theme}
+          value={hydrated ? (theme ?? profile.theme) : ""}
           onValueChange={setTheme}
-          disabled={pending}
+          disabled={pending || !hydrated}
         >
           {["light", "dark", "system"].map((theme) => (
             <div key={theme} className="flex items-center gap-2">
               <RadioGroupItem id={`profile-${theme}`} value={theme} />
-              <Label htmlFor={`profile-${theme}`} className="capitalize">
+              <Label htmlFor={`profile-${theme}`}>
                 <StateLabel value={theme} />
               </Label>
             </div>
           ))}
         </RadioGroup>
         <p className="text-sm text-muted-foreground">
-          {translate("m4121fec7f306")}{" "}
+          {translate("m64c7a3da6a24")}
         </p>
       </fieldset>
       <StylePreference account disabled={pending} />

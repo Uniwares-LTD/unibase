@@ -3,14 +3,19 @@ import { useTranslations, useLocale } from "next-intl";
 
 import { moduleEnabled, moduleForPath } from "@/lib/project";
 import {
+  Bell,
   BookOpen,
   Bookmark,
   Folder,
   Home,
   ListChecks,
   Menu,
+  Settings2,
   Sparkles,
+  UserRound,
+  Wallet,
 } from "lucide-react";
+import { UnreadProvider } from "@/components/notifications";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -42,7 +47,29 @@ function useRoutes(signedIn: boolean) {
   });
 }
 
-function matchesRoute(pathname: string, href: string) {
+// Signed-in destinations reached from the account menu rather than the sidebar.
+export function useAccountRoutes() {
+  const translate = useTranslations("ui");
+  return [
+    { href: "/account", label: translate("m7e1b0d5641f2"), Icon: UserRound },
+    { href: "/credits", label: translate("m2a6b24ad2872"), Icon: Wallet },
+    {
+      href: "/notifications",
+      label: translate("m788011833a5a"),
+      Icon: Bell,
+    },
+    {
+      href: "/preferences",
+      label: translate("m66962f72a088"),
+      Icon: Settings2,
+    },
+  ].filter((route) => {
+    const id = moduleForPath(route.href);
+    return !id || moduleEnabled(id);
+  });
+}
+
+export function matchesRoute(pathname: string, href: string) {
   if (href === "/runs" && pathname === "/runs/new") return false;
   return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 }
@@ -118,21 +145,19 @@ export function AppShell({
   const direction = useLocale() === "ar" ? "right" : "left";
 
   const routes = useRoutes(signedIn);
+  const accountRoutes = useAccountRoutes();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const title =
-    [
-      ...routes,
-      { href: "/account", label: translate("m7e1b0d5641f2") },
-      { href: "/credits", label: translate("m2a6b24ad2872") },
-      { href: "/preferences", label: translate("m66962f72a088") },
-    ].find((route) => matchesRoute(pathname, route.href))?.label ??
+    [...routes, ...accountRoutes].find((route) =>
+      matchesRoute(pathname, route.href),
+    )?.label ??
     (pathname.startsWith("/admin")
       ? translate("m4b42c6690ebe")
       : pathname === "/design-system"
         ? translate("m4a866105af15")
         : appName);
-  return (
+  const shell = (
     <div className="min-h-svh">
       <a
         href="#main-content"
@@ -193,5 +218,10 @@ export function AppShell({
         </main>
       </div>
     </div>
+  );
+  return signedIn && moduleEnabled("notifications") ? (
+    <UnreadProvider>{shell}</UnreadProvider>
+  ) : (
+    shell
   );
 }

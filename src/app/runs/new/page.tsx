@@ -8,9 +8,14 @@ import { personaChoices } from "@/lib/server/runs/personas";
 import { listArtifacts, ownedArtifact } from "@/lib/server/runs/artifacts";
 import { database } from "@/lib/server/mongo";
 import { requireSession } from "@/lib/server/session";
-import { z } from "zod";
+import type { Metadata } from "next";
+import { terminalRunStatuses, uuidSchema } from "@/lib/contracts/runs";
 import { notFound } from "next/navigation";
 import { AppError } from "@/lib/auth-policy";
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("ui"))("m9f88e18da1c5") };
+}
+
 export default async function Page({
   searchParams,
 }: {
@@ -21,7 +26,7 @@ export default async function Page({
   const actor = await requireSession();
   const query = await searchParams;
   const parsed = query.artifactId
-    ? z.string().uuid().safeParse(query.artifactId)
+    ? uuidSchema.safeParse(query.artifactId)
     : null;
   if (parsed && !parsed.success) notFound();
   const artifactId = parsed?.success ? parsed.data : undefined;
@@ -49,29 +54,27 @@ export default async function Page({
       : savedArtifacts.rows;
   return (
     <PageMessages path="/runs/new">
-      {
-        <div className="page-stack">
-          <PageHeader
-            title={translate("m9f88e18da1c5")}
-            description={translate("mbe8f030087bf")}
-          />
-          <RunLanding
-            key={artifactId ?? "new"}
-            choices={choices}
-            personas={personas}
-            artifactId={artifactId}
-            artifactsNext={savedArtifacts.next}
-            artifacts={artifactRows.map(({ id, title, revision }) => ({
-              id,
-              title,
-              revision,
-            }))}
-            unfinished={runs.rows.filter(
-              (r) => !["succeeded", "failed", "cancelled"].includes(r.status),
-            )}
-          />
-        </div>
-      }
+      <div className="page-stack">
+        <PageHeader
+          title={translate("m9f88e18da1c5")}
+          description={translate("mbe8f030087bf")}
+        />
+        <RunLanding
+          key={artifactId ?? "new"}
+          choices={choices}
+          personas={personas}
+          artifactId={artifactId}
+          artifactsNext={savedArtifacts.next}
+          artifacts={artifactRows.map(({ id, title, revision }) => ({
+            id,
+            title,
+            revision,
+          }))}
+          unfinished={runs.rows.filter(
+            (r) => !terminalRunStatuses.includes(r.status),
+          )}
+        />
+      </div>
     </PageMessages>
   );
 }

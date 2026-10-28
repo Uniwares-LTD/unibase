@@ -41,7 +41,7 @@ export function DiagnosticsPanel() {
     <Card className="shadow-none">
       <CardHeader>
         <CardTitle>{translate("m6a8576dff840")}</CardTitle>
-        <CardDescription>{translate("m1e55606bd490")} </CardDescription>
+        <CardDescription>{translate("m1e55606bd490")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <p role="status">
@@ -62,7 +62,7 @@ export function DiagnosticsPanel() {
             disabled={!enabled || count === 0}
             onClick={download}
           >
-            {translate("mb4205182f0eb")}{" "}
+            {translate("mb4205182f0eb")}
           </Button>
         </div>
       </CardContent>

@@ -1,5 +1,6 @@
 "use client";
 import { useTranslations } from "next-intl";
+import { EmptyState, Notice } from "@/components/page-patterns";
 
 import { useId, useState } from "react";
 import { z } from "zod";
@@ -137,7 +138,7 @@ function PersonaForm({
           })
         }
       />
-      <Label htmlFor={`${prefix}-limit`}>{translate("md834d30f922a")} </Label>
+      <Label htmlFor={`${prefix}-limit`}>{translate("md834d30f922a")}</Label>
       <Input
         id={`${prefix}-limit`}
         type="number"
@@ -158,18 +159,18 @@ function PersonaForm({
       <Button type="submit" disabled={busy}>
         {busy ? translate("m23e39291d613") : translate("mcc7e25dfff58")}
       </Button>
-      <p role="status">{message}</p>
+      {message && <Notice title={message} />}
     </form>
   );
 }
-function newPersona(): Row {
+function newPersona(instructions: string): Row {
   return {
     id: crypto.randomUUID(),
     revision: 0,
     updatedAt: new Date().toISOString(),
     name: "",
     description: "",
-    instructions: "Answer as this persona.",
+    instructions,
     enabled: false,
     archived: false,
     pricing: { mode: "fixed", credits: 1 },
@@ -193,7 +194,7 @@ function PersonaDialog({
       open={open}
       onOpenChange={(next) => {
         if (busy) return;
-        if (next) setDraft(row ?? newPersona());
+        if (next) setDraft(row ?? newPersona(translate("mb18a23ed8e48")));
         setOpen(next);
       }}
     >
@@ -210,7 +211,7 @@ function PersonaDialog({
           <DialogTitle>
             {row ? `Edit ${row.name}` : translate("mcef5da764d9e")}
           </DialogTitle>
-          <DialogDescription>{translate("m06bc719f9219")} </DialogDescription>
+          <DialogDescription>{translate("m06bc719f9219")}</DialogDescription>
         </DialogHeader>
         {open && draft && (
           <PersonaForm
@@ -280,8 +281,10 @@ export function PersonaEditor({ initial }: { initial: View }) {
                 {row.instructions}
               </p>
               <p className="text-sm text-muted-foreground">
-                {translate("m3e2884632c01")} {row.maxCalls}{" "}
-                {translate("mea76df0af549")} {row.revision}
+                {translate("m9bbe22c13579", {
+                  count: row.maxCalls,
+                  revision: row.revision,
+                })}
               </p>
               <PersonaDialog row={row} saved={saved} />
             </CardContent>
@@ -289,9 +292,10 @@ export function PersonaEditor({ initial }: { initial: View }) {
         ))}
       </div>
       {!rows.length && (
-        <p className="text-sm text-muted-foreground">
-          {translate("m130a7da2c155")}{" "}
-        </p>
+        <EmptyState
+          title={translate("m130a7da2c155")}
+          description={translate("mc4ae5877e276")}
+        />
       )}
     </div>
   );

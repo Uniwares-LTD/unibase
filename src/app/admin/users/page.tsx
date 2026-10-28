@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getTranslations("ui"))("m58606e582452") };
+  return { title: (await getTranslations("ui"))("m6b0cc904d081") };
 }
 export default async function UsersPage({
   searchParams,
@@ -34,32 +34,37 @@ export default async function UsersPage({
   const query = typeof params.q === "string" ? params.q.trim() : "";
   const pageToken = typeof params.page === "string" ? params.page : undefined;
   const { rows, nextPageToken } = await listManagedUsers(query, pageToken);
+  // Pagination keeps the current search; Firebase page tokens only go forward.
+  const pageHref = (page?: string) => {
+    const next = new URLSearchParams();
+    if (query) next.set("q", query);
+    if (page) next.set("page", page);
+    const search = next.toString();
+    return search ? `/admin/users?${search}` : "/admin/users";
+  };
   return (
     <PageMessages path="/admin/users">
-      {
-        <div className="page-stack">
-          <PageHeader
-            title={translate("m6b0cc904d081")}
-            description={translate("m8e3573ba1909")}
-          />
-          <form
-            method="get"
-            className="flex max-w-xl flex-wrap items-end gap-3"
-          >
-            <div className="min-w-0 flex-1 space-y-2">
-              <Label htmlFor="user-search">{translate("mcc6302d75cf6")}</Label>
-              <Input
-                id="user-search"
-                name="q"
-                defaultValue={query}
-                maxLength={320}
-              />
-            </div>
-            <Button type="submit">{translate("m49c266baaaa7")}</Button>
-            <Button variant="outline" asChild>
-              <Link href="/admin/users">{translate("m83b12c2216ef")}</Link>
-            </Button>
-          </form>
+      <div className="page-stack">
+        <PageHeader
+          title={translate("m6b0cc904d081")}
+          description={translate("m8e3573ba1909")}
+        />
+        <form method="get" className="flex max-w-xl flex-wrap items-end gap-3">
+          <div className="min-w-0 flex-1 space-y-2">
+            <Label htmlFor="user-search">{translate("mcc6302d75cf6")}</Label>
+            <Input
+              id="user-search"
+              name="q"
+              defaultValue={query}
+              maxLength={320}
+            />
+          </div>
+          <Button type="submit">{translate("m49c266baaaa7")}</Button>
+          <Button variant="outline" asChild>
+            <Link href="/admin/users">{translate("m83b12c2216ef")}</Link>
+          </Button>
+        </form>
+        {rows.length ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -99,7 +104,7 @@ export default async function UsersPage({
                       <Link
                         href={`/admin/users/${encodeURIComponent(user.uid)}`}
                       >
-                        {translate("m5a23444828db")}{" "}
+                        {translate("m5a23444828db")}
                       </Link>
                     </Button>
                   </TableCell>
@@ -107,23 +112,29 @@ export default async function UsersPage({
               ))}
             </TableBody>
           </Table>
-          {!rows.length && (
-            <EmptyState
-              title={translate("m277fdaebdd67")}
-              description={translate("m5aa0770ff868")}
-            />
-          )}
-          {nextPageToken && (
-            <Button variant="outline" asChild>
-              <Link
-                href={`/admin/users?page=${encodeURIComponent(nextPageToken)}`}
-              >
-                {translate("mc08ac736a5e2")}{" "}
-              </Link>
-            </Button>
-          )}
-        </div>
-      }
+        ) : (
+          <EmptyState
+            title={translate("m277fdaebdd67")}
+            description={translate("m5aa0770ff868")}
+          />
+        )}
+        {(pageToken || nextPageToken) && (
+          <div className="flex flex-wrap gap-2">
+            {pageToken && (
+              <Button variant="outline" asChild>
+                <Link href={pageHref()}>{translate("m9f410341c431")}</Link>
+              </Button>
+            )}
+            {nextPageToken && (
+              <Button variant="outline" asChild>
+                <Link href={pageHref(nextPageToken)}>
+                  {translate("mc08ac736a5e2")}
+                </Link>
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
     </PageMessages>
   );
 }

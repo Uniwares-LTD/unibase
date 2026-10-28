@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Notice } from "@/components/page-patterns";
 
 type Json = z.infer<ReturnType<typeof z.json>>;
 function errorMessage(
@@ -78,6 +79,7 @@ export function SettingsField({
 
   const id = useId();
   const fields = useTranslations("fields");
+  const [invalid, setInvalid] = useState(false);
   const label = fields.has(name as never) ? fields(name as never) : name;
   if (Array.isArray(value))
     return (
@@ -85,18 +87,33 @@ export function SettingsField({
         <Label htmlFor={id}>{label}</Label>
         <Textarea
           id={id}
+          className="font-mono text-xs"
           defaultValue={JSON.stringify(value, null, 2)}
-          onBlur={(e) => {
+          aria-invalid={invalid || undefined}
+          aria-describedby={`${id}-help`}
+          onChange={(e) => {
+            // Validate as the administrator types so a bad list is visible before saving.
             try {
-              onChange(JSON.parse(e.target.value));
+              const parsed: unknown = JSON.parse(e.target.value);
+              if (!Array.isArray(parsed)) throw new Error("not a list");
+              onChange(parsed as Json);
               e.target.setCustomValidity("");
+              setInvalid(false);
             } catch {
               e.target.setCustomValidity(translate("m6b761165184a"));
+              setInvalid(true);
             }
           }}
         />
-        <p className="text-sm text-muted-foreground">
-          {translate("md3d289611706")}{" "}
+        <p
+          id={`${id}-help`}
+          className={
+            invalid
+              ? "text-sm text-destructive"
+              : "text-sm text-muted-foreground"
+          }
+        >
+          {invalid ? translate("m6b761165184a") : translate("md3d289611706")}
         </p>
       </div>
     );
@@ -210,20 +227,24 @@ export function BaseSettingsEditor({
 
   const [settings, setSettings] = useState(initial.settings);
   const [reason, setReason] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<{
+    tone: "success" | "error";
+    text: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const router = useRouter();
   async function save() {
     setBusy(true);
+    setMessage(null);
     try {
       await api("/api/admin/settings", z.unknown(), {
         method: "POST",
         body: { revision: initial.revision, reason, settings },
       });
-      setMessage(translate("mae493e21cd43"));
+      setMessage({ tone: "success", text: translate("mae493e21cd43") });
       router.refresh();
     } catch (e) {
-      setMessage(errorMessage(e, translate));
+      setMessage({ tone: "error", text: errorMessage(e, translate) });
     } finally {
       setBusy(false);
     }
@@ -242,24 +263,39 @@ export function BaseSettingsEditor({
         onChange={(e) => setReason(e.target.value)}
       />
       <Button disabled={busy} onClick={() => void save()}>
-        {translate("m7f3a3b142814")}{" "}
+        {translate("m7f3a3b142814")}
       </Button>
-      <p role="status">{message}</p>
+      {message && <Notice tone={message.tone} title={message.text} />}
       <Card>
         <CardHeader>
           <CardTitle>{translate("m580e5a99ca05")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>
-            {translate("m7c0005e0f339")} {initial.configuration.difyMode}{" "}
-            {translate("mde102711acfa")}{" "}
-            {initial.configuration.managementConfigured
-              ? "configured"
-              : "disabled"}{" "}
-            {translate("mbb0c41ff1192")} {initial.configuration.storage}{" "}
-            {translate("m352a594e91f2")} {initial.configuration.payments}
+          <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
+            {(
+              [
+                [translate("m7a607bd1c964"), initial.configuration.difyMode],
+                [
+                  translate("m1353e96d4dae"),
+                  initial.configuration.managementConfigured
+                    ? "configured"
+                    : "disabled",
+                ],
+                [translate("m06b67240d8e7"), initial.configuration.storage],
+                [translate("m63dee508c64a"), initial.configuration.payments],
+              ] as const
+            ).map(([term, value]) => (
+              <div key={term} className="contents">
+                <dt className="text-muted-foreground">{term}</dt>
+                <dd>
+                  <StateLabel value={value} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-sm text-muted-foreground">
+            {translate("m32e4874ab38a")}
           </p>
-          <p>{translate("m32e4874ab38a")} </p>
         </CardContent>
       </Card>
       <section>

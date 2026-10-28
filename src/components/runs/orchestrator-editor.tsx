@@ -1,5 +1,6 @@
 "use client";
 import { useTranslations } from "next-intl";
+import { Notice } from "@/components/page-patterns";
 
 import { project, namespace } from "@/lib/project";
 
@@ -343,7 +344,7 @@ export function OrchestratorEditor({
     <section className="space-y-4" aria-labelledby="dify-apps-heading">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="dify-apps-heading" className="text-xl font-semibold">
-          {translate("md940356f831e")}{" "}
+          {translate("md940356f831e")}
         </h2>
         <div className="flex flex-wrap gap-2">
           <DropdownMenu>
@@ -387,13 +388,9 @@ export function OrchestratorEditor({
         </div>
       </div>
       <p className="text-sm text-muted-foreground">
-        {translate("m74b3f6c29768")}{" "}
+        {translate("m74b3f6c29768")}
       </p>
-      {message && (
-        <p role="status" className="break-words text-sm">
-          {message}
-        </p>
-      )}
+      {message && <Notice title={message} />}
       {!apps.length && (
         <Card>
           <CardContent className="pt-4">
@@ -476,7 +473,7 @@ export function OrchestratorEditor({
                           void change("disable", app.orchestratorId!)
                         }
                       >
-                        {translate("mb7e3e4aa4257")}{" "}
+                        {translate("mb7e3e4aa4257")}
                       </Button>
                     )}
                   <Button

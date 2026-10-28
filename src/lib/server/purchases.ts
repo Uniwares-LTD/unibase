@@ -25,16 +25,20 @@ async function requireSimulation() {
 }
 export async function publicCatalog(): Promise<{
   mode: "disabled" | "simulation" | "stripe";
-  packs: PublicPack[];
+  packs: (PublicPack & { amountMinor?: number; currency?: string })[];
 }> {
   const config = await runtimeCreditConfig();
   return {
     mode: config.mode,
-    packs: config.packs.map(({ id, label, credits }) => ({
-      id,
-      label,
-      credits,
-    })),
+    // Display prices are public catalog facts; provider price IDs stay server-side.
+    packs: config.packs.map(
+      ({ id, label, credits, amountMinor, currency }) => ({
+        id,
+        label,
+        credits,
+        ...(amountMinor && currency ? { amountMinor, currency } : {}),
+      }),
+    ),
   };
 }
 export async function startSimulatedPurchase(packId: string, key: string) {

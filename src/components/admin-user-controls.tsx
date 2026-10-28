@@ -3,7 +3,7 @@ import { StateLabel } from "./localized-value";
 import { useTranslations } from "next-intl";
 
 import { Notice } from "./page-patterns";
-import { useActionState, useId, useRef } from "react";
+import { useActionState, useId, useRef, useState } from "react";
 import { changeUser } from "@/app/admin/users/actions";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -38,9 +38,11 @@ function ChangeForm({
   actorUid: string;
 }) {
   const translate = useTranslations("ui");
+  const states = useTranslations("states");
 
   const id = useId();
   const form = useRef<HTMLFormElement>(null);
+  const [change, setChange] = useState({ summary: "", risky: false });
   const [state, action, pending] = useActionState(
     changeUser.bind(null, kind, actorUid, user.uid),
     { message: "", saved: false },
@@ -79,7 +81,7 @@ function ChangeForm({
                 ] as const
               ).map((group) => (
                 <fieldset key={group.name} className="space-y-2">
-                  <legend className="text-sm font-medium capitalize">
+                  <legend className="text-sm font-medium">
                     <StateLabel value={group.name} />
                   </legend>
                   <RadioGroup
@@ -90,10 +92,7 @@ function ChangeForm({
                     {group.options.map((option) => (
                       <div key={option} className="flex items-center gap-2">
                         <RadioGroupItem id={`${id}-${option}`} value={option} />
-                        <Label
-                          htmlFor={`${id}-${option}`}
-                          className="capitalize"
-                        >
+                        <Label htmlFor={`${id}-${option}`}>
                           <StateLabel value={option} />
                         </Label>
                       </div>
@@ -113,10 +112,39 @@ function ChangeForm({
               autoComplete="off"
             />
             <p className="text-xs text-muted-foreground">
-              {translate("m55aae024034e")}{" "}
+              {translate("m55aae024034e")}
             </p>
           </div>
-          <AlertDialog>
+          <AlertDialog
+            onOpenChange={(open) => {
+              if (!open || !form.current) return;
+              // Name the exact before/after values in the confirmation.
+              const data = new FormData(form.current);
+              if (kind === "profile") {
+                setChange({
+                  summary: translate("m04cd39380d7b", {
+                    from: user.displayName,
+                    to: String(data.get("displayName") ?? ""),
+                  }),
+                  risky: false,
+                });
+                return;
+              }
+              const role = String(data.get("role") ?? user.role);
+              const status = String(data.get("status") ?? user.status);
+              setChange({
+                summary: translate("m19556d039b80", {
+                  fromRole: states(user.role),
+                  toRole: states(role as ManagedUser["role"]),
+                  fromStatus: states(user.status),
+                  toStatus: states(status as ManagedUser["status"]),
+                }),
+                risky:
+                  (user.role === "admin" && role === "member") ||
+                  (user.status === "active" && status === "suspended"),
+              });
+            }}
+          >
             <AlertDialogTrigger asChild>
               <Button type="button" disabled={pending}>
                 {pending
@@ -130,10 +158,13 @@ function ChangeForm({
                   {translate("m8accb43f940d")}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
+                  <span className="block font-medium text-foreground">
+                    {change.summary}
+                  </span>
                   {kind === "access"
                     ? translate("mea2566c4c00e")
                     : translate("m8b84d40526a0")}{" "}
-                  {translate("mcbc1ff7ddf4c")}{" "}
+                  {translate("mcbc1ff7ddf4c")}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -144,12 +175,13 @@ function ChangeForm({
                   <Button
                     type="submit"
                     form={id}
+                    variant={change.risky ? "destructive" : "default"}
                     onClick={(event) => {
                       if (!form.current?.reportValidity())
                         event.preventDefault();
                     }}
                   >
-                    {translate("m704ac1d7acd8")}{" "}
+                    {translate("m704ac1d7acd8")}
                   </Button>
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -178,7 +210,7 @@ export function AdminUserControls({
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        {translate("mbd90f64a0b40")}{" "}
+        {translate("mbd90f64a0b40")}
       </p>
       <ChangeForm kind="access" user={user} actorUid={actorUid} />
       <ChangeForm kind="profile" user={user} actorUid={actorUid} />
