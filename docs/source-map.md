@@ -20,6 +20,10 @@
 and the [repository adapter](../.agents/repository-adapter.md) own local agent integration.
 Historical evidence in [history](history) is not a task queue.
 
+[Documentation system planning](documentation-system-plan.md) records the issue #7
+proposal and source ownership until its dedicated private repository is established;
+it does not replace canonical application documentation.
+
 ## Commands
 
 [package.json](../package.json) is the command authority. [Validation](../scripts/validate.mjs)

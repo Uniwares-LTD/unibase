@@ -23,6 +23,15 @@ owned here. The 2026-10-27 reconciliation uses eleven shared entrypoints, adds a
 source map and explicit Codex/Claude synchronization after Handbook PR #3 merged. See [agent tooling](agent-tooling.md) for setup, validation and client limits.
 No backlog migration or deployment is part of this change.
 
+## Agentic developer documentation — issue #7
+
+[Issue #7](https://github.com/Uniwares-LTD/unibase/issues/7) tracks a dedicated
+private developer documentation system. The [planning draft](documentation-system-plan.md)
+records the source audit, proposed runtime/frontend, phased acceptance and separate
+authorization boundaries. The local planning branch is authorized; repository creation,
+system implementation, generated documentation and maintenance acceptance remain
+outstanding. This work does not change the application deployment.
+
 ## Agreed decisions
 
 One Next.js App Router application serves web/PWA and the prepared Android TWA.
