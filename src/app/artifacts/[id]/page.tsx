@@ -2,8 +2,8 @@ import { PageMessages } from "@/components/page-messages";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AppError } from "@/lib/auth-policy";
-import { redirect, notFound } from "next/navigation";
-import { getSession } from "@/lib/server/session";
+import { notFound } from "next/navigation";
+import { getSession, signInRedirect } from "@/lib/server/session";
 import Image from "next/image";
 import { z } from "zod";
 import { artifactDetail } from "@/lib/server/runs/artifacts";
@@ -26,7 +26,7 @@ export default async function Page({
 }) {
   const translate = await getTranslations("ui");
 
-  if (!(await getSession())?.email_verified) redirect("/account");
+  if (!(await getSession())?.email_verified) return signInRedirect();
   const parsed = z
     .string()
     .uuid()

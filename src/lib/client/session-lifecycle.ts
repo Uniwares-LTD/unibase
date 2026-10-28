@@ -6,12 +6,12 @@ export function invalidateBrowserSession() {
   requests.abort();
   window.dispatchEvent(new Event("base-session-invalidated"));
 }
-export function announceSessionChange() {
+export function announceSessionChange(destination = "/account") {
   try {
     localStorage.setItem(namespace("session-event"), crypto.randomUUID());
   } catch {
     // Navigation and clearing this document must work with storage disabled.
   }
   invalidateBrowserSession();
-  location.replace("/account");
+  location.replace(destination);
 }

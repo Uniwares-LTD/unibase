@@ -239,11 +239,9 @@
     "mac576a66d456": "Skip to content",
     "m478e47e459be": "Your space",
     "meb355944b92d": "Main navigation",
-    "m4e1311bf9513": "Your ideas, with room to grow.",
     "m0ed77fd2619b": "Open navigation",
     "m8e1a07e2f468": "Find your way around your space.",
     "m806f228ffbd4": "Mobile navigation",
-    "ma6941f410dee": "· Make it yours.",
     "m777b71247907": "Resolution explanation (optional)",
     "mc69dce41d50b": "Record the evidence and reason for this decision.",
     "me404048f0463": "Accept saved result and settle its calculated charge",
@@ -309,7 +307,6 @@
     "mded56dcbe5cc": "A new beginning",
     "m0e6b8e5c5379": "Welcome to",
     "mb6a63358cc0c": "Make yourself at home. Find your account and choose a look that feels right for you.",
-    "m34ca8a4540f5": "Make it yours",
     "mea7552207078": "Your essentials",
     "mc146e2f33b3e": "A few things to help you settle in.",
     "mb72bfd6ac61e": "One place for your profile and account details.",
@@ -663,7 +660,8 @@
     "mbc5b45ae7b60": "Reset to default",
     "m299efc821572": "Shared settings apply to future Runs. Each persona supplies its own role instructions.",
     "md599b2bbf718": "Save completion settings",
-    "m61b1eea125c1": "{name} was created as a draft. In Dify, configure the country, law knowledgebase and document/image/audio models, then return here and Register it."
+    "m61b1eea125c1": "{name} was created as a draft. In Dify, configure the country, law knowledgebase and document/image/audio models, then return here and Register it.",
+    "m250a4fe2e585": "Sign in or create an account to continue."
   },
   "locale": {
     "heading": "Language and region",
@@ -672,7 +670,8 @@
     "timeZone": "Time zone",
     "save": "Save to my account",
     "saved": "Language and time zone saved.",
-    "failed": "Check the time zone and try again."
+    "failed": "Check the time zone and try again.",
+    "signIn": "Sign in to save your language and time zone to your account."
   },
   "states": {
     "pending": "Pending",

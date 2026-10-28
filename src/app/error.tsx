@@ -26,11 +26,11 @@ export default function ErrorPage({
       <Alert>
         <AlertCircle aria-hidden="true" />
         <AlertTitle>{translate("ma4bc99766fde")}</AlertTitle>
-        <AlertDescription>{translate("m88781c9f0966")} </AlertDescription>
+        <AlertDescription>{translate("m88781c9f0966")}</AlertDescription>
       </Alert>
       <div className="mt-6 flex flex-wrap gap-3">
         <Button onClick={retry} className="h-11">
-          {translate("md8b8392e2c54")}{" "}
+          {translate("md8b8392e2c54")}
         </Button>
         <Button variant="outline" asChild className="h-11">
           <Link href="/">{translate("m76c5505ff2e2")}</Link>

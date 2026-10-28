@@ -2,12 +2,19 @@
 import { useTranslations, useLocale } from "next-intl";
 
 import { moduleEnabled, moduleForPath } from "@/lib/project";
-import { BookOpen, Sparkles, Home, Menu } from "lucide-react";
+import {
+  BookOpen,
+  Bookmark,
+  Folder,
+  Home,
+  ListChecks,
+  Menu,
+  Sparkles,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -18,14 +25,17 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-function useRoutes() {
+function useRoutes(signedIn: boolean) {
   const translate = useTranslations("ui");
+  const home = { href: "/", label: translate("m3a78695388b3"), Icon: Home };
+  // Every other destination requires an account; signed-out visitors only see Home.
+  if (!signedIn) return [home];
   return [
-    { href: "/", label: translate("m3a78695388b3"), Icon: Home },
+    home,
     { href: "/runs/new", label: translate("mcdffd2693a0c"), Icon: Sparkles },
-    { href: "/runs", label: translate("m848f54e89660"), Icon: BookOpen },
-    { href: "/files", label: translate("mabc7e9892806"), Icon: BookOpen },
-    { href: "/artifacts", label: translate("m068c9472b061"), Icon: BookOpen },
+    { href: "/runs", label: translate("m848f54e89660"), Icon: ListChecks },
+    { href: "/files", label: translate("mabc7e9892806"), Icon: Folder },
+    { href: "/artifacts", label: translate("m068c9472b061"), Icon: Bookmark },
   ].filter((route) => {
     const id = moduleForPath(route.href);
     return !id || moduleEnabled(id);
@@ -57,12 +67,14 @@ function Brand({ name }: { name: string }) {
 
 function Navigation({
   label,
+  signedIn,
   onNavigate,
 }: {
   label: string;
+  signedIn: boolean;
   onNavigate?: () => void;
 }) {
-  const routes = useRoutes();
+  const routes = useRoutes(signedIn);
   const pathname = usePathname();
   return (
     <nav aria-label={label} className="space-y-1.5">
@@ -93,17 +105,19 @@ function Navigation({
 
 export function AppShell({
   appName,
+  signedIn,
   children,
   accountMenu,
 }: {
   appName: string;
+  signedIn: boolean;
   children: React.ReactNode;
   accountMenu: React.ReactNode;
 }) {
   const translate = useTranslations("ui");
   const direction = useLocale() === "ar" ? "right" : "left";
 
-  const routes = useRoutes();
+  const routes = useRoutes(signedIn);
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const title =
@@ -124,20 +138,14 @@ export function AppShell({
         href="#main-content"
         className="sr-only fixed top-3 start-3 z-[100] rounded-md bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only"
       >
-        {translate("mac576a66d456")}{" "}
+        {translate("mac576a66d456")}
       </a>
       <aside className="shell-surface fixed inset-y-0 start-0 hidden w-64 flex-col border-e bg-sidebar p-6 text-sidebar-foreground md:flex">
         <Brand name={appName} />
         <p className="mt-12 mb-4 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          {translate("m478e47e459be")}{" "}
+          {translate("m478e47e459be")}
         </p>
-        <Navigation label={translate("meb355944b92d")} />
-        <div className="mt-auto">
-          <Separator className="mb-5" />
-          <p className="px-3 text-xs leading-relaxed text-muted-foreground">
-            {translate("m4e1311bf9513")}{" "}
-          </p>
-        </div>
+        <Navigation label={translate("meb355944b92d")} signedIn={signedIn} />
       </aside>
       <div className="md:ps-64">
         <header className="shell-surface flex h-20 items-center justify-between gap-4 border-b bg-background px-5 sm:px-8 lg:px-12">
@@ -160,11 +168,12 @@ export function AppShell({
                 <SheetHeader className="px-0 pt-6">
                   <SheetTitle>{appName}</SheetTitle>
                   <SheetDescription>
-                    {translate("m8e1a07e2f468")}{" "}
+                    {translate("m8e1a07e2f468")}
                   </SheetDescription>
                 </SheetHeader>
                 <Navigation
                   label={translate("m806f228ffbd4")}
+                  signedIn={signedIn}
                   onNavigate={() => setMobileOpen(false)}
                 />
               </SheetContent>
@@ -182,9 +191,6 @@ export function AppShell({
         >
           {children}
         </main>
-        <footer className="shell-footer mx-auto max-w-6xl px-5 pb-8 text-xs text-muted-foreground sm:px-8 lg:px-12">
-          {appName} {translate("ma6941f410dee")}{" "}
-        </footer>
       </div>
     </div>
   );

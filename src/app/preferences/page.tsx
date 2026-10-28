@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import { ThemePreference } from "@/components/theme-preference";
 import { StylePreference } from "@/components/style-preference";
 import { AppearanceForm } from "@/components/appearance-form";
+import { DiagnosticsPanel } from "@/components/diagnostics-panel";
 import { getSession } from "@/lib/server/session";
 import { getMyProfile } from "@/lib/server/profiles";
 import {
@@ -36,7 +37,7 @@ export default async function PreferencesPage() {
           <Card className="shadow-none">
             <CardHeader>
               <CardTitle>{translate("m3907fa7f8072")}</CardTitle>
-              <CardDescription>{translate("me6ced602ea08")} </CardDescription>
+              <CardDescription>{translate("me6ced602ea08")}</CardDescription>
             </CardHeader>
             <CardContent>
               {profile ? (
@@ -51,6 +52,7 @@ export default async function PreferencesPage() {
               )}
             </CardContent>
           </Card>
+          <DiagnosticsPanel />
         </div>
       }
     </PageMessages>

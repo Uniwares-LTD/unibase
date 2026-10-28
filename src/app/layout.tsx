@@ -15,7 +15,8 @@ import {
   parseStylePreference,
   resolveStyle,
 } from "@/lib/appearance";
-import { AccountMenu } from "@/components/account-menu";
+import { viewerState } from "@/components/account-menu";
+import { AccountMenuControls } from "@/components/account-menu-controls";
 import { AppShell } from "@/components/app-shell";
 import { ThemeProvider } from "@/components/theme-provider";
 import { publicSettings } from "@/lib/server/settings";
@@ -48,6 +49,7 @@ export default async function RootLayout({
   // Read allowlisted configuration at runtime, not frozen into a build.
   await connection();
   const publicConfig = await publicSettings();
+  const viewer = await viewerState();
   const { locale, timeZone } = await requestLocale();
   const messages = clientMessages(await getMessages(), "__shell__");
   const preference = parseStylePreference(
@@ -79,7 +81,8 @@ export default async function RootLayout({
                 <SessionBoundary>
                   <AppShell
                     appName={publicConfig.appName}
-                    accountMenu={<AccountMenu />}
+                    signedIn={viewer.hasSession}
+                    accountMenu={<AccountMenuControls {...viewer} />}
                   >
                     {children}
                   </AppShell>

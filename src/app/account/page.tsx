@@ -3,7 +3,6 @@ import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-patterns";
 import type { Metadata } from "next";
 import { AuthForm } from "@/components/auth-form";
-import { DiagnosticsPanel } from "@/components/diagnostics-panel";
 import { ProfileForm } from "@/components/profile-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAuthConfig } from "@/lib/server/auth-config";
@@ -24,7 +23,7 @@ export default async function AccountPage() {
         <div className="max-w-2xl page-stack">
           <PageHeader
             title={translate("m7e1b0d5641f2")}
-            description={translate("m48839b69e560")}
+            description={translate(profile ? "m48839b69e560" : "m250a4fe2e585")}
           />
           <Card>
             <CardContent className="space-y-6 py-6">
@@ -35,7 +34,6 @@ export default async function AccountPage() {
               )}
             </CardContent>
           </Card>
-          <DiagnosticsPanel />
         </div>
       }
     </PageMessages>

@@ -127,7 +127,7 @@ The background is decorative, centered and cropped to cover the viewport. It
 has a 42% mode-specific wash, allowing much more of the cover color to show
 through. Protect text locally: PageHeader carries the page-header class;
 reading-surface marks prose/hero blocks; glass-inset adds optional Glass-only
-padding. Standalone page-stack paragraphs and the footer receive local scrims.
+padding. Standalone page-stack paragraphs receive local scrims.
 These classes have no effect in Classic or Soft Blue. Forms inside cards use one
 stronger surface; standalone forms and table containers get their own.
 Tune --cover-wash, --card, --reading-surface, --form-surface, --surface-sheen

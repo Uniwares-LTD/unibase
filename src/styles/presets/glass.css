@@ -128,8 +128,7 @@ html[data-style="glass"] .page-header {
 /* Stronger local scrims for text, data and mutations. Forms inside cards need
    only one scrim; avoid stacking another translucent surface around every field. */
 html[data-style="glass"] :is(.reading-surface, .page-header),
-html[data-style="glass"] .page-stack > p,
-html[data-style="glass"] .shell-footer {
+html[data-style="glass"] .page-stack > p {
   background-color: var(--reading-surface);
   border-radius: var(--radius-xl);
 }
@@ -145,10 +144,6 @@ html[data-style="glass"] :is(.glass-inset, .page-header),
 html[data-style="glass"] form:not([data-slot="card"] form),
 html[data-style="glass"] .page-stack > p {
   padding: 1.25rem;
-}
-
-html[data-style="glass"] .shell-footer {
-  padding-top: 1rem;
 }
 
 /* Nested appearance options already sit on a panel; keep them clear. */

@@ -4,9 +4,8 @@ import { PageHeader } from "@/components/page-patterns";
 import type { Metadata } from "next";
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
-import { AppError } from "@/lib/auth-policy";
 import { currentCreditAccount } from "@/lib/server/credits";
-import { requireSession } from "@/lib/server/session";
+import { pageSession } from "@/lib/server/session";
 import {
   publicCatalog,
   currentSimulatedPurchases,
@@ -29,14 +28,7 @@ export default async function CreditsPage({
   const cursor = before === undefined ? undefined : Number(before);
   if (cursor !== undefined && (!Number.isSafeInteger(cursor) || cursor < 1))
     redirect("/credits");
-  const session = await requireSession().catch((error: unknown) => {
-    if (
-      error instanceof AppError &&
-      ["UNAUTHENTICATED", "EMAIL_UNVERIFIED"].includes(error.code)
-    )
-      redirect("/account");
-    throw error;
-  });
+  const session = await pageSession();
   const account = await currentCreditAccount(cursor);
   const catalog = await publicCatalog();
   const orders =

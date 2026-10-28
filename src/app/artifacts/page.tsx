@@ -1,8 +1,7 @@
 import { PageMessages } from "@/components/page-messages";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getSession } from "@/lib/server/session";
+import { getSession, signInRedirect } from "@/lib/server/session";
 import { listArtifacts } from "@/lib/server/runs/artifacts";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-patterns";
@@ -13,7 +12,7 @@ export default async function Page({
 }) {
   const translate = await getTranslations("ui");
 
-  if (!(await getSession())?.email_verified) redirect("/account");
+  if (!(await getSession())?.email_verified) return signInRedirect();
   const { rows, next } = await listArtifacts((await searchParams).cursor);
   return (
     <PageMessages path="/artifacts">

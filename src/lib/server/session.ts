@@ -1,6 +1,8 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { AppError, requireRecentLogin, SESSION_SECONDS } from "../auth-policy";
+import { signInPath } from "../return-path";
 import { adminAuth } from "./firebase";
 import { cookieName, cookieOptions } from "./http";
 import { database } from "./mongo";
@@ -49,6 +51,22 @@ export async function requireSession(verified = true) {
       403,
     );
   return session;
+}
+// Pages send signed-out visitors to sign in, then back to the requested path.
+export async function signInRedirect(): Promise<never> {
+  redirect(signInPath((await headers()).get("x-pathname")));
+}
+export async function pageSession(verified = true) {
+  try {
+    return await requireSession(verified);
+  } catch (error) {
+    if (
+      error instanceof AppError &&
+      ["UNAUTHENTICATED", "EMAIL_UNVERIFIED"].includes(error.code)
+    )
+      return signInRedirect();
+    throw error;
+  }
 }
 export async function createSession(idToken: string) {
   const auth = adminAuth();

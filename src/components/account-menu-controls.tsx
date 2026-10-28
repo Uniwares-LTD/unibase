@@ -5,12 +5,14 @@ import { NotificationBadge } from "./notifications";
 import { moduleEnabled } from "@/lib/project";
 import {
   ChevronDown,
+  LogIn,
   Settings2,
   UserRound,
   Wallet,
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,10 +33,20 @@ export function AccountMenuControls({
   isAdmin: boolean;
 }) {
   const translate = useTranslations("ui");
+  const pathname = usePathname();
 
+  if (!hasSession)
+    return pathname === "/account" ? null : (
+      <Button asChild className="h-11">
+        <Link href="/account">
+          <LogIn aria-hidden="true" />
+          {translate("mbfd402b2f6f3")}
+        </Link>
+      </Button>
+    );
   return (
     <div className="flex items-center gap-2">
-      {hasSession && moduleEnabled("notifications") && <NotificationBadge />}
+      {moduleEnabled("notifications") && <NotificationBadge />}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -62,37 +74,33 @@ export function AccountMenuControls({
           <DropdownMenuItem asChild>
             <Link href="/account">
               <UserRound aria-hidden="true" />
-              {translate("m7e1b0d5641f2")}{" "}
+              {translate("m7e1b0d5641f2")}
             </Link>
           </DropdownMenuItem>
           {moduleEnabled("credits") && (
             <DropdownMenuItem asChild>
               <Link href="/credits">
                 <Wallet aria-hidden="true" />
-                {translate("m2a6b24ad2872")}{" "}
+                {translate("m2a6b24ad2872")}
               </Link>
             </DropdownMenuItem>
           )}
           <DropdownMenuItem asChild>
             <Link href="/preferences">
               <Settings2 aria-hidden="true" />
-              {translate("m66962f72a088")}{" "}
+              {translate("m66962f72a088")}
             </Link>
           </DropdownMenuItem>
           {isAdmin && (
             <DropdownMenuItem asChild>
               <Link href="/admin">
                 <ShieldCheck aria-hidden="true" />
-                {translate("m4b42c6690ebe")}{" "}
+                {translate("m4b42c6690ebe")}
               </Link>
             </DropdownMenuItem>
           )}
-          {hasSession && (
-            <>
-              <DropdownMenuSeparator />
-              <SessionControls />
-            </>
-          )}
+          <DropdownMenuSeparator />
+          <SessionControls />
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

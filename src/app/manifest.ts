@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { connection } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { publicSettings } from "@/lib/server/settings";
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
@@ -9,7 +10,9 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     id: "/",
     name: appName,
     short_name: appName,
-    description: `Your space in ${appName}.`,
+    description: (await getTranslations("common"))("description", {
+      name: appName,
+    }),
     start_url: "/",
     scope: "/",
     display: "standalone",

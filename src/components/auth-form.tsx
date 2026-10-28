@@ -18,6 +18,7 @@ import { browserAuth, redirectCredential } from "@/lib/client/firebase";
 import { GOOGLE_REDIRECT_KEY, redirectUser } from "@/lib/client/redirect-state";
 import { api, ApiError } from "@/lib/client/api";
 import { announceSessionChange } from "@/lib/client/session-lifecycle";
+import { safeReturnPath } from "@/lib/return-path";
 import { sessionResultSchema } from "@/lib/contracts/profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,7 +57,9 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
     });
     await signOut(auth);
     sessionStorage.removeItem(GOOGLE_REDIRECT_KEY);
-    announceSessionChange();
+    announceSessionChange(
+      safeReturnPath(new URL(location.href).searchParams.get("next")),
+    );
   }
 
   useEffect(() => {
@@ -157,7 +160,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
           </h2>
           <p className="text-sm text-muted-foreground">
             {translate("m7e9fca60d938")} <bdi>{unverified.email}</bdi>
-            {translate("m3250ca735f0f")}{" "}
+            {translate("m3250ca735f0f")}
           </p>
           <div className="flex flex-wrap gap-3">
             <Button
@@ -173,7 +176,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
                 })
               }
             >
-              {translate("mbc76912b1498")}{" "}
+              {translate("mbc76912b1498")}
             </Button>
             <Button
               variant="outline"
@@ -187,7 +190,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
                 })
               }
             >
-              {translate("m4f44603ef678")}{" "}
+              {translate("m4f44603ef678")}
             </Button>
             <Button
               variant="ghost"
@@ -200,7 +203,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
                 })
               }
             >
-              {translate("mfdce40f79716")}{" "}
+              {translate("mfdce40f79716")}
             </Button>
           </div>
         </div>
@@ -243,7 +246,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
                 />
                 {mode === "register" && (
                   <p className="text-xs text-muted-foreground">
-                    {translate("m618b57689fc1")}{" "}
+                    {translate("m618b57689fc1")}
                   </p>
                 )}
               </div>
@@ -279,7 +282,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
                 })
               }
             >
-              {translate("mcce937e89144")}{" "}
+              {translate("mcce937e89144")}
             </Button>
           )}
           <div className="flex flex-wrap gap-2">
