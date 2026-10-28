@@ -13,10 +13,17 @@ export const viewerState = cache(async () => {
   let isAdmin = false;
   let email: string | null = null;
   let displayName: string | null = null;
+  let picture: string | null = null;
   try {
     const session = await getSession();
     hasSession = !!session;
     email = session?.email ?? null;
+    // Provider photo from the verified sign-in claims (e.g. Google); HTTPS only.
+    picture =
+      typeof session?.picture === "string" &&
+      session.picture.startsWith("https://")
+        ? session.picture
+        : null;
     if (session) {
       // Read-only lookup: the profile is created on first account access, not here.
       const profile = await database()
@@ -40,5 +47,5 @@ export const viewerState = cache(async () => {
     if (!(error instanceof AppError) || error.code !== "SERVICE_UNAVAILABLE")
       throw error;
   }
-  return { hasSession, isAdmin, email, displayName };
+  return { hasSession, isAdmin, email, displayName, picture };
 });

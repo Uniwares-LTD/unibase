@@ -7,7 +7,7 @@ import { ChevronDown, LogIn, UserRound, ShieldCheck } from "lucide-react";
 import { useAccountRoutes } from "@/components/app-shell";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,11 +24,13 @@ export function AccountMenuControls({
   isAdmin,
   email,
   displayName,
+  picture,
 }: {
   hasSession: boolean;
   isAdmin: boolean;
   email: string | null;
   displayName: string | null;
+  picture: string | null;
 }) {
   const translate = useTranslations("ui");
   const routes = useAccountRoutes();
@@ -54,6 +56,13 @@ export function AccountMenuControls({
             aria-label={translate("m04b5bfe665e3")}
           >
             <Avatar className="size-8">
+              {picture && (
+                <AvatarImage
+                  src={picture}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                />
+              )}
               <AvatarFallback className="bg-secondary">
                 <UserRound className="size-4" aria-hidden="true" />
               </AvatarFallback>
