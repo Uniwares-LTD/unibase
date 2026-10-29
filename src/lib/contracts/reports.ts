@@ -9,6 +9,10 @@ export const auditEvents = [
   "ai-resolution",
   "ai-cleanup",
   "payment-review",
+  "diagnostic-grant-requested",
+  "diagnostic-grant-activated",
+  "diagnostic-grant-failed",
+  "diagnostic-grant-revoked",
 ] as const;
 export const reportFilterSchema = z
   .object({

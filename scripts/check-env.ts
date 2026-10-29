@@ -11,12 +11,14 @@ import { parsePersonaCompletionConfig } from "../src/lib/config/persona-completi
 import { parseDifyConfig } from "../src/lib/config/dify";
 import { parseAssetConfig } from "../src/lib/config/assets";
 import { parseMcpConfig } from "../src/lib/config/mcp";
+import { parseDiagnosticsConfig } from "../src/lib/config/diagnostics";
 
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 
 try {
   const config = parseConfig(process.env);
   rateConfig(process.env);
+  parseDiagnosticsConfig(process.env);
   if (requirements.has("mcp"))
     parseMcpConfig(process.env, config.server.origin);
   parseDatabaseConfig(process.env, config.server.environment);

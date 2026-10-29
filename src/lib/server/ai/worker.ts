@@ -432,6 +432,11 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
                 : error.code === "AI_REFERENCE_REJECTED"
                   ? "reference-upload-rejected"
                   : "reference-unavailable",
+          ...(!job.responder &&
+          error.code === "CAPABILITY_CONFIGURATION" &&
+          error.reason
+            ? { failureDetail: { reason: error.reason, at: now() } }
+            : {}),
         },
         now(),
       );

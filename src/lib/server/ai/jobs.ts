@@ -108,6 +108,8 @@ export type AiJob = {
   reviewAfter: Date;
   cancelRequested: boolean;
   failure: string | null;
+  // Operator-only cause behind a generic failure code; never user-facing.
+  failureDetail?: { reason: string; at: Date };
   createdAt: Date;
   updatedAt: Date;
   cleanedAt?: Date;
@@ -357,6 +359,7 @@ export async function patchAiJob(
       AiJob,
       | "status"
       | "failure"
+      | "failureDetail"
       | "terminationEvidence"
       | "runId"
       | "taskId"

@@ -6,6 +6,8 @@ export class AppError extends Error {
     public code: string,
     message: string,
     public status = 400,
+    // Optional typed detail for operator diagnostics; never shown to users.
+    public reason?: string,
   ) {
     super(message);
   }

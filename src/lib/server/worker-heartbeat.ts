@@ -13,6 +13,19 @@ export type WorkerHeartbeat = {
   commit: string;
   updatedAt: Date;
   state: "ok" | "error" | "disabled";
+  // Bounded configuration-check results observed by this worker process.
+  checks?: WorkerChecks;
+};
+export type WorkerChecks = {
+  observedAt: Date;
+  privateContext?: {
+    mcp: "enabled" | "disabled" | "invalid";
+    clientId: string;
+    clientConfigured: boolean;
+    missingPermissions: string[];
+    keySource: "explicit" | "management-fallback" | "missing" | "invalid";
+    originConfigured: boolean;
+  };
 };
 export const WORKER_MAX_AGE_MS = 300_000;
 const heartbeatPath = (kind: WorkerKind) =>
@@ -28,15 +41,26 @@ export function healthyHeartbeat(
     age < WORKER_MAX_AGE_MS
   );
 }
-export function workerHeartbeat(db: Db, kind: WorkerKind) {
+export function workerHeartbeat(
+  db: Db,
+  kind: WorkerKind,
+  inspect?: () => Promise<Omit<WorkerChecks, "observedAt">>,
+) {
   const instance = randomUUID();
   return async (state: WorkerHeartbeat["state"]) => {
+    // Checks are advisory evidence; their failure must not stop the heartbeat.
+    const checks = inspect
+      ? await inspect()
+          .then((value) => ({ ...value, observedAt: new Date() }))
+          .catch(() => undefined)
+      : undefined;
     const record: WorkerHeartbeat = {
       _id: `${kind}:${instance}`,
       kind,
       state,
       commit: process.env.RELEASE_COMMIT ?? "local",
       updatedAt: new Date(),
+      ...(checks ? { checks } : {}),
     };
     await db
       .collection<WorkerHeartbeat>("workerHeartbeats")

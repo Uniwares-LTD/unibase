@@ -23,6 +23,12 @@ owned here. The 2026-10-27 reconciliation uses eleven shared entrypoints, adds a
 source map and explicit Codex/Claude synchronization after Handbook PR #3 merged. See [agent tooling](agent-tooling.md) for setup, validation and client limits.
 No backlog migration or deployment is part of this change.
 
+## Proposed extension: staging diagnostics API — 2026-10-28
+
+Implemented and locally verified. The required issue draft awaits human approval, and this is not yet an accepted milestone. The work adds Redis-backed, expiring operator grants from Base settings and `POST /api/diagnostics`, with read-only capabilities across every module. It also records typed sub-reasons behind `private-context-unavailable` on new attempts, and AI workers now report their configuration checks with heartbeats. See [diagnostics API](diagnostics-api.md).
+
+Outstanding: approve and publish the issue; run the Lua grant-store test against a disposable Redis; verify the Base settings card in a browser with Redis; complete staging activation (installation of `DIAGNOSTICS_ENABLED=true` is separately authorized); and investigate a known failed staging Run.
+
 ## Agreed decisions
 
 One Next.js App Router application serves web/PWA and the prepared Android TWA.

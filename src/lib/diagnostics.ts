@@ -23,6 +23,7 @@ export const events = [
   "worker-ready",
   "worker-failed",
   "diagnostics-enabled",
+  "diagnostics-request",
 ] as const;
 export type DiagnosticEvent = (typeof events)[number];
 export function safeRecord(

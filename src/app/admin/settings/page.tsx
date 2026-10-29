@@ -5,6 +5,8 @@ import { adminPageSession } from "@/lib/server/admin-view";
 import { BaseSettingsEditor } from "@/components/runs/admin-editors";
 import { settingsView } from "@/lib/server/settings";
 import { PageHeader } from "@/components/page-patterns";
+import { DiagnosticAccess } from "@/components/diagnostic-access";
+import { diagnosticsAvailability } from "@/lib/server/diagnostics/availability";
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("ui"))("m667f51f3c86a") };
 }
@@ -20,6 +22,7 @@ export default async function Page() {
           description={translate("m2938db2aa6de")}
         />
         <BaseSettingsEditor initial={await settingsView()} />
+        <DiagnosticAccess availability={diagnosticsAvailability()} />
       </div>
     </PageMessages>
   );

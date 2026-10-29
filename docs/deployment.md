@@ -588,6 +588,8 @@ Setup VPS. Use the installed root-owned control checkout only for explicit opera
 maintenance, as described above. The first release requires `prepare-host.py` and
 additive indexes beforehand; directory setup alone is not provisioning.
 
+The staging [diagnostics API](diagnostics-api.md#staging-activation) stays disabled until an operator installs `DIAGNOSTICS_ENABLED=true` under separate authorization. It needs no new secret; grants are later created and revoked in Base settings without restarts. Production rejects the setting.
+
 Operations retain the existing app lock and repository Actions concurrency group.
 Use runbooks to coordinate shared maintenance and provider domain changes; there is
 no new cross-repository scheduler or host-wide orchestration system.

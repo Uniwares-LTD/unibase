@@ -22,11 +22,17 @@ export type AuditEntry = {
     | "ai-resolution"
     | "ai-cleanup"
     | "payment-review"
-    | "execution-profile";
+    | "execution-profile"
+    | "diagnostic-grant-requested"
+    | "diagnostic-grant-activated"
+    | "diagnostic-grant-failed"
+    | "diagnostic-grant-revoked";
   actorUid: string;
   targetUid: string;
   reason: string;
   timestamp: Date;
+  // Diagnostic grant lifecycle only; never the phrase or verifier.
+  grant?: { id: string; capabilities: string[]; expiresAt: Date };
   before?: {
     role?: string;
     status?: string;

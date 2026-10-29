@@ -328,6 +328,11 @@ management. Self-demotion/suspension and removal of the last active admin are
 rejected, including concurrent changes. User search accepts an exact email or UID.
 `GET /api/admin/users` exposes the same authorized read with safe HTTP errors.
 
+Base settings also offers **Diagnostic access** when `DIAGNOSTICS_ENABLED=true`
+and Redis is configured (local or staging only). It issues expiring, read-only
+grants for `POST /api/diagnostics`; use `npm run diagnostics -- --help` for the
+operator helper. See [diagnostics API](docs/diagnostics-api.md).
+
 `npm run test:accounts` checks transactions and competing admin changes using an
 owned disposable replica set. Python 3 is needed for the embedded Dify Code-node
 tests. The HTTP integration suite checks member/anonymous

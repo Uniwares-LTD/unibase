@@ -13,6 +13,8 @@ import { authorizeWorkerAccount as authorizeAccount } from "../src/lib/server/wo
 import { runtimeRecord } from "../src/lib/log-policy";
 import { writeRuntimeRecord } from "../src/lib/server/store/runtime";
 import { workerHeartbeat } from "../src/lib/server/worker-heartbeat";
+import { inspectPrivateContextConfiguration } from "../src/lib/server/runs/capabilities";
+import { privateToolPermissions } from "../src/lib/server/mcp/private-tools";
 
 import {
   processOneAutomaticDecision,
@@ -42,7 +44,21 @@ async function main() {
     connectTimeoutMS: 5000,
   });
   const db = client.db(databaseConfig.database);
-  const heartbeat = workerHeartbeat(db, "ai");
+  const heartbeat = workerHeartbeat(db, "ai", async () => {
+    const check = await inspectPrivateContextConfiguration(
+      Object.keys(privateToolPermissions),
+    );
+    return {
+      privateContext: {
+        mcp: check.mcp,
+        clientId: check.clientId,
+        clientConfigured: check.clientConfigured,
+        missingPermissions: check.missingPermissions,
+        keySource: check.keySource,
+        originConfigured: !!process.env.APP_ORIGIN,
+      },
+    };
+  });
   try {
     await heartbeat(mode === "disabled" ? "disabled" : "ok");
     do {

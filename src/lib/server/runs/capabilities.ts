@@ -26,23 +26,52 @@ type Capability = {
 };
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
+
+/** Typed causes behind the public `private-context-unavailable` failure. */
+export const privateContextReasons = [
+  "mcp-configuration-invalid",
+  "mcp-disabled",
+  "mcp-client-missing",
+  "private-tools-missing",
+  "mcp-permissions-missing",
+  "encryption-key-missing",
+  "encryption-key-invalid",
+  "decryption-failed",
+] as const;
+export type PrivateContextReason = (typeof privateContextReasons)[number];
+const reasonMessages: Record<PrivateContextReason, string> = {
+  "mcp-configuration-invalid": "Invalid MCP configuration.",
+  "mcp-disabled": "Configure the Run MCP client and private tools.",
+  "mcp-client-missing": "Configure the Run MCP client and private tools.",
+  "private-tools-missing": "Configure the Run MCP client and private tools.",
+  "mcp-permissions-missing": "Grant the Run MCP client's required permissions.",
+  "encryption-key-missing": "Configure private capability encryption.",
+  "encryption-key-invalid": "Invalid encryption configuration.",
+  "decryption-failed":
+    "The saved Run context cannot be decrypted. Restore its encryption configuration.",
+};
+const configurationError = (reason: PrivateContextReason) =>
+  new AppError("CAPABILITY_CONFIGURATION", reasonMessages[reason], 503, reason);
+
+export type KeySource =
+  "explicit" | "management-fallback" | "missing" | "invalid";
+/** Report which secret derives the key without exposing it or a fingerprint. */
+export function capabilityKeySource(
+  env: Record<string, string | undefined> = process.env,
+): KeySource {
+  const explicit = env.DIFY_CREDENTIAL_ENCRYPTION_KEY;
+  if (explicit)
+    return /^[a-fA-F0-9]{64}$/.test(explicit) ? "explicit" : "invalid";
+  return env.DIFY_MANAGEMENT_KEY ? "management-fallback" : "missing";
+}
 function key() {
-  const explicit = process.env.DIFY_CREDENTIAL_ENCRYPTION_KEY;
-  if (explicit && !/^[a-fA-F0-9]{64}$/.test(explicit))
-    throw new AppError(
-      "CAPABILITY_CONFIGURATION",
-      "Invalid encryption configuration.",
-      503,
-    );
-  const secret = explicit
-    ? Buffer.from(explicit, "hex")
-    : process.env.DIFY_MANAGEMENT_KEY;
-  if (!secret)
-    throw new AppError(
-      "CAPABILITY_CONFIGURATION",
-      "Configure private capability encryption.",
-      503,
-    );
+  const source = capabilityKeySource();
+  if (source === "invalid") throw configurationError("encryption-key-invalid");
+  if (source === "missing") throw configurationError("encryption-key-missing");
+  const secret =
+    source === "explicit"
+      ? Buffer.from(process.env.DIFY_CREDENTIAL_ENCRYPTION_KEY!, "hex")
+      : process.env.DIFY_MANAGEMENT_KEY!;
   return Buffer.from(
     hkdfSync(
       "sha256",
@@ -54,10 +83,11 @@ function key() {
   );
 }
 function decrypt(record: Capability) {
+  const derived = key();
   try {
     const d = createDecipheriv(
       "aes-256-gcm",
-      key(),
+      derived,
       Buffer.from(record.iv, "base64"),
     );
     d.setAAD(Buffer.from(record.jobId));
@@ -67,43 +97,131 @@ function decrypt(record: Capability) {
       d.final(),
     ]).toString("utf8");
   } catch {
-    throw new AppError(
-      "CAPABILITY_CONFIGURATION",
-      "The saved Run context cannot be decrypted. Restore its encryption configuration.",
-      503,
-    );
+    throw configurationError("decryption-failed");
   }
 }
+
+export type PrivateContextConfiguration = {
+  mcp: "enabled" | "disabled" | "invalid";
+  clientId: string;
+  clientConfigured: boolean;
+  operations: string[];
+  missingPermissions: string[];
+  keySource: KeySource;
+  /** First cause capability creation would report, in creation order. */
+  reason: PrivateContextReason | null;
+};
+/**
+ * Non-mutating checks shared by capability creation and diagnostics. Reads
+ * only the supplied process configuration; never creates a capability.
+ */
+export async function inspectPrivateContextConfiguration(
+  operations: readonly string[],
+  env: Record<string, string | undefined> = process.env,
+): Promise<PrivateContextConfiguration> {
+  const clientId = env.RUN_MCP_CLIENT_ID ?? "dify";
+  const keySource = capabilityKeySource(env);
+  let config;
+  try {
+    config = parseMcpConfig(env, env.APP_ORIGIN ?? "http://localhost:3000");
+  } catch {
+    return {
+      mcp: "invalid",
+      clientId,
+      clientConfigured: false,
+      operations: [...operations],
+      missingPermissions: [],
+      keySource,
+      reason: "mcp-configuration-invalid",
+    };
+  }
+  const client = config.enabled
+    ? config.clients.find((c) => c.id === clientId)
+    : undefined;
+  const { privateToolPermissions } = await import("../mcp/private-tools");
+  const missingPermissions = client
+    ? [
+        ...new Set(
+          operations
+            .map((op) => privateToolPermissions[op] ?? `unknown:${op}`)
+            .filter((permission) => !client.permissions.includes(permission)),
+        ),
+      ]
+    : [];
+  const reason: PrivateContextReason | null = !config.enabled
+    ? "mcp-disabled"
+    : !client
+      ? "mcp-client-missing"
+      : !operations.length
+        ? "private-tools-missing"
+        : missingPermissions.length
+          ? "mcp-permissions-missing"
+          : keySource === "invalid"
+            ? "encryption-key-invalid"
+            : keySource === "missing"
+              ? "encryption-key-missing"
+              : null;
+  return {
+    mcp: config.enabled ? "enabled" : "disabled",
+    clientId,
+    clientConfigured: !!client,
+    operations: [...operations],
+    missingPermissions,
+    keySource,
+    reason,
+  };
+}
+
+export type StoredCapabilityCheck =
+  | { present: false }
+  | {
+      present: true;
+      clientId: string;
+      operations: string[];
+      expiresAt: string;
+      decryption: "ok" | PrivateContextReason;
+    };
+/**
+ * Verify a saved capability decrypts in memory. Returns only the outcome;
+ * plaintext, ciphertext and key material never leave this function.
+ */
+export async function inspectStoredCapability(
+  db: Db,
+  jobId: string,
+  options: { maxTimeMS?: number } = {},
+): Promise<StoredCapabilityCheck> {
+  const record = await db
+    .collection<Capability>("runCapabilities")
+    .findOne({ jobId }, { maxTimeMS: options.maxTimeMS });
+  if (!record) return { present: false };
+  let decryption: "ok" | PrivateContextReason = "ok";
+  try {
+    decrypt(record);
+  } catch (error) {
+    decryption =
+      error instanceof AppError && error.reason
+        ? (error.reason as PrivateContextReason)
+        : "decryption-failed";
+  }
+  return {
+    present: true,
+    clientId: record.clientId,
+    operations: [...record.operations],
+    expiresAt: record.expiresAt.toISOString(),
+    decryption,
+  };
+}
+
 export async function capabilityForRun(db: Db, job: AiJob) {
   const records = db.collection<Capability>("runCapabilities");
   const existing = await records.findOne({ jobId: job._id });
   if (existing) return decrypt(existing);
   const operations = job.run?.orchestrator.privateTools ?? [];
-  const config = parseMcpConfig(
-    process.env,
-    process.env.APP_ORIGIN ?? "http://localhost:3000",
-  );
-  const clientId = process.env.RUN_MCP_CLIENT_ID ?? "dify";
-  const client = config.enabled
-    ? config.clients.find((c) => c.id === clientId)
-    : undefined;
-  if (!client || !operations.length)
-    throw new AppError(
-      "CAPABILITY_CONFIGURATION",
-      "Configure the Run MCP client and private tools.",
-      503,
-    );
-  const { privateToolPermissions } = await import("../mcp/private-tools");
-  if (
-    operations.some(
-      (op) => !client.permissions.includes(privateToolPermissions[op]),
-    )
-  )
-    throw new AppError(
-      "CAPABILITY_CONFIGURATION",
-      "Grant the Run MCP client's required permissions.",
-      503,
-    );
+  const check = await inspectPrivateContextConfiguration(operations);
+  // Invalid MCP configuration keeps its original non-AppError behavior.
+  if (check.reason === "mcp-configuration-invalid")
+    throw new Error(reasonMessages[check.reason]);
+  if (check.reason) throw configurationError(check.reason);
   const token = randomBytes(32).toString("base64url");
   const iv = randomBytes(12);
   const c = createCipheriv("aes-256-gcm", key(), iv);
@@ -119,7 +237,7 @@ export async function capabilityForRun(db: Db, job: AiJob) {
         _id: hash(token),
         jobId: job._id,
         uid: job.uid,
-        clientId,
+        clientId: check.clientId,
         operations,
         expiresAt: job.reviewAfter,
         ciphertext,

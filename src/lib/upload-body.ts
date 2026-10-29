@@ -81,3 +81,22 @@ export async function readMultipart(
     void reader.cancel().catch(() => undefined);
   }
 }
+
+export async function readText(request: Request, limit = 20000) {
+  // Bound even chunked requests rather than trusting Content-Length.
+  const reader = request.body?.getReader();
+  if (!reader) throw new AppError("INVALID_INPUT", "Request body is required.");
+  let total = 0;
+  const chunks: Uint8Array[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.length;
+    if (total > limit) {
+      await reader.cancel();
+      throw new AppError("INVALID_INPUT", "Request is too large.", 413);
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}

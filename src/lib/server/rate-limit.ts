@@ -1,8 +1,8 @@
 import "server-only";
-import { createClient } from "redis";
 import { createHash } from "node:crypto";
 import { AppError } from "../auth-policy";
 import { project } from "../project";
+import { redis, resetBrokenRedis } from "./redis";
 
 import { rateConfig, type RatePolicy } from "../config/rate-limits";
 export class RateLimitError extends AppError {
@@ -10,36 +10,8 @@ export class RateLimitError extends AppError {
     super("RATE_LIMITED", "Too many requests. Please try again shortly.", 429);
   }
 }
-const script =
+export const windowScript =
   "local n=redis.call('INCR',KEYS[1]); if n==1 then redis.call('EXPIRE',KEYS[1],60) end; return {n,redis.call('TTL',KEYS[1])}";
-const newClient = (url: string) =>
-  createClient({
-    url,
-    socket: { connectTimeout: 1500, reconnectStrategy: false },
-    disableOfflineQueue: true,
-  });
-let connection:
-  | {
-      url: string;
-      client: ReturnType<typeof newClient>;
-      ready: Promise<unknown>;
-    }
-  | undefined;
-async function redis(url: string) {
-  if (!connection || connection.url !== url) {
-    if (connection?.client.isOpen) connection.client.destroy();
-    const client = newClient(url);
-    client.on("error", () => {});
-    const ready = client.connect();
-    connection = { url, client, ready };
-    ready.catch(() => {
-      if (connection?.client === client) connection = undefined;
-    });
-  }
-  const current = connection!;
-  await current.ready;
-  return current.client;
-}
 export async function rateReady() {
   const { url } = rateConfig();
   if (url)
@@ -61,15 +33,12 @@ export async function limitRequest(actor: string, policy: RatePolicy) {
       await redis(url)
     )
       .withAbortSignal(AbortSignal.timeout(1500))
-      .eval(script, { keys: [key], arguments: [] })) as number[];
+      .eval(windowScript, { keys: [key], arguments: [] })) as number[];
     if (result[0] > policies[policy])
       throw new RateLimitError(Math.max(1, result[1]));
   } catch (error) {
     if (error instanceof RateLimitError) throw error;
-    if (connection && !connection.client.isReady) {
-      if (connection.client.isOpen) connection.client.destroy();
-      connection = undefined;
-    }
+    resetBrokenRedis();
     throw new AppError(
       "SERVICE_UNAVAILABLE",
       "Request protection is temporarily unavailable.",

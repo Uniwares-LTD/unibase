@@ -50,6 +50,8 @@ Application validation, deployment validation and generated setup documentation
 share accepted names. Deployment keeps staging and production credentials,
 databases, origins and ingress networks separate; errors suppress secret values.
 
+Redis also stores [diagnostic grants](diagnostics-api.md), the only grant store; eviction or loss ends access. Diagnostic readers are read-only by construction and must not reuse service methods that seed settings, expire credit lots, refresh access fences or create Run capabilities.
+
 Redis uses atomic counters with 60-second expiry, scoped to project/environment
 and verified account or MCP client. Defaults per minute are 120 reads, 30 ordinary
 mutations, 10 uploads, 10 Run admissions and 120 MCP calls. Policies are validated

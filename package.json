@@ -21,6 +21,7 @@
     "test": "node --import tsx --test tests/*.test.ts",
     "test:accounts": "node --conditions=react-server --import tsx --test tests/accounts/*.test.ts",
     "check:env": "node scripts/with-environment.mjs --import tsx scripts/check-env.ts",
+    "diagnostics": "node scripts/diagnostics-client.mjs",
     "check:skills": "node scripts/check-skills.mjs",
     "validate": "node scripts/validate.mjs",
     "audit:quality": "npm audit --json",

@@ -11,6 +11,9 @@ import { AppError, requireSameOrigin } from "../auth-policy";
 import { getConfig } from "./config";
 import { unstable_rethrow } from "next/navigation";
 import { logOperation } from "./log";
+import { readText } from "../upload-body";
+
+export { readText };
 
 export function cookieOptions() {
   return {
@@ -114,24 +117,6 @@ export async function readJson<T>(
       "Check the submitted fields and try again.",
     );
   return parsed.data;
-}
-export async function readText(request: Request, limit = 20000) {
-  // Bound even chunked requests rather than trusting Content-Length.
-  const reader = request.body?.getReader();
-  if (!reader) throw new AppError("INVALID_INPUT", "Request body is required.");
-  let total = 0;
-  const chunks: Uint8Array[] = [];
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.length;
-    if (total > limit) {
-      await reader.cancel();
-      throw new AppError("INVALID_INPUT", "Request is too large.", 413);
-    }
-    chunks.push(value);
-  }
-  return Buffer.concat(chunks).toString("utf8");
 }
 export async function checkMutation(request: Request) {
   requireSameOrigin(request.headers, getConfig().server.origin);

@@ -262,6 +262,8 @@ and live acceptance are described in [VPS deployment](deployment.md).
 
 ## Diagnostics, offline behavior and Android
 
+The opt-in [diagnostics API](diagnostics-api.md) is separate from browser diagnostics. Administrators issue expiring, capability-scoped grants from Base settings. Grants are stored in Redis and verified with scrypt, the issuer's Firebase status and the issuer's access revision. A grant permits read-only diagnostics across accounts, through dedicated projection readers that never seed, settle or create records. Each access writes a sanitized 30-day record before data is returned. The endpoint is disabled in production.
+
 `src/lib/diagnostics.ts` constructs records from an explicit allowlist: fixed event type, generated timestamp, bounded HTTP status, elapsed time and UUID request ID. Unknown/free-text fields never enter records. Server-only logging emits JSON with severity for API/helper completions and profile actions. Next.js `onRequestError` emits a safe event independently; it omits timing rather than inventing a request duration. No raw error, request URL, headers, body or identity is forwarded. Framework development output remains separate.
 
 Browser diagnostics default off in every document, retain at most 100 events in memory, and clear on disable/reload. The diagnostics panel on Preferences uses existing shadcn controls. Error listeners and the API helper record only sanitized metadata; there is no console interception, durable buffer, diagnostics upload or debug-header response mode.
