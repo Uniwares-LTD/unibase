@@ -27,7 +27,7 @@ defaults. New attempts/purchases use current policy, while accepted terms remain
 frozen. Management/encryption secrets, provider/storage connections and deployment
 identity remain in environment configuration. Managed app execution keys are
 encrypted in MongoDB. Updates require fresh administrator authority,
-recent authentication, mutation protection, matching revisions and an atomic audit record. Change reasons are optional.
+a valid verified session, mutation protection, matching revisions and an atomic audit record. Change reasons are optional.
 Previously initialized settings that lack upload limits read the original defaults:
 20 MiB per file, 100 files and 100 MiB per account. Reading these defaults does not
 rewrite saved settings or replace billing terms; explicitly saved limits still apply.

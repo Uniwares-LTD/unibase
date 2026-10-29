@@ -13,6 +13,8 @@ export class AppError extends Error {
   }
 }
 
+// Only for exchanging a Firebase ID token for a new session cookie. Existing
+// verified sessions do not need another sign-in before application mutations.
 export function requireRecentLogin(
   claims: { auth_time: number; iat: number },
   now = Date.now() / 1000,

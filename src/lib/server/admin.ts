@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import type { UserRecord } from "firebase-admin/auth";
-import { AppError, requireRecentLogin } from "../auth-policy";
+import { AppError } from "../auth-policy";
 import { adminAuth } from "./firebase";
 import { database } from "./mongo";
 import { requireSession } from "./session";
@@ -18,7 +18,7 @@ import {
   uidSchema,
 } from "../contracts/admin";
 
-export async function requireAdmin(recent = false) {
+export async function requireAdmin() {
   const session = await requireSession();
   const access = await accountAccess(database(), session.uid);
   if (
@@ -26,7 +26,6 @@ export async function requireAdmin(recent = false) {
     !accessPermitsSession(access, session.auth_time)
   )
     throw new AppError("FORBIDDEN", "Administrator access is required.", 403);
-  if (recent) requireRecentLogin(session);
   return session;
 }
 
@@ -101,7 +100,7 @@ export async function updateManagedAccess(input: unknown) {
       "INVALID_INPUT",
       "Choose a valid role and account status; optional reasons allow up to 300 characters.",
     );
-  const actor = await requireAdmin(true);
+  const actor = await requireAdmin();
   const user = await adminAuth().getUser(parsed.data.targetUid);
   if (
     parsed.data.role === "admin" &&
@@ -130,7 +129,7 @@ export async function updateManagedProfile(input: unknown) {
       "INVALID_INPUT",
       "Enter a valid name; optional reasons allow up to 300 characters.",
     );
-  const actor = await requireAdmin(true);
+  const actor = await requireAdmin();
   const user = await adminAuth().getUser(parsed.data.targetUid);
   if (!user.email)
     throw new AppError(

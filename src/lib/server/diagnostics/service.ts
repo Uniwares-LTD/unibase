@@ -63,7 +63,7 @@ export async function currentGrants() {
 }
 export async function issueGrant(input: unknown) {
   const grants = await store();
-  const session = await requireAdmin(true);
+  const session = await requireAdmin();
   return guarded(() =>
     createGrant(
       { db: database(), store: grants },
@@ -74,7 +74,7 @@ export async function issueGrant(input: unknown) {
 }
 export async function withdrawGrant(id: string) {
   const grants = await store();
-  const session = await requireAdmin(true);
+  const session = await requireAdmin();
   return guarded(() =>
     revokeGrant(
       { db: database(), store: grants },

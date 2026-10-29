@@ -27,7 +27,8 @@ REDIS_URL=redis://default:GENERATED_BASE64URL_PASSWORD@redis:6379
 
 ## Grants
 
-An administrator with a sign-in less than 30 minutes old creates a grant. The card
+An administrator with a valid, verified session creates a grant; there is no
+additional sign-in age restriction. The card
 sends:
 
 - a **phrase** of 24–256 UTF-8 bytes; **Generate** creates 32 random bytes;

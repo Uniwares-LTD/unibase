@@ -20,7 +20,7 @@ export async function adjustUserCredits(
   const started = performance.now();
   try {
     requireSameOrigin(await headers(), getConfig().server.origin);
-    const actor = await requireAdmin(true);
+    const actor = await requireAdmin();
     await limitRequest("account:" + actor.uid, "mutation");
     if (actor.uid !== expectedActor)
       throw new AppError(

@@ -127,7 +127,7 @@ export async function listAdminAiJobs(cursor?: string) {
 }
 
 export async function resolveManagedAiJob(id: string, input: unknown) {
-  const admin = await requireAdmin(true);
+  const admin = await requireAdmin();
   const parsed = aiResolutionSchema.safeParse(input);
   if (!parsed.success)
     throw new AppError(

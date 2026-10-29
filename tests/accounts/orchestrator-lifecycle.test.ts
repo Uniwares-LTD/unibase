@@ -290,7 +290,7 @@ test("Orchestrator lifecycle: deletion, outages, disable, unregister and registr
       },
     );
     await t.test(
-      "Members and stale sessions cannot change registrations",
+      "Older valid admin sessions can change registrations; members and revoked sessions cannot",
       async () => {
         const record = await registered();
         await assert.rejects(
@@ -302,18 +302,25 @@ test("Orchestrator lifecycle: deletion, outages, disable, unregister and registr
           ),
           /Administrator/,
         );
-        await assert.rejects(
-          changeOrchestrator(
-            "disable",
-            record._id,
-            { ...actor, auth_time: actor.auth_time - 1801 },
-            db,
-          ),
-          /sign in again/,
-        );
+        const older = { ...actor, auth_time: actor.auth_time - 3600 };
+        await changeOrchestrator("disable", record._id, older, db);
         assert.equal(
           (await records.findOne({ _id: record._id }))!.definition.enabled,
-          true,
+          false,
+        );
+        await db
+          .collection("accountAccess")
+          .updateOne(
+            { _id: actor.uid },
+            { $set: { notBefore: older.auth_time + 1 } },
+          );
+        await assert.rejects(
+          changeOrchestrator("unregister", record._id, older, db),
+          /Administrator/,
+        );
+        assert.notEqual(
+          (await records.findOne({ _id: record._id }))!.lifecycle,
+          "unregistered",
         );
       },
     );

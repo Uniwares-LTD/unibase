@@ -29,8 +29,8 @@ async function requireSession() {
   return (await import("../session")).requireSession();
 }
 import { accountAccess } from "../store/access";
-async function requireAdmin(recent = false) {
-  return (await import("../admin")).requireAdmin(recent);
+async function requireAdmin() {
+  return (await import("../admin")).requireAdmin();
 }
 import { readSettings } from "../settings";
 import { readWallet } from "../store/credits";
@@ -855,7 +855,7 @@ export async function runCommand(id: string, input: unknown) {
     );
   let recovery;
   if (command.action !== "restart") {
-    if (command.action === "test-stage") await requireAdmin(true);
+    if (command.action === "test-stage") await requireAdmin();
     const saved = await database()
       .collection<Document & { _id: string }>("runResults")
       .findOne({ _id: job._id, uid: actor.uid });

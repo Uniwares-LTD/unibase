@@ -26,7 +26,7 @@ export async function changeUser(
     kind === "access" ? "admin-access-change" : "admin-profile-edit";
   try {
     requireSameOrigin(await headers(), getConfig().server.origin);
-    const actor = await requireAdmin(true);
+    const actor = await requireAdmin();
     await limitRequest("account:" + actor.uid, "mutation");
     if (actor.uid !== expectedActor)
       throw new AppError(

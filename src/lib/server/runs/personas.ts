@@ -9,8 +9,8 @@ import {
 import { maximumCredits } from "@/lib/config/ai-pricing";
 import { AppError } from "@/lib/auth-policy";
 import { database } from "../mongo";
-async function requireAdmin(recent = false) {
-  return (await import("../admin")).requireAdmin(recent);
+async function requireAdmin() {
+  return (await import("../admin")).requireAdmin();
 }
 import { accessTransaction } from "../store/access";
 import { fingerprint } from "../ai/jobs";
@@ -120,7 +120,7 @@ export async function personasView() {
   };
 }
 export async function savePersona(input: unknown) {
-  const actor = await requireAdmin(true);
+  const actor = await requireAdmin();
   const change = personaChangeSchema.parse(input);
   return accessTransaction(
     database(),

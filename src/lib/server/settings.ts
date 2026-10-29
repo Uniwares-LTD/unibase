@@ -116,7 +116,7 @@ export async function settingsView() {
 }
 export async function updateSettings(input: unknown) {
   const { requireAdmin } = await import("./admin");
-  const actor = await requireAdmin(true);
+  const actor = await requireAdmin();
   const parsed = settingsUpdateSchema.parse(input);
   const db = database();
   // Reuse payment validation including environment restrictions and price uniqueness.

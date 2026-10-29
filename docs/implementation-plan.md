@@ -43,6 +43,11 @@ Outstanding: approve and publish the issue; run the Lua grant-store test against
 
 ## Agreed decisions
 
+Valid verified sessions authorize application and administrator changes throughout
+their normal lifetime, without a separate 30-minute mutation cutoff. Current-role,
+suspension and revocation checks remain mandatory; creating a new Firebase session
+cookie retains its token-exchange freshness check and five-day session lifetime.
+
 One Next.js App Router application serves web/PWA and the prepared Android TWA.
 Firebase authenticates users; MongoDB owns application profiles, roles, Runs and
 accounting. Server modules enforce permissions. Configuration and public module

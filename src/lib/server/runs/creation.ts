@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Db, Document } from "mongodb";
-import { AppError, requireRecentLogin } from "@/lib/auth-policy";
+import { AppError } from "@/lib/auth-policy";
 import { database } from "../mongo";
 import { accessTransaction } from "../store/access";
 import { fingerprint } from "../ai/jobs";
@@ -34,7 +34,6 @@ export async function createDifyOrchestrator(
   env: Record<string, string | undefined> = process.env,
   templateId: OrchestratorTemplateId = "document-summary",
 ) {
-  requireRecentLogin({ auth_time: actor.auth_time, iat: actor.auth_time });
   key = z.string().uuid().parse(key);
   templateId = orchestratorTemplateIdSchema.parse(templateId);
   const template = orchestratorTemplate(templateId);

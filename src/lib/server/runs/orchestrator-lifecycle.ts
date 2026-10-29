@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Db, Document, ClientSession } from "mongodb";
-import { AppError, requireRecentLogin } from "@/lib/auth-policy";
+import { AppError } from "@/lib/auth-policy";
 import { database } from "../mongo";
 import { accessTransaction } from "../store/access";
 import { difyJson } from "./dify-console-client";
@@ -119,7 +119,6 @@ export async function changeOrchestrator(
   actor: { uid: string; auth_time: number },
   db: Db = database(),
 ) {
-  requireRecentLogin({ auth_time: actor.auth_time, iat: actor.auth_time });
   id = z.string().min(1).max(100).parse(id);
   return accessTransaction(
     db,

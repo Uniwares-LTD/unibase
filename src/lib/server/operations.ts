@@ -78,7 +78,7 @@ export async function operationsSummary() {
   };
 }
 export async function createCleanupPreview(input: unknown) {
-  const actor = await requireAdmin(true);
+  const actor = await requireAdmin();
   return previewCleanup(
     database(),
     { uid: actor.uid, authTime: actor.auth_time },
@@ -86,7 +86,7 @@ export async function createCleanupPreview(input: unknown) {
   );
 }
 export async function runCleanup(input: unknown) {
-  const actor = await requireAdmin(true);
+  const actor = await requireAdmin();
   const parsed = cleanupExecuteSchema.parse(input);
   return executeCleanup(
     database(),
@@ -101,7 +101,7 @@ export async function cleanupReports() {
 }
 
 export async function reviewPayment(input: unknown) {
-  const actor = await requireAdmin(true);
+  const actor = await requireAdmin();
   if (creditConfig().mode !== "stripe")
     throw new AppError(
       "PAYMENTS_DISABLED",

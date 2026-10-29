@@ -114,8 +114,11 @@ independent and provider-disabled accounts still cannot authenticate.
 
 The `/admin` routes and `/api/admin/users` call fresh authorization in their server
 modules. Administrative Server Actions additionally validate exact origin, current
-actor identity, authentication within 30 minutes and strict inputs. Session
-exchange uses the same freshness window; session cookies still last five days.
+actor identity and strict inputs. Valid sessions can perform changes throughout
+their normal lifetime without a separate 30-minute sign-in age restriction.
+Creating a new session cookie from an ID token still requires recent authentication
+and token issuance; session cookies last five days. Revocation, suspension,
+verification and current administrator permissions remain checked on every request.
 User lists are paginated
 Firebase reads enriched with MongoDB application profiles; search is exact email or
 UID. Account editing changes the application name, not Firebase identity fields.

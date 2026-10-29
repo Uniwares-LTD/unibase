@@ -403,30 +403,35 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
       assert.equal(f.counts().publishes, 0);
       await access.updateOne({ _id: actor.uid }, { $set: { role: "admin" } });
     });
-    await t.test("member and stale session cannot import", async () => {
-      const f = fixture();
-      await assert.rejects(
-        createDifyOrchestrator(
-          randomUUID(),
-          { ...actor, uid: "member" },
-          db,
-          f.request,
-          env,
-        ),
-        /Administrator/,
-      );
-      await assert.rejects(
-        createDifyOrchestrator(
-          randomUUID(),
-          { ...actor, auth_time: actor.auth_time - 1801 },
-          db,
-          f.request,
-          env,
-        ),
-        /sign in again/,
-      );
-      assert.equal(f.counts().imports, 0);
-    });
+    await t.test(
+      "older valid admin can import; member and revoked sessions cannot",
+      async () => {
+        const f = fixture();
+        await assert.rejects(
+          createDifyOrchestrator(
+            randomUUID(),
+            { ...actor, uid: "member" },
+            db,
+            f.request,
+            env,
+          ),
+          /Administrator/,
+        );
+        assert.equal(f.counts().imports, 0);
+        const older = { ...actor, auth_time: actor.auth_time - 3600 };
+        await createDifyOrchestrator(randomUUID(), older, db, f.request, env);
+        assert.equal(f.counts().imports, 1);
+        await access.updateOne(
+          { _id: actor.uid },
+          { $set: { notBefore: older.auth_time + 1 } },
+        );
+        await assert.rejects(
+          createDifyOrchestrator(randomUUID(), older, db, f.request, env),
+          /Administrator/,
+        );
+        assert.equal(f.counts().imports, 1);
+      },
+    );
   } finally {
     await client.close();
     await repl.stop();

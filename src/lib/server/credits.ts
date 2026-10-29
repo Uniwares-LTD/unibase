@@ -45,7 +45,7 @@ export async function adjustManagedCredits(input: unknown) {
       "INVALID_INPUT",
       "Enter a whole positive amount and a valid expiry; optional reasons allow up to 300 characters.",
     );
-  const actor = await requireAdmin(true);
+  const actor = await requireAdmin();
   await adminAuth().getUser(parsed.data.targetUid);
   return adjustCredits(
     database(),

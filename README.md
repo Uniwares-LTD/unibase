@@ -292,7 +292,7 @@ admins. Firebase remains the identity source; member/admin role and suspension
 state are server-owned MongoDB records. All existing accounts default to active
 members. Application suspension blocks both existing sessions and new session
 exchange; reactivation requires a new sign-in. It does not alter Firebase provider
-settings. Administrative changes require sign-in within 30 minutes and confirmation,
+settings. Administrative changes require a valid verified session and confirmation,
 and write an atomic audit record. Change reasons are optional; supplied notes remain
 bounded and are recorded with the change.
 
@@ -361,7 +361,7 @@ it does not grant credits or change existing balances. Local MongoDB must use
 the documented replica-set runner, not a standalone process.
 
 Open Credits from your Account page. Admins can inspect a user's wallet and grant
-or deduct credits from `/admin/users` after a recent sign-in. Reasons are visible
+or deduct credits from `/admin/users` with a valid administrator session. Reasons are visible
 to the account owner and recorded in the permanent admin audit. The local simulator
 offers labelled 100/500/1000 fixture packs and success/pending/failure/cancellation/
 refund/replay outcomes without charging money. Real Stripe and Play billing remain

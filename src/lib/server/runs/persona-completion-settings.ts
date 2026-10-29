@@ -92,7 +92,7 @@ export async function personaCompletionView(db: Db = database()) {
 }
 export async function savePersonaCompletion(input: unknown) {
   const { requireAdmin } = await import("../admin");
-  const actor = await requireAdmin(true);
+  const actor = await requireAdmin();
   const change = personaCompletionChangeSchema.parse(input);
   const db = database();
   await readPersonaCompletion(db);
