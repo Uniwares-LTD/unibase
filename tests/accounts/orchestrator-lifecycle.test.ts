@@ -309,7 +309,7 @@ test("Orchestrator lifecycle: deletion, outages, disable, unregister and registr
           false,
         );
         await db
-          .collection("accountAccess")
+          .collection<Document & { _id: string }>("accountAccess")
           .updateOne(
             { _id: actor.uid },
             { $set: { notBefore: older.auth_time + 1 } },
