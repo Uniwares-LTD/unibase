@@ -451,6 +451,33 @@ route change if needed, and checks before resuming. Where tooling is absent, say
 **implementation required** with prerequisites and acceptance, not invented commands.
 Publication alone does not prove live readiness or authorize data restoration.
 
+#### Unitale permission correction — 2026-10-29
+
+**Operator intervention required.** The authorized fix adds `run:read`,
+`artifact:read` and `artifact:write` to the existing staging `dify` MCP client.
+This is a host-profile/provider permission change, so the installed v1 controller
+correctly refuses a release whose registered configuration has not been updated.
+Do not exclude MCP bindings/permissions from the host hash or place credentials
+in the image to bypass that check.
+
+- **Owner/location:** the trusted staging operator on srv1, using Infrastructure's
+  existing root-only `update-app-config.py` and its sibling `bootstrap-deploy.py`.
+- **Order:** build a checksum-bound control bundle from the reviewed application
+  revision, projecting image-owned settings with `host_configuration`; preview
+  and select that bundle with the existing updater before the matching release.
+  Preserve current credentials, origins and encryption bytes. If the updater
+  requires private input, reuse only the current host's `MCP_TOKEN_DIFY` in a
+  temporary root-only input; never copy a local environment file or rotate a key.
+- **Verify:** release web and both workers, refresh the existing Dify MCP catalog,
+  then confirm the four private tools and empty missing-permission lists in
+  `run.diagnose` for web and the active AI worker. Restart one failed Run as a new
+  attempt under its owner's account; preserve the original zero-charge attempt.
+- **Failure/resume:** inspect the exact release and any `config-update-pending`
+  journal before retrying. The application updater retains previous runtime and
+  registration bytes and supports its documented recovery. No bootstrap replay,
+  broad sudo grant, data restore, automatic bulk retry or Dify workflow rewrite
+  is required. An uninstalled host update leaves the current release serving.
+
 ### Derived-project deployment initialization
 
 1. **Workstation / project owner:** run the README initializer from a reviewed

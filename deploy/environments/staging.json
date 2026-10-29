@@ -18,7 +18,7 @@
     "DIFY_CONSOLE_URL": "https://dify.uniwares.co.uk/console/api",
     "DIFY_WORKSPACE_ID": "ffac910f-2786-490e-90d8-07243d49741b",
     "DIFY_ORCHESTRATORS_JSON": "[{\"id\":\"document-summary\",\"name\":\"Document summary\",\"description\":\"Staging reference summary with human response\",\"order\":0,\"appId\":\"9a7a43be-7513-490b-9cbc-8099f9d0d345\",\"keyEnv\":\"DIFY_KEY_DOCUMENT_SUMMARY\",\"enabled\":true,\"inputs\":[],\"pricing\":null,\"recovery\":null,\"responseMode\":\"raw-v1\"}]",
-    "MCP_CLIENTS_JSON": "[{\"id\":\"dify\",\"tokenEnv\":\"MCP_TOKEN_DIFY\",\"permissions\":[\"server:read\",\"reference:read\",\"demo:read\"]}]",
+    "MCP_CLIENTS_JSON": "[{\"id\":\"dify\",\"tokenEnv\":\"MCP_TOKEN_DIFY\",\"permissions\":[\"server:read\",\"reference:read\",\"demo:read\",\"run:read\",\"artifact:read\",\"artifact:write\"]}]",
     "RUN_MCP_CLIENT_ID": "dify",
     "PERSONA_COMPLETION_MODE": "live",
     "PERSONA_COMPLETION_BASE_URL": "https://api.openai.com/v1"

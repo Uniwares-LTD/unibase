@@ -37,9 +37,18 @@ needed for the existing staging host. [Corrective release 40829051847](https://g
 and [independent check 40829410729](https://github.com/Uniwares-LTD/unibase/actions/runs/40829410729)
 passed on 2026-10-29. Public readiness reported the corrective revision, Home and
 Account returned 200, and diagnostics returned 401 without a grant, confirming
-enablement with authentication enforced. Authenticated grant acceptance remains pending.
+enablement with authentication enforced. Authenticated read-only grant access was
+verified on 2026-10-29 across capability listing, runtime/dependency health, workers,
+configuration, Run diagnosis and sanitized access auditing; all returned 200.
 
-Outstanding: approve and publish the issue; run the Lua grant-store test against a disposable Redis; verify the Base settings card and authenticated grant flow in a browser with Redis; and investigate a known failed staging Run.
+The failed Unitale investigation confirmed a current configuration blocker: the
+staging Dify MCP client lacks `run:read`, `artifact:read` and `artifact:write` in
+both web and the active AI worker. The tracked permission correction is authorized
+and prepared. Protected host-profile installation, matching release, Dify catalog
+refresh and one owned Run restart remain live acceptance steps; the old failed
+attempt's detailed historical cause was not recorded.
+
+Outstanding: approve and publish the issue; run the Lua grant-store test against a disposable Redis; verify grant revocation in a browser with Redis; and complete the Unitale permission correction's operator installation and live Run acceptance.
 
 ## Agreed decisions
 

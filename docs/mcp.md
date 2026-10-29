@@ -130,6 +130,26 @@ External MCP servers may provide read/write tools under their own permissions.
 Public examples remain read-only. Private artifact tools require explicit
 permissions and an owned Run capability independent of the service token.
 
+### Unitale staging permissions
+
+Unitale's registered snapshot uses `get_run_context_v1`, `read_artifact_v1`,
+`save_artifact_draft_v1` and `approve_artifact_v1`. Its selected Run client (`dify`
+in staging) therefore needs `run:read`, `artifact:read` and `artifact:write` in
+addition to its existing public-tool permissions. The tracked staging profile
+selects these permissions explicitly; local and production defaults are unchanged.
+The service token alone still cannot read another account's artifacts: private
+tools also validate the separate owned Run capability.
+
+The 2026-10-29 diagnostic check found these three permissions missing in both the
+web process and active AI worker. The affected attempt was never dispatched and
+charged zero credits; it predates detailed failure reasons, so the exact historical
+cause is not recorded. The permission correction is prepared, not evidence of live
+installation. Apply the matching protected host profile/control bundle before
+release under [operator reporting](deployment.md#publication-and-operator-intervention),
+then refresh Dify's MCP tool catalog. Confirm no missing permissions in both web
+and the active worker before restarting one failed Run as a new attempt. Preserve
+the original attempt and accounting; do not retry every failed Run automatically.
+
 ## Add and update tools
 
 The registry is in `src/lib/server/mcp/tools.ts`; transport and execution boundaries
