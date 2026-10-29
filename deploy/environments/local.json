@@ -2,6 +2,7 @@
   "version": 1,
   "environment": "local",
   "runtime": {
+    "DIAGNOSTICS_ENABLED": "false",
     "APP_ENV": "local",
     "APP_NAME": "Base",
     "APP_STYLE": "classic",

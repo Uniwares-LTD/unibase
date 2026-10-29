@@ -2,6 +2,7 @@
   "version": 1,
   "environment": "staging",
   "runtime": {
+    "DIAGNOSTICS_ENABLED": "true",
     "APP_ENV": "staging",
     "APP_NAME": "Base",
     "APP_STYLE": "classic",

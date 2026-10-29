@@ -106,6 +106,9 @@ def validate(root, target, runtime_file=None):
             raise ValueError("Unknown or duplicate runtime setting")
         env[key] = value
     validate_mcp(env, catalog)
+    diagnostics = env.get('DIAGNOSTICS_ENABLED', 'false')
+    if diagnostics not in ('true', 'false') or (target == 'production' and diagnostics == 'true'):
+        raise ValueError('Invalid diagnostics configuration')
     redis = urlsplit(env.get("REDIS_URL", ""))
     redis_password = (directory / "redis-password").read_text().strip()
     if (redis.scheme != "redis" or redis.hostname != "redis" or redis.port != 6379 or

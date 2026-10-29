@@ -8,6 +8,11 @@ target=${2:-}
 mode=${3:-}
 image=${4:-}
 commit=${5:-}
+runtime_settings=${6:-}
+[[ $# -le 6 ]] || { echo 'Unexpected operation arguments' >&2; exit 2; }
+if [[ -n "$runtime_settings" && ( "$action" != deploy || "$target" != staging ) ]]; then
+  echo 'Release settings are accepted only for staging deployment' >&2; exit 2
+fi
 case "$action" in setup|deploy|check|rollback) ;; *) echo 'Use setup|deploy|check|rollback staging|production [--apply] [digest commit]' >&2; exit 2 ;; esac
 case "$target" in staging|production) ;; *) echo 'Invalid target' >&2; exit 2 ;; esac
 case "$mode" in ''|--apply) ;; *) echo 'Invalid mode' >&2; exit 2 ;; esac
@@ -111,7 +116,11 @@ else
   candidate=$(mktemp -d "$base/releases/$commit.XXXXXXXX")
   cp "$script_dir/../../deploy/compose.yml" "$candidate/compose.yml"
   cp "$config/$target/runtime.env" "$candidate/runtime.env"
-  python3 "$script_dir/render-runtime.py" "$target" "$candidate/runtime.env"
+  if [[ -n "$runtime_settings" ]]; then
+    python3 "$script_dir/render-runtime.py" "$target" "$candidate/runtime.env" "$runtime_settings"
+  else
+    python3 "$script_dir/render-runtime.py" "$target" "$candidate/runtime.env"
+  fi
   python3 "$script_dir/config.py" "$config" "$target" "$candidate/runtime.env" >/dev/null
   cp "$config/$target/firebase.json" "$candidate/firebase.json"
   python3 -c 'from pathlib import Path; from ipaddress import ip_network; import sys; gateway=str(ip_network(sys.argv[3]).network_address+1); Path(sys.argv[2]).write_text(Path(sys.argv[1]).read_text().replace("INGRESS_GATEWAY", gateway))' "$script_dir/../../deploy/nginx.conf" "$candidate/nginx.conf" "${settings[6]}"

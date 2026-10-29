@@ -11,6 +11,8 @@
 - [Scripts](../scripts) own local checks, initialization and operator commands.
 - [Deployment](../deploy) owns application configuration/templates; [MCP](mcp.md) and
   [Dify integration](../dify) describe application transport and workflow contracts.
+  The installed [release policy](../scripts/deploy/release_settings.py) defines
+  mutable application settings; Infrastructure owns the shared request dispatcher.
 
 ## Documentation
 

@@ -27,7 +27,13 @@ No backlog migration or deployment is part of this change.
 
 Implemented and locally verified. The required issue draft awaits human approval, and this is not yet an accepted milestone. The work adds Redis-backed, expiring operator grants from Base settings and `POST /api/diagnostics`, with read-only capabilities across every module. It also records typed sub-reasons behind `private-context-unavailable` on new attempts, and AI workers now report their configuration checks with heartbeats. See [diagnostics API](diagnostics-api.md).
 
-Outstanding: approve and publish the issue; run the Lua grant-store test against a disposable Redis; verify the Base settings card in a browser with Redis; complete staging activation (installation of `DIAGNOSTICS_ENABLED=true` is separately authorized); and investigate a known failed staging Run.
+The three staging diagnostic indexes were installed and verified on 2026-10-29.
+The authorized configuration follow-up selects diagnostics in tracked environment
+JSON (staging true, local/production false) and implements a bounded v2 release
+protocol. Its Infrastructure dispatcher and application control bundle require a
+one-time privileged installation before ordinary releases can apply the flag.
+
+Outstanding: approve and publish the issue; run the Lua grant-store test against a disposable Redis; verify the Base settings card in a browser with Redis; install the prepared controller update and complete staging activation; and investigate a known failed staging Run.
 
 ## Agreed decisions
 

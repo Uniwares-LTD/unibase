@@ -2,6 +2,7 @@
   "version": 1,
   "environment": "production",
   "runtime": {
+    "DIAGNOSTICS_ENABLED": "false",
     "APP_ENV": "production",
     "APP_NAME": "Base",
     "APP_STYLE": "classic",

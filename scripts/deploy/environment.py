@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from ipaddress import ip_network
 from urllib.parse import urlsplit
+from release_settings import settings_for
 
 ROOT = Path(__file__).resolve().parents[2]
 SECRET_KEYS = {
@@ -44,6 +45,7 @@ def load(target, root=ROOT, require_connections=True):
             raise ValueError("Invalid tracked runtime setting: " + key)
     if runtime.get("APP_ENV") != target:
         raise ValueError("Runtime environment mismatch")
+    settings_for(config)
     prefix = manifest["slug"].replace("-", "_") + "_"
     if not re.fullmatch(r"[A-Za-z0-9_]{1,64}", runtime.get("MONGODB_DATABASE") or "") or not runtime["MONGODB_DATABASE"].startswith(prefix):
         raise ValueError("Database identity must use the project prefix")

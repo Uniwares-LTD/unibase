@@ -696,6 +696,11 @@ Local command wrappers load these defaults after private Next.js env files.
 Provisioning renders runtime settings by merging selected tracked values with
 private host credentials. Release snapshots that configuration and merges tracked
 runtime settings; rollback retains the previous snapshot without reading new config.
+The v2 staging control protocol additionally accepts an explicit snapshot of the
+application settings allowlisted by the installed `scripts/deploy/release_settings.py`
+policy. Initially only `DIAGNOSTICS_ENABLED` is mutable through a release. All other
+configuration remains bound to the installed hash. Both the shared dispatcher and
+the application policy need a one-time operator installation on an existing v1 host.
 
 Staging provisioning uses Infrastructure's reviewed root-owned installer and
 `prepare-host.py`, existing shared Firebase credentials, an app-scoped Atlas user

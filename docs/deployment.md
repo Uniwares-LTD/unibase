@@ -221,9 +221,21 @@ Infrastructure installs a reviewed Git archive under
 `/opt/uniwares-control/<slug>/<bundle-sha256>`. Its shared deploy account sends only
 versioned JSON selecting staging `deploy`, `check` or `rollback`; host script paths,
 Compose files and credentials cannot be uploaded through that account. The request
-must match the installed public-configuration hash and image repository. Application
-image changes use the ordinary release workflow. Changes to host control scripts or
-public configuration require a separately reviewed operator bundle update.
+must match the installed fixed-configuration hash and image repository. Protocol v2
+excludes only the settings approved by the installed application policy in
+`scripts/deploy/release_settings.py` from that hash. Initially this is only
+`DIAGNOSTICS_ENABLED`; its exact string value travels in each deployment request.
+The dispatcher validates it with the root-owned installed policy before invoking
+the installed control script. Credentials, provider bindings, origin, database,
+ports and every other setting remain bound to the registered configuration.
+
+**Operator intervention required for the v2 transition:** the Infrastructure
+operator must install its reviewed v1/v2 dispatcher update and select the matching
+application control bundle before deploying this release. The currently installed
+v1 controller rejects v2 requests without replacing the serving application.
+This repository does not install shared host code through the deployment account.
+After that transition, changes to the allowlisted flag use ordinary releases;
+expanding the allowlist or changing other configuration still needs an operator update.
 
 After host bootstrap and provider bindings, the trusted root operator runs the
 installed `scripts/deploy/prepare-host.py --credentials <protected-file>` preview,
@@ -588,7 +600,12 @@ Setup VPS. Use the installed root-owned control checkout only for explicit opera
 maintenance, as described above. The first release requires `prepare-host.py` and
 additive indexes beforehand; directory setup alone is not provisioning.
 
-The staging [diagnostics API](diagnostics-api.md#staging-activation) stays disabled until an operator installs `DIAGNOSTICS_ENABLED=true` under separate authorization. It needs no new secret; grants are later created and revoked in Base settings without restarts. Production rejects the setting.
+The staging [diagnostics API](diagnostics-api.md#staging-activation) is selected by
+`runtime.DIAGNOSTICS_ENABLED` in the tracked environment JSON: `true` for staging,
+`false` for local and production. Applying the staging selection requires the v2
+controller transition above, then an ordinary release. It needs no new secret;
+grants are later created and revoked in Base settings without restarts. Production
+rejects enablement. Published configuration alone is not evidence of live activation.
 
 Operations retain the existing app lock and repository Actions concurrency group.
 Use runbooks to coordinate shared maintenance and provider domain changes; there is
