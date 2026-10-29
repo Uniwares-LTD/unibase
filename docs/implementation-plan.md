@@ -29,11 +29,13 @@ Implemented and locally verified. The required issue draft awaits human approval
 
 The three staging diagnostic indexes were installed and verified on 2026-10-29.
 The authorized configuration follow-up selects diagnostics in tracked environment
-JSON (staging true, local/production false) and implements a bounded v2 release
-protocol. Its Infrastructure dispatcher and application control bundle require a
-one-time privileged installation before ordinary releases can apply the flag.
+JSON (staging true, local/production false). The first implementation incorrectly
+required a v2 host controller, and release `62d8ac5` was refused before replacement.
+The compatibility fix retains v1 and ships an allowlisted application flag map in
+the image, preloaded before web/worker startup. No controller installation is
+needed for the existing staging host. Deployment and live activation remain to be verified.
 
-Outstanding: approve and publish the issue; run the Lua grant-store test against a disposable Redis; verify the Base settings card in a browser with Redis; install the prepared controller update and complete staging activation; and investigate a known failed staging Run.
+Outstanding: approve and publish the issue; run the Lua grant-store test against a disposable Redis; verify the Base settings card in a browser with Redis; complete staging deployment and activation; and investigate a known failed staging Run.
 
 ## Agreed decisions
 

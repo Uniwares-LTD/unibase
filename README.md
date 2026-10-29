@@ -333,6 +333,11 @@ and Redis is configured (local or staging only). It issues expiring, read-only
 grants for `POST /api/diagnostics`; use `npm run diagnostics -- --help` for the
 operator helper. See [diagnostics API](docs/diagnostics-api.md).
 
+Release images select this flag from `deploy/environments/*.json` and preload it
+before web/worker startup: staging is enabled, local/production are disabled.
+Changing the flag uses an ordinary image release with the existing controller;
+private host credentials and infrastructure settings remain separate.
+
 `npm run test:accounts` checks transactions and competing admin changes using an
 owned disposable replica set. Python 3 is needed for the embedded Dify Code-node
 tests. The HTTP integration suite checks member/anonymous

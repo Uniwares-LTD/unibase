@@ -221,21 +221,27 @@ Infrastructure installs a reviewed Git archive under
 `/opt/uniwares-control/<slug>/<bundle-sha256>`. Its shared deploy account sends only
 versioned JSON selecting staging `deploy`, `check` or `rollback`; host script paths,
 Compose files and credentials cannot be uploaded through that account. The request
-must match the installed fixed-configuration hash and image repository. Protocol v2
-excludes only the settings approved by the installed application policy in
-`scripts/deploy/release_settings.py` from that hash. Initially this is only
-`DIAGNOSTICS_ENABLED`; its exact string value travels in each deployment request.
-The dispatcher validates it with the root-owned installed policy before invoking
-the installed control script. Credentials, provider bindings, origin, database,
-ports and every other setting remain bound to the registered configuration.
+must match the installed host-configuration hash and image repository using the
+existing v1 protocol. `scripts/deploy/release_settings.py` projects the host profile
+by excluding only image-owned application flags. Initially this is only
+`DIAGNOSTICS_ENABLED`, which was absent from the installed staging host profile.
+Credentials, provider bindings, origin, database, ports and every other setting
+remain bound to the registered configuration. No runtime settings or executable
+host code are uploaded in a release request.
 
-**Operator intervention required for the v2 transition:** the Infrastructure
-operator must install its reviewed v1/v2 dispatcher update and select the matching
-application control bundle before deploying this release. The currently installed
-v1 controller rejects v2 requests without replacing the serving application.
-This repository does not install shared host code through the deployment account.
-After that transition, changes to the allowlisted flag use ordinary releases;
-expanding the allowlist or changing other configuration still needs an operator update.
+The release image includes an allowlisted flag map generated from all three tracked
+environment JSON files. Node preloads the selected map before the web server and
+both workers start. Only the diagnostics flag is assigned; private runtime settings
+remain host-owned. Flag changes therefore need an ordinary image release and no
+controller update. Rollback restores the previous image and its flag map.
+
+**Operator intervention for this compatibility fix: none.** The earlier v2 proposal
+is superseded and must not be installed. Existing controller/configuration and
+privileges stay in place. New or updated operator control bundles must use the
+same host-profile projection (`host_configuration`) when building their environment
+documents; otherwise their full configuration hash would include an image-owned
+flag. The prepared Infrastructure bundle-builder update handles that projection;
+its publication is separate from this existing-host application release.
 
 After host bootstrap and provider bindings, the trusted root operator runs the
 installed `scripts/deploy/prepare-host.py --credentials <protected-file>` preview,
@@ -299,11 +305,16 @@ host files. Dev/start and administration commands load tracked local defaults af
 Next.js private env files; explicit process/private values win locally. Live images
 use generated runtime files. Builds receive no live credentials or deployment config.
 
-On provisioning and release, non-null tracked `runtime` values override matching
-private host values. To activate an optional integration, update its tracked mode
+For host-owned settings, non-null tracked `runtime` values override matching
+private host values on provisioning and release. To activate an optional integration, update its tracked mode
 as well as its private credentials; changing only `runtime.env` cannot override a
 tracked disabled mode. Rollback uses the retained release snapshot instead of
 merging the current tracked settings.
+
+Image-owned application flags are separate: the image build projects only
+`DIAGNOSTICS_ENABLED` from each environment JSON into `runtime-settings.json`.
+The runtime Node preload selects by `APP_ENV` and overrides a stale retained value
+for that flag. No credentials, origins or provider settings enter this map.
 
 Configure these fields before the first preview:
 
@@ -602,8 +613,8 @@ additive indexes beforehand; directory setup alone is not provisioning.
 
 The staging [diagnostics API](diagnostics-api.md#staging-activation) is selected by
 `runtime.DIAGNOSTICS_ENABLED` in the tracked environment JSON: `true` for staging,
-`false` for local and production. Applying the staging selection requires the v2
-controller transition above, then an ordinary release. It needs no new secret;
+`false` for local and production. The image preload applies the selected flag on
+an ordinary release using the existing v1 controller. It needs no new secret;
 grants are later created and revoked in Base settings without restarts. Production
 rejects enablement. Published configuration alone is not evidence of live activation.
 

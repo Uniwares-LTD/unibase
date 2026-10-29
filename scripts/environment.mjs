@@ -2,7 +2,8 @@ import fs from "node:fs";
 import nextEnv from "@next/env";
 
 // Private env files/process values override tracked local defaults. Live runtime
-// files are rendered by provisioning; live config is not baked into the image.
+// host bindings are rendered by provisioning. Release images separately preload
+// their small allowlisted application flag map.
 export function loadLocalEnvironment(development = false) {
   nextEnv.loadEnvConfig(process.cwd(), development);
   if ((process.env.APP_ENV ?? "local") !== "local") return;

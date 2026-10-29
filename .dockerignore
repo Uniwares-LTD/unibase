@@ -12,6 +12,9 @@
 !scripts/
 !scripts/payment-worker.ts
 !scripts/build-worker.mjs
+!scripts/build-runtime-settings.mjs
+!scripts/runtime-settings.cjs
+!scripts/load-runtime-settings.cjs
 !scripts/ai-worker.ts
 !scripts/worker-healthcheck.ts
 
@@ -33,3 +36,5 @@
 !deploy/
 !deploy/environments/
 !deploy/environments/local.json
+!deploy/environments/staging.json
+!deploy/environments/production.json

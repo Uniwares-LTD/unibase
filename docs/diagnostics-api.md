@@ -194,18 +194,19 @@ proof of a historical cause.
 ## Staging activation
 
 The feature flag is public configuration in `deploy/environments/*.json`, with
-staging enabled and local/production disabled. Enabling it on the existing host
-requires the one-time [deployment protocol transition](deployment.md#restricted-first-staging-control-path).
-After that transition, flag changes use normal staging releases.
+staging enabled and local/production disabled. The release image carries only the
+allowlisted application flags and preloads them for its selected environment.
+Flag changes use normal staging releases with the existing v1 controller; no
+privileged controller update is needed for this activation.
 
-1. **Owner:** the staging operator under the
+1. **Owner:** the authorized application release operator under the
    [shared operations guide](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
-2. **Install:** update the Infrastructure dispatcher and application control bundle
-   once. The installed policy accepts only the diagnostics flag from release requests.
-   Staging already uses private Redis, and no new secret is required.
-3. **Order:** install the additive diagnostics indexes, complete the control update,
-   then release the revision with `runtime.DIAGNOSTICS_ENABLED` set to `"true"` in
-   `deploy/environments/staging.json`. The release snapshots that value and recreates
+2. **Install:** use the existing release workflow. Only the diagnostics flag is
+   loaded from the image; private runtime settings stay on the host. Staging already
+   uses private Redis, and no new secret or controller installation is required.
+3. **Order:** install the additive diagnostics indexes, then release the revision
+   with `runtime.DIAGNOSTICS_ENABLED` set to `"true"` in
+   `deploy/environments/staging.json`. The image snapshots that value and the release recreates
    the web process. The three staging diagnostic indexes were installed and verified
    on 2026-10-29, with the collection empty before creation.
 4. **Verify:** the card shows the grant form. Create a 15-minute metadata grant and
@@ -215,9 +216,9 @@ After that transition, flag changes use normal staging releases.
    revoke them in the card. To remove all access, release `"false"` for the flag or delete the
    Redis keys matching `<project slug>:staging:diagnostics:grant:*`.
 6. **Failure and resume:** release `"false"` in the tracked staging JSON or restore
-   the previous release snapshot. An old controller refuses the new request before
-   replacement; update the controller and rerun the failed release after checking its
-   state. Do not automatically repeat privileged installation or index operations.
+   the previous image/configuration snapshot. Requests retain v1 compatibility;
+   the earlier v2 controller package is superseded. Inspect the same release result
+   before retrying; do not repeat completed index operations.
 
 Redis eviction is owned by Infrastructure. Under a `volatile-*` or `allkeys-*`
 policy, grants can be evicted under memory pressure. Access then fails closed, but

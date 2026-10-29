@@ -1,4 +1,6 @@
 import { build } from "esbuild";
+import { writeRuntimeSettings } from "./build-runtime-settings.mjs";
+await writeRuntimeSettings();
 await build({
   entryPoints: [
     "scripts/payment-worker.ts",

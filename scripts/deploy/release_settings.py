@@ -1,7 +1,7 @@
-"""Application settings accepted from a release by the installed host policy.
+"""Separate image-owned application flags from the registered host profile.
 
-Adding keys here requires an operator-reviewed control update. Infrastructure,
-provider bindings and secrets remain part of the registered configuration hash.
+Only these flags are carried inside the image. Every infrastructure/provider
+setting retains the installed v1 controller's configuration hash check.
 """
 import copy
 import hashlib
@@ -26,9 +26,13 @@ def settings_for(config):
     return validate_settings({key: config['runtime'].get(key, 'false') for key in KEYS}, config['environment'])
 
 
-def configuration_hash(config):
+def host_configuration(config):
     settings_for(config)
     fixed = copy.deepcopy(config)
     for key in KEYS:
         fixed['runtime'].pop(key, None)
-    return hashlib.sha256(json.dumps(fixed, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    return fixed
+
+
+def configuration_hash(config):
+    return hashlib.sha256(json.dumps(host_configuration(config), sort_keys=True, separators=(',', ':')).encode()).hexdigest()

@@ -134,10 +134,10 @@ runpy.run_path(filename,run_name='__main__')
 ''')
         (cls.bin / "dispatch.py").write_text('''import json,subprocess,sys
 r=json.load(sys.stdin)
-assert set(r)=={'version','project','environment','action','configurationHash','image','commit','runtimeSettings'}
-assert r['version']==2
+assert set(r)=={'version','project','environment','action','configurationHash','image','commit'}
+assert r['version']==1
 assert r['environment']=='staging' and r['project']=='unibase' and r['action']=='deploy'
-sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging','--apply',r['image'],r['commit'],json.dumps(r['runtimeSettings'])]).returncode)
+sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging','--apply',r['image'],r['commit']]).returncode)
 ''')
         cls.env = dict(os.environ, PATH=f"{cls.bin}:" + os.environ["PATH"])
         # Preview must not create directories or contact Docker.
@@ -149,12 +149,10 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
         assert cls.run_host("setup", "production").returncode == 0
 
     @classmethod
-    def run_host(cls, action, target="staging", commit=None, runtime_settings=None, **extra):
+    def run_host(cls, action, target="staging", commit=None, **extra):
         args = ["bash", str(SCRIPT), action, target, "--apply"]
         if commit:
             args += [IMAGE + "@sha256:" + "b" * 64, commit]
-            if runtime_settings is not None:
-                args.append(json.dumps(runtime_settings))
         return subprocess.run(args, env=dict(cls.env, **extra), capture_output=True, text=True, timeout=20)
 
     def setUp(self):
@@ -206,28 +204,6 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
         self.assertEqual((ROOT / "staging/current").resolve(), previous)
         self.assertEqual((previous / "runtime.env").read_bytes(), snapshot)
         self.assertIn("a" * 40, Path("/tmp/active-unibase-staging").read_text())
-
-    def test_release_settings_and_rollback_use_their_own_snapshots(self):
-        result = self.run_host('deploy', commit='a'*40, runtime_settings={'DIAGNOSTICS_ENABLED':'false'})
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        previous = (ROOT/'staging/current').resolve()
-        self.assertIn('DIAGNOSTICS_ENABLED=false\n', (previous/'runtime.env').read_text())
-        result = self.run_host('deploy', commit='b'*40, runtime_settings={'DIAGNOSTICS_ENABLED':'true'})
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        current = (ROOT/'staging/current').resolve()
-        self.assertIn('DIAGNOSTICS_ENABLED=true\n', (current/'runtime.env').read_text())
-        result = self.run_host('rollback')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual((ROOT/'staging/current').resolve(), previous)
-        self.assertIn('DIAGNOSTICS_ENABLED=false\n', (previous/'runtime.env').read_text())
-
-    def test_private_release_setting_is_rejected_before_pull(self):
-        Path('/tmp/docker-operations').write_text('')
-        result = self.run_host('deploy', commit='a'*40,
-                               runtime_settings={'DIAGNOSTICS_ENABLED':'true','MONGODB_URI':'forbidden'})
-        self.assertNotEqual(result.returncode, 0)
-        self.assertNotIn('"pull"', Path('/tmp/docker-operations').read_text())
-        self.assertFalse((ROOT/'staging/current').exists())
 
     def test_external_https_failure_also_restores(self):
         previous = self.release("a" * 40)
