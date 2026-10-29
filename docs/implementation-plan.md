@@ -33,9 +33,13 @@ JSON (staging true, local/production false). The first implementation incorrectl
 required a v2 host controller, and release `62d8ac5` was refused before replacement.
 The compatibility fix retains v1 and ships an allowlisted application flag map in
 the image, preloaded before web/worker startup. No controller installation is
-needed for the existing staging host. Deployment and live activation remain to be verified.
+needed for the existing staging host. [Corrective release 40829051847](https://github.com/Uniwares-LTD/unibase/actions/runs/40829051847)
+and [independent check 40829410729](https://github.com/Uniwares-LTD/unibase/actions/runs/40829410729)
+passed on 2026-10-29. Public readiness reported the corrective revision, Home and
+Account returned 200, and diagnostics returned 401 without a grant, confirming
+enablement with authentication enforced. Authenticated grant acceptance remains pending.
 
-Outstanding: approve and publish the issue; run the Lua grant-store test against a disposable Redis; verify the Base settings card in a browser with Redis; complete staging deployment and activation; and investigate a known failed staging Run.
+Outstanding: approve and publish the issue; run the Lua grant-store test against a disposable Redis; verify the Base settings card and authenticated grant flow in a browser with Redis; and investigate a known failed staging Run.
 
 ## Agreed decisions
 

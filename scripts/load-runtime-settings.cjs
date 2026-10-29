@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Node's --require preload must be CommonJS. */
 const { readFileSync } = require("node:fs");
 const { join } = require("node:path");
 const { applyRuntimeSettings } = require("./runtime-settings.cjs");

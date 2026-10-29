@@ -114,6 +114,7 @@ test("build output projects only application flags and preload runs before node 
           env: {
             PATH: process.env.PATH,
             SystemRoot: process.env.SystemRoot,
+            NODE_ENV: "test",
             APP_ENV: environment,
             DIAGNOSTICS_ENABLED: "false",
           },
