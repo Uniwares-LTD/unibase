@@ -62,8 +62,9 @@ def load(target, root=ROOT, require_connections=True):
     route_mode = config["shared"].get("routeMode") or "registry"
     if route_mode not in ("registry", "owner-managed"):
         raise ValueError("Invalid route mode for this environment")
-    existing_staging = route_mode == "owner-managed"
+    owner_managed = route_mode == "owner-managed"
     required_sections = {
+        "runtime": ["APP_ORIGIN", "FIREBASE_PROJECT_ID"],
         "deployment": ["imageRepository", "port", "ingressSubnet", "redisImage", "nginxImage", "adminImage"],
         "ssh": ["host", "user", "cloudflaredVersion", "cloudflaredSha256"],
         "google": ["projectId", "workloadIdentityProvider", "provisionerServiceAccount"],
@@ -76,17 +77,20 @@ def load(target, root=ROOT, require_connections=True):
         raise ValueError("Invalid SSH transport")
     if transport == "direct":
         required_sections["ssh"] = ["host", "user"]
-    if existing_staging:
+    if owner_managed:
         required_sections["google"] = ["projectId"]
         required_sections["shared"] = ["ownerRepository", "ownerRef", "tunnelId", "cloudflareAccountId", "cloudflareZoneId"]
         required_sections["ghcr"] = []
+    missing = []
     for section, keys in required_sections.items():
         for key in keys:
             value = config[section].get(key)
             if require_connections and (value is None or value == ""):
-                raise ValueError("Missing public configuration: " + section + "." + key)
+                missing.append(section + "." + key)
             if isinstance(value, str) and any(c in value for c in "\r\n\0"):
                 raise ValueError("Invalid public configuration: " + section + "." + key)
+    if missing:
+        raise ValueError("Missing public configuration: " + ", ".join(missing))
     if not require_connections:
         return config
     origin = urlsplit(runtime.get("APP_ORIGIN") or "")

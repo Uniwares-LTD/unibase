@@ -34,9 +34,14 @@ def main():
     base, head = sys.argv[1:3]
     if not all(re.fullmatch(r'[a-f0-9]{40}', sha) for sha in (base, head)):
         raise ValueError('Expected commit identities')
-    configs = [json.loads(subprocess.check_output(['git', 'show', sha + ':deploy/environments/staging.json']))
-               for sha in (base, head)]
-    text = report(*configs)
+    reports=[]
+    for target in ('staging','production'):
+        configs = [json.loads(subprocess.check_output(['git', 'show', sha + ':deploy/environments/'+target+'.json']))
+                   for sha in (base, head)]
+        reports.append(target+': '+report(*configs))
+    control=subprocess.check_output(['git','diff','--name-only',base,head,'--','scripts/deploy','deploy/compose.yml','deploy/nginx.conf','deploy/contract.json']).decode().splitlines()
+    if control:reports.append('Application control/contract changed: review the protected control.bundle update before release.\n')
+    text='\n'.join(reports)
     print(text)
     if os.environ.get('GITHUB_STEP_SUMMARY'):
         with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as output:

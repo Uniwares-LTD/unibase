@@ -59,10 +59,16 @@ def main():
     parser.add_argument('--destination')
     args = parser.parse_args()
     target = 'prod' if args.environment == 'production' else args.environment
-    config = load(target, require_connections=args.action != 'doctor')
+    config = load(target, require_connections=args.action in ('plan','check','rollback'))
     slug = json.loads((ROOT / 'project.config.json').read_text())['slug']
     if args.action == 'doctor':
-        load(target)  # Validate all public bindings, without contacting providers.
+        try:
+            load(target)  # Validate all public bindings, without contacting providers.
+        except ValueError as error:
+            message=str(error)
+            if re.fullmatch(r'Missing public configuration: [A-Za-z0-9_., ]+',message):
+                raise OperationError(message) from None
+            raise
         print(json.dumps({'configuration': 'valid', 'target': target,
                           'configurationHash': configuration_hash(config),
                           'requiredController': 2, 'hostInstallation': 'not verified'}))
