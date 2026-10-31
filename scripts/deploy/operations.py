@@ -48,7 +48,7 @@ def transport(request, config, timeout=1300):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['doctor', 'plan', 'status', 'check', 'rollback', 'backup', 'restore'])
+    parser.add_argument('action', choices=['doctor', 'maintenance', 'plan', 'status', 'check', 'rollback', 'backup', 'restore'])
     parser.add_argument('environment', choices=['staging', 'prod', 'production'])
     parser.add_argument('--bundle', type=Path)
     parser.add_argument('--manifest', type=Path)
@@ -71,7 +71,9 @@ def main():
             raise
         print(json.dumps({'configuration': 'valid', 'target': target,
                           'configurationHash': configuration_hash(config),
-                          'requiredController': 2, 'hostInstallation': 'not verified'}))
+                          'requiredController': 2, 'requiredCapabilities': ['operation-lock-v1', 'image-retention-v1'],
+                          'maintenanceStatusCommand': 'npm run deploy:ops -- maintenance ' + target,
+                          'hostInstallation': 'not verified'}))
         return
     request = dict(version=2, project=slug, environment=target, action=args.action)
     if args.action in ('check', 'rollback'):

@@ -24,6 +24,37 @@ class HostTests(unittest.TestCase):
         assert not ROOT.exists() and not CONFIG.exists() and not STATE.exists()
         cls.bin = Path("/tmp/unibase-mock-bin")
         cls.bin.mkdir()
+        maintenance = Path('/usr/local/sbin/uniwares-image-maintenance')
+        assert not maintenance.exists()
+        Path('/var/lib/uniwares-infrastructure').mkdir(exist_ok=True)
+        maintenance.write_text('''#!/usr/bin/env python3
+import fcntl,json,os,subprocess,sys
+from pathlib import Path
+args=sys.argv[1:]
+with open('/tmp/maintenance-operations','a') as f: f.write(json.dumps(args)+'\\n')
+if args[0]=='run-release':
+    fd=os.open('/var/lib/uniwares-infrastructure/image-maintenance.lock',os.O_RDWR|os.O_CREAT,0o600)
+    fcntl.flock(fd,fcntl.LOCK_EX)
+    os.set_inheritable(fd,True)
+    os.environ['UNIWARES_IMAGE_LOCK_FD']=str(fd)
+    action=args[args.index('--release-action')+1]
+    target=args[args.index('--environment')+1]
+    target='production' if target=='prod' else target
+    script=args[args.index('--script')+1]
+    os.execv('/bin/bash',['bash',script,action,target,'--apply',args[args.index('--image')+1],args[args.index('--commit')+1]])
+if args[0]=='check-space' and os.environ.get('FAIL_DISK')=='1':
+    print('INSUFFICIENT_DISK_SPACE'); sys.exit(2)
+if args[0]=='check-space' and os.environ.get('FAIL_DISK_AFTER_PULL')=='1' and Path('/tmp/pulled-commit').exists():
+    print('INSUFFICIENT_DISK_SPACE'); sys.exit(2)
+if args[0] in ('record','cleanup') and os.environ.get('FAIL_MAINTENANCE')=='1': sys.exit(2)
+print(json.dumps({'status':'completed'}))
+''')
+        maintenance.chmod(0o755)
+        policy = Path('/etc/uniwares-infrastructure/image-retention.json')
+        policy.parent.mkdir(exist_ok=True)
+        policy.write_text(json.dumps({'version':1,'keepReleases':3,'keepDays':14,'minimumFreeGiB':20,
+            'targetFreeGiB':30,'warnUsedPercent':80,'projects':{'unibase':{'imageRepository':IMAGE,
+                'environments':{'staging':'staging','prod':'production'},'automatic':False}}}))
         mocks = {
             "docker": '''#!/usr/bin/env python3
 import json,os,sys,time
@@ -135,6 +166,8 @@ runpy.run_path(filename,run_name='__main__')
         (cls.bin / "dispatch.py").write_text("""import hashlib,importlib.util,json,os,subprocess,sys
 from pathlib import Path
 r=json.load(sys.stdin)
+if r['action']=='capabilities':
+    print(json.dumps({'version':2,'capabilities':['operation-lock-v1','image-retention-v1']})); sys.exit(0)
 if os.environ.get('LEGACY_DISPATCHER')=='1':
     print('legacy private failure'); sys.exit(1)
 config=json.loads(Path('/repo/deploy/environments/staging.json').read_text())
@@ -159,7 +192,7 @@ if real.exists():
     d.trusted=lambda path: None  # Temporary fixture ownership; protocol/hash validation stays real.
     d.ENV=dict(os.environ)  # Keep the disposable container's mocked provider executables.
     sys.exit(d.handle(r))
-assert set(r)=={'version','project','environment','action','configurationHash'} | ({'image','commit'} if r['action']=='deploy' else set())
+assert set(r)=={'version','project','environment','action','configurationHash','requiredCapabilities'} | ({'image','commit'} if r['action']=='deploy' else set())
 assert r['version']==2 and r['environment']=='staging' and r['project']=='unibase'
 compatible=r['configurationHash']==digest
 if r['action']=='preflight' or not compatible:
@@ -217,6 +250,29 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
         Path("/tmp/host-contacts").write_text("")
         Path("/tmp/dispatch-actions").write_text("")
         Path("/tmp/hold-up-started").unlink(missing_ok=True)
+        Path('/tmp/pulled-commit').unlink(missing_ok=True)
+        Path('/tmp/maintenance-operations').write_text('')
+
+    def test_disk_failure_before_pull_keeps_services_untouched(self):
+        result = self.run_host('deploy', commit='a'*40, FAIL_DISK='1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('INSUFFICIENT_DISK_SPACE', result.stdout)
+        operations = Path('/tmp/docker-operations').read_text()
+        self.assertNotIn('"pull"', operations)
+        self.assertNotIn('"up"', operations)
+
+    def test_disk_failure_after_pull_does_not_replace_services(self):
+        result = self.run_host('deploy', commit='a'*40, FAIL_DISK_AFTER_PULL='1')
+        self.assertNotEqual(result.returncode, 0)
+        operations = Path('/tmp/docker-operations').read_text()
+        self.assertIn('"pull"', operations)
+        self.assertNotIn('"up"', operations)
+
+    def test_maintenance_failure_does_not_restore_healthy_release(self):
+        result = self.run_host('deploy', commit='a'*40, FAIL_MAINTENANCE='1')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('maintenance=warning', result.stdout)
+        self.assertTrue((ROOT/'staging/current').is_symlink())
 
     def release(self, commit, **extra):
         result = self.run_host("deploy", commit=commit, **extra)

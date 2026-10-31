@@ -584,3 +584,5 @@ Prepare protected deployment for host changes requiring Infrastructure approval.
 [release/recovery procedures](docs/deployment.md#repeatable-release-and-protected-change-path)
 for pinned access, exact plan IDs, approval and interruption handling. Production
 activation and host installation require separately reviewed configuration and access.
+
+Image maintenance diagnostics: after preparing the existing pinned deployment access, run `npm run deploy:ops -- maintenance staging` (or `prod`). See [deployment disk protection](docs/deployment.md#image-retention-and-disk-headroom); host cleanup and enrollment remain Infrastructure-owned.

@@ -425,6 +425,14 @@ export async function createProject(options: Options) {
     mode: options.mode,
   });
   await mkdir(path.join(staging, "docs"), { recursive: true });
+  await json("deploy/image-retention.proposal.json", {
+    version: 1,
+    project: manifest.slug,
+    imageRepository: `ghcr.io/replace-owner/${manifest.slug}`,
+    environments: { staging: "staging", prod: "production" },
+    automatic: false,
+    status: "Owner review and explicit Infrastructure enrollment required",
+  });
   await writeFile(
     path.join(staging, "docs/deployment-start.md"),
     `# ${manifest.displayName} deployment setup\n\n` +
@@ -436,7 +444,11 @@ export async function createProject(options: Options) {
       "After reviewed host enrollment, promote main to _staging or _prod. A protected configuration change needs an immutable " +
       "projected bundle and Infrastructure approval of the exact plan. Use deploy:ops plan, status, check, rollback, backup and restore. " +
       "Backup and restore return approval plans; restore requires an exact snapshot and destination. " +
-      "Complete disposable recovery acceptance before production activation.\n",
+      "Complete disposable recovery acceptance before production activation.\n\n" +
+      "Review deploy/image-retention.proposal.json with Infrastructure after selecting the image repository. " +
+      "It grants no enrollment or cleanup authority. Install image-retention-v1, enroll this project explicitly, " +
+      "and inspect deploy:ops maintenance staging before release. Retention keeps at least three successful releases " +
+      "and fourteen days of activations, plus current/previous and pending recovery; image pulls require 20 GiB free.\n",
   );
   await checkedDestination(source, target);
   try {

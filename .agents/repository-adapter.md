@@ -135,3 +135,5 @@ use npx.cmd on Windows, or the task's committed snapshot wrapper from the consum
 No global CLI installation or execution-policy change is required.
 
 Deployment changes must classify image, host configuration, controller, provider or data impact. Report operator ordering, verification and failure/resume; unsupported requirements require a named owner action. Preserve session authority and separate publication from installation/live acceptance.
+
+Image-maintenance integration must preserve application-then-host-image lock ordering, capability-bound requests and separate release/maintenance outcomes. Enrollment, retention policy and timer activation belong to Infrastructure; initializers emit proposals only. Keep current/previous and uncertain recovery images protected.

@@ -14,6 +14,7 @@ build=not_attempted
 publication=not_attempted
 deployment=not_attempted
 readiness=not_attempted
+maintenance=not_reported
 report() {
   local safe_target=unknown safe_commit=unknown safe_image=unavailable
   case "$target" in staging|production) safe_target=$target ;; esac
@@ -21,6 +22,7 @@ report() {
   [[ "$image" =~ ^ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+$ && "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] && safe_image=$image@$digest
   printf 'Release result=%s environment=%s commit=%s image=%s\n' "$outcome" "$safe_target" "$safe_commit" "$safe_image" >> "${GITHUB_STEP_SUMMARY:?}"
   printf 'Phases: compatibility=%s build=%s publication=%s deployment=%s readiness=%s\n' "$compatibility" "$build" "$publication" "$deployment" "$readiness" >> "$GITHUB_STEP_SUMMARY"
+  printf 'Maintenance: %s (separate from release readiness)\n' "$maintenance" >> "$GITHUB_STEP_SUMMARY"
 }
 trap report EXIT
 bash "$script_dir/guard.sh" "$target"
@@ -84,6 +86,13 @@ deployment=unknown
 readiness=unknown
 operation_log=$(mktemp "$RUNNER_TEMP/deployment-result.XXXXXXXX")
 if bash "$script_dir/host-operation.sh" deploy "$target" "$image@$digest" "$GITHUB_SHA" | tee "$operation_log"; then
+  maintenance=$(python3 - "$operation_log" <<'PY'
+import re,sys
+from pathlib import Path
+matches=re.findall(r'^maintenance=(completed|disabled|warning|unknown|replan-required)(?:\s|$)',Path(sys.argv[1]).read_text(),re.M)
+print('warning' if any(x in ('warning','unknown','replan-required') for x in matches) else matches[-1] if matches else 'not_reported')
+PY
+)
   rm -f -- "$operation_log"
 else
   code=$?

@@ -307,3 +307,7 @@ installation, MongoDB/restic restore rehearsal and live release acceptance remai
 rollout checks; passing source tests does not satisfy those checks. The selected
 Infrastructure Admin team is enrolled by reviewed numeric IDs, not automatic ongoing
 membership synchronization. Project #2 verification still needs read:project.
+
+## Accepted image retention and deployment disk protection ? 2026-10-31
+
+Implement capability-bound requests, pre-pull and pre-replacement disk checks, shared image-lock handoff, successful-activation ledger integration and separate maintenance reporting. Infrastructure owns the policy, cleanup and timer; derived projects receive enrollment proposals only. Local/CI verification and a separate read-only review precede handoff. Live cleanup, installation, staging release, production activation and timer enablement remain separate. See [image retention](deployment.md#image-retention-and-disk-headroom). Related issue-ready outcomes are Infrastructure retention/controller tooling and Unibase integration; no issues are created by this milestone.

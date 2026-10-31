@@ -22,6 +22,17 @@ spec.loader.exec_module(impact)
 
 
 class PreflightTests(unittest.TestCase):
+    def test_v2_missing_retention_stops_before_configuration_preflight(self):
+        request = dict(version=2, project='fixture', environment='staging', configurationHash='a'*64)
+        def run(*args, **kwargs):
+            kwargs['stdout'].write(json.dumps({'version':2,'capabilities':['operation-lock-v1']}).encode())
+            return subprocess.CompletedProcess([], 0)
+        with patch.object(preflight.subprocess, 'run', side_effect=run) as transport:
+            state, message = preflight.check(request, 'config', 'test')
+            self.assertEqual(state, 'rejected')
+            self.assertIn('image-retention-v1', message)
+            self.assertEqual(transport.call_count, 1)
+
     def response(self, **changes):
         return dict(version=1, compatible=True, code='COMPATIBLE', installedRevision='b'*64,
                     installedConfigurationHash='a'*64, requestedConfigurationHash='a'*64, **changes)
