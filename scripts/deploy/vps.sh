@@ -5,6 +5,7 @@ set +x
 umask 077
 action=${1:-}
 target=${2:-}
+[[ "$target" != prod ]] || target=production
 mode=${3:-}
 image=${4:-}
 commit=${5:-}
@@ -27,15 +28,20 @@ fi
 for tool in docker python3 curl flock; do command -v "$tool" >/dev/null; done
 docker compose version >/dev/null
 install -d -m 0700 "$root" "$config" "$state"
-exec 9>"$state/operation.lock"
-flock -w 300 9 || { echo 'Unibase operation already running' >&2; exit 1; }
+if [[ -n "${UNIWARES_OPERATION_LOCK_FD:-}" ]]; then
+  [[ "$UNIWARES_OPERATION_LOCK_FD" =~ ^[0-9]+$ ]] || exit 2
+  python3 "$script_dir/verify-operation-lock.py" "$UNIWARES_OPERATION_LOCK_FD" "$state/operation.lock"
+else
+  exec 9>"$state/operation.lock"
+  flock -w 300 9 || { echo 'Unibase operation already running' >&2; exit 1; }
+fi
 if [[ "$action" == setup ]]; then
   install -d -m 0700 "$base/releases" "$config/$target" "$config/$target/docker"
   echo 'Unibase directories ready; existing host services unchanged'
   exit 0
 fi
 [[ -d "$base/releases" ]] || { echo 'Run Unibase setup first' >&2; exit 1; }
-if [[ "$target" == staging ]]; then
+if [[ "$target" == staging || "$target" == production ]]; then
   anonymous_config=$(mktemp -d "$state/anonymous-docker.XXXXXXXX")
   trap 'rm -rf -- "$anonymous_config"' EXIT
   export DOCKER_CONFIG=$anonymous_config

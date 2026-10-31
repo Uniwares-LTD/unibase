@@ -1,4 +1,4 @@
-﻿import { spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import {
@@ -138,6 +138,8 @@ export async function createProject(options: Options) {
     "deploy/environments/local.json",
     "deploy/environments/staging.json",
     "deploy/environments/production.json",
+    "deploy/contract.json",
+    "scripts/deploy/operations.py",
   ])
     if (!names.has(required))
       throw new Error(
@@ -180,6 +182,11 @@ export async function createProject(options: Options) {
   const readJson = async (file: string) =>
     JSON.parse(await readFile(path.join(staging, file), "utf8"));
   const old = await readJson("project.config.json");
+  const deploymentContract = await readJson("deploy/contract.json");
+  if (deploymentContract.version !== 1 || !deploymentContract.settings)
+    throw new Error(
+      "Adopt a supported deployment contract before initialization.",
+    );
   // Tracking identity and user-confirmed preferences belong to this repository.
   // Derived repositories select their own during Handbook adoption.
   if (names.has("handbook.json")) {
@@ -209,6 +216,10 @@ export async function createProject(options: Options) {
   );
   const pkg = await readJson("package.json");
   pkg.name = manifest.slug;
+  pkg.scripts = {
+    ...pkg.scripts,
+    "deploy:ops": "python scripts/deploy/operations.py",
+  };
   await json("package.json", pkg);
   const lock = await readJson("package-lock.json");
   lock.name = manifest.slug;
@@ -338,6 +349,7 @@ export async function createProject(options: Options) {
       )
         delete config.runtime[key];
     config.runtime.ASSET_STORE = "mongo";
+    config.runtime.DIAGNOSTICS_ENABLED = "false";
     if (environment === "local") {
       config.runtime.MONGODB_URI = "mongodb://127.0.0.1:27017";
       config.runtime.FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099";
@@ -412,6 +424,20 @@ export async function createProject(options: Options) {
     revision,
     mode: options.mode,
   });
+  await mkdir(path.join(staging, "docs"), { recursive: true });
+  await writeFile(
+    path.join(staging, "docs/deployment-start.md"),
+    `# ${manifest.displayName} deployment setup\n\n` +
+      "Configure deploy/environments/staging.json and production.json with this project's public bindings. " +
+      "External targets are staging and prod; retained production paths and APP_ENV=production stay unchanged.\n\n" +
+      "Run npm run deploy:ops -- doctor staging (or prod). Collect missing credential references through the secure channel. " +
+      "Run scripts/deploy/staging-setup.py with --environment staging or prod to preview the existing setup flow. " +
+      "Review its exact digest before applying. Never copy parent database, Firebase web registration, network allocations or credentials.\n\n" +
+      "After reviewed host enrollment, promote main to _staging or _prod. A protected configuration change needs an immutable " +
+      "projected bundle and Infrastructure approval of the exact plan. Use deploy:ops plan, status, check, rollback, backup and restore. " +
+      "Backup and restore return approval plans; restore requires an exact snapshot and destination. " +
+      "Complete disposable recovery acceptance before production activation.\n",
+  );
   await checkedDestination(source, target);
   try {
     await rmdir(target);

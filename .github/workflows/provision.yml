@@ -4,75 +4,19 @@ on:
     inputs:
       environment:
         type: choice
-        options: [production]
+        options: [staging, prod, production]
         required: true
       apply:
-        description: Apply additive provisioning (otherwise preview)
+        description: Legacy input retained for an explicit migration error
         type: boolean
         default: false
-      admin_uid:
-        description: Optional verified Firebase UID to appoint as first admin
-        type: string
-        default: ""
-permissions:
-  contents: read
-  id-token: write
-concurrency:
-  group: ${{ github.repository }}-vps-operation
-  cancel-in-progress: false
+permissions: {}
 jobs:
-  provision:
+  owner-action:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      TARGET: ${{ inputs.environment }}
-      DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
-      DEPLOY_SSH_HOST_KEY: ${{ secrets.DEPLOY_SSH_HOST_KEY }}
-      CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
-      CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Validate main and tracked configuration
+      - name: Route initial installation to its owner
         run: |
-          test "$GITHUB_REF" = refs/heads/main
-          test "$TARGET" = production
-          python3 scripts/deploy/environment.py "$TARGET" --github-env
-      - name: Verify registered shared routes before provisioning
-        env:
-          SHARED_OWNER_TOKEN: ${{ secrets.SHARED_OWNER_TOKEN }}
-        run: python3 scripts/deploy/routes.py "$TARGET"
-      - name: Authenticate Google provisioner through OIDC
-        id: google
-        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
-        with:
-          workload_identity_provider: ${{ env.GOOGLE_WIF_PROVIDER }}
-          service_account: ${{ env.GOOGLE_PROVISIONER_SERVICE_ACCOUNT }}
-          token_format: access_token
-          create_credentials_file: false
-      - name: Configure pinned existing Access SSH
-        run: bash scripts/deploy/access.sh
-      - name: Preview or provision cloud resources and private host configuration
-        env:
-          MODE: ${{ inputs.apply && 'apply' || 'preview' }}
-          GOOGLE_ACCESS_TOKEN: ${{ steps.google.outputs.access_token }}
-          ATLAS_CLIENT_ID: ${{ secrets.ATLAS_CLIENT_ID }}
-          ATLAS_CLIENT_SECRET: ${{ secrets.ATLAS_CLIENT_SECRET }}
-          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
-          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
-          ADMIN_UID: ${{ inputs.admin_uid }}
-        run: bash scripts/deploy/provision.sh "$TARGET" "$MODE"
-      - name: Apply registered routes through their owner
-        if: inputs.apply
-        env:
-          SHARED_OWNER_TOKEN: ${{ secrets.SHARED_OWNER_TOKEN }}
-        run: python3 scripts/deploy/routes.py "$TARGET" --apply
-      - name: Summarize and remove runner access credentials
-        if: always()
-        env:
-          OUTCOME: ${{ job.status }}
-          MODE: ${{ inputs.apply && 'apply' || 'preview' }}
-        run: |
-          source scripts/deploy/identity.sh
-          rm -rf "$RUNNER_TEMP/${project_slug}-access"
-          rm -f "$RUNNER_TEMP/admin-uid.json"
-          printf 'Provisioning outcome=%s environment=%s mode=%s commit=%s\nApplication release remains separate.\n' "$OUTCOME" "$TARGET" "$MODE" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo '::error::OWNER_ACTION_REQUIRED: use the guided staging-setup.py helper for the selected environment, then the reviewed Infrastructure bootstrap/controller installation. This workflow no longer uploads privileged scripts or provisions through the routine deployment key.'
+          echo 'https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md#approved-plan-operations'
+          exit 2

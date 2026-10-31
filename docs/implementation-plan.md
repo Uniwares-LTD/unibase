@@ -272,3 +272,38 @@ See [historical requirements and evidence](history/implementation-evidence-throu
 ## Accepted reuse verification and simulated Unitale preview — 2026-10-18
 
 See [historical requirements and evidence](history/implementation-evidence-through-2026-10-25.md#accepted-reuse-verification-and-simulated-unitale-preview--2026-10-18).
+
+## Accepted deployment reliability follow-up
+
+The accepted plan adds staging host preflight before image publication, sanitized
+compatibility diagnostics and an advisory PR host-configuration impact report.
+Infrastructure owns protocol/installation and its separate Handbook adoption;
+Unibase owns release integration. Local implementation is not operator installation
+or live acceptance. See [early compatibility](deployment.md#early-host-compatibility-check).
+The issue-ready Unibase outcome is "Check host compatibility before publishing
+releases", related to Infrastructure's adoption and preflight outcomes. New issue
+creation remains subject to approval; accepted work does not require retroactive issues.
+
+## Accepted extension: repeatable approved deployments
+
+The accepted delivery order is: (1) declarative configuration, projected immutable
+bundles and locked execution; (2) version-2 plans, Infrastructure-admin OIDC approval
+and resumable fixed operations; (3) production compatibility and manual encrypted
+off-host recovery; (4) derived-project setup and consolidated operations guidance.
+Both promotion branches originate from main. Production activation, publication,
+host installation and issue creation retain separate authorization.
+
+Local implementation now includes the projected bundle builder, version-2 locked
+clients, durable plans/checkpoints, pinned Infrastructure OIDC approval, production
+mapping, manual restic recovery, candidate reuse and initializer integration. Both
+repositories retain v1 compatibility for unmigrated applications. Production remains
+unconfigured and inactive. Publication is authorized in this session; host installation,
+release, provider changes and issue creation remain separate.
+
+Acceptance: disposable Linux filesystem tests cover actual archive/updater/dispatcher
+agreement, locks, rejection, restoration and approval boundaries. Service/provider
+commands are synthetic. Real GitHub OIDC claims, protected host readback, controller
+installation, MongoDB/restic restore rehearsal and live release acceptance remain
+rollout checks; passing source tests does not satisfy those checks. The selected
+Infrastructure Admin team is enrolled by reviewed numeric IDs, not automatic ongoing
+membership synchronization. Project #2 verification still needs read:project.

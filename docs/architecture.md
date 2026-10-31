@@ -714,11 +714,13 @@ restricted dispatcher over direct pinned SSH, repository secrets and public GHCR
 It cannot change provider bindings or upload replacement host control code.
 Maintenance and AI workers share the web release image and retain separate health probes.
 
-The legacy `Provision environment` workflow remains for deferred production work:
-it assumes Google OIDC administration, Atlas administrative credentials, a route
-registration interface and private GHCR pulls. It refuses staging and is not the
-current staging setup path. See [deployment guidance](deployment.md) for exact
-interfaces and pending production compatibility.
+Staging and production now share the restricted, public-image v2 release path.
+Initial provider/host setup uses the guided setup helper and reviewed Infrastructure
+installation. The legacy Provision environment and host-directory Actions entrypoints
+return OWNER_ACTION_REQUIRED; they do not upload privileged scripts or expose admin
+credentials. Protected changes use immutable plans and Infrastructure OIDC approval.
+See [deployment guidance](deployment.md#repeatable-release-and-protected-change-path)
+for exact interfaces, rollout ordering and production acceptance.
 
 Staging shares Firebase identities with explicit web registrations and app-specific
 MongoDB data/roles; production requires a separate Firebase project per app. Atlas

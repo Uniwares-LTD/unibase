@@ -7,8 +7,9 @@
 ## Branches
 
 - Integration branch: main
-- Deployment branches: _staging (from main)
+- Deployment branches: _staging (from main), _prod (from main)
 
-Confirmed by the user on 2026-10-28. The planned `_prod` promotion source remains
-undecided until the production transition in [deployment guidance](../docs/deployment.md).
+Staging confirmed on 2026-10-28; production promotion from main confirmed in the
+accepted deployment reliability plan. Production activation remains separate; see
+[deployment guidance](../docs/deployment.md).
 Preserve existing work branches during reconciliation; see the [adapter](repository-adapter.md).

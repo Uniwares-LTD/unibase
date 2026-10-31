@@ -4,19 +4,19 @@ on:
     inputs:
       environment:
         type: choice
-        options: [production]
+        options: [staging, prod, production]
         required: true
       apply:
-        description: Explicitly create Unibase host directories (otherwise preview)
+        description: Legacy input retained for an explicit migration error
         type: boolean
         default: false
-permissions:
-  contents: read
+permissions: {}
 jobs:
-  setup:
-    uses: ./.github/workflows/vps-operation.yml
-    with:
-      action: setup
-      environment: ${{ inputs.environment }}
-      apply: ${{ inputs.apply }}
-    secrets: inherit
+  owner-action:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Route initial installation to its owner
+        run: |
+          echo '::error::OWNER_ACTION_REQUIRED: use the guided staging-setup.py helper for the selected environment, then the reviewed Infrastructure bootstrap/controller installation. This workflow no longer uploads privileged scripts or provisions through the routine deployment key.'
+          echo 'https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md#approved-plan-operations'
+          exit 2

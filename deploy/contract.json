@@ -1,0 +1,288 @@
+{
+  "version": 1,
+  "requiredCapabilities": [
+    "operation-lock-v1"
+  ],
+  "settings": {
+    "android.host": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "android.packageName": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "atlas.clusterName": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "atlas.mongoUser": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "atlas.projectId": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "atlas.vpsEgressCidr": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "deployment.adminImage": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "deployment.imageRepository": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "deployment.ingressSubnet": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "deployment.nginxImage": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "deployment.port": {
+      "owner": "host",
+      "type": "integer"
+    },
+    "deployment.redisImage": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "environment": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "ghcr.pullUser": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "google.oauthClientId": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "google.parent": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "google.projectId": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "google.provisionerServiceAccount": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "google.workloadIdentityProvider": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.ANDROID_PACKAGE_NAME": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.ANDROID_SHA256_FINGERPRINTS": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.APP_ENV": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.APP_NAME": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.APP_ORIGIN": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.APP_STYLE": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.ASSET_S3_BUCKET": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.ASSET_S3_ENDPOINT": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.ASSET_S3_FORCE_PATH_STYLE": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.ASSET_S3_PREFIX": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.ASSET_S3_REGION": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.ASSET_STORE": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.AUTH_MODE": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.CREDIT_PACKS_JSON": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.DIAGNOSTICS_ENABLED": {
+      "owner": "image",
+      "type": "string-or-null"
+    },
+    "runtime.DIFY_BASE_URL": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.DIFY_CONSOLE_URL": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.DIFY_MODE": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.DIFY_ORCHESTRATORS_JSON": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.DIFY_WORKSPACE_ID": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.FIREBASE_API_KEY": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.FIREBASE_APP_ID": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.FIREBASE_AUTH_EMULATOR_HOST": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.FIREBASE_PROJECT_ID": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.MCP_ALLOWED_HOSTS_JSON": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.MCP_CLIENTS_JSON": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.MCP_ENABLED": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.MONGODB_DATABASE": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.MONGODB_URI": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.PAYMENTS_MODE": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.PERSONA_COMPLETION_BASE_URL": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.PERSONA_COMPLETION_MODE": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.RATE_LIMITS_JSON": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "runtime.RUN_MCP_CLIENT_ID": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "shared.cloudflareAccountId": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "shared.cloudflareZoneId": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "shared.ownerRef": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "shared.ownerRepository": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "shared.routeMode": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "shared.routeWorkflow": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "shared.tunnelId": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "ssh.cloudflaredSha256": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "ssh.cloudflaredVersion": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "ssh.host": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "ssh.transport": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "ssh.user": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
+    "version": {
+      "owner": "host",
+      "type": "integer"
+    }
+  },
+  "credentialReferences": [
+    "ASSET_S3_ACCESS_KEY_ID",
+    "ASSET_S3_SECRET_ACCESS_KEY",
+    "DIFY_CREDENTIAL_ENCRYPTION_KEY",
+    "DIFY_MANAGEMENT_KEY",
+    "FIREBASE_SERVICE_ACCOUNT_JSON",
+    "MONGODB_URI",
+    "PERSONA_COMPLETION_API_KEY",
+    "REDIS_URL",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET"
+  ],
+  "credentialReferencePrefixes": [
+    "DIFY_KEY_",
+    "MCP_TOKEN_"
+  ]
+}

@@ -133,3 +133,5 @@ translated recovery copy without translating user/model content. Browser verific
 uses named sessions, a workspace-local npm cache and ignored output/playwright captures;
 use npx.cmd on Windows, or the task's committed snapshot wrapper from the consumer cwd.
 No global CLI installation or execution-policy change is required.
+
+Deployment changes must classify image, host configuration, controller, provider or data impact. Report operator ordering, verification and failure/resume; unsupported requirements require a named owner action. Preserve session authority and separate publication from installation/live acceptance.
