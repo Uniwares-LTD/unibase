@@ -1,0 +1,57 @@
+{
+  "name": "Task",
+  "description": "A bounded piece of work: documentation, research, operations or maintenance.",
+  "type": "Task",
+  "body": [
+    {
+      "type": "markdown",
+      "attributes": {
+        "value": "Fill in what you know; skip, rename or delete any section. Triage completes the rest."
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "outcome",
+      "attributes": {
+        "label": "Outcome",
+        "placeholder": "What should be true when this is done, and why does it matter?"
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "scope",
+      "attributes": {
+        "label": "Scope",
+        "placeholder": "In scope: ...\nOut of scope: ..."
+      },
+      "validations": {
+        "required": false
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "acceptance",
+      "attributes": {
+        "label": "Done when",
+        "placeholder": "Observable result that shows this is finished."
+      },
+      "validations": {
+        "required": false
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "context",
+      "attributes": {
+        "label": "Context / links",
+        "placeholder": "Related issues, docs, constraints."
+      },
+      "validations": {
+        "required": false
+      }
+    }
+  ]
+}

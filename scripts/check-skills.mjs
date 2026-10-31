@@ -7,6 +7,7 @@ const sharedSkills = [
   "capture-project-learnings",
   "compile-feature-spec",
   "manage-issues",
+  "maintain-docs",
   "maintain-project",
   "review-change",
   "sync-docs-issues",
@@ -20,6 +21,7 @@ const sourceRef = "4e1478355843e42e1b27fdc8e33212476a4d4fa3";
 const names = [
   "capture-project-learnings",
   "compile-feature-spec",
+  "maintain-docs",
   "maintain-project",
   "manage-issues",
   "next-best-practices",

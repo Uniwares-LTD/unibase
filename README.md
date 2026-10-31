@@ -35,7 +35,7 @@ At task start the agent runs `npm run handbook:check`: it checks for updates onl
 four hours, reuses cached guidance when offline, and preserves local handbook edits.
 There is no scheduler. Use `npm run handbook:doctor` for diagnosis and
 `npm run handbook:check -- --force` for an immediate refresh.
-Shared procedures resolve through eleven local .agents entrypoints; Claude references
+Shared procedures resolve through twelve local .agents entrypoints; Claude references
 them through .claude/skills and CLAUDE.md. Project facts remain in the
 [adapter](.agents/repository-adapter.md) and [source map](docs/source-map.md), selected
 by handbook.json. Use `npm run handbook:ready` offline for advisory structural warnings.

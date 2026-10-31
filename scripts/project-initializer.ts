@@ -113,6 +113,7 @@ export async function createProject(options: Options) {
         throw new Error("Unsafe source path.");
       if (
         excluded.test(name) ||
+        [".agents/tracking.json", ".agents/repository.md"].includes(name) ||
         /^deploy\/shared-owner\/.*\.patch$/.test(name) ||
         /(^|\/)(?:\.env(?!\.example$)[^/]*|\.npmrc|\.vscode|\.idea|secrets?|credentials?)(?:\/|$)|\.env$|(?:service[-_]?account|credentials?)[^/]*\.json$/i.test(
           name,
@@ -179,6 +180,28 @@ export async function createProject(options: Options) {
   const readJson = async (file: string) =>
     JSON.parse(await readFile(path.join(staging, file), "utf8"));
   const old = await readJson("project.config.json");
+  // Tracking identity and user-confirmed preferences belong to this repository.
+  // Derived repositories select their own during Handbook adoption.
+  if (names.has("handbook.json")) {
+    const handbook = await readJson("handbook.json");
+    if (
+      handbook.tracking === ".agents/tracking.json" ||
+      handbook.preferences === ".agents/repository.md"
+    )
+      await mkdir(path.join(staging, ".agents"), { recursive: true });
+    if (handbook.tracking === ".agents/tracking.json")
+      await json(handbook.tracking, {
+        version: 1,
+        provider: "github",
+        organization: null,
+        repositories: [],
+      });
+    if (handbook.preferences === ".agents/repository.md")
+      await writeFile(
+        path.join(staging, handbook.preferences),
+        "# Repository preferences\n\nNot configured. During Handbook adoption, confirm the issue language, integration\nbranch and deployment promotion sources with this repository's owner.\n",
+      );
+  }
   await json("project.config.json", manifest);
   await writeFile(
     path.join(staging, ".npmrc"),

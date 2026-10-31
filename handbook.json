@@ -3,6 +3,8 @@
   "kind": "consumer",
   "guidance": ".agents/repository-adapter.md",
   "sourceMap": "docs/source-map.md",
+  "preferences": ".agents/repository.md",
+  "tracking": ".agents/tracking.json",
   "technologySkills": [
     "next-best-practices",
     "vercel-react-best-practices",

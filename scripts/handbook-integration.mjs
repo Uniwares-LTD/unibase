@@ -6,8 +6,27 @@ import { fileURLToPath } from 'node:url';
 
 const sha = text => createHash('sha256').update(text.replace(/\r\n/g, '\n')).digest('hex');
 const read = file => readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
-const core = ['capture-project-learnings', 'compile-feature-spec', 'manage-issues', 'maintain-project', 'review-change', 'sync-docs-issues', 'work-on-task'];
+const core = ['capture-project-learnings', 'compile-feature-spec', 'manage-issues', 'maintain-docs', 'maintain-project', 'review-change', 'sync-docs-issues', 'work-on-task'];
 export const mapSections = ['Components', 'Documentation', 'Commands', 'Generated areas', 'Ownership'];
+export const languages = ['English', 'Persian'];
+export const integrationBranches = ['main', 'dev'];
+// Durable branches: one integration branch, plus deployment branches promoted along a chain.
+export function branchWarnings(text) {
+  const integration = text.match(/^- Integration branch: (.+)$/m)?.[1]?.trim();
+  if (!integrationBranches.includes(integration)) return [`Set "- Integration branch:" to ${integrationBranches.join(' or ')}.`];
+  const deployment = text.match(/^- Deployment branches: (.+)$/m)?.[1]?.trim();
+  if (deployment === undefined) return ['Add "- Deployment branches:" listing `_<environment> (from <source>)` entries, or none.'];
+  if (deployment === 'none') return [];
+  const known = [integration], warnings = [];
+  for (const entry of deployment.split(',').map(e => e.trim())) {
+    const match = entry.match(/^(_[a-z0-9-]+) \(from ([\w-]+)\)$/);
+    if (!match) { warnings.push(`Deployment branch "${entry}" must be written as _<environment> (from <source>).`); continue; }
+    if (known.includes(match[1])) warnings.push(`Deployment branch ${match[1]} is listed twice.`);
+    else if (!known.includes(match[2])) warnings.push(`Deployment branch ${match[1]} must come from ${integration} or an earlier listed deployment branch.`);
+    known.push(match[1]);
+  }
+  return warnings;
+}
 function local(root, reference) {
   if (typeof reference !== 'string' || !reference || reference.includes('\\') || reference.includes(':')) throw new Error('Use a repository-relative reference.');
   const [file, anchor] = reference.split('#');
@@ -47,6 +66,30 @@ export function checkReadiness(root) {
   const warnings = [];
   let config;
   try { config = configAt(root); } catch (error) { return { ready: false, warnings: [`handbook.json: ${error.message}`] }; }
+  if (config.kind === 'consumer' && config.tracking === undefined) warnings.push('handbook.json: record a tracking project selection (organization-wide by default); see docs/project.md.');
+  if (config.tracking !== undefined) {
+    try {
+      const tracking = JSON.parse(read(local(root, config.tracking).target));
+      if (!tracking || (tracking.version !== undefined && tracking.version !== 1) ||
+          (tracking.provider !== undefined && tracking.provider !== 'github') ||
+          typeof tracking.organization !== 'string' || !tracking.organization ||
+          !Array.isArray(tracking.repositories) || !tracking.repositories.length ||
+          tracking.repositories.some(r => typeof r !== 'string' || !/^[A-Za-z0-9-]+\/[\w.-]+$/.test(r) || r.split('/')[0].toLowerCase() !== tracking.organization.toLowerCase())) throw new Error('Invalid organization/repository selection.');
+      if (tracking.number !== undefined && (!Number.isSafeInteger(tracking.number) || tracking.number < 1 || tracking.url !== `https://github.com/orgs/${tracking.organization}/projects/${tracking.number}`)) throw new Error('Project number/URL mismatch.');
+      if (tracking.policy) document(root, tracking.policy);
+    } catch (error) { warnings.push(`tracking: ${error.message}`); }
+  }
+  if (config.preferences === undefined) {
+    if (config.kind === 'consumer') warnings.push('handbook.json: record repository preferences, including the issue language (English by default); see docs/project-guidance.md.');
+  } else {
+    let text;
+    try { text = document(root, config.preferences).text; } catch (error) { warnings.push(`preferences: ${error.message}`); }
+    if (text !== undefined) {
+      const value = text.match(/^- Issue language: (.+)$/m)?.[1]?.trim();
+      if (!languages.includes(value)) warnings.push(`preferences: Set "- Issue language:" to one of ${languages.join(', ')}.`);
+      warnings.push(...branchWarnings(text).map(w => `preferences: ${w}`));
+    }
+  }
   for (const key of ['guidance', 'sourceMap']) {
     try {
       const { text, target } = document(root, config[key]);
@@ -87,23 +130,31 @@ function metadata(text, name) {
     return raw.startsWith('"') ? JSON.parse(raw) : raw.replace(/^'|'$/g, '');
   };
   if (scalar('name') !== name) throw new Error('Skill identity does not match directory.');
-  return { name, description: scalar('description'), userInvocable: front.match(/^user-invocable: (true|false)$/m)?.[1] };
+  const hint = front.match(/^argument-hint: (.+)$/m)?.[1];
+  return { name, description: scalar('description'), userInvocable: front.match(/^user-invocable: (true|false)$/m)?.[1], argumentHint: hint && (hint.startsWith('"') ? JSON.parse(hint) : hint) };
 }
 function entry(meta, body) {
-  const text = `---\nname: ${meta.name}\ndescription: ${JSON.stringify(meta.description)}\n${meta.userInvocable ? `user-invocable: ${meta.userInvocable}\n` : ''}---\n\n${body}\n`;
+  const text = `---\nname: ${meta.name}\ndescription: ${JSON.stringify(meta.description)}\n${meta.argumentHint ? `argument-hint: ${JSON.stringify(meta.argumentHint)}\n` : ''}${meta.userInvocable ? `user-invocable: ${meta.userInvocable}\n` : ''}---\n\n${body}\n`;
   return text + `<!-- handbook-managed:${sha(text)} -->\n`;
 }
 function sharedEntry(meta) {
-  return entry(meta, `Use the task's existing Handbook path and full revision. Only if no baseline is\nrecorded, run \`npm run handbook:check\` (or \`node scripts/handbook.mjs check\`).\nRead \`docs/bootstrap.md\`, \`docs/work-policy.md\` and\n\`.agents/skills/${meta.name}/SKILL.md\` with \`git -C PATH show REVISION:FILE\`.\nRead this project's guidance and source map declared in \`handbook.json\`.\nResolve all shared references at that same revision; use \`resources --revision SHA\`\nthrough the launcher for filesystem assets. Never substitute the mutable checkout.\nRetain path/revision in handoffs and resume summaries. If lost, recover from context\nfirst; otherwise establish a new baseline and report the discontinuity.\nIf unavailable, continue under local guidance and pause only dependent decisions.`);
+  return entry(meta, `Use the task's existing Handbook path and full revision. Only if no baseline is\nrecorded, run \`npm run handbook:check\` (or \`node scripts/handbook.mjs check\`).\nRead \`docs/bootstrap.md\`, \`docs/work-policy.md\` and\n\`.agents/skills/${meta.name}/SKILL.md\` with \`git -C PATH show REVISION:FILE\`.\nRead this project's guidance, source map and preferences declared in \`handbook.json\`.\nResolve all shared references at that same revision; use \`resources --revision SHA\`\nthrough the launcher for filesystem assets. Never substitute the mutable checkout.\nRetain path/revision in handoffs and resume summaries. If lost, recover from context\nfirst; otherwise establish a new baseline and report the discontinuity.\nIf unavailable, continue under local guidance and pause only dependent decisions.`);
 }
 function claudeEntry(meta) {
   return entry(meta, `Read and follow the canonical local entrypoint\n[${meta.name}](../../../.agents/skills/${meta.name}/SKILL.md).\nResolve its relative references from that canonical file, not this wrapper.\nFor shared guidance, retain the task's Handbook revision through continuation.\nThis reference grants no hooks, tools, permissions, or delegation authority.`);
+}
+function agentEntry(meta) {
+  const text = `---\nname: ${meta.name}\ndescription: ${JSON.stringify(meta.description)}\ntools: Read, Grep, Glob, Bash\n---\n\nFollow the canonical role [${meta.name}](../../.agents/agents/${meta.name}.md).\nStay read-only: run only inspection commands; never edit files, commit, push, comment or\nchange issues or project metadata. This reference grants no permissions or authority.\n`;
+  return text + `<!-- handbook-managed:${sha(text)} -->\n`;
 }
 export function syncEntrypoints(root, { write = false, source } = {}) {
   root = path.resolve(root);
   const warnings = [], changed = [];
   let config;
   try { config = configAt(root); } catch (error) { return { warnings: [error.message], changed }; }
+  // An empty skill tree means a wrong --root or --source; never sync or report orphans from it.
+  const hasSkills = base => existsSync(path.join(base, '.agents/skills')) && readdirSync(path.join(base, '.agents/skills'), { withFileTypes: true }).some(item => item.isDirectory());
+  if (config.kind === 'consumer' && source ? !hasSkills(source) : !hasSkills(root)) throw new Error('No skills found under .agents/skills; check --root and --source before syncing.');
   const put = (relative, wanted) => {
     const { target } = local(root, relative);
     const old = existsSync(target) ? read(target) : '';
@@ -140,6 +191,16 @@ export function syncEntrypoints(root, { write = false, source } = {}) {
     } catch (error) { warnings.push(`${item.name}: ${error.message}`); continue; }
     put(`.claude/skills/${item.name}/SKILL.md`, claudeEntry(meta));
   }
+  // Roles with frontmatter become optional read-only Claude subagents; others stay links.
+  const roles = local(root, '.agents/agents').target;
+  if (existsSync(roles)) for (const item of readdirSync(roles, { withFileTypes: true })) {
+    if (!item.isFile() || !item.name.endsWith('.md')) continue;
+    const text = read(path.join(roles, item.name));
+    if (!text.startsWith('---\n')) continue;
+    let meta;
+    try { meta = metadata(text, item.name.slice(0, -3)); } catch (error) { warnings.push(`${item.name}: ${error.message}`); continue; }
+    put(`.claude/agents/${meta.name}.md`, agentEntry(meta));
+  }
   const claudeDir = local(root, '.claude/skills').target;
   if (existsSync(claudeDir)) for (const item of readdirSync(claudeDir, { withFileTypes: true })) {
     if (item.isDirectory() && !existsSync(local(root, `.agents/skills/${item.name}/SKILL.md`).target)) warnings.push(`Orphan Claude entrypoint: ${item.name}; review removal manually.`);
@@ -150,20 +211,126 @@ export function syncEntrypoints(root, { write = false, source } = {}) {
     warnings.push('CLAUDE.md must import @AGENTS.md.');
     if (write) { writeFileSync(claude, '@AGENTS.md\n\n' + old); changed.push('CLAUDE.md'); }
   }
+  syncGates(root, { write, source: config.kind === 'consumer' ? source : undefined, warnings, changed });
   return { warnings, changed };
+}
+
+export const gatesFile = '.agents/gated-commands.json';
+const commandList = list => Array.isArray(list) && !list.some(c => !Array.isArray(c) || !c.length || c.some(p => typeof p !== 'string' || !/^[\w.:/=-]+$/.test(p)));
+function readGates(file) {
+  const gates = JSON.parse(read(file));
+  if (!commandList(gates.ask) || (gates.retired !== undefined && !commandList(gates.retired)) ||
+      !Array.isArray(gates.denyRead) || gates.denyRead.some(p => typeof p !== 'string' || !p || /[()]/.test(p))) throw new Error(`${gatesFile}: expected ask and optional retired (command word lists) and denyRead (path patterns).`);
+  return gates;
+}
+// Each gated command becomes ask rules for both shell tools, with and without arguments,
+// so the bare command (for example `git push`) is gated too; each path a Read deny rule.
+export function permissionEntries(gates) {
+  return { ask: gates.ask.flatMap(c => ['Bash', 'PowerShell'].flatMap(tool => [`${tool}(${c.join(' ')})`, `${tool}(${c.join(' ')} *)`])), deny: gates.denyRead.map(p => `Read(${p})`) };
+}
+const union = (current, extra, key = v => v) => [...current, ...extra.filter(v => !current.some(c => key(c) === key(v)))];
+function syncGates(root, { write, source, warnings, changed }) {
+  const localGates = local(root, gatesFile).target;
+  // Consumer upgrades merge the shared list add-only, keeping project-specific entries;
+  // only commands the shared list explicitly retires are removed.
+  if (source && existsSync(path.join(source, gatesFile))) {
+    const shared = readGates(path.join(source, gatesFile));
+    const current = existsSync(localGates) ? readGates(localGates) : { ask: [], denyRead: [] };
+    const retired = new Set((shared.retired ?? []).map(c => c.join(' ')));
+    const kept = current.ask.filter(c => !retired.has(c.join(' ')));
+    const merged = { ...current, description: shared.description, ask: union(kept, shared.ask, c => c.join(' ')), denyRead: union(current.denyRead, shared.denyRead) };
+    if (shared.retired) merged.retired = union(current.retired ?? [], shared.retired, c => c.join(' '));
+    if (JSON.stringify(merged) !== JSON.stringify(current)) {
+      warnings.push(`Gate list drift: ${gatesFile}`);
+      if (write) { mkdirSync(path.dirname(localGates), { recursive: true }); writeFileSync(localGates, JSON.stringify(merged, null, 2) + '\n'); changed.push(gatesFile); }
+    }
+  }
+  if (!existsSync(localGates)) return;
+  const gates = readGates(localGates), wanted = permissionEntries(gates);
+  // Remove only the exact rules generated for retired commands that are not still gated.
+  const stale = new Set(permissionEntries({ ask: gates.retired ?? [], denyRead: [] }).ask.filter(e => !wanted.ask.includes(e)));
+  const settingsFile = local(root, '.claude/settings.json').target;
+  const settings = existsSync(settingsFile) ? JSON.parse(read(settingsFile)) : {};
+  const permissions = settings.permissions ?? {};
+  if ((permissions.ask !== undefined && !Array.isArray(permissions.ask)) || (permissions.deny !== undefined && !Array.isArray(permissions.deny))) {
+    warnings.push('.claude/settings.json: permissions.ask and permissions.deny must be lists; reconcile manually.');
+    return;
+  }
+  const current = (permissions.ask ?? []).filter(e => !stale.has(e));
+  const removed = (permissions.ask?.length ?? 0) - current.length;
+  const ask = union(current, wanted.ask), deny = union(permissions.deny ?? [], wanted.deny);
+  const missing = ask.length - current.length + deny.length - (permissions.deny?.length ?? 0);
+  if (!missing && !removed) return;
+  if (missing) warnings.push(`.claude/settings.json: ${missing} gated permission entries missing.`);
+  if (removed) warnings.push(`.claude/settings.json: ${removed} retired gated permission entries present.`);
+  if (write) {
+    mkdirSync(path.dirname(settingsFile), { recursive: true });
+    writeFileSync(settingsFile, JSON.stringify({ ...settings, permissions: { ...permissions, ask, deny } }, null, 2) + '\n');
+    changed.push('.claude/settings.json');
+  }
+}
+
+export const templatesDir = '.agents/templates';
+// Starter templates are copied once and then owned by the consumer: --write adds only
+// missing files, and --update replaces only the named differing files.
+export function syncTemplates(root, { source = root, write = false, update = [] } = {}) {
+  root = path.resolve(root);
+  const base = path.join(path.resolve(source), templatesDir);
+  if (!existsSync(base)) throw new Error(`No ${templatesDir} under the source; check --source.`);
+  const warnings = [];
+  let config = {};
+  try { config = configAt(root); } catch (error) { warnings.push(`handbook.json unreadable, adoption documents skipped: ${error.message}`); }
+  const adoption = { 'source-map.md': config.sourceMap, 'repository-adapter.md': config.guidance, 'repository.md': config.preferences };
+  const destination = file => {
+    if (file.startsWith('github/')) return [`.github/${file.slice('github/'.length)}`];
+    const name = file.slice('docs/'.length);
+    if (!(name in adoption)) return [`docs/templates/${name}`];
+    const reference = adoption[name];
+    if (typeof reference !== 'string' || !reference) return [undefined, 'path not set in handbook.json'];
+    if (reference.includes('#')) return [undefined, `${reference} is a section of a larger document`];
+    // Agent entrypoints are project instructions, never template targets.
+    if (/^(AGENTS|CLAUDE)\.md$/i.test(reference)) return [undefined, `${reference} is an agent entrypoint`];
+    return [reference];
+  };
+  const wantedUpdates = new Set(update.map(name => name.replace(/\\/g, '/').replace(/^\.\//, '')));
+  const walk = dir => readdirSync(path.join(base, dir), { withFileTypes: true }).flatMap(item => item.isDirectory() ? walk(`${dir}${item.name}/`) : [`${dir}${item.name}`]);
+  const templates = [], changed = [], skipped = [];
+  for (const file of walk('').sort()) {
+    const template = `${templatesDir}/${file}`;
+    const [relative, reason] = destination(file);
+    if (!relative) { skipped.push({ template, reason }); continue; }
+    let target;
+    try { ({ target } = local(root, relative)); } catch (error) { skipped.push({ template, reason: `${relative}: ${error.message}` }); continue; }
+    const wanted = read(path.join(base, file));
+    const status = !existsSync(target) ? 'missing' : read(target) === wanted ? 'same' : 'differs';
+    templates.push({ template, path: relative, status });
+    const named = wantedUpdates.delete(relative);
+    if ((write && status === 'missing') || (named && status === 'differs')) {
+      mkdirSync(path.dirname(target), { recursive: true });
+      writeFileSync(target, wanted);
+      changed.push(relative);
+    } else if (named) warnings.push(`--update ${relative}: status is ${status}; nothing replaced.`);
+  }
+  for (const name of wantedUpdates) warnings.push(`--update ${name}: no template targets this path.`);
+  return { templates, changed, skipped, warnings };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const [command, ...args] = process.argv.slice(2);
-    let root = process.cwd(), source;
+    let root = process.cwd(), source, write = false;
+    const update = [];
     for (let i = 0; i < args.length; i++) {
       if (args[i] === '--root' && args[i + 1]) root = args[++i];
       else if (args[i] === '--source' && args[i + 1]) source = args[++i];
-      else throw new Error('Use --root PATH and optional --source SNAPSHOT.');
+      else if (command === 'templates' && args[i] === '--write') write = true;
+      else if (command === 'templates' && args[i] === '--update' && args[i + 1]) update.push(args[++i]);
+      else throw new Error('Use --root PATH and optional --source SNAPSHOT; templates also takes --write and --update PATH.');
     }
-    if (!['check', 'sync', 'check-entrypoints'].includes(command)) throw new Error('Use check, sync or check-entrypoints.');
-    const result = command === 'check' ? checkReadiness(root) : syncEntrypoints(root, { source, write: command === 'sync' });
+    if (!['check', 'sync', 'check-entrypoints', 'templates'].includes(command)) throw new Error('Use check, sync, check-entrypoints or templates.');
+    const result = command === 'check' ? checkReadiness(root)
+      : command === 'templates' ? syncTemplates(root, { source, write, update })
+      : syncEntrypoints(root, { source, write: command === 'sync' });
     console.log(JSON.stringify(result, null, 2));
     // Structural readiness and drift are advisory. Runtime/usage failures still fail.
   } catch (error) { console.error(error.message); process.exitCode = 1; }

@@ -32,10 +32,12 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
       "throw new Error('initializer must not run handbook setup');",
     ".agents/skills/manage-issues/SKILL.md": "shared entrypoint fixture",
     "scripts/handbook-integration.mjs": "// offline integration tooling",
-    "handbook.json": '{"version":1,"kind":"consumer"}',
+    "handbook.json":
+      '{"version":1,"kind":"consumer","tracking":".agents/tracking.json","preferences":".agents/repository.md"}',
+    ".agents/tracking.json": '{"organization":"source-org","number":2}',
+    ".agents/repository.md": "Source-owned branch and language preferences",
     "CLAUDE.md": "@AGENTS.md\n",
     ".claude/skills/manage-issues/SKILL.md": "thin Claude reference",
-    "docs/source-map.md": "project-owned navigation",
     ".cache/handbook/baseline.json": "PRIVATE_HANDBOOK_CACHE",
     ".github/workflows/deploy.yml":
       "name: Release Unibase\non: workflow_dispatch\n",
@@ -47,6 +49,14 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     "android/project/app/build.gradle": "old identity",
     "output/browser.json": "PRIVATE_SENTINEL",
   };
+  // Use the actual reusable guidance so its links and ownership claims are covered.
+  const guidanceFiles = [
+    "AGENTS.md",
+    ".agents/repository-adapter.md",
+    "docs/source-map.md",
+    "docs/agent-tooling.md",
+  ];
+  for (const name of guidanceFiles) files[name] = await readFile(name, "utf8");
   for (const environment of ["local", "staging", "production"]) {
     const config = JSON.parse(
       await readFile(`deploy/environments/${environment}.json`, "utf8"),
@@ -113,7 +123,6 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
   );
   for (const name of [
     "scripts/handbook-integration.mjs",
-    "handbook.json",
     "CLAUDE.md",
     ".claude/skills/manage-issues/SKILL.md",
     "docs/source-map.md",
@@ -122,6 +131,44 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
       await readFile(path.join(destination, name), "utf8"),
       files[name],
     );
+  assert.deepEqual(
+    JSON.parse(
+      await readFile(path.join(destination, ".agents/tracking.json"), "utf8"),
+    ),
+    { version: 1, provider: "github", organization: null, repositories: [] },
+  );
+  const preferences = await readFile(
+    path.join(destination, ".agents/repository.md"),
+    "utf8",
+  );
+  assert.match(preferences, /Not configured/);
+  assert.doesNotMatch(
+    preferences,
+    /Source-owned|Issue language:|Integration branch:/,
+  );
+  assert.deepEqual(
+    JSON.parse(await readFile(path.join(destination, "handbook.json"), "utf8")),
+    JSON.parse(files["handbook.json"]),
+  );
+  for (const name of guidanceFiles) {
+    const content = await readFile(path.join(destination, name), "utf8");
+    // Historical verification is evidence, not a current tracking declaration.
+    const current = content.split("## Integration reconciliation")[0];
+    assert.doesNotMatch(current, /retains Uniwares project #2/);
+    const links = [
+      ...content.matchAll(/\]\(([^)]*(?:repository\.md|tracking\.json))\)/g),
+    ];
+    assert(
+      links.length > 0,
+      `${name} must exercise the inherited configuration links`,
+    );
+    for (const match of links) {
+      await readFile(
+        path.resolve(destination, path.dirname(name), match[1]),
+        "utf8",
+      );
+    }
+  }
   await assert.rejects(
     readFile(path.join(destination, ".cache/handbook/baseline.json")),
     { code: "ENOENT" },

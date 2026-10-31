@@ -21,6 +21,8 @@ their authority without retroactive issues; new substantial work uses handbook i
 policy. Application architecture, deployment permissions and local skill adaptations remain
 owned here. The 2026-10-27 reconciliation uses eleven shared entrypoints, adds a local
 source map and explicit Codex/Claude synchronization after Handbook PR #3 merged. See [agent tooling](agent-tooling.md) for setup, validation and client limits.
+The 2026-10-28 reconciliation adds the twelfth entrypoint (maintain-docs), consumer-owned
+tracking and confirmed repository preferences, client safeguards and permissive templates.
 No backlog migration or deployment is part of this change.
 
 ## Proposed extension: staging diagnostics API — 2026-10-28
