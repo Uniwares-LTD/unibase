@@ -123,7 +123,7 @@ export async function runHandbook(command, { root, directory, force = false, rev
           !Array.isArray(config.technologySkills) || config.technologySkills.some(name => typeof name !== 'string' || !/^[a-z0-9-]+$/.test(name))) {
         throw new Error('Expected version 1, kind source|consumer and a technologySkills array of skill names.');
       }
-      names = [...sharedSkills, 'maintain-project', ...config.technologySkills];
+      names = [...sharedSkills, 'maintain-project', 'maintain-docs', ...config.technologySkills];
     } catch (error) { warnings.push(`Invalid handbook.json: ${error.message} Run handbook:ready and repair local metadata.`); }
   }
   for (const name of new Set(names)) {

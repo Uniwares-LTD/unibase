@@ -1,6 +1,6 @@
 ---
 name: capture-project-learnings
-description: "Capture verified reusable knowledge in canonical docs or skill proposals without creating redundant work logs."
+description: "Records verified, reusable knowledge in canonical docs or proposes a skill change, without creating work logs. Use when a task revealed a reusable lesson, a guidance gap, or a conflict between guidance and practice."
 ---
 
 Read and follow the canonical local entrypoint
@@ -8,4 +8,4 @@ Read and follow the canonical local entrypoint
 Resolve its relative references from that canonical file, not this wrapper.
 For shared guidance, retain the task's Handbook revision through continuation.
 This reference grants no hooks, tools, permissions, or delegation authority.
-<!-- handbook-managed:b1ea8f722ce7ac46c732d7c9b624b5fe9b397de2c45259f2491e1ef6d9963783 -->
+<!-- handbook-managed:a858ef98bb352767217b0a86d9de5b04907e988b878a90f4cd19eb29f1ef5574 -->

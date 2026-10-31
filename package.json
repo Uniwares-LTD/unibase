@@ -53,7 +53,9 @@
     "test:handbook": "node --test tests/handbook.test.mjs tests/handbook-integration.test.mjs",
     "handbook:ready": "node scripts/handbook-integration.mjs check",
     "handbook:sync": "node scripts/handbook-integration.mjs sync",
-    "handbook:entrypoints": "node scripts/handbook-integration.mjs check-entrypoints"
+    "handbook:entrypoints": "node scripts/handbook-integration.mjs check-entrypoints",
+    "handbook:templates": "node scripts/handbook-integration.mjs templates",
+    "deploy:ops": "python scripts/deploy/operations.py"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1147.0",

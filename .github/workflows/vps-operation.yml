@@ -35,7 +35,7 @@ jobs:
       - name: Guard target and action
         run: |
           bash scripts/deploy/guard.sh "$TARGET"
-          case "$ACTION" in setup|check|rollback) ;; *) exit 1 ;; esac
+          case "$ACTION" in check|rollback) ;; *) exit 1 ;; esac
           bash scripts/deploy/vps.sh "$ACTION" "$TARGET"
       - name: Configure pinned Access SSH
         if: inputs.apply
@@ -53,6 +53,6 @@ jobs:
         run: |
           source scripts/deploy/identity.sh
           rm -rf "$RUNNER_TEMP/${project_slug}-access"
-          case "$ACTION" in setup|check|rollback) action=$ACTION ;; *) action=unknown ;; esac
-          case "$TARGET" in staging|production) target=$TARGET ;; *) target=unknown ;; esac
+          case "$ACTION" in check|rollback) action=$ACTION ;; *) action=unknown ;; esac
+          case "$TARGET" in staging|prod|production) target=$TARGET ;; *) target=unknown ;; esac
           printf 'Operation result=%s action=%s environment=%s workflow-commit=%s apply=%s\n' "$OPERATION_STATUS" "$action" "$target" "$GITHUB_SHA" "$APPLY" >> "$GITHUB_STEP_SUMMARY"

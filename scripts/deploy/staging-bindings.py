@@ -64,6 +64,13 @@ class Providers:
 
 
 def discover(api, config, project, recorded_app_id=None):
+    environment=config["environment"]
+    if environment == 'production':
+        import hashlib
+        identity = api.request('google', 'GET', 'https://cloudresourcemanager.googleapis.com/v3/projects/' + config['google']['projectId'])
+        labels = identity.get('labels', {})
+        if identity.get('state') != 'ACTIVE' or labels.get('unibase-owner') != hashlib.sha256(project.encode()).hexdigest()[:24] or labels.get('unibase-environment') != environment or identity.get('parent') != config['google']['parent']:
+            raise ValueError('Production Google project ownership conflict; owner must reconcile before setup')
     google = 'https://firebase.googleapis.com/v1beta1/projects/' + config['google']['projectId']
     atlas = 'https://cloud.mongodb.com/api/atlas/v2/groups/' + config['atlas']['projectId'] + '/'
     apps, page = [], ''
@@ -75,7 +82,7 @@ def discover(api, config, project, recorded_app_id=None):
             break
         if len(apps) > 1000:
             raise ValueError('Too many Firebase registrations')
-    matches = [app for app in apps if (app.get('appId') == recorded_app_id if recorded_app_id else app.get('displayName') == project + '-staging')]
+    matches = [app for app in apps if (app.get('appId') == recorded_app_id if recorded_app_id else app.get('displayName') == project + '-' + environment)]
     if recorded_app_id and not matches:
         raise ValueError('Recorded Firebase app is not in the selected project')
     if len(matches) > 1:
@@ -101,11 +108,12 @@ def discover(api, config, project, recorded_app_id=None):
 
 def reconcile(api, config, project, observed, directory, save_new, journal):
     """journal(name, operation) persists intent before calling a mutating API."""
+    environment=config["environment"]
     google_project = config['google']['projectId']
     google = 'https://firebase.googleapis.com/v1beta1/projects/' + google_project
     app_id = observed['firebaseAppId']
     if not app_id:
-        operation = journal('firebase-web-create', lambda: api.request('google', 'POST', google + '/webApps', {'displayName': project + '-staging'}))
+        operation = journal('firebase-web-create', lambda: api.request('google', 'POST', google + '/webApps', {'displayName': project + '-' + environment}))
         for _ in range(60):
             if operation.get('done'):
                 break
@@ -118,7 +126,7 @@ def reconcile(api, config, project, observed, directory, save_new, journal):
     if web.get('projectId') != google_project or web.get('appId') != app_id:
         raise ValueError('Firebase configuration identity differs')
     web['authDomain'] = urlsplit(config['runtime']['APP_ORIGIN']).hostname
-    filename = 'firebase-staging-web.json' if project == 'unibase' else project + '-staging-web.json'
+    filename = 'firebase-staging-web.json' if project == 'unibase' and environment == 'staging' else project + '-'+environment+'-web.json'
     saved_web = json.loads(save_new(directory / filename, json.dumps(web, indent=2)))
     if any(saved_web.get(key) != web.get(key) for key in ('projectId', 'appId', 'apiKey', 'authDomain')):
         raise ValueError('Saved Firebase binding differs; preserve and review it')
@@ -133,7 +141,7 @@ def reconcile(api, config, project, observed, directory, save_new, journal):
     # Never auto-widen Atlas network access. Owner confirms exact host allocation first.
     if not observed['atlasHostAllowed']:
         raise ValueError('Atlas host access requires a reviewed owner action')
-    db_file = directory / (project + '-staging-database.json')
+    db_file = directory / (project + '-'+environment+'-database.json')
     if observed['atlasUserPresent'] and not db_file.exists():
         raise ValueError('Existing database user password unavailable; recovery required')
     private = json.loads(save_new(db_file, json.dumps({'database': config['runtime']['MONGODB_DATABASE'],
@@ -149,10 +157,10 @@ def reconcile(api, config, project, observed, directory, save_new, journal):
     verified = api.request('atlas', 'GET', atlas + 'databaseUsers/admin/' + quote(private['username']))
     if verified.get('roles') != [{'roleName': 'readWrite', 'databaseName': private['database']}] or verified.get('scopes') != [{'name': config['atlas']['clusterName'], 'type': 'CLUSTER'}]:
         raise ValueError('Atlas runtime-user readback differs')
-    account = json.loads((directory / 'firebase-staging-service-account.json').read_text(encoding='utf-8-sig'))
+    account = json.loads((directory / f'firebase-{environment}-service-account.json').read_text(encoding='utf-8-sig'))
     host_input = {'firebase': account, 'firebaseApiKey': web['apiKey'], 'firebaseAppId': app_id,
                   'mongodbUri': 'mongodb+srv://' + quote(private['username'], safe='') + ':' + quote(private['password'], safe='') + '@' + observed['atlasHostname'] + '/?retryWrites=true&w=majority'}
-    saved = json.loads(save_new(directory / (project + '-staging-host-input.json'), json.dumps(host_input, indent=2)))
+    saved = json.loads(save_new(directory / (project + '-'+environment+'-host-input.json'), json.dumps(host_input, indent=2)))
     if saved != host_input:
         raise ValueError('Existing host input differs; operator review required')
     return app_id

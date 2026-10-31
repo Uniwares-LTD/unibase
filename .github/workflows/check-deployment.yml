@@ -4,7 +4,7 @@ on:
     inputs:
       environment:
         type: choice
-        options: [staging, production]
+        options: [staging, prod, production]
         required: true
 permissions:
   contents: read

@@ -6,13 +6,16 @@ Read [the current implementation plan](docs/implementation-plan.md) and the rele
 
 ## Shared handbook
 
-At task start run `npm run handbook:check` (or `node scripts/handbook.mjs check`).
+Follow [GitHub access](.agents/repository-adapter.md#github-access).
+At task start run `npm run handbook:check` (or `node scripts/handbook.mjs check`)
+outside the sandbox, as required for all Git/MCP/gh calls and helpers that invoke them.
+
 The helper lazily checks main every four hours; no scheduler or version pin is needed.
 Read `docs/bootstrap.md`, `docs/work-policy.md`, `docs/project.md` and relevant shared skills from its
 returned path/revision with `git show`, plus this repository's adapter. Keep that
 baseline for the task. Cached/offline guidance is usable; report limitations only
 when relevant. If unavailable, use local instructions and pause only handbook-dependent
-decisions. Read the project-owned [source map](docs/source-map.md) and `handbook.json`
+decisions. Read the project-owned [source map](docs/source-map.md), [repository preferences](.agents/repository.md), and `handbook.json`
 for selected technology skills. Carry the task path/revision through subsequent skills,
 resource reads and handoff/resume summaries. Recover a lost baseline from context first;
 if unavailable, establish a new one explicitly and report the discontinuity.
@@ -89,7 +92,7 @@ Publication, merges, deployments, releases and permissions retain separate autho
 
 ## Available project skills
 
-Eleven local entrypoints follow Handbook main: seven workflow skills and four selected
+Twelve local entrypoints follow Handbook main: eight workflow skills and four selected
 technology/UI skills. Local integrity is recorded in skills-lock.json; historical import
 provenance is retained in provenance/handbook-migration.json:
 
@@ -100,6 +103,7 @@ provenance is retained in provenance/handbook-migration.json:
 - sync-docs-issues and capture-project-learnings: keep verified documentation current.
 - manage-issues: maintain assigned issue/project evidence within the shared authority policy.
 - maintain-project: reconcile local guidance, source maps and explicit integration updates.
+- maintain-docs: manage documentation and permissive starter templates in `.github` and `docs/templates`.
 
 Read only the skills relevant to the work. System-provided skills remain system-owned. See docs/agent-tooling.md for import provenance, local adaptations, and integrity checks.
 

@@ -35,7 +35,7 @@ At task start the agent runs `npm run handbook:check`: it checks for updates onl
 four hours, reuses cached guidance when offline, and preserves local handbook edits.
 There is no scheduler. Use `npm run handbook:doctor` for diagnosis and
 `npm run handbook:check -- --force` for an immediate refresh.
-Shared procedures resolve through eleven local .agents entrypoints; Claude references
+Shared procedures resolve through twelve local .agents entrypoints; Claude references
 them through .claude/skills and CLAUDE.md. Project facts remain in the
 [adapter](.agents/repository-adapter.md) and [source map](docs/source-map.md), selected
 by handbook.json. Use `npm run handbook:ready` offline for advisory structural warnings.
@@ -505,8 +505,8 @@ Local development may omit Redis; `npm run test:limits` runs a disposable
 authenticated Redis container and two web replicas with the Auth Emulator.
 
 Tracked staging/production configuration owns pinned Redis/Nginx images, private
-bridge subnets and loopback ingress ports. The provisioning workflow generates
-private Redis credentials and installs config/indexes. The existing host tunnel
+bridge subnets and loopback ingress ports. The guided setup helper prepares
+private Redis credentials; reviewed Infrastructure installation owns config/indexes. The existing host tunnel
 routes to Nginx on those loopback ports; app releases never own or restart the
 shared connector. See [deployment and secret setup](docs/deployment.md).
 
@@ -573,3 +573,16 @@ before activation; Google OIDC/private-pull instructions describe that legacy pa
 Shared tunnel/Dify ownership remains with agentic-poc. The optional
 [owner integration](deploy/shared-owner/README.md) is a generic reference, not a
 first-staging prerequisite or a transfer of ownership.
+
+
+### Deployment commands
+
+Start with `npm run deploy:ops -- doctor staging` (or `prod`). Promote reviewed main
+revisions through `_staging`/`_prod`; use Release for compatible image changes and
+Prepare protected deployment for host changes requiring Infrastructure approval.
+`deploy:ops` also exposes plan, status, check, rollback, backup and restore. Follow the
+[release/recovery procedures](docs/deployment.md#repeatable-release-and-protected-change-path)
+for pinned access, exact plan IDs, approval and interruption handling. Production
+activation and host installation require separately reviewed configuration and access.
+
+Image maintenance diagnostics: after preparing the existing pinned deployment access, run `npm run deploy:ops -- maintenance staging` (or `prod`). See [deployment disk protection](docs/deployment.md#image-retention-and-disk-headroom); host cleanup and enrollment remain Infrastructure-owned.

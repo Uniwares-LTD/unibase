@@ -5,6 +5,7 @@ set +x
 umask 077
 action=${1:-}
 target=${2:-}
+[[ "$target" != prod ]] || target=production
 mode=${3:-}
 image=${4:-}
 commit=${5:-}
@@ -27,15 +28,34 @@ fi
 for tool in docker python3 curl flock; do command -v "$tool" >/dev/null; done
 docker compose version >/dev/null
 install -d -m 0700 "$root" "$config" "$state"
-exec 9>"$state/operation.lock"
-flock -w 300 9 || { echo 'Unibase operation already running' >&2; exit 1; }
+if [[ -n "${UNIWARES_OPERATION_LOCK_FD:-}" ]]; then
+  [[ "$UNIWARES_OPERATION_LOCK_FD" =~ ^[0-9]+$ ]] || exit 2
+  python3 "$script_dir/verify-operation-lock.py" "$UNIWARES_OPERATION_LOCK_FD" "$state/operation.lock"
+else
+  exec 9>"$state/operation.lock"
+  flock -w 300 9 || { echo 'Unibase operation already running' >&2; exit 1; }
+  export UNIWARES_OPERATION_LOCK_FD=9
+fi
 if [[ "$action" == setup ]]; then
   install -d -m 0700 "$base/releases" "$config/$target" "$config/$target/docker"
   echo 'Unibase directories ready; existing host services unchanged'
   exit 0
 fi
 [[ -d "$base/releases" ]] || { echo 'Run Unibase setup first' >&2; exit 1; }
-if [[ "$target" == staging ]]; then
+if [[ "$action" == deploy || "$action" == rollback ]]; then
+# Infrastructure owns the image lock and policy. Re-enter with both verified
+# descriptors so direct and dispatcher operations follow the same lock ordering.
+maintenance=/usr/local/sbin/uniwares-image-maintenance
+[[ -x "$maintenance" ]] || { echo 'UNSUPPORTED_CAPABILITY: install image-retention-v1 and enroll this project' >&2; exit 2; }
+if [[ -z "${UNIWARES_IMAGE_LOCK_FD:-}" ]]; then
+  external_target=$target
+  [[ "$target" != production ]] || external_target=prod
+  exec "$maintenance" run-release "$slug" --environment "$external_target" \
+    --script "$script_dir/vps.sh" --release-action "$action" --image "$image" --commit "$commit"
+fi
+python3 "$script_dir/verify-operation-lock.py" "$UNIWARES_IMAGE_LOCK_FD" /var/lib/uniwares-infrastructure/image-maintenance.lock
+fi
+if [[ "$target" == staging || "$target" == production ]]; then
   anonymous_config=$(mktemp -d "$state/anonymous-docker.XXXXXXXX")
   trap 'rm -rf -- "$anonymous_config"' EXIT
   export DOCKER_CONFIG=$anonymous_config
@@ -96,6 +116,7 @@ if [[ "$action" == check ]]; then
   report healthy "$current"
   exit 0
 fi
+"$maintenance" check-space "$slug"
 if [[ "$action" == rollback ]]; then
   [[ -L "$base/previous" ]] || { echo 'No retained previous release' >&2; exit 1; }
   candidate=$(readlink -f "$base/previous")
@@ -131,6 +152,7 @@ fi
 # Pull/configure before replacing the existing instance. No DB mutations occur.
 compose "$candidate" config --quiet
 compose "$candidate" pull --quiet
+"$maintenance" check-space "$slug"
 candidate_image=$(sed -n 's/^IMAGE_DIGEST=//p' "$candidate/compose.env")
 candidate_commit=$(sed -n 's/^RELEASE_COMMIT=//p' "$candidate/compose.env")
 [[ "$candidate_image" =~ ^ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$ && "$candidate_commit" =~ ^[a-f0-9]{40}$ ]] || { echo 'Invalid retained image identity' >&2; exit 1; }
@@ -153,3 +175,12 @@ if [[ -n "$current" ]]; then ln -sfn "$current" "$base/previous"; fi
 ln -sfn "$candidate" "$base/current"
 trap - ERR INT TERM HUP
 report healthy "$candidate"
+external_target=$target
+[[ "$target" != production ]] || external_target=prod
+if "$maintenance" record "$slug" --environment "$external_target"; then
+  if [[ "${UNIWARES_DISPATCHED:-}" != 1 ]]; then
+    "$maintenance" cleanup "$slug" || echo 'maintenance=warning operator-inspection-required'
+  fi
+else
+  echo 'maintenance=warning release-ledger-not-recorded; cleanup blocked'
+fi
