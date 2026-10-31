@@ -113,6 +113,18 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     await readFile(path.join(destination, "README.md"), "utf8"),
     "reviewed source",
   );
+  const retention = JSON.parse(
+    await readFile(
+      path.join(destination, "deploy/image-retention.proposal.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(retention.project, manifest.slug);
+  assert.equal(
+    retention.imageRepository,
+    `ghcr.io/replace-owner/${manifest.slug}`,
+  );
+  assert.equal(retention.automatic, false);
   assert.equal(
     await readFile(path.join(destination, "scripts/handbook.mjs"), "utf8"),
     files["scripts/handbook.mjs"],

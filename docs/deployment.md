@@ -812,3 +812,15 @@ New requirements extend the declarative contract plus a bounded planner/executor
 validation, update behavior and tests. Unknown settings and unsupported operations
 fail explicitly. Host installation, approval trust, recovery credentials and journal
 troubleshooting are owned by the [Infrastructure runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md#approved-plan-operations).
+
+## Image retention and disk headroom
+
+New control bundles require `image-retention-v1` in addition to the operation lock. Install compatible Infrastructure tooling and explicitly enroll the application's image repository before installing the application bundle. Preflight binds these capabilities before build/publication; old bundles cannot silently execute the new path. Infrastructure owns [policy, initial cleanup, timer and recovery](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md#image-retention).
+
+The root-owned maintenance wrapper shares the application lock, acquires the host image lock and checks Docker's data-root plus release/state filesystems. Pulls require at least 20 GiB available, checked again before replacing containers. `INSUFFICIENT_DISK_SPACE` leaves the existing release running. The policy retains three successful snapshots per environment and fourteen days of activations, plus current/previous, containers and unresolved plans. Private snapshots and databases are not deleted.
+
+After readiness and current selection succeed, record the immutable release in the host ledger. Successful rollback records another activation. Cleanup runs only when explicitly enabled in Infrastructure; failures report `maintenance=warning` without restoring a healthy release. Installation alone enables no timer. Root image maintenance is not a GitHub Actions Docker command.
+
+From the workstation with the existing pinned SSH access prepared, use `npm run deploy:ops -- maintenance staging` (or `prod`) for read-only disk, cached-snapshot and last-maintenance status. `doctor` reports required capabilities and this status command without assuming host installation. Historical snapshots outside retention may need an image pull; inspect availability before planning rollback. New projects receive `deploy/image-retention.proposal.json`, which must be reviewed and enrolled by Infrastructure; it does not inherit the parent's identity or enable cleanup.
+
+Operator intervention: Infrastructure owner, root host session; reviewed maintenance policy/controller first, then application control update, manual cleanup verification, staging release acceptance, and separately authorized timer activation. On uncertain cleanup or ledger state, inspect canonical host status and prepare a new reviewed preview; never delete recovery markers to bypass protection.

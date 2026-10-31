@@ -20,7 +20,7 @@ from operations import transport, ROOT
 from environment import load
 slug=json.loads((ROOT/'project.config.json').read_text())['slug']
 response=transport(dict(version=2,project=slug,environment=sys.argv[1],action='capabilities'),load(sys.argv[1]),timeout=45)
-if response.get('version')!=2 or not {'operation-lock-v1','plans-v2','github-oidc-v1'}.issubset(response.get('capabilities',[])):
+if response.get('version')!=2 or not {'operation-lock-v1','plans-v2','github-oidc-v1','image-retention-v1'}.issubset(response.get('capabilities',[])):
     raise SystemExit('Install compatible Infrastructure controller before preparation.')
 PY
 python3 "$script_dir/public-package.py" before

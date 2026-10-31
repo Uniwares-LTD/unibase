@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from environment import load
 from release_settings import configuration_hash
+from deployment_contract import load as load_contract
 
 root = Path(__file__).resolve().parents[2]
 action, target = sys.argv[1:3]
@@ -14,7 +15,8 @@ target = 'production' if target == 'prod' else target
 config = load(target, require_connections=False)
 request = {'version': 2, 'project': json.loads((root / 'project.config.json').read_text())['slug'],
            'environment': 'prod' if target == 'production' else target, 'action': action,
-           'configurationHash': configuration_hash(config)}
+           'configurationHash': configuration_hash(config),
+           'requiredCapabilities': load_contract()['requiredCapabilities']}
 if action == 'deploy':
     image, commit = sys.argv[3:5]
     if not re.fullmatch(r'ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}', image) or not re.fullmatch(r'[a-f0-9]{40}', commit):

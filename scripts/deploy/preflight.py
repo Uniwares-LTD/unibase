@@ -42,6 +42,21 @@ def validate_response(raw, requested_hash, returncode, version=1):
 
 
 def check(request, ssh_config, alias, timeout=45):
+    if request.get('version') == 2:
+        capability_request = {key: request[key] for key in ('version', 'project', 'environment')}
+        capability_request['action'] = 'capabilities'
+        try:
+            with tempfile.TemporaryFile() as capability_output:
+                capability_result = subprocess.run(['ssh', '-F', str(ssh_config), '-o', 'BatchMode=yes',
+                    '-o', 'ConnectTimeout=10', alias, 'operate'], input=json.dumps(capability_request).encode(),
+                    stdout=capability_output, stderr=subprocess.DEVNULL, timeout=timeout)
+                capability_output.seek(0)
+                capability_raw = capability_output.read(4097)
+            capabilities = json.loads(capability_raw)
+            if capability_result.returncode or len(capability_raw) > 4096 or capabilities.get('version') != 2 or not {'operation-lock-v1', 'image-retention-v1'}.issubset(capabilities.get('capabilities', [])):
+                raise ValueError('Unsupported controller')
+        except (OSError, ValueError, TypeError, AttributeError, subprocess.TimeoutExpired):
+            return 'rejected', 'Controller capability discovery failed; install image-retention-v1 before release. ' + RUNBOOK
     with tempfile.TemporaryFile() as output:
         try:
             result = subprocess.run(['ssh', '-F', str(ssh_config), '-o', 'BatchMode=yes',
