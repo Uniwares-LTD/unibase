@@ -33,7 +33,7 @@ Publication, merges, deployments, releases and permissions retain separate autho
 
 ## Architecture
 
-- Before deployment work, read [the staging transition](docs/deployment.md#staging-transition-status--2026-10-24)
+- Before deployment work, read [current deployment guidance](docs/deployment.md#current-staging-release)
   and [shared infrastructure guidance](https://github.com/Uniwares-LTD/infrastructure/blob/main/AGENTS.md).
   Keep host facts in infrastructure and application behavior here. Distinguish planned
   conventions from current code; documentation does not transfer Booklet/Dify/tunnel

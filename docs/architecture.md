@@ -7,7 +7,7 @@ Shared-service and job-endpoint consolidation remains deferred.
 
 ## Current foundation
 
-Base is one Next.js App Router application with Firebase Authentication, MongoDB profiles, a responsive shell, appearance preferences, opt-in diagnostics and PWA support. Account acceptance uses the Auth Emulator and isolated MongoDB. M3 retains a configurable Bubblewrap Android project and manual release workflow; Android compilation and live activation are pending as recorded in the implementation plan. M4 provides standalone container, isolated VPS release/check/rollback tooling and independent advisory workflows. The first staging release is verified; production and Android activation remain separate.
+Base is one Next.js App Router application with Firebase Authentication, MongoDB profiles, a responsive shell, appearance preferences, opt-in diagnostics and PWA support. Account acceptance uses the Auth Emulator and isolated MongoDB. M3 retains a configurable Bubblewrap Android project and manual release workflow; Android compilation and live activation are pending as recorded in the implementation plan. M4 provides standalone container, isolated VPS release/check/rollback tooling and independent advisory workflows. Staging release and worker/readiness checks are verified; see the current deployment record. Production and Android activation remain separate.
 
 `src/app` owns routes, layouts, metadata, loading, and recovery pages. Server Components provide page content by default. `src/components` owns the application shell and interactive appearance/navigation controls; `src/components/ui` contains CLI-generated shadcn primitives. `src/lib/server` owns server-only access, starting with configuration. `src/lib/config` contains pure schemas and the explicitly public configuration type. `src/lib/utils` is the shadcn class-name helper.
 
@@ -729,3 +729,8 @@ and its Terraform writes the complete route list. Unibase verifies its owner-man
 route; it does not install a route controller or use Booklet's deployment workflow.
 The [ownership follow-ups](deployment.md#shared-ownership-follow-ups) require an
 explicit migration before authority changes.
+
+
+## Operational documentation ownership
+
+Application deployment guides own current release identities and acceptance. Infrastructure inventory owns installed host/configuration identities and dated capacity; its operations guide owns installation, privileged updates and recovery. Shared gateway/Redis/worker consolidation remains deferred. Documentation does not transfer Booklet, Dify or tunnel ownership.

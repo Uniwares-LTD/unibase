@@ -67,3 +67,5 @@ application control; Infrastructure owns lock acquisition, lifetime and status.
 Deployment changes require configuration ownership classification and operator-impact reporting. The deployment/operations guide owns plan approval, status and recovery; contract changes require validation, update behavior and compatibility coverage.
 
 The [host release script](../scripts/deploy/vps.sh) delegates disk protection and image maintenance to Infrastructure's installed controller. [The initializer](../scripts/project-initializer.ts) generates a project-specific retention enrollment proposal, never host authorization.
+
+Current procedures link to dated evidence rather than duplicating it. Superseded first-deployment evidence is retained in [history](history/deployment-evidence-2026-10-25.md); it is not a task queue or runnable update procedure.
