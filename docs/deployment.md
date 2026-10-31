@@ -265,10 +265,11 @@ contact until the package owner explicitly makes it public, then the same releas
 can be retried. Anonymous digest pull is verified after publication. Record the
 actual source SHA and digest; never substitute a mutable tag.
 
-`Provision environment` no longer offers staging; `provision.sh staging` refuses
-before credential or host access. `Setup VPS` is not the restricted staging bootstrap;
-use Infrastructure's reviewed operator installer. Production provisioning and its
-private-pull path are legacy, deferred interfaces, not staging instructions.
+Legacy Provision environment and host-directory workflows now return
+OWNER_ACTION_REQUIRED before any credentials or host access. Use the guided setup
+helper and Infrastructure's reviewed initial installer for either environment;
+subsequent protected changes follow the approved-plan path. Legacy provision.sh is
+retained as reference/tested provider code, not an authorized routine Actions route.
 
 ## Environment flows
 
