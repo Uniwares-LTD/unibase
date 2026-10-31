@@ -399,7 +399,7 @@ the same authorization and idempotency boundaries.
 
 - [Design system](docs/design-system.md): editable tokens, shared patterns and the development-only interactive showcase.
 - [Architecture](docs/architecture.md): server/client ownership, configuration, and UI conventions.
-- [VPS deployment](docs/deployment.md): M4 tooling, host inputs and activation boundaries.
+- [VPS deployment](docs/deployment.md): current release, initialization, promotion and recovery procedures.
 - [Implementation plan](docs/implementation-plan.md): milestone scope and acceptance criteria.
 - [Agent tooling](docs/agent-tooling.md): installed skills, provenance, and integrity commands.
 - [Repository instructions](AGENTS.md): conventions for contributors and coding agents.
@@ -577,8 +577,9 @@ first-staging prerequisite or a transfer of ownership.
 
 ### Deployment commands
 
-Start with `npm run deploy:ops -- doctor staging` (or `prod`). Promote reviewed main
-revisions through `_staging`/`_prod`; use Release for compatible image changes and
+For a new project use [guided initialization](docs/deployment.md#guided-setup-helper).
+For an existing installation start with `npm run deploy:ops -- doctor staging` (or `prod`). Promote reviewed main
+revisions through `_staging`/`_prod`; merging the promotion triggers Release automatically. Use
 Prepare protected deployment for host changes requiring Infrastructure approval.
 `deploy:ops` also exposes plan, status, check, rollback, backup and restore. Follow the
 [release/recovery procedures](docs/deployment.md#repeatable-release-and-protected-change-path)
