@@ -6,7 +6,10 @@ Read [the current implementation plan](docs/implementation-plan.md) and the rele
 
 ## Shared handbook
 
-At task start run `npm run handbook:check` (or `node scripts/handbook.mjs check`).
+Follow [GitHub access](.agents/repository-adapter.md#github-access).
+At task start run `npm run handbook:check` (or `node scripts/handbook.mjs check`)
+outside the sandbox, as required for all Git/MCP/gh calls and helpers that invoke them.
+
 The helper lazily checks main every four hours; no scheduler or version pin is needed.
 Read `docs/bootstrap.md`, `docs/work-policy.md`, `docs/project.md` and relevant shared skills from its
 returned path/revision with `git show`, plus this repository's adapter. Keep that

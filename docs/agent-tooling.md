@@ -59,6 +59,10 @@ navigation, commands, generated boundaries or ownership changes.
 
 ## Troubleshooting
 
+The [GitHub access policy](../.agents/repository-adapter.md#github-access) applies to
+Handbook setup/check/doctor/resources and Git-based tests because they spawn Git.
+Readiness, entrypoint drift and other purely offline checks can run normally.
+
 `npm run handbook:doctor` is read-only. It reports origin, cached revision, checkout state,
 attempts and local entrypoint warnings. `npm run handbook:check -- --force` bypasses cooldown.
 Preserve dirty/non-main/ahead/diverged checkouts. Never reset/stash/switch to force refresh.

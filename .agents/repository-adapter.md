@@ -28,6 +28,16 @@
 - A separate read-only review pass checks the exact final working tree against the task contract. Findings must identify actionable behavior defects. Report unverified scope honestly.
 - Imported wording that treats missing checks, type/test/lint warnings, or review results as automatic publication/deployment gates does not apply. Preserve the advisory quality policy while fixing in-scope defects and reporting evidence.
 
+## GitHub access
+
+Adopt Handbook's [GitHub access policy](https://github.com/Uniwares-LTD/handbook/blob/main/docs/work-policy.md#github-access):
+plain Git for supported operations, then working GitHub MCP, then CLI. If CLI lacks
+configuration or access, stop and guide repair. Chrome is only for actions unsupported
+by all three; explain the exact action and why those routes cannot perform it, then
+obtain explicit approval. Run Git/MCP/gh and helpers/tests that invoke them outside
+the sandbox from the first attempt using supported external/elevated execution.
+Required helper workflows and the local action authority below still apply.
+
 ## Publication and external actions
 
 The consumer-owned [tracking selection](tracking.json) is the only source of this
