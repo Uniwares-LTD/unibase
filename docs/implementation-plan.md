@@ -26,10 +26,11 @@ No backlog migration or deployment is part of this change.
 ## Agentic developer documentation — issue #7
 
 [Issue #7](https://github.com/Uniwares-LTD/unibase/issues/7) tracks a dedicated
-private developer documentation system. The [planning draft](documentation-system-plan.md)
-records the source audit, proposed runtime/frontend, phased acceptance and separate
-authorization boundaries. The local planning branch is authorized; repository creation,
-system implementation, generated documentation and maintenance acceptance remain
+private developer documentation system. Its [ownership pointer](documentation-system-plan.md)
+links the design and delivery state in the dedicated documentation checkout.
+Private repository creation and local implementation were approved on 2026-10-31;
+the repository is created and local fixture-based implementation is in progress.
+Real generated documentation, publication and live maintenance acceptance remain
 outstanding. This work does not change the application deployment.
 
 ## Agreed decisions

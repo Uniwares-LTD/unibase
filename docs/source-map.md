@@ -20,9 +20,9 @@
 and the [repository adapter](../.agents/repository-adapter.md) own local agent integration.
 Historical evidence in [history](history) is not a task queue.
 
-[Documentation system planning](documentation-system-plan.md) records the issue #7
-proposal and source ownership until its dedicated private repository is established;
-it does not replace canonical application documentation.
+[Documentation system ownership](documentation-system-plan.md) points to issue #7's
+design and delivery state in the dedicated private documentation repository;
+canonical application documentation remains here.
 
 ## Commands
 
