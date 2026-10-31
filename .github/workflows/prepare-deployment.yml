@@ -1,0 +1,48 @@
+name: Prepare protected deployment change
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [staging, prod]
+        required: true
+permissions:
+  contents: read
+  packages: write
+  actions: read
+concurrency:
+  group: ${{ github.repository }}-vps-operation
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: (inputs.environment == 'staging' && github.ref == 'refs/heads/_staging') || (inputs.environment == 'prod' && github.ref == 'refs/heads/_prod')
+    runs-on: ubuntu-latest
+    env:
+      TARGET: ${{ inputs.environment }}
+      GH_TOKEN: ${{ github.token }}
+      DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+      DEPLOY_SSH_HOST_KEY: ${{ secrets.DEPLOY_SSH_HOST_KEY }}
+      TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+      TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - run: python3 scripts/deploy/environment.py "$TARGET" --github-env
+      - run: python3 scripts/deploy/candidate.py "$RUNNER_TEMP/release-candidate.json"
+      - run: bash scripts/deploy/prepare-release.sh "$TARGET"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && env.CANDIDATE_RESTORED != 'true'
+        with:
+          name: release-candidate-${{ github.sha }}
+          path: ${{ runner.temp }}/release-candidate.json
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: success()
+        with:
+          name: deployment-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/deployment-plan.json
+      - name: Remove runner credentials
+        if: always()
+        run: |
+          source scripts/deploy/identity.sh
+          rm -rf "$RUNNER_TEMP/${project_slug}-access"
+          docker logout ghcr.io || true

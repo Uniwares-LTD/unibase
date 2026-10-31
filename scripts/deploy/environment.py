@@ -16,6 +16,7 @@ SECRET_KEYS = {
 
 
 def load(target, root=ROOT, require_connections=True):
+    target = "production" if target == "prod" else target
     if target not in ("local", "staging", "production"):
         raise ValueError("Invalid environment selection")
     config = json.loads((root / "deploy/environments" / (target + ".json")).read_text())
@@ -59,16 +60,16 @@ def load(target, root=ROOT, require_connections=True):
     if runtime.get("AUTH_MODE") != "firebase":
         raise ValueError("Live environments require Firebase")
     route_mode = config["shared"].get("routeMode") or "registry"
-    if route_mode not in ("registry", "owner-managed") or (route_mode == "owner-managed" and target != "staging"):
+    if route_mode not in ("registry", "owner-managed"):
         raise ValueError("Invalid route mode for this environment")
-    existing_staging = target == "staging" and route_mode == "owner-managed"
+    existing_staging = route_mode == "owner-managed"
     required_sections = {
         "deployment": ["imageRepository", "port", "ingressSubnet", "redisImage", "nginxImage", "adminImage"],
         "ssh": ["host", "user", "cloudflaredVersion", "cloudflaredSha256"],
         "google": ["projectId", "workloadIdentityProvider", "provisionerServiceAccount"],
         "atlas": ["projectId", "clusterName", "mongoUser", "vpsEgressCidr"],
         "shared": ["ownerRepository", "ownerRef", "routeWorkflow", "tunnelId", "cloudflareAccountId", "cloudflareZoneId"],
-        "ghcr": ["pullUser"],
+        "ghcr": [],
     }
     transport = config["ssh"].get("transport") or "cloudflare"
     if transport not in ("direct", "cloudflare"):

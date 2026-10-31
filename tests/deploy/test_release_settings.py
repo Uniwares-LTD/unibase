@@ -48,7 +48,7 @@ class ReleaseSettingsTests(unittest.TestCase):
     def test_request_preserves_the_installed_v1_protocol(self):
         request = json.loads(subprocess.check_output([sys.executable, str(REPO / 'scripts/deploy/dispatch-request.py'),
             'deploy', 'staging', 'ghcr.io/test/app@sha256:' + 'a'*64, 'b'*40], text=True))
-        self.assertEqual(request['version'], 1)
+        self.assertEqual(request['version'], 2)
         self.assertNotIn('runtimeSettings', request)
         self.assertEqual(set(request), {'version','project','environment','action','configurationHash','image','commit'})
         self.assertEqual(request['configurationHash'], configuration_hash(self.config))

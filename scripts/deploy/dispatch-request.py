@@ -8,11 +8,12 @@ from release_settings import configuration_hash
 
 root = Path(__file__).resolve().parents[2]
 action, target = sys.argv[1:3]
-if action not in ('deploy', 'check', 'rollback') or target != 'staging':
-    sys.exit('Restricted dispatcher supports staging deploy/check/rollback only')
+if action not in ('deploy', 'check', 'rollback', 'preflight') or target not in ('staging', 'prod', 'production'):
+    sys.exit('Restricted dispatcher supports staging deploy/check/rollback/preflight only')
+target = 'production' if target == 'prod' else target
 config = load(target, require_connections=False)
-request = {'version': 1, 'project': json.loads((root / 'project.config.json').read_text())['slug'],
-           'environment': target, 'action': action,
+request = {'version': 2, 'project': json.loads((root / 'project.config.json').read_text())['slug'],
+           'environment': 'prod' if target == 'production' else target, 'action': action,
            'configurationHash': configuration_hash(config)}
 if action == 'deploy':
     image, commit = sys.argv[3:5]

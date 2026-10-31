@@ -16,7 +16,7 @@ spec.loader.exec_module(setup)
 
 class SetupTests(unittest.TestCase):
     def test_repeated_apply_preserves_generated_credentials(self):
-        plan = {'project': 'synthetic-child', 'revision': 'a'*40, 'missingFiles': [], 'invalidFiles': []}
+        plan = {'project': 'synthetic-child', 'environment': 'staging', 'revision': 'a'*40, 'missingFiles': [], 'invalidFiles': []}
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             setup.apply(plan, {}, root, setup.digest(plan))
@@ -24,6 +24,14 @@ class SetupTests(unittest.TestCase):
             setup.apply(plan, {}, root, setup.digest(plan))
             self.assertEqual(files, {p.name: p.read_bytes() for p in (root / 'synthetic-child/staging').iterdir()})
             self.assertFalse((root / 'unibase').exists())
+
+    def test_production_setup_uses_separate_destination(self):
+        plan = {'project': 'synthetic-child', 'environment': 'production', 'revision': 'a'*40, 'missingFiles': [], 'invalidFiles': []}
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            setup.apply(plan, {}, root, setup.digest(plan))
+            self.assertTrue((root/'synthetic-child/production').is_dir())
+            self.assertFalse((root/'synthetic-child/staging').exists())
 
     def test_missing_or_changed_preview_has_no_writes(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -92,7 +100,7 @@ class SetupTests(unittest.TestCase):
 
     def test_provider_discovery_refuses_privilege_conflict_and_insufficient_access(self):
         bindings=setup.provider_module()
-        config={'google':{'projectId':'shared-staging'},'atlas':{'projectId':'a'*24,'mongoUser':'child_staging','clusterName':'shared','vpsEgressCidr':'192.0.2.1/32'},'runtime':{'MONGODB_DATABASE':'child_staging','APP_ORIGIN':'https://child.example'}}
+        config={'environment':'staging','google':{'projectId':'shared-staging'},'atlas':{'projectId':'a'*24,'mongoUser':'child_staging','clusterName':'shared','vpsEgressCidr':'192.0.2.1/32'},'runtime':{'MONGODB_DATABASE':'child_staging','APP_ORIGIN':'https://child.example'}}
         class API:
             def request(self, provider, method, url, **kwargs):
                 if 'webApps' in url: return {'apps':[]}

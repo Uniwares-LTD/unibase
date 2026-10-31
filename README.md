@@ -573,3 +573,14 @@ before activation; Google OIDC/private-pull instructions describe that legacy pa
 Shared tunnel/Dify ownership remains with agentic-poc. The optional
 [owner integration](deploy/shared-owner/README.md) is a generic reference, not a
 first-staging prerequisite or a transfer of ownership.
+
+
+### Deployment commands
+
+Start with `npm run deploy:ops -- doctor staging` (or `prod`). Promote reviewed main
+revisions through `_staging`/`_prod`; use Release for compatible image changes and
+Prepare protected deployment for host changes requiring Infrastructure approval.
+`deploy:ops` also exposes plan, status, check, rollback, backup and restore. Follow the
+[release/recovery procedures](docs/deployment.md#repeatable-release-and-protected-change-path)
+for pinned access, exact plan IDs, approval and interruption handling. Production
+activation and host installation require separately reviewed configuration and access.

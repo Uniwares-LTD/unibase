@@ -686,3 +686,128 @@ require their own reviewed scope and acceptance.
 - Transfer Dify Community lifecycle separately, retaining installation version,
   private credentials, databases/storage, backups and service continuity. No
   reinstallation or provider activation is included in this change.
+
+## Early host compatibility check
+
+Staging and production Release prepare pinned SSH access and sends a read-only dispatcher
+`preflight` before registry login/build/publication. A compatible Infrastructure
+dispatcher must be installed first; legacy/invalid replies fail closed with operator
+instructions. A hash mismatch identifies requested/installed public configuration
+hashes and control revision without exposing private settings. MCP permissions remain
+host-owned; image settings retain their existing projection.
+
+The PR advisory report compares projected staging profiles and prints changed setting
+names only. It does not prove host installation or replace review of control-script,
+provider and credential changes. Quality warnings remain advisory; incompatible host
+configuration is an operational blocker.
+
+Release summaries distinguish compatibility, build, publication, deployment and
+readiness. Buildx combines build/publication: a failure before its successful return
+leaves those two outcomes unknown rather than claiming publication did not occur.
+Host-call failures/timeouts likewise remain unknown unless a validated rejection or
+readiness result establishes more. Inspect installed state before retrying. A successful
+preflight is not a reservation: deployment rechecks the hash.
+
+**Operator intervention required:** install and verify Infrastructure's compatible
+dispatcher before promoting mandatory preflight. Follow its
+[rollout and recovery procedure](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md#deployment-preflight).
+The failed permission-correction release still needs privileged registration/hash
+readback, any pending-update inspection, and then its reviewed operator update before
+release. No installation, release, Dify refresh or owned Run retry is implied by these
+source changes. Keep the existing permission-correction acceptance steps above.
+
+`npm run test:deployment` mounts a sibling Infrastructure checkout when available
+(or the explicit INFRASTRUCTURE_CHECKOUT directory) and exercises the real dispatcher
+with synthetic registration/control fixtures. Without it, the harness reports that
+cross-repository validation was not run and uses its bounded contract fixture.
+The fixture bypasses host ownership checks only for temporary paths; Infrastructure
+retains its own trust validation tests. Docker and all application providers are mocked
+inside the disposable Linux test container; no live services are used.
+
+### Deployment contract and immutable control bundles
+
+[deploy/contract.json](../deploy/contract.json) classifies public settings. The
+[contract interpreter](../scripts/deploy/deployment_contract.py) rejects unclassified
+settings and protected credential values. Diagnostics is image-owned; MCP permissions
+and provider bindings remain host-owned. Release hashes and advisory impact reporting
+use this projection. A new setting needs a contract entry, validation, an update
+procedure and compatibility coverage; a new image-owned setting also needs explicit
+controller support.
+
+Infrastructure's build-control-bundle.py requires a full reviewed commit containing
+the contract. It projects environment JSON before archiving and emits a separate
+`.tar.manifest.json` containing source commit, contract version, per-environment
+configuration hashes, final archive checksum and required capabilities. Earlier source
+commits without the contract are rejected. Do not hand-edit an archive after review.
+The builder never runs candidate application code to compute the projection.
+
+Version-2 execution acquires the application operation lock before reading installed
+registration and passes its descriptor to compatible control scripts. Direct operator
+invocations still acquire their own lock. Version-1 callers retain legacy behavior;
+the application clients now request version 2. Install compatible host tooling before promotion. Unknown operation status requires readback
+before retry, not an assumption that deployment failed. Infrastructure owns the status
+file and privileged recovery procedure.
+
+## Repeatable release and protected-change path
+
+Both `_staging` and `_prod` promote reviewed `main` revisions. Production does not
+require a staging release. The external target is `prod`; `production` is a deprecated
+CLI alias mapped to existing `production` paths and `APP_ENV=production`. Never rename
+existing databases, resource names or snapshots. Production diagnostics remain off.
+The old production uploaded-script/general-sudo release route is removed from the
+client; verify the restricted controller migration before enabling `_prod` releases.
+
+From the application checkout, `npm run deploy:ops -- doctor staging` validates
+public bindings without cloud access. On Windows use `npm.cmd` and ensure Python is
+available. Other commands use pinned access prepared by `scripts/deploy/access.sh`;
+workstation users supply the same named deployment key/host-key exports as Actions,
+set a private RUNNER_TEMP directory, and follow the credential inventory. Never use
+the shared admin key in routine workflows.
+
+- Image-only: promote the selected main revision, then run the existing Release
+  workflow on the matching promotion branch. Preflight runs before build/login;
+  build and anonymous digest verification precede deployment and readiness.
+- Protected change: promote the reviewed revision, run **Prepare protected deployment**
+  on the matching branch with target staging/prod, and review the public plan artifact.
+  It builds/publishes one immutable candidate and stages the projected bundle without
+  applying host changes. An enrolled Infrastructure admin dispatches **Apply deployment
+  plan** in Infrastructure on main with application, target, plan ID and the same digest.
+  The pinned executor applies supported configuration changes and releases that exact
+  image. Missing credential references or unsupported provider/data changes stop at
+  OWNER_ACTION_REQUIRED; the owner resolves them before a fresh preview.
+- Failed/lost operation: use `npm run deploy:ops -- status staging --plan-id DIGEST`
+  with the exact returned digest. A lost connection is unknown, not permission to
+  repeat writes. New approval can resume verified checkpoints; uncertain operations
+  without conclusive readback require the Infrastructure operator.
+- Check/rollback: `npm run deploy:ops -- check staging` and
+  `npm run deploy:ops -- rollback staging`. Rollback selects the retained image and
+  its private configuration snapshot; it never restores a database. A protected
+  host-runtime update retains its separate predecessor for explicit operator recovery.
+- Manual recovery: `npm run deploy:ops -- backup staging` prepares an approval plan.
+  Restore requires `npm run deploy:ops -- restore staging --backup-id SNAPSHOT --destination DATABASE`
+  with an exact full restic snapshot and explicit database. Use the approved configured
+  database or its `_rehearsal_NAME` destination; see Infrastructure's recovery procedure.
+
+DIGEST/SNAPSHOT are outputs of the preceding operation, not values inferred from a
+hostname. Commands reject missing identities. Source candidate artifacts are retained
+per Actions run: a rerun reuses the original digest; unavailable artifacts stop the
+rerun rather than silently rebuilding. Begin a new reviewed run only after inspecting
+registry and operation status. Quality reports remain advisory; compilation, invalid
+configuration, anonymous-pull failure, incompatibility and failed readiness are failures.
+
+### New projects and requirements
+
+Use the existing project initializer and guided setup helper. The initializer carries
+the deployment contract, workflows, command entrypoint and deployment-start guide;
+it clears parent database/web/host/provider bindings, tracking and credentials.
+The setup helper accepts `--environment staging` or `--environment prod` and keeps
+separate credentials and operation markers. Production Google project ownership must
+match the application's labels and parent before reconciliation. Tunnel/Dify changes
+remain with their named owners. Collect missing public bindings and protected
+credential references together, preview allocations/provider changes, then apply only
+the authorized scope. Never copy staging credentials into production.
+
+New requirements extend the declarative contract plus a bounded planner/executor,
+validation, update behavior and tests. Unknown settings and unsupported operations
+fail explicitly. Host installation, approval trust, recovery credentials and journal
+troubleshooting are owned by the [Infrastructure runbook](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md#approved-plan-operations).

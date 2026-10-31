@@ -6,7 +6,7 @@ on:
     inputs:
       environment:
         type: choice
-        options: [staging, production]
+        options: [staging, prod, production]
         required: true
 permissions:
   contents: read
@@ -30,8 +30,18 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Read tracked environment configuration
         run: python3 scripts/deploy/environment.py "$TARGET" --github-env
+      - name: Restore exact candidate on retry
+        run: python3 scripts/deploy/candidate.py "$RUNNER_TEMP/release-candidate.json"
       - name: Guard, build, release and verify
         run: bash scripts/deploy/release.sh "$TARGET"
+      - name: Retain immutable release candidate
+        if: always() && env.CANDIDATE_RESTORED != 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-candidate-${{ github.sha }}
+          path: ${{ runner.temp }}/release-candidate.json
+          if-no-files-found: ignore
+          overwrite: false
       - name: Remove runner credentials
         if: always()
         run: |

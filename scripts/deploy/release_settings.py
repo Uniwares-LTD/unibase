@@ -6,8 +6,10 @@ setting retains the installed v1 controller's configuration hash check.
 import copy
 import hashlib
 import json
+from deployment_contract import load, project
 
-KEYS = frozenset({'DIAGNOSTICS_ENABLED'})
+KEYS = frozenset(name.split('.')[1] for name, rule in load()['settings'].items()
+                 if name.startswith('runtime.') and rule['owner'] == 'image')
 
 
 def validate_settings(settings, target):
@@ -28,10 +30,7 @@ def settings_for(config):
 
 def host_configuration(config):
     settings_for(config)
-    fixed = copy.deepcopy(config)
-    for key in KEYS:
-        fixed['runtime'].pop(key, None)
-    return fixed
+    return project(config)
 
 
 def configuration_hash(config):

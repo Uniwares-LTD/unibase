@@ -132,13 +132,42 @@ filename=sys.argv[1]
 sys.argv=sys.argv[1:]
 runpy.run_path(filename,run_name='__main__')
 ''')
-        (cls.bin / "dispatch.py").write_text('''import json,subprocess,sys
+        (cls.bin / "dispatch.py").write_text("""import hashlib,importlib.util,json,os,subprocess,sys
+from pathlib import Path
 r=json.load(sys.stdin)
-assert set(r)=={'version','project','environment','action','configurationHash','image','commit'}
-assert r['version']==1
-assert r['environment']=='staging' and r['project']=='unibase' and r['action']=='deploy'
+if os.environ.get('LEGACY_DISPATCHER')=='1':
+    print('legacy private failure'); sys.exit(1)
+config=json.loads(Path('/repo/deploy/environments/staging.json').read_text())
+config['runtime'].pop('DIAGNOSTICS_ENABLED',None)
+if os.environ.get('MISMATCH_CONFIG')=='1' or (os.environ.get('CHANGE_AFTER_PREFLIGHT')=='1' and r['action']=='deploy'):
+    config['runtime']['MCP_CLIENTS_JSON']='[]'
+digest=hashlib.sha256(json.dumps(config,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+with open('/tmp/dispatch-actions','a') as f: f.write(r['action']+'\\n')
+real=Path('/infrastructure/scripts/deploy-dispatch.py')
+if real.exists():
+    spec=importlib.util.spec_from_file_location('dispatcher',real)
+    d=importlib.util.module_from_spec(spec); spec.loader.exec_module(d)
+    root=Path('/tmp/dispatcher-fixture'); registry=root/'registry'; registry.mkdir(parents=True,exist_ok=True)
+    source=root/'control'/'unibase'/('b'*64); (source/'deploy/environments').mkdir(parents=True,exist_ok=True)
+    (source/'deploy/environments/staging.json').write_text(json.dumps(config))
+    (source/'deploy/contract.json').write_text(Path('/repo/deploy/contract.json').read_text())
+    (source/'project.config.json').write_text('{"slug":"unibase"}')
+    (source/'scripts/deploy').mkdir(parents=True,exist_ok=True)
+    (source/'scripts/deploy/vps.sh').write_text('#!/bin/bash\\nexec bash /repo/scripts/deploy/vps.sh "$@"\\n')
+    (registry/'unibase.json').write_text(json.dumps({'revision':'b'*64}))
+    d.REGISTRY=registry; d.CONTROL=root/'control'
+    d.trusted=lambda path: None  # Temporary fixture ownership; protocol/hash validation stays real.
+    d.ENV=dict(os.environ)  # Keep the disposable container's mocked provider executables.
+    sys.exit(d.handle(r))
+assert set(r)=={'version','project','environment','action','configurationHash'} | ({'image','commit'} if r['action']=='deploy' else set())
+assert r['version']==2 and r['environment']=='staging' and r['project']=='unibase'
+compatible=r['configurationHash']==digest
+if r['action']=='preflight' or not compatible:
+    print(json.dumps(dict(version=r['version'],code='COMPATIBLE' if compatible else 'CONFIGURATION_MISMATCH',compatible=compatible,installedRevision='b'*64,installedConfigurationHash=digest,requestedConfigurationHash=r['configurationHash'])))
+    sys.exit(0 if compatible else 2)
+assert r['action']=='deploy'
 sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging','--apply',r['image'],r['commit']]).returncode)
-''')
+""")
         cls.env = dict(os.environ, PATH=f"{cls.bin}:" + os.environ["PATH"])
         # Preview must not create directories or contact Docker.
         result = subprocess.run(["bash", SCRIPT, "setup", "staging"], env=cls.env, capture_output=True)
@@ -186,6 +215,7 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
         Path("/tmp/docker-operations").write_text("")
         Path("/tmp/docker-built").unlink(missing_ok=True)
         Path("/tmp/host-contacts").write_text("")
+        Path("/tmp/dispatch-actions").write_text("")
         Path("/tmp/hold-up-started").unlink(missing_ok=True)
 
     def release(self, commit, **extra):
@@ -294,16 +324,16 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
         self.assertIn("Built successfully with quality warnings", Path("/tmp/unibase-release-runner/summary").read_text())
         self.assertIn("ssh", Path("/tmp/host-contacts").read_text())
 
-    def test_failed_build_never_contacts_host(self):
+    def test_failed_build_never_deploys(self):
         result = self.run_release(FAIL_BUILD="1")
         self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(Path("/tmp/host-contacts").read_text(), "")
+        self.assertEqual(Path("/tmp/dispatch-actions").read_text(), "preflight\n")
         self.assertFalse((ROOT / "staging/current").exists())
 
-    def test_commit_changed_during_build_never_contacts_host(self):
+    def test_commit_changed_during_build_never_deploys(self):
         result = self.run_release(STALE_AFTER_BUILD="1")
         self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(Path("/tmp/host-contacts").read_text(), "")
+        self.assertEqual(Path("/tmp/dispatch-actions").read_text(), "preflight\n")
 
     def test_private_package_is_rejected_without_changing_visibility(self):
         result = self.run_release(MOCK_VISIBILITY="private")
@@ -312,10 +342,10 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
         self.assertEqual(Path("/tmp/host-contacts").read_text(), "")
         self.assertFalse(Path("/tmp/docker-built").exists())
 
-    def test_anonymous_pull_failure_never_contacts_host(self):
+    def test_anonymous_pull_failure_never_deploys(self):
         result=self.run_release(FAIL_ANONYMOUS_PULL="1")
         self.assertNotEqual(result.returncode,0)
-        self.assertEqual(Path('/tmp/host-contacts').read_text(),'')
+        self.assertEqual(Path('/tmp/dispatch-actions').read_text(),'preflight\n')
         self.assertTrue(Path('/tmp/docker-built').exists())
 
     def test_host_lock_serializes_competing_releases(self):
@@ -379,3 +409,19 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
         result = self.run_host("check")
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn("result=healthy", result.stdout)
+
+    def test_preflight_rejection_never_builds_publishes_or_deploys(self):
+        for flag in ('MISMATCH_CONFIG', 'LEGACY_DISPATCHER'):
+            with self.subTest(flag=flag):
+                result = self.run_release(**{flag: '1'})
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(Path('/tmp/docker-operations').read_text(), '')
+                self.assertFalse((ROOT / 'staging/current').exists())
+                self.assertNotIn('legacy private failure', result.stdout + result.stderr)
+
+    def test_change_after_preflight_is_rejected_at_deployment(self):
+        result = self.run_release(CHANGE_AFTER_PREFLIGHT='1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(Path('/tmp/docker-built').exists())
+        self.assertFalse((ROOT / 'staging/current').exists())
+        self.assertIn('CONFIGURATION_MISMATCH', result.stdout)

@@ -13,7 +13,7 @@
   [Dify integration](../dify) describe application transport and workflow contracts.
   The [host projection](../scripts/deploy/release_settings.py) separates image-owned
   flags from the host profile; [runtime settings](../scripts/runtime-settings.cjs)
-  validate the image flag map. Infrastructure owns the shared v1 request dispatcher.
+  validate the image flag map. Infrastructure owns the shared v1/v2 request dispatcher and approval engine.
 
 ## Documentation
 
@@ -53,3 +53,15 @@ Infrastructure owns shared hosts/access and inventory, as linked from [deploymen
 No host, Dify or tunnel ownership transfers through these references. The user's assignment
 identifies the accountable member; credentials do not. Accepted milestone authority and
 advisory validation remain as defined in [AGENTS.md](../AGENTS.md) and the adapter.
+
+Deployment compatibility is checked by scripts/deploy/preflight.py using the restricted
+Infrastructure protocol. scripts/deploy/configuration-impact.py supplies an advisory
+PR host-setting report; canonical ownership and rollout remain in deployment.md.
+
+The [deployment contract](../deploy/contract.json) owns configuration classification;
+its [interpreter](../scripts/deploy/deployment_contract.py) is mirrored in Infrastructure
+for privileged-free bundle preparation. The cross-repository parity test detects drift.
+[Inherited lock validation](../scripts/deploy/verify-operation-lock.py) belongs to
+application control; Infrastructure owns lock acquisition, lifetime and status.
+
+Deployment changes require configuration ownership classification and operator-impact reporting. The deployment/operations guide owns plan approval, status and recovery; contract changes require validation, update behavior and compatibility coverage.
