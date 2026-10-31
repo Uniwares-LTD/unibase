@@ -2,10 +2,10 @@
 
 ## Repository and task contract
 
-- Project: Base. Resolve the actual repository identity from `git remote -v`; do not assume the extracted repository already exists. Default development branch: main.
+- Project: Base. Resolve the actual repository identity from `git remote -v`; do not assume the extracted repository already exists. Read [repository preferences](repository.md) for issue language and durable branches.
 - Accepted implementation contract: docs/implementation-plan.md plus the user's current request.
 - Already accepted milestones in that plan, including the accepted handbook onboarding plan, need no retroactive issue or approval. New substantial work uses issues under handbook policy; small standalone changes may use the user's request directly. Clarify only material unresolved scope or architecture decisions.
-- Preserve the current branch and existing changes. Publication and branch creation follow explicit session authorization, not imported skill defaults.
+- Preserve the current work branch and existing changes. New work branches follow Handbook naming and the confirmed integration branch. Do not develop on durable branches. Existing accepted work branches need not be renamed during integration maintenance.
 
 ## Canonical documentation
 
@@ -30,6 +30,22 @@
 
 ## Publication and external actions
 
+The consumer-owned [tracking selection](tracking.json) is the only source of this
+repository's tracking destination. If unconfigured, confirm a destination during
+adoption before any tracking operation. Use Backlog, Ready, In progress, In review, Done and
+Cancelled with separate blockers and one accountable human. Human acceptance owns
+closure; use ordinary Related to references rather than auto-closing keywords.
+Create approved issues through the task snapshot's create-issue.mjs helper; preserve
+human edits and inspect partial results before retrying. Tracking metadata records
+the existing selection, not evidence of current remote permissions or workflow state.
+
+Local authority exception: unlike Handbook's work-branch commit default, commits
+still need explicit session authorization under AGENTS.md. This preserves the
+repository's accepted reviewable-working-tree workflow. Shared command gates are
+only a backstop; retiring a prompt does not expand that authority. Integrate through
+PRs; deployment promotion and external access changes remain separately authorized.
+
+
 For assigned issue work, handbook policy authorizes enrollment of its existing issue,
 nonterminal status/blocker maintenance and concise evidence comments. Confirm the acting
 member from the assignment; credentials alone do not establish ownership. Human approval
@@ -39,7 +55,7 @@ other project configuration changes retain explicit session authorization.
 
 ## Skill adaptations
 
-Seven workflow and four technology/UI skills resolve from the Handbook baseline
+Eight workflow and four technology/UI skills resolve from the Handbook baseline
 returned at task start, without per-consumer version pins. Retain
 accepted milestone authority, proportional checks, no arbitrary retry limit, and no
 quality-warning release gates. Local application contracts remain authoritative;
@@ -87,7 +103,16 @@ generated areas or ownership change. Keep application facts here; propose reusab
 procedure changes to Handbook. After skill metadata/routing edits, explicitly sync
 and check entrypoints; preserve custom content and review hashes before updating them.
 Claude imports AGENTS.md and reads thin references to canonical .agents entrypoints.
-These files install no hooks, permissions, subagents or runtime dependencies.
+Skill references install no hooks or runtime dependencies. Explicit sync also
+maintains command safeguards in .agents/gated-commands.json and generated Claude
+ask/deny rules in .claude/settings.json. No local reviewer role is installed;
+use a separate read-only review pass unless delegation is authorized.
+
+Templates live in .github/ISSUE_TEMPLATE, .github/PULL_REQUEST_TEMPLATE.md and
+docs/templates. Use maintain-docs and handbook:templates to preview or copy missing
+starters. Existing copies are project-owned and replaced only by explicit per-file
+selection. Publication PRs retain operator intervention reporting from
+[deployment guidance](../docs/deployment.md#publication-and-operator-intervention).
 
 Preserved technology adaptations: prefer allowlisted DTOs (including explicit timestamp
 representations) without claiming React cannot transport Date/Map/Set. Performance

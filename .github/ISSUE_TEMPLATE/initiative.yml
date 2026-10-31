@@ -1,0 +1,60 @@
+{
+  "name": "Initiative",
+  "description": "A larger outcome coordinated across several issues.",
+  "type": "Task",
+  "labels": [
+    "initiative"
+  ],
+  "body": [
+    {
+      "type": "markdown",
+      "attributes": {
+        "value": "Fill in what you know; skip, rename or delete any section. Triage completes the rest."
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "outcome",
+      "attributes": {
+        "label": "Outcome",
+        "placeholder": "What measurable result should the initiative deliver, and why?"
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "children",
+      "attributes": {
+        "label": "Planned child issues",
+        "placeholder": "- [ ] owner/repo: short outcome\n- [ ] ..."
+      },
+      "validations": {
+        "required": false
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "acceptance",
+      "attributes": {
+        "label": "Done when",
+        "placeholder": "Observable result that shows this is finished."
+      },
+      "validations": {
+        "required": false
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "context",
+      "attributes": {
+        "label": "Context / links",
+        "placeholder": "Dependencies, related work, constraints."
+      },
+      "validations": {
+        "required": false
+      }
+    }
+  ]
+}

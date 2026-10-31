@@ -1,6 +1,6 @@
 ---
 name: maintain-project
-description: "Initialize or reconcile a project's Handbook integration, local guidance, source map and selected shared skills; use for adoption or project maintenance."
+description: "Adopts the Handbook in a repository or reconciles an existing integration: local guidance, source map, selected skills, tracking setup and organization access. Use when onboarding a repository, updating its Handbook integration, or setting up project tracking or team access."
 ---
 
 Read and follow the canonical local entrypoint
@@ -8,4 +8,4 @@ Read and follow the canonical local entrypoint
 Resolve its relative references from that canonical file, not this wrapper.
 For shared guidance, retain the task's Handbook revision through continuation.
 This reference grants no hooks, tools, permissions, or delegation authority.
-<!-- handbook-managed:bce48ff4fc57eee306a4a34b23a7a978b22c22ae05a87ac0ad70657e035bb1f8 -->
+<!-- handbook-managed:c4ba0f8f8a74e266c77ceb57ff3e1951a2acd50007c1c6094b2e16bf3a8302e2 -->

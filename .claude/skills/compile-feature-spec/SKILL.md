@@ -1,6 +1,6 @@
 ---
 name: compile-feature-spec
-description: "Turn an unclear feature or documentation outcome into a bounded implementation-ready specification; stay read-only."
+description: "Turns an unclear feature, documentation or integration request into a bounded, implementation-ready specification without changing code. Use when a request is vague, before building a feature, or when asked to scope, spec or plan work."
 ---
 
 Read and follow the canonical local entrypoint
@@ -8,4 +8,4 @@ Read and follow the canonical local entrypoint
 Resolve its relative references from that canonical file, not this wrapper.
 For shared guidance, retain the task's Handbook revision through continuation.
 This reference grants no hooks, tools, permissions, or delegation authority.
-<!-- handbook-managed:ed2407f263de628ce93174a7585bad474f2d9800a5e86db0cd8772acb74ca7d1 -->
+<!-- handbook-managed:6ec1a4aa4b781f6f8a6015b177f0c1ba1224db684f90ffb7a8dadbc690c8c357 -->

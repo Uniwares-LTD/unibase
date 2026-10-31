@@ -1,0 +1,68 @@
+{
+  "name": "Bug",
+  "description": "Something is broken or behaves unexpectedly.",
+  "type": "Bug",
+  "body": [
+    {
+      "type": "markdown",
+      "attributes": {
+        "value": "Fill in what you know; skip, rename or delete any section. Triage completes the rest."
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "problem",
+      "attributes": {
+        "label": "What's wrong",
+        "placeholder": "What happened, and where?"
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "reproduction",
+      "attributes": {
+        "label": "Steps to reproduce",
+        "placeholder": "1. ...\n2. ..."
+      },
+      "validations": {
+        "required": false
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "expected",
+      "attributes": {
+        "label": "Expected behavior",
+        "placeholder": "What should have happened instead?"
+      },
+      "validations": {
+        "required": false
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "acceptance",
+      "attributes": {
+        "label": "Done when",
+        "placeholder": "Observable result that shows this is finished."
+      },
+      "validations": {
+        "required": false
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "context",
+      "attributes": {
+        "label": "Context / environment",
+        "placeholder": "Version, environment, logs, screenshots, links."
+      },
+      "validations": {
+        "required": false
+      }
+    }
+  ]
+}

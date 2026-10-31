@@ -1,16 +1,16 @@
 ---
 name: sync-docs-issues
-description: "Reconcile canonical documentation and issue evidence with verified work; do not create issues or accept completion."
+description: "Updates canonical documentation, the source map and issue evidence to match verified work. Use after a change is implemented and reviewed, or when docs, links or issue evidence are out of date."
 ---
 
 Use the task's existing Handbook path and full revision. Only if no baseline is
 recorded, run `npm run handbook:check` (or `node scripts/handbook.mjs check`).
 Read `docs/bootstrap.md`, `docs/work-policy.md` and
 `.agents/skills/sync-docs-issues/SKILL.md` with `git -C PATH show REVISION:FILE`.
-Read this project's guidance and source map declared in `handbook.json`.
+Read this project's guidance, source map and preferences declared in `handbook.json`.
 Resolve all shared references at that same revision; use `resources --revision SHA`
 through the launcher for filesystem assets. Never substitute the mutable checkout.
 Retain path/revision in handoffs and resume summaries. If lost, recover from context
 first; otherwise establish a new baseline and report the discontinuity.
 If unavailable, continue under local guidance and pause only dependent decisions.
-<!-- handbook-managed:11f64d47c378193a771fe632d3569d2071f74424c3bf0a22aa38382e73761eff -->
+<!-- handbook-managed:3a76d005a59945280aa44af4866eab0ad82b47268ad4785f7bd7e930a5799f3e -->

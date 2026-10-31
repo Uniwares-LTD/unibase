@@ -1,6 +1,6 @@
 ---
 name: sync-docs-issues
-description: "Reconcile canonical documentation and issue evidence with verified work; do not create issues or accept completion."
+description: "Updates canonical documentation, the source map and issue evidence to match verified work. Use after a change is implemented and reviewed, or when docs, links or issue evidence are out of date."
 ---
 
 Read and follow the canonical local entrypoint
@@ -8,4 +8,4 @@ Read and follow the canonical local entrypoint
 Resolve its relative references from that canonical file, not this wrapper.
 For shared guidance, retain the task's Handbook revision through continuation.
 This reference grants no hooks, tools, permissions, or delegation authority.
-<!-- handbook-managed:d140f020372d832b3ca9d318c81c87d8872ff3393658702b6bd015182be153ce -->
+<!-- handbook-managed:52e256f5eb99b82db27d7ddbc8025bc18bcfbcce2d6af1a4d98926fdb28b359d -->

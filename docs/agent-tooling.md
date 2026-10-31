@@ -1,10 +1,14 @@
 # Base agent tooling
 
-Handbook owns seven workflow and four selected technology/UI skills. Canonical local
+Handbook owns eight workflow and four selected technology/UI skills. Canonical local
 .agents/skills entrypoints read shared procedures at the task revision. Claude's thin
 .claude/skills references route to them; CLAUDE.md imports @AGENTS.md. Project facts and
 adaptations remain in the [adapter](../.agents/repository-adapter.md) and
 [source map](source-map.md), declared by [handbook.json](../handbook.json).
+The [repository preferences](../.agents/repository.md) record user-confirmed language
+and durable branches; [tracking](../.agents/tracking.json) records this repository's
+project selection when configured. An unconfigured selection grants no tracking
+destination or authority. Local configuration does not verify live access or workflows.
 
 ## Setup and daily use
 
@@ -34,6 +38,17 @@ This explicitly updates managed Codex references and thin Claude wrappers. Witho
 Customized/unmanaged content is preserved and reported for manual reconciliation.
 Normal refresh never rewrites entrypoints. Read assets from the same committed snapshot;
 run project commands from this consumer, not the snapshot directory.
+
+Sync also merges the shared command gate list, retires specified obsolete gates, and
+generates Claude ask/deny rules while preserving other settings. Gates do not grant
+authority: Base still requires explicit commit and publication authorization. No local
+reviewer subagent is installed. Codex gate configuration and Claude runtime enforcement
+are not verified by these offline checks.
+
+Use `npm run handbook:templates -- --source SNAPSHOT` to preview templates and add
+`--write` to copy missing files. Existing copies are project-owned; replace only named
+files with `--update PATH`. Issue/PR starters live in .github; document starters live
+in docs/templates. Existing guidance, source map and preferences are preserved.
 
 Run `npm run handbook:ready` offline after updates. Missing files, invalid references and
 incomplete source-map structure produce warnings without readiness exit-code gates.
@@ -68,7 +83,10 @@ The adapter retains runtime, deployment, Windows browser, locale/CSP, DTO and pe
 adaptations. Accepted implementation-plan milestones need no retroactive issues. Warnings
 remain advisory; build/runtime failures are real failures. Derived creation copies reviewed
 guidance, references, metadata and offline tooling, but never clones Handbook, copies its
-cache, sets credentials, enrolls projects or migrates backlogs. Maintainers reconcile the
+cache, sets credentials, enrolls projects or migrates backlogs. It excludes this repo's
+tracking selection and preferences, replacing them with explicit unconfigured
+placeholders at the same paths so guidance links remain valid. Readiness reports the
+missing choices until maintainers confirm them during adoption. Maintainers reconcile the
 inherited source map and ownership before adoption.
 
 skills-lock.json records local entrypoint hashes. Historical imports, original upstream
@@ -76,6 +94,26 @@ identities and resource hashes are preserved in provenance/handbook-migration.js
 Duplicated technology procedures/resources moved to Handbook with licenses/notices and
 provenance; Playwright LICENSE.txt and NOTICE.txt also remain locally. Shared snapshots
 retain relative resources. System-owned skills are unchanged.
+
+## Integration reconciliation — 2026-10-28
+
+Reconciled against Handbook main at
+`a780e3dab0be06b2a49f3bfb5593ab211d5be024`, fetched and verified against GitHub.
+This is provenance, not a consumer version pin. Launcher and offline tool match that
+committed source. All twelve entrypoints were synchronized; the four selected technology
+skills remain unchanged in scope. Starter copies preserve local documents; the PR
+starter adds Base's operator intervention reporting.
+
+Fourteen Handbook fixtures and the derived-project isolation fixture passed. Offline
+readiness, entrypoint drift, skill integrity, documentation/environment inventories
+and translation checks passed. Doctor reported no warnings. Git subprocess checks
+needed elevated access in this environment; this does not certify native-client runtime
+acceptance. Live project workflows/access and Claude runtime remain unverified here.
+Typechecking passed with native-cache access. The separate read-only review was a
+same-agent cold-review fallback and found no actionable defects. No application build
+or live service acceptance was run for this integration/initializer-only change.
+Handbook's own operations record still lists disabling project Auto-add as outstanding;
+this update makes no remote project or permission changes.
 
 ## Shared-guidance adoption verification — 2026-10-27
 
