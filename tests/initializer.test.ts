@@ -56,7 +56,8 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     "docs/source-map.md",
     "docs/agent-tooling.md",
   ];
-  for (const name of guidanceFiles) files[name] = (await readFile(name, "utf8")).replaceAll("\r\n", "\n");
+  for (const name of guidanceFiles)
+    files[name] = (await readFile(name, "utf8")).replaceAll("\r\n", "\n");
   for (const name of ["deploy/contract.json", "scripts/deploy/operations.py"])
     files[name] = (await readFile(name, "utf8")).replaceAll("\r\n", "\n");
   for (const environment of ["local", "staging", "production"]) {
