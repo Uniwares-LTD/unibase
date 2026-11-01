@@ -8,6 +8,47 @@ export type ProductAsset = RunAsset & {
   references: string[];
   fence: number;
 };
+// Copy payloads within MongoDB, outside the publish transaction. Empty references
+// keep these private; existing Run-history cleanup also reclaims unreferenced copies.
+export async function stageProductAssets(db: Db, uid: string, jobId: string) {
+  await db
+    .collection<RunAsset>("runAssets")
+    .aggregate(
+      [
+        { $match: { uid, jobId, status: "ready" } },
+        { $limit: 10 },
+        {
+          $project: {
+            _id: 1,
+            uid: 1,
+            logicalId: 1,
+            jobId: 1,
+            name: 1,
+            mime: 1,
+            bytes: 1,
+            digest: 1,
+            base64: 1,
+            object: 1,
+            status: 1,
+            createdAt: 1,
+            state: { $literal: "ready" },
+            references: { $literal: [] },
+            fence: { $literal: 0 },
+          },
+        },
+        {
+          $merge: {
+            into: "productAssets",
+            on: "_id",
+            whenMatched: "keepExisting",
+            whenNotMatched: "insert",
+          },
+        },
+      ],
+      { maxTimeMS: 120000, timeoutMS: 125000 },
+    )
+    .toArray();
+}
 export async function promoteAsset(
   db: Db,
   uid: string,
@@ -17,10 +58,47 @@ export async function promoteAsset(
   session: ClientSession,
 ) {
   const assets = db.collection<ProductAsset>("productAssets");
-  const old = await assets.findOne({ _id: id, uid }, { session });
+  const old = await assets.findOne(
+    { _id: id, uid },
+    {
+      session,
+      projection: {
+        _id: 1,
+        state: 1,
+        references: 1,
+        jobId: 1,
+        digest: 1,
+        bytes: 1,
+      },
+    },
+  );
   if (old) {
     if (old.state !== "ready")
       throw new AppError("ASSET_UNAVAILABLE", "Image is being removed.", 409);
+    if (old.jobId !== jobId)
+      throw new AppError("ASSET_UNAVAILABLE", "Image ownership changed.", 409);
+    if (!old.references.length) {
+      const source = await db
+        .collection<RunAsset>("runAssets")
+        .findOneAndUpdate(
+          {
+            _id: id,
+            uid,
+            jobId,
+            status: "ready",
+            digest: old.digest,
+            bytes: old.bytes,
+          },
+          { $set: { retained: true } },
+          { session, projection: { _id: 1 } },
+        );
+      if (!source)
+        throw new AppError(
+          "ASSET_NOT_FOUND",
+          "Owned Run image unavailable.",
+          404,
+        );
+    }
     await assets.updateOne(
       { _id: id, state: "ready" },
       { $addToSet: { references: reference }, $inc: { fence: 1 } },

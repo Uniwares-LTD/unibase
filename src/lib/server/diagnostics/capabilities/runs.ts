@@ -313,6 +313,9 @@ export const runGet = define({
               status: 1,
               artifactId: 1,
               nextAttemptAt: 1,
+              "failure.code": 1,
+              "failure.phase": 1,
+              "failure.at": 1,
             },
           },
         )
@@ -352,6 +355,13 @@ export const runGet = define({
         status: row.status,
         artifactId: row.artifactId ?? null,
         nextAttemptAt: iso(row.nextAttemptAt),
+        failure: row.failure
+          ? {
+              code: row.failure.code,
+              phase: row.failure.phase,
+              at: iso(row.failure.at),
+            }
+          : null,
       })),
       assets: assets.slice(0, PAGE_SIZE * 10).map((row) => ({
         id: row._id,

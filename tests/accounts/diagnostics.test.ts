@@ -1174,6 +1174,12 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
           nextAttemptAt: new Date(clock),
           secret: "DO_NOT_EXPOSE_APPLICATION",
           lease: "DO_NOT_EXPOSE_LEASE",
+          failure: {
+            code: "ASSET_UNAVAILABLE",
+            phase: "apply",
+            at: new Date(clock),
+            message: "DO_NOT_EXPOSE_FAILURE",
+          },
         } as never);
         await db.collection("runAssets").insertMany([
           {
@@ -1213,6 +1219,11 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
           id: "artifact-1",
         });
         assert.equal(data.resultApplications[0].artifactId, "artifact-1");
+        assert.deepEqual(data.resultApplications[0].failure, {
+          code: "ASSET_UNAVAILABLE",
+          phase: "apply",
+          at: new Date(clock).toISOString(),
+        });
         assert.deepEqual(data.assets, [
           {
             id: "owned-image",

@@ -69,6 +69,26 @@ distinct retained images and one two-credit settlement at 09:21:55 UTC. The hold
 is committed; recovery preserved the original provider execution without generation.
 See [release impact](deployment.md#completed-run-image-recovery-release-impact).
 
+The follow-up artifact attachment retry also failed while all nine Run images
+remained ready. Its old application record did not retain the underlying error.
+The correction stages payload copies within MongoDB before the short metadata
+transaction, validates expected images, and records sanitized failure codes/phases.
+Sixty affected tests passed with one optional Redis test skipped; type checking,
+lint, documentation/skill checks, build and separate read-only review passed.
+Command-monitoring tests verify nine large images publish without image bytes in
+transaction requests or responses. Existing failed saves require an owner-initiated
+retry after release; live artifact attachment acceptance remains separate.
+
+The follow-up artifact attachment retry also failed while all nine Run images
+remained ready. Its old application record did not retain the underlying error.
+The correction stages payload copies within MongoDB before the short metadata
+transaction, validates expected images, and records sanitized failure codes/phases.
+Sixty affected tests passed with one optional Redis test skipped; type checking,
+lint, documentation/skill checks, build and separate read-only review passed.
+Command-monitoring tests verify nine large images publish without image bytes in
+transaction requests or responses. Existing failed saves require an owner-initiated
+retry after release; live artifact attachment acceptance remains separate.
+
 ### Accepted extension: environment-owned Dify apps — 2026-11-01
 
 One app per project/environment, automatic managed MCP setup, exact-version copying,
