@@ -99,6 +99,45 @@ const env = {
   MCP_TOKEN_LIMITED: otherToken,
 };
 
+test("Dify connection URL discriminator does not grant authentication or tool permissions", async () => {
+  const options = {
+    config: parseMcpConfig(env, "http://localhost:3000"),
+    appName: "Fixture",
+    log() {},
+  };
+  const invoke = (secret?: string) =>
+    handleMcp(
+      new Request(
+        "http://localhost:3000/api/mcp?connection=unibase_managed_staging",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json, text/event-stream",
+            ...(secret ? { Authorization: `Bearer ${secret}` } : {}),
+          },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/list",
+            params: {},
+          }),
+        },
+      ),
+      options,
+    );
+  assert.equal((await invoke()).status, 401);
+  const limited = await invoke(otherToken);
+  assert.equal(limited.status, 200);
+  const catalog = await limited.json();
+  assert(
+    !catalog.result.tools.some(
+      (tool: { name: string }) => tool.name === "get_reference_document_v1",
+    ),
+  );
+  assert.equal((await invoke(token)).status, 200);
+});
+
 test("MCP configuration is opt-in, strict and does not reflect secrets", () => {
   assert.deepEqual(parseMcpConfig({}, "http://localhost:3000"), {
     enabled: false,

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { difyJson } from "../../src/lib/server/runs/dify-console-client";
+import { AppError } from "../../src/lib/auth-policy";
 
 test("Dify Console fixtures isolate management authentication and bound mutation outcomes", async () => {
   const originalFetch = globalThis.fetch;
@@ -60,6 +61,25 @@ test("Dify Console fixtures isolate management authentication and bound mutation
         e.code === "DIFY_IMPORT_REJECTED" &&
         !e.message.includes("private-denied"),
     );
+    globalThis.fetch = async () =>
+      new Response("private-missing", { status: 404 });
+    for (const status of [400, 401, 403, 404, 405, 409, 422, 429]) {
+      globalThis.fetch = async () =>
+        new Response("private-credential-canary", { status });
+      for (const method of ["POST", "PUT"] as const)
+        await assert.rejects(
+          difyJson("/workspaces/current/tool-provider/mcp", {
+            management: true,
+            method,
+            body: { headers: { Authorization: "private-request-canary" } },
+          }),
+          (error: unknown) =>
+            error instanceof AppError &&
+            error.code === "DIFY_MCP_SETUP_REJECTED" &&
+            error.status === 409 &&
+            !error.message.includes("canary"),
+        );
+    }
     globalThis.fetch = async () =>
       new Response("private-missing", { status: 404 });
     await assert.rejects(
