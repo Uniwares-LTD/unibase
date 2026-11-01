@@ -474,11 +474,34 @@ export const applyArtifactResult: ProductResultHandler = async (
     .collection<Document & { _id: string }>("runAssets")
     .find(
       { uid: intent.uid, jobId: intent.jobId, status: "ready" },
-      { session },
+      { session, projection: { _id: 1 } },
     )
     .limit(10)
     .toArray();
-  for (const image of images)
+  const result = await db
+    .collection<Document & { _id: string }>("runResults")
+    .findOne(
+      { _id: intent.jobId, uid: intent.uid },
+      { session, projection: { "result.images.id": 1 } },
+    );
+  const available = new Set(images.map((image) => image._id));
+  if (
+    result?.result?.images?.some(
+      (image: { id: string }) => !available.has(image.id),
+    )
+  )
+    throw new AppError(
+      "RESULT_ASSETS_UNAVAILABLE",
+      "Saved result images are unavailable.",
+      409,
+    );
+  const expected = result?.result?.images
+    ? new Set<string>(
+        result.result.images.map((image: { id: string }) => image.id),
+      )
+    : available;
+  const selected = images.filter((image) => expected.has(image._id));
+  for (const image of selected)
     await promoteAsset(
       db,
       intent.uid,
@@ -491,7 +514,7 @@ export const applyArtifactResult: ProductResultHandler = async (
     .collection<Artifact>("artifacts")
     .updateOne(
       { id: artifact.id },
-      { $addToSet: { assets: { $each: images.map((i) => i._id) } } },
+      { $addToSet: { assets: { $each: selected.map((i) => i._id) } } },
       { session },
     );
 };

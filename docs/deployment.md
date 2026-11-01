@@ -20,6 +20,15 @@ host profile change, migration or new diagnostic permission. Existing `run.get`
 grants can read the additional metadata; bytes, storage locations and leases remain
 excluded. It does not retry saves or change financial records.
 
+The attachment correction stages image copies inside MongoDB before the publish
+transaction and records safe failure codes. **Operator intervention: none.** It
+uses the existing collections and database write access; there is no profile,
+credential, controller, index installation or migration. Existing failed saves
+remain failed until their signed-in owner clicks **Retry save** after release.
+This attaches retained images without generation or another credit charge. Create
+a fresh diagnostic grant after deployment's Redis recreation to verify the same
+attempt, application status, nine artifact references and unchanged settlement.
+
 ## Environment-binding release impact
 
 Local-only `MCP_PUBLIC_URL` is host-owned configuration in `deploy/contract.json`,
@@ -49,10 +58,10 @@ Verified November 1, 2026; this is dated acceptance, not continuous monitoring.
 
 | Identity or check | Verified result |
 | --- | --- |
-| Source | `cf2464d23b0d4bff55cc2dbfb9955a7bc376ed01`, promoted from main through [PR #19](https://github.com/Uniwares-LTD/unibase/pull/19) |
-| Image | `ghcr.io/uniwares-ltd/unibase@sha256:2cf2d45d9ff2b937b178faa4b17e795cc0b34b20d613b1b90b00778b3761a92d` |
-| Release | [41291838645](https://github.com/Uniwares-LTD/unibase/actions/runs/41291838645): pinned-SSH preflight, build/publication, anonymous pull, deployment and readiness passed |
-| Separate check | [41292222392](https://github.com/Uniwares-LTD/unibase/actions/runs/41292222392): web and both workers passed |
+| Source | `c190d26cbe329a704dfb88569194cf9ee4fbf1be`, promoted from main through [PR #23](https://github.com/Uniwares-LTD/unibase/pull/23) |
+| Image | `ghcr.io/uniwares-ltd/unibase@sha256:da2eed56a480d1728bb76143e8a66ed40ace88589d99e432a605b86a31162e58` |
+| Release | [41294993500](https://github.com/Uniwares-LTD/unibase/actions/runs/41294993500): pinned-SSH preflight, build/publication, anonymous pull, deployment and readiness passed |
+| Separate check | [41295302194](https://github.com/Uniwares-LTD/unibase/actions/runs/41295302194): web and both workers passed |
 | Public readiness | `/api/health/ready` returned `ready` and the source commit above |
 | Maintenance result | `maintenance=disabled`; automatic cleanup remains disabled |
 
@@ -70,6 +79,12 @@ one Persona credit). Its provider Run ID is unchanged; recovery did not regenera
 images or create a successor attempt. Earlier account/provider acceptance was not
 rerun by this release. This evidence update requires no repeated installation or
 release.
+
+The latest release adds read-only save/asset metadata for the remaining artifact
+association investigation. Its Compose log confirms Redis recreation, which clears
+the in-memory diagnostic grants; renewed post-release access is required. The
+completed Run and its financial records remain in MongoDB. See
+[diagnostic grant lifecycle](diagnostics-api.md#grants).
 
 ## Choose an operation
 

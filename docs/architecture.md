@@ -570,6 +570,14 @@ or failed. The last product reference permits exact-object deletion after Run
 history releases its own reference. The existing maintenance worker handles S3
 removal retries; private asset reads continue checking the current owner session.
 
+Artifact publication stages payload copies with a bounded server-side MongoDB
+`$merge` before its short publish transaction. Existing product payloads and
+references are never overwritten. The transaction reads only image metadata,
+rechecks the accepted target and ready source assets, and atomically attaches all
+expected images. Copies without product references are private; pending/failed
+application records protect their source from history cleanup. Safe application
+failure codes and phases are available through diagnostics without exception text.
+
 The Start Run Server Component loads all ordinary workflow choices and owned
 artifact summaries, passing only ID, title and revision to the setup form. The
 client conditionally creates or selects an artifact, snapshots the complete Run
