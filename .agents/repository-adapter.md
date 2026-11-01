@@ -137,3 +137,5 @@ No global CLI installation or execution-policy change is required.
 Deployment changes must classify image, host configuration, controller, provider or data impact. Report operator ordering, verification and failure/resume; unsupported requirements require a named owner action. Preserve session authority and separate publication from installation/live acceptance.
 
 Image-maintenance integration must preserve application-then-host-image lock ordering, capability-bound requests and separate release/maintenance outcomes. Enrollment, retention policy and timer activation belong to Infrastructure; initializers emit proposals only. Keep current/previous and uncertain recovery images protected.
+
+For operational documentation, keep current procedures separate from dated evidence. Infrastructure inventory owns installed host/configuration identities and capacity; application deployment guides own serving release identities and acceptance. Documentation-only publication must state that completed installations are not repeated. Inspect partial installation state before retrying, and verify executable prerequisites rather than module presence alone.

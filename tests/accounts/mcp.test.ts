@@ -270,6 +270,16 @@ test("MCP official client: real HTTP, discovery, calls and concurrent permission
       clients.map((c) => c.client.listTools()),
     );
     assert(full.tools.some((t) => t.name === "get_reference_document_v1"));
+    const identity = await clients[0].client.callTool({
+      name: "get_connection_info_v1",
+      arguments: {},
+    });
+    assert.deepEqual(Object.keys(identity.structuredContent as object).sort(), [
+      "environment",
+      "origin",
+      "project",
+    ]);
+    assert.equal(identity.isError, undefined);
     assert(!limited.tools.some((t) => t.name === "get_reference_document_v1"));
     const result = await clients[0].client.callTool({
       name: "get_reference_document_v1",
@@ -426,6 +436,7 @@ test("MCP supports legacy Streamable HTTP clients and cancellation", async () =>
       .sort(),
     [
       "calculate_demo_quote_v1",
+      "get_connection_info_v1",
       "get_demo_catalog_v1",
       "get_reference_document_v1",
       "get_server_info_v1",

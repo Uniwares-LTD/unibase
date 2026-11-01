@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { publicConfigSchema } from "../config/public";
 import { aiPricingSchema } from "../config/ai-pricing";
+import { externalMcpMappingSchema } from "./environment-binding";
 
 export const creditPackSchema = z.strictObject({
   id: z.string().regex(/^[a-z0-9-]{1,64}$/),
@@ -27,6 +28,10 @@ export const baseSettingsSchema = z
     }),
     runs: z.strictObject({
       enabled: z.boolean(),
+      externalMcpMappings: z
+        .array(externalMcpMappingSchema)
+        .max(50)
+        .default([]),
       pricing: aiPricingSchema,
       failureCharging: z.enum(["success-only", "verified-usage"]),
       concurrentPerAccount: z.number().int().min(1).max(20),
@@ -62,6 +67,15 @@ export const baseSettingsSchema = z
       value.credits.packs.length
     )
       ctx.addIssue({ code: "custom", message: "Duplicate pack IDs." });
+    if (
+      new Set(value.runs.externalMcpMappings.map((m) => m.source)).size !==
+      value.runs.externalMcpMappings.length
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "External MCP source mappings must be unique.",
+        path: ["runs", "externalMcpMappings"],
+      });
   });
 export type BaseSettings = z.infer<typeof baseSettingsSchema>;
 export const settingsUpdateSchema = z.strictObject({

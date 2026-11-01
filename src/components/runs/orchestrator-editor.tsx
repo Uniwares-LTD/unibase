@@ -40,10 +40,15 @@ const appSchema = z.object({
   workflowId: z.string().uuid().optional(),
   stage: z.string().optional(),
   message: z.string().optional(),
+  environment: z.string().optional(),
+  owned: z.boolean().optional(),
+  connection: z.string().optional(),
+  source: z.object({ appId: z.uuid(), workflowId: z.uuid() }).optional(),
 });
 const catalogSchema = z.object({
   apps: z.array(appSchema),
   warning: z.string().optional(),
+  currentEnvironment: z.enum(["local", "staging", "production"]).optional(),
 });
 const statusSchema = z.object({
   status: appSchema.shape.status,
@@ -70,6 +75,45 @@ export function OrchestratorEditor({
   const [refreshing, setRefreshing] = useState(false);
   const [creating, setCreating] = useState(false);
   const [changing, setChanging] = useState<string | null>(null);
+  async function copyApp(appId: string, selection?: WorkflowVersionSelection) {
+    if (!selection) return;
+    setCreating(true);
+    setMessage("");
+    const storageKey = namespace(
+      `orchestrator-copy:${initial.currentEnvironment}:${appId}:${selection.workflowId}`,
+    );
+    const key = localStorage.getItem(storageKey) ?? crypto.randomUUID();
+    localStorage.setItem(storageKey, key);
+    try {
+      const result = await api(
+        "/api/admin/orchestrators/manage",
+        z.object({
+          status: z.enum(["ready", "setup-required"]),
+          appId: z.uuid(),
+          name: z.string(),
+        }),
+        {
+          method: "POST",
+          body: { action: "copy", key, appId, selection },
+          timeoutMs: 180000,
+        },
+      );
+      localStorage.removeItem(storageKey);
+      await refresh();
+      setMessage(
+        result.status === "ready"
+          ? translate("m0e0000000002")
+          : translate("m0e0000000003"),
+      );
+      router.refresh();
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : translate("m7c5bb3f95e38"),
+      );
+    } finally {
+      setCreating(false);
+    }
+  }
   async function change(
     action: "disable" | "unregister",
     orchestratorId: string,
@@ -388,7 +432,7 @@ export function OrchestratorEditor({
         </div>
       </div>
       <p className="text-sm text-muted-foreground">
-        {translate("m74b3f6c29768")}
+        {translate("m0e0000000004")}
       </p>
       {message && <Notice title={message} />}
       {!apps.length && (
@@ -405,6 +449,31 @@ export function OrchestratorEditor({
           <CardContent className="flex flex-col gap-4 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1 space-y-2">
               <h3 className="break-words font-semibold">{app.name}</h3>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant={app.owned ? "secondary" : "outline"}>
+                  {app.environment === "local"
+                    ? translate("m0e0000000005")
+                    : app.environment === "staging"
+                      ? translate("m0e0000000006")
+                      : app.environment === "production"
+                        ? translate("m0e0000000007")
+                        : translate("m0e0000000008")}
+                </Badge>
+                {app.connection && (
+                  <Badge variant="outline">
+                    <bdi>{app.connection}</bdi> ·{" "}
+                    {app.status === "ready"
+                      ? translate("m0e0000000009")
+                      : translate("m0e000000000a")}
+                  </Badge>
+                )}
+              </div>
+              {app.source && (
+                <p className="break-words text-xs text-muted-foreground">
+                  {translate("m0e000000000b")}{" "}
+                  <bdi>{app.source.workflowId}</bdi>
+                </p>
+              )}
               {app.description && (
                 <p className="break-words text-sm text-muted-foreground">
                   {app.description}
@@ -440,6 +509,7 @@ export function OrchestratorEditor({
             </div>
             <div className="flex flex-wrap gap-2">
               <WorkflowVersionPicker
+                copy={!app.owned}
                 appId={app.id}
                 currentWorkflowId={app.workflowId}
                 disabled={
@@ -449,17 +519,23 @@ export function OrchestratorEditor({
                   !!active ||
                   app.status === "registering"
                 }
-                onRegister={(selection) => void register(app.id, selection)}
+                onRegister={(selection) =>
+                  void (app.owned
+                    ? register(app.id, selection)
+                    : copyApp(app.id, selection))
+                }
                 label={
-                  app.status === "registering"
-                    ? translate("m9ef767a32782")
-                    : app.registered && app.status !== "disabled"
-                      ? translate("m9959a4e4ca3f")
-                      : app.status === "failed"
-                        ? translate("m04048ff7f268")
-                        : app.status === "disabled"
-                          ? translate("m5342e09f2729")
-                          : translate("mbb7234ec1245")
+                  !app.owned
+                    ? translate("m0e0000000001")
+                    : app.status === "registering"
+                      ? translate("m9ef767a32782")
+                      : app.registered && app.status !== "disabled"
+                        ? translate("m9959a4e4ca3f")
+                        : app.status === "failed"
+                          ? translate("m04048ff7f268")
+                          : app.status === "disabled"
+                            ? translate("m5342e09f2729")
+                            : translate("mbb7234ec1245")
                 }
               />
               {app.registered && app.orchestratorId && (

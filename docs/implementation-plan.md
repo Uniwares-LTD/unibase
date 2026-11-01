@@ -54,6 +54,22 @@ Outstanding: approve and publish the issue; run the Lua grant-store test against
 
 ## Agreed decisions
 
+### Accepted extension: environment-owned Dify apps — 2026-11-01
+
+One app per project/environment, automatic managed MCP setup, exact-version copying,
+visible ownership and registration/admission guards are implemented in the working tree.
+Existing unmanaged registrations are removed manually; no migration or production
+activation is included. Local verification: 215 account tests passed with one optional
+Redis test skipped; the 59 affected checks also passed after review hardening, along
+with 70 general tests, type checking and production build. English/Arabic desktop
+and 390px browser checks used an isolated account and mocked Dify management responses.
+Environment/docs/i18n/skill checks and lint passed. Fourteen Python deployment checks
+passed; cross-repository parity was skipped without Infrastructure, and the complete
+Linux deployment runner could not start because Docker Desktop's engine was unavailable.
+Separate read-only review checked the final implementation; publication, operator/control
+preparation and fresh local/staging live acceptance remain separate. Paid execution
+needs separate authorization. See [environment binding](mcp.md#environment-owned-dify-apps).
+
 Valid verified sessions authorize application and administrator changes throughout
 their normal lifetime, without a separate 30-minute mutation cutoff. Current-role,
 suspension and revocation checks remain mandatory; creating a new Firebase session
@@ -297,17 +313,22 @@ Local implementation now includes the projected bundle builder, version-2 locked
 clients, durable plans/checkpoints, pinned Infrastructure OIDC approval, production
 mapping, manual restic recovery, candidate reuse and initializer integration. Both
 repositories retain v1 compatibility for unmigrated applications. Production remains
-unconfigured and inactive. Publication is authorized in this session; host installation,
-release, provider changes and issue creation remain separate.
+unconfigured and inactive. Subsequent installation, release, provider changes and issue
+creation retain separate authorization; completed work is recorded below.
 
 Acceptance: disposable Linux filesystem tests cover actual archive/updater/dispatcher
 agreement, locks, rejection, restoration and approval boundaries. Service/provider
-commands are synthetic. Real GitHub OIDC claims, protected host readback, controller
-installation, MongoDB/restic restore rehearsal and live release acceptance remain
-rollout checks; passing source tests does not satisfy those checks. The selected
+commands are synthetic. Controller installation, protected readback, configuration correction and routine
+staging release/check are verified. Real GitHub OIDC claims, MongoDB/restic restore
+rehearsal and protected-plan live acceptance remain rollout checks; passing source tests does not satisfy those checks. The selected
 Infrastructure Admin team is enrolled by reviewed numeric IDs, not automatic ongoing
 membership synchronization. Project #2 verification still needs read:project.
 
 ## Accepted image retention and deployment disk protection ? 2026-10-31
 
-Implement capability-bound requests, pre-pull and pre-replacement disk checks, shared image-lock handoff, successful-activation ledger integration and separate maintenance reporting. Infrastructure owns the policy, cleanup and timer; derived projects receive enrollment proposals only. Local/CI verification and a separate read-only review precede handoff. Live cleanup, installation, staging release, production activation and timer enablement remain separate. See [image retention](deployment.md#image-retention-and-disk-headroom). Related issue-ready outcomes are Infrastructure retention/controller tooling and Unibase integration; no issues are created by this milestone.
+Implement capability-bound requests, pre-pull and pre-replacement disk checks, shared image-lock handoff, successful-activation ledger integration and separate maintenance reporting. Infrastructure owns the policy, cleanup and timer; derived projects receive enrollment proposals only. Local/CI verification and a separate read-only review precede handoff. The authorized one-time cleanup, host installation and staging release/check are verified; production activation and timer enablement remain pending and separate. See [image retention](deployment.md#image-retention-and-disk-headroom). Related issue-ready outcomes are Infrastructure retention/controller tooling and Unibase integration; no issues are created by this milestone.
+
+
+## Deployment documentation reconciliation — 2026-10-31
+
+[Current staging release](deployment.md#current-staging-release) owns source/image and workflow acceptance. Infrastructure owns installed identities and dated capacity. Web, both workers and public readiness passed; Dify functional acceptance is pending. Historical account/provider acceptance was not rerun. This documentation change requires no installation or deployment.

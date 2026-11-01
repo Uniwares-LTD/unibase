@@ -1,4 +1,9 @@
 import assert from "node:assert/strict";
+import {
+  bindingTestEnvironment,
+  mockBindingProbe,
+  environmentRequest,
+} from "./fixtures/environment-binding";
 import { test } from "node:test";
 import { randomUUID } from "node:crypto";
 import { AppError } from "../../src/lib/auth-policy";
@@ -45,12 +50,14 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
     notBefore: 0,
   });
   const env = {
+    ...bindingTestEnvironment,
     DIFY_MODE: "live",
     DIFY_CONSOLE_URL: "https://dify.test/console/api",
     DIFY_BASE_URL: "https://dify.test/v1",
     DIFY_WORKSPACE_ID: randomUUID(),
     DIFY_MANAGEMENT_KEY: "private-management",
   };
+  mockBindingProbe(t, env);
   function fixture(
     options: {
       missing?: boolean;
@@ -176,7 +183,11 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
         };
       throw new Error(`Unexpected path ${path}`);
     };
-    return { request, options, counts: () => ({ imports, publishes, keys }) };
+    return {
+      request: environmentRequest(db, env, request),
+      options,
+      counts: () => ({ imports, publishes, keys }),
+    };
   }
   try {
     await t.test("success and repeated key reuse the same app", async () => {
@@ -205,7 +216,7 @@ test("Creation imports only a new app, resumes safely and checks fresh admin acc
         key = randomUUID();
       await assert.rejects(
         createDifyOrchestrator(key, actor, db, f.request, env),
-        /Connect Unibase MCP/,
+        /required tools/,
       );
       assert.equal(f.counts().imports, 0);
       f.options.missing = false;

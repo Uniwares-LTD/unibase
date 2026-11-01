@@ -10,6 +10,8 @@ import {
 import { orchestratorSchema } from "../../src/lib/contracts/runs";
 import { AppError } from "../../src/lib/auth-policy";
 import { executionBinding } from "../../src/lib/server/runs/provider";
+import { bindingTestEnvironment } from "./fixtures/environment-binding";
+import { environmentMcpConfiguration } from "../../src/lib/server/runs/environment-binding";
 
 test("Dify app credentials: reuse first, encrypted persistence, isolation and uncertain creation", async (t) => {
   const repl = await MongoMemoryReplSet.create({
@@ -23,6 +25,7 @@ test("Dify app credentials: reuse first, encrypted persistence, isolation and un
     auth_time: Math.floor(Date.now() / 1000),
   };
   const env = {
+    ...bindingTestEnvironment,
     DIFY_CONSOLE_URL: "https://dify.example.test/console/api",
     DIFY_BASE_URL: "https://dify.example.test/v1",
     DIFY_WORKSPACE_ID: randomUUID(),
@@ -43,6 +46,7 @@ test("Dify app credentials: reuse first, encrypted persistence, isolation and un
       order: 0,
       keyEnv: "DIFY_KEY_FIXTURE",
       appId,
+      environmentBinding: environmentMcpConfiguration(env).binding,
       credentialId,
       enabled: false,
       inputs: [],

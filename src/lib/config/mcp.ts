@@ -27,6 +27,20 @@ export function parseMcpConfig(
   origin: string,
 ): McpConfig {
   validateEnvironmentNames(env);
+  if (env.MCP_PUBLIC_URL) {
+    const endpoint = new URL(env.MCP_PUBLIC_URL);
+    if (
+      endpoint.protocol !== "https:" ||
+      endpoint.username ||
+      endpoint.password ||
+      endpoint.search ||
+      endpoint.hash ||
+      endpoint.pathname !== "/api/mcp"
+    )
+      throw new Error(
+        "MCP_PUBLIC_URL must be an HTTPS /api/mcp endpoint without credentials, query or fragment.",
+      );
+  }
   if (!/^[a-z][a-z0-9-]{0,63}$/.test(env.RUN_MCP_CLIENT_ID ?? "dify"))
     throw new Error("Invalid Run MCP client selection.");
   if (env.MCP_ENABLED === undefined || env.MCP_ENABLED === "false")
@@ -37,7 +51,11 @@ export function parseMcpConfig(
       .array(z.string())
       .max(16)
       .parse(JSON.parse(env.MCP_ALLOWED_HOSTS_JSON ?? "[]"));
-    const hosts = [new URL(origin).host, ...extra];
+    const hosts = [
+      new URL(origin).host,
+      ...extra,
+      ...(env.MCP_PUBLIC_URL ? [new URL(env.MCP_PUBLIC_URL).host] : []),
+    ];
     for (const host of hosts) {
       if (
         !/^[a-zA-Z0-9.\-\[\]:]+$/.test(host) ||

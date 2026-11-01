@@ -755,7 +755,18 @@
     "mff8059dc6752": "Actions",
     "m87e6d00bbf53": "Revoke",
     "mda83f79af6e7": "Revoke diagnostic access?",
-    "m26b3b0578965": "Requests using this grant stop working immediately. This cannot be undone."
+    "m26b3b0578965": "Requests using this grant stop working immediately. This cannot be undone.",
+    "m0e0000000001": "Create a copy for this environment",
+    "m0e0000000002": "The environment copy is registered and ready.",
+    "m0e0000000003": "The environment copy was created. Configure its destination resources in Dify, then register it.",
+    "m0e0000000004": "Each Dify app belongs to one environment. Copy a published version to use it here; the source stays unchanged.",
+    "m0e0000000005": "Local",
+    "m0e0000000006": "Staging",
+    "m0e0000000007": "Production",
+    "m0e0000000008": "Unmanaged",
+    "m0e0000000009": "MCP verified",
+    "m0e000000000a": "MCP verification required",
+    "m0e000000000b": "Copied from published version:"
   },
   "locale": {
     "heading": "Language and region",
@@ -942,7 +953,8 @@
     "outputCreditsPerMillion": "Output credits per million",
     "currency": "Currency",
     "creditsPerCurrencyUnit": "Credits per currency unit",
-    "settings": "Settings"
+    "settings": "Settings",
+    "externalMcpMappings": "External MCP mappings (source ? destination provider IDs)"
   },
   "pricing": {
     "fixed": "{amount} credits per successful attempt",

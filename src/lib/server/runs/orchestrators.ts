@@ -12,6 +12,7 @@ import { database } from "../mongo";
 import { readSettings } from "../settings";
 import { fingerprint } from "../ai/jobs";
 import { executionKey } from "./credentials";
+import { assertRunEnvironment } from "./environment-binding";
 import {
   difyAppCatalog,
   reconcileOrchestratorAvailability,
@@ -110,6 +111,12 @@ export async function orchestrators(
   return Promise.all(
     rows.map(async (row) => {
       const d = row.definition;
+      let bindingValid = true;
+      try {
+        assertRunEnvironment(d.environmentBinding);
+      } catch {
+        bindingValid = false;
+      }
       let hasKey = false;
       try {
         hasKey = !!(await executionKey(d));
@@ -117,6 +124,7 @@ export async function orchestrators(
         /* Report unavailable credentials without exposing them. */
       }
       const ready =
+        bindingValid &&
         row.availability !== "missing" &&
         (process.env.DIFY_MODE === "fake" || (hasKey && !!d.workflowId));
       const configurationKey = fingerprint([
@@ -131,6 +139,11 @@ export async function orchestrators(
             validated: row.validated,
             ready,
             setupIssues: [
+              ...(!bindingValid
+                ? [
+                    "Register an environment-owned copy of this workflow before starting new Runs.",
+                  ]
+                : []),
               ...(row.availability === "missing"
                 ? ["Workflow is no longer available in Dify."]
                 : []),
@@ -208,6 +221,7 @@ export async function selectedOrchestrator(id: string) {
       "This orchestrator is unavailable.",
       409,
     );
+  assertRunEnvironment(row.definition.environmentBinding);
   await verifyOrchestratorAvailable(row);
   return row;
 }

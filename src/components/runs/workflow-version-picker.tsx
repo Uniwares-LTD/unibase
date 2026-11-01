@@ -33,12 +33,14 @@ export function WorkflowVersionPicker({
   label,
   disabled,
   onRegister,
+  copy = false,
 }: {
   appId: string;
   currentWorkflowId?: string;
   label: string;
   disabled: boolean;
   onRegister: (selection?: WorkflowVersionSelection) => void;
+  copy?: boolean;
 }) {
   const t = useTranslations("ui");
   const format = useFormatter();
@@ -122,7 +124,9 @@ export function WorkflowVersionPicker({
             <SelectValue placeholder={t("m549618280324")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="draft">{t("m10f515d80f01")}</SelectItem>
+            {!copy && (
+              <SelectItem value="draft">{t("m10f515d80f01")}</SelectItem>
+            )}
             {versions.map((row) => (
               <SelectItem key={row.id} value={row.id}>
                 {row.name ||
@@ -176,7 +180,7 @@ export function WorkflowVersionPicker({
               );
             }}
           >
-            {t("m34c988995ae9")}
+            {copy ? t("m0e0000000001") : t("m34c988995ae9")}
           </Button>
         </DialogFooter>
       </DialogContent>
