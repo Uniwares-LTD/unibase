@@ -47,6 +47,11 @@ and the timestamps in Redis. Key details:
   requests cannot exceed 20 active grants per administrator.
 - Redis is authoritative. If a grant expires, is revoked or is evicted, access ends.
   There is no other store.
+- The current deployment snapshots Redis's password mount under each release.
+  A changed mount can make Compose recreate Redis. Persistence is disabled, so
+  recreation also clears grants: release 41294993500 confirmed this behavior.
+  Create a fresh grant after activation for authenticated acceptance; a 401 after
+  deployment does not by itself prove expiry. No grant is restored automatically.
 - `auditEvents` records `diagnostic-grant-requested` before activation, then
   `-activated` or `-failed`. A grant whose activation record cannot be written is
   revoked (`DIAGNOSTIC_GRANT_UNCERTAIN`) if Redis confirms the removal; otherwise
