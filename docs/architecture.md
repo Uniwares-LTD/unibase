@@ -1,5 +1,14 @@
 # Base application architecture
 
+## Dify environment ownership
+
+Each managed Dify app belongs to the current project and one environment. A journaled
+creation/import binds it to its Dify instance/workspace, environment-tagged app and
+managed MCP provider. Foreign/unmanaged apps can be copied from exact published versions
+but cannot register directly. Registration and live Run admission enforce this boundary;
+accepted definitions include the verified binding. Administration shows environment,
+verification state and source publication. See [environment binding](mcp.md#environment-owned-dify-apps).
+
 For deployment status and remaining changes, see the [staging transition](deployment.md#staging-transition-status--2026-10-24)
 and [shared architecture](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/architecture.md).
 Current staging retains worker containers, app Redis and private Nginx.

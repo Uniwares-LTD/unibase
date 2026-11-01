@@ -7,6 +7,7 @@ import { discoverDifyOrchestrators } from "@/lib/server/runs/registration";
 import { AppError } from "@/lib/auth-policy";
 import { PageHeader } from "@/components/page-patterns";
 import { orchestratorTemplates } from "@/lib/server/runs/templates";
+import { getConfig } from "@/lib/server/config";
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("ui"))("m9375b0d5e9f0") };
 }
@@ -16,6 +17,7 @@ export default async function Page() {
   await adminPageSession();
   let catalog: Awaited<ReturnType<typeof discoverDifyOrchestrators>> = {
     apps: [],
+    currentEnvironment: getConfig().server.environment,
   };
   let error: string | undefined;
   try {

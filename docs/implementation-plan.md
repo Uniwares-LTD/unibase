@@ -54,6 +54,22 @@ Outstanding: approve and publish the issue; run the Lua grant-store test against
 
 ## Agreed decisions
 
+### Accepted extension: environment-owned Dify apps — 2026-11-01
+
+One app per project/environment, automatic managed MCP setup, exact-version copying,
+visible ownership and registration/admission guards are implemented in the working tree.
+Existing unmanaged registrations are removed manually; no migration or production
+activation is included. Local verification: 215 account tests passed with one optional
+Redis test skipped; the 59 affected checks also passed after review hardening, along
+with 70 general tests, type checking and production build. English/Arabic desktop
+and 390px browser checks used an isolated account and mocked Dify management responses.
+Environment/docs/i18n/skill checks and lint passed. Fourteen Python deployment checks
+passed; cross-repository parity was skipped without Infrastructure, and the complete
+Linux deployment runner could not start because Docker Desktop's engine was unavailable.
+Separate read-only review checked the final implementation; publication, operator/control
+preparation and fresh local/staging live acceptance remain separate. Paid execution
+needs separate authorization. See [environment binding](mcp.md#environment-owned-dify-apps).
+
 Valid verified sessions authorize application and administrator changes throughout
 their normal lifetime, without a separate 30-minute mutation cutoff. Current-role,
 suspension and revocation checks remain mandatory; creating a new Firebase session

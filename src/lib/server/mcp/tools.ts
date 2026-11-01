@@ -4,7 +4,7 @@ import { z } from "zod";
 import { demoScenarioTools } from "./demo-scenarios";
 import { privateTools } from "./private-tools";
 
-export const catalogVersion = "1.2.1";
+export const catalogVersion = "1.3.0";
 export type ToolContext = {
   clientId: string;
   appName: string;
@@ -33,6 +33,27 @@ const reference = {
 };
 
 const registeredTools: readonly RegisteredTool[] = [
+  {
+    name: "get_connection_info_v1",
+    description:
+      "Read the authenticated deployment identity for environment binding.",
+    permission: "server:read",
+    input: z.strictObject({}),
+    output: z.strictObject({
+      project: z.string(),
+      environment: z.enum(["local", "staging", "production"]),
+      origin: z.string(),
+    }),
+    async run() {
+      return {
+        project: project.slug,
+        environment: z
+          .enum(["local", "staging", "production"])
+          .parse(process.env.APP_ENV ?? "local"),
+        origin: process.env.APP_ORIGIN ?? "http://localhost:3000",
+      };
+    },
+  },
   {
     name: "get_server_info_v1",
     description:

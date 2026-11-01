@@ -12,6 +12,7 @@ import type { OrchestratorDefinition } from "@/lib/contracts/runs";
 import { executionKey } from "./credentials";
 import { difyJson } from "./dify-console-client";
 import type { ProviderEvent } from "../ai/types";
+import { assertRunEnvironment } from "./environment-binding";
 
 // Terminal event snapshots can omit historical nodes. Fetch bounded node metadata
 // only for the app/Run already accepted in this server-owned job; never expose outputs.
@@ -65,6 +66,7 @@ export async function executionBinding(
   revision: number,
   db: Db = database(),
 ) {
+  assertRunEnvironment(d.environmentBinding);
   const mode = process.env.DIFY_MODE;
   if (mode !== "live" && mode !== "fake")
     throw new AppError("AI_DISABLED", "AI execution is disabled.", 503);

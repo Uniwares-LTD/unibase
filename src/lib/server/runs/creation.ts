@@ -13,6 +13,19 @@ import {
   type OrchestratorTemplateId,
 } from "@/lib/contracts/orchestrator-templates";
 import { registerDifyOrchestrator } from "./registration";
+import { parseDocument } from "yaml";
+import { inspectDifyWorkflow } from "./dify-capabilities";
+import { selectedWorkflowVersion } from "./workflow-versions";
+import type { WorkflowVersionSelection } from "@/lib/contracts/workflow-versions";
+import {
+  bindEnvironmentGraph,
+  ensureEnvironmentMcp,
+  environmentIdentity,
+  recordAppOwnership,
+  tagOwnedApp,
+  verifyDestinationResources,
+} from "./environment-binding";
+import { tools } from "../mcp/tools";
 
 type Creation = {
   _id: string;
@@ -23,6 +36,8 @@ type Creation = {
   published?: boolean;
   graphHash?: string;
   templateId?: OrchestratorTemplateId;
+  source?: { appId: string; workflowId: string };
+  tagged?: boolean;
 };
 // Journal the irreversible import before sending it. A lost import response must
 // never turn a Retry into a second app. Once appId is known, Retry resumes setup.
@@ -33,10 +48,73 @@ export async function createDifyOrchestrator(
   request: typeof difyJson = difyJson,
   env: Record<string, string | undefined> = process.env,
   templateId: OrchestratorTemplateId = "document-summary",
+  source?: { appId: string; selection: WorkflowVersionSelection },
 ) {
   key = z.string().uuid().parse(key);
   templateId = orchestratorTemplateIdSchema.parse(templateId);
-  const template = orchestratorTemplate(templateId);
+  let template: ReturnType<typeof orchestratorTemplate>;
+  const identity = environmentIdentity(env);
+  const provenance = source
+    ? {
+        appId: z.uuid().parse(source.appId),
+        workflowId: source.selection.workflowId,
+      }
+    : undefined;
+  if (source) {
+    await accessTransaction(db, actor.uid, async () => {}, actor.auth_time);
+    const version = await selectedWorkflowVersion(
+      source.appId,
+      source.selection,
+      request,
+    );
+    const exported = z
+      .object({ data: z.string().max(1024 * 1024) })
+      .parse(
+        await request(
+          `/apps/${source.appId}/export?include_secret=false&workflow_id=${version.id}`,
+          { management: true },
+        ),
+      );
+    const document = parseDocument(exported.data, { customTags: [] });
+    if (document.errors.length)
+      throw new AppError(
+        "DIFY_COPY_INVALID",
+        "The selected workflow could not be exported safely.",
+        409,
+      );
+    const dsl = document.toJS({ maxAliasCount: 0 }) as ReturnType<
+      typeof orchestratorTemplate
+    >["dsl"];
+    if (
+      fingerprint(z.json().parse(dsl.workflow.graph)) !==
+      fingerprint(z.json().parse(version.graph))
+    )
+      throw new AppError(
+        "DIFY_COPY_CHANGED",
+        "Dify exported a different version. Reload versions before copying.",
+        409,
+      );
+    const fit = inspectDifyWorkflow(dsl.workflow.graph, "raw-v1");
+    let setupRequired = false;
+    for (const variable of dsl.workflow.environment_variables ?? []) {
+      if (variable.value_type === "secret") {
+        variable.value = "";
+        setupRequired = true;
+      }
+    }
+    template = {
+      id: templateId,
+      title: dsl.app.name,
+      description: dsl.app.description,
+      dsl,
+      requiredTools: fit.mcpTools
+        .filter((t) => tools.some((own) => own.name === t.toolName))
+        .map((t) => t.toolName),
+      setupRequired,
+      build: () => structuredClone(dsl),
+    };
+  } else template = orchestratorTemplate(templateId);
+  const destinationName = `${template.dsl.app.name.replace(/\s*\[(local|staging|production)\]$/, "").slice(0, 80)} [${identity.environment}]`;
   if (
     !env.DIFY_CONSOLE_URL ||
     !env.DIFY_MANAGEMENT_KEY ||
@@ -55,6 +133,8 @@ export async function createDifyOrchestrator(
     env.DIFY_CONSOLE_URL,
     env.DIFY_WORKSPACE_ID,
     actor.uid,
+    identity.project,
+    identity.environment,
     key,
   ]);
   const owner = randomUUID();
@@ -71,6 +151,15 @@ export async function createDifyOrchestrator(
           "This creation attempt belongs to another template. Retry its original template.",
           409,
         );
+      if (
+        state &&
+        fingerprint(state.source ?? null) !== fingerprint(provenance ?? null)
+      )
+        throw new AppError(
+          "DIFY_COPY_SOURCE_CHANGED",
+          "This operation belongs to another source version. Resume its original copy.",
+          409,
+        );
       if (state && state.until > new Date())
         throw new AppError(
           "DIFY_CREATION_BUSY",
@@ -85,7 +174,14 @@ export async function createDifyOrchestrator(
         );
       await records.updateOne(
         { _id: id },
-        { $set: { owner, templateId, until: new Date(Date.now() + 240000) } },
+        {
+          $set: {
+            owner,
+            templateId,
+            source: provenance,
+            until: new Date(Date.now() + 240000),
+          },
+        },
         { session, upsert: true },
       );
       if (!state)
@@ -136,39 +232,22 @@ export async function createDifyOrchestrator(
       actor.auth_time,
     );
   try {
+    const binding = await ensureEnvironmentMcp(
+      template.requiredTools,
+      db,
+      creationRequest,
+      env,
+      () => checkpoint({}),
+    );
     if (!appId) {
-      const providers = !template.requiredTools.length
-        ? []
-        : z
-            .array(
-              z.object({
-                id: z.string().min(1).max(128),
-                is_team_authorization: z.boolean(),
-                tools: z.array(z.object({ name: z.string() })).max(1000),
-              }),
-            )
-            .max(1000)
-            .parse(
-              await creationRequest("/workspaces/current/tools/mcp", {
-                management: true,
-              }),
-            );
-      const capable = providers.filter(
-        (p) =>
-          p.is_team_authorization &&
-          template.requiredTools.every((name) =>
-            p.tools.some((t) => t.name === name),
-          ),
-      );
-      const provider =
-        capable.find((p) => p.id === "unibase_starter") ?? capable[0];
-      if (!provider && template.requiredTools.length)
-        throw new AppError(
-          "DIFY_STARTER_MCP_REQUIRED",
-          `Connect Unibase MCP in Dify and synchronize ${template.requiredTools.join(", ")}, then create this template.`,
-          409,
-        );
-      const dsl = template.build(provider?.id ?? "");
+      const dsl = template.build(binding.providerId);
+      dsl.app.name = destinationName;
+      dsl.workflow.graph = (await bindEnvironmentGraph(
+        dsl.workflow.graph,
+        binding,
+        db,
+        true,
+      )) as typeof dsl.workflow.graph;
       graphHash = fingerprint(z.json().parse(dsl.workflow.graph));
       await checkpoint({ started: true, graphHash });
       const imported = z
@@ -193,6 +272,7 @@ export async function createDifyOrchestrator(
         );
       appId = imported.app_id;
       await checkpoint({ appId });
+      await recordAppOwnership(appId, id, binding, db, env, provenance);
       await db.collection<Document>("auditEvents").insertOne({
         event: "orchestrator-creation",
         actorUid: actor.uid,
@@ -204,6 +284,13 @@ export async function createDifyOrchestrator(
     }
     // A retry must verify its saved app before attempting any setting mutation.
     await creationRequest(`/apps/${appId}`, { management: true });
+    // Resume ownership/tagging only for the app returned by this journaled import.
+    await checkpoint({ appId });
+    await recordAppOwnership(appId, id, binding, db, env, provenance);
+    if (!prior?.tagged) {
+      await tagOwnedApp(appId, binding, creationRequest, () => checkpoint({}));
+      await checkpoint({ tagged: true });
+    }
     if (!prior?.published) {
       await checkpoint({ appId });
       await creationRequest(`/apps/${appId}/site-enable`, {
@@ -228,7 +315,7 @@ export async function createDifyOrchestrator(
         return {
           status: "setup-required" as const,
           appId,
-          name: template.dsl.app.name,
+          name: destinationName,
         };
       const published = await creationRequest(
         `/apps/${appId}/workflows/publish`,
@@ -248,6 +335,7 @@ export async function createDifyOrchestrator(
             "The starter draft changed in Dify. Review it there, then Register it.",
             409,
           );
+        await verifyDestinationResources(draft, creationRequest);
         await checkpoint({ appId }); // Fresh role and live lease immediately before mutation.
         await creationRequest(`/apps/${appId}/workflows/publish`, {
           management: true,
@@ -265,6 +353,16 @@ export async function createDifyOrchestrator(
     );
     return { ...result, appId };
   } catch (error) {
+    if (
+      appId &&
+      error instanceof AppError &&
+      error.code === "DIFY_RESOURCE_REQUIRED"
+    )
+      return {
+        status: "setup-required" as const,
+        appId,
+        name: destinationName,
+      };
     if (error instanceof AppError && error.code === "DIFY_APP_NOT_FOUND")
       throw new AppError(
         "DIFY_CREATION_APP_DELETED",

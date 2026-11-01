@@ -1,5 +1,28 @@
 # VPS deployment
 
+## Environment-binding release impact
+
+Local-only `MCP_PUBLIC_URL` is host-owned configuration in `deploy/contract.json`,
+not an image-owned override. Staging/production reject it and need no tracked profile
+or private runtime credential change. Existing credentials remain host-held.
+
+**Operator intervention: none for the existing staging host.** The application release
+owner uses the normal promotion/release path. Comparison with the previous staging
+revision confirms the hosted profile, projected configuration hash and required
+controller capabilities are unchanged: the new contract entry is used only locally.
+No controller installation or protected runtime update is required for this change.
+Live preflight still runs before build/publication. If it reports actual drift, inspect
+that operation and use the existing protected-change path rather than bypassing it.
+No key rotation, restore, new sudo access or production activation is included.
+
+**Application administrator, after release:** remove unmanaged registrations,
+create/copy destination apps and configure missing destination resources in Dify.
+Registration manages the environment's MCP connection using existing management and
+Run-client credentials; provider setup needs no root command. Verify environment
+tags, required tools and successful identity checks in fresh local/staging registrations.
+Local operators configure their actual tunnel URL privately. Do not repoint another
+environment's provider or retry failed Runs in bulk.
+
 ## Current staging release
 
 Verified October 31, 2026; this is dated acceptance, not continuous monitoring.

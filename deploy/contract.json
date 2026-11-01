@@ -1,9 +1,6 @@
 {
   "version": 1,
-  "requiredCapabilities": [
-    "operation-lock-v1",
-    "image-retention-v1"
-  ],
+  "requiredCapabilities": ["operation-lock-v1", "image-retention-v1"],
   "settings": {
     "android.host": {
       "owner": "host",
@@ -189,6 +186,10 @@
       "owner": "host",
       "type": "string-or-null"
     },
+    "runtime.MCP_PUBLIC_URL": {
+      "owner": "host",
+      "type": "string-or-null"
+    },
     "runtime.MONGODB_DATABASE": {
       "owner": "host",
       "type": "string-or-null"
@@ -282,8 +283,5 @@
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET"
   ],
-  "credentialReferencePrefixes": [
-    "DIFY_KEY_",
-    "MCP_TOKEN_"
-  ]
+  "credentialReferencePrefixes": ["DIFY_KEY_", "MCP_TOKEN_"]
 }

@@ -1,4 +1,10 @@
 import assert from "node:assert/strict";
+import {
+  bindingTestEnvironment,
+  mockBindingProbe,
+  environmentRequest,
+  ownFixtureApp,
+} from "./fixtures/environment-binding";
 import { test } from "node:test";
 import { randomUUID } from "node:crypto";
 import { MongoClient, type Document } from "mongodb";
@@ -9,12 +15,24 @@ import {
   verifyMcpTools,
 } from "../../src/lib/server/runs/dify-capabilities";
 import {
-  registerDifyOrchestrator,
+  registerDifyOrchestrator as registerOriginal,
   discoverDifyOrchestrators,
   registrationStatus,
 } from "../../src/lib/server/runs/registration";
 import type { difyJson } from "../../src/lib/server/runs/dify-console-client";
 import { difyWorkflowVersions } from "../../src/lib/server/runs/workflow-versions";
+
+const registerDifyOrchestrator: typeof registerOriginal = async (
+  appId,
+  actor,
+  db,
+  request,
+  env,
+  selection,
+) => {
+  await ownFixtureApp(appId, db!, env!);
+  return registerOriginal(appId, actor, db, request, env, selection);
+};
 
 const graph = () => ({
   nodes: [
@@ -37,7 +55,7 @@ const graph = () => ({
       id: "generate",
       data: {
         type: "llm",
-        model: { name: "existing-model" },
+        model: { name: "existing-model", provider: "fixture" },
         prompt_template: [{ text: "Existing instructions" }],
       },
     },
@@ -153,12 +171,14 @@ test("Formless registration: draft validation, publication, retries, authorizati
     revision: 0,
   });
   const env = {
+    ...bindingTestEnvironment,
     DIFY_MODE: "live",
     DIFY_CONSOLE_URL: "https://dify.example.test/console/api",
     DIFY_BASE_URL: "https://dify.example.test/v1",
     DIFY_MANAGEMENT_KEY: "private-management",
     DIFY_WORKSPACE_ID: randomUUID(),
   };
+  mockBindingProbe(t, env);
   function fixture(
     options: {
       existing?: boolean;
@@ -203,7 +223,7 @@ test("Formless registration: draft validation, publication, retries, authorizati
         data: {
           type: "tool",
           provider_type: "mcp",
-          provider_id: "unibase",
+          provider_id: "unibase_managed_staging",
           tool_name: "get_run_context_v1",
           tool_parameters: {
             runContext: {
@@ -348,7 +368,13 @@ test("Formless registration: draft validation, publication, retries, authorizati
       }
       throw new Error(`Unexpected fixture path ${path}`);
     };
-    return { appId, options, request, counts, history };
+    return {
+      appId,
+      options,
+      request: environmentRequest(db, env, request),
+      counts,
+      history,
+    };
   }
   try {
     await t.test(

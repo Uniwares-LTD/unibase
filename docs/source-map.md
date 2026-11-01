@@ -2,6 +2,12 @@
 
 ## Components
 
+- [Environment binding](../src/lib/server/runs/environment-binding.ts) owns Dify app
+  ownership, managed MCP setup, endpoint identity, graph binding and destination
+  prerequisites. [Creation](../src/lib/server/runs/creation.ts) journals exact-version
+  copying; [binding contracts](../src/lib/contracts/environment-binding.ts) expose
+  allowlisted identity/provenance. Browsers never receive MCP credentials.
+
 - [Application routes](../src/app) own layouts, pages, Server Actions and HTTP entrypoints.
 - [UI](../src/components) and [design system](design-system.md) own reusable primitives and interaction.
 - [Server modules](../src/lib/server) own authorization, persistence, provider adapters and workers;

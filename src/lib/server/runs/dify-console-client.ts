@@ -32,6 +32,7 @@ export async function difyJson(
     key?: string;
     body?: unknown;
     timeoutMs?: number;
+    method?: "GET" | "POST" | "PUT";
   } = {},
 ) {
   const management = options.management ?? false;
@@ -47,7 +48,7 @@ export async function difyJson(
   let response: Response;
   try {
     response = await fetch(`${baseUrl(management)}${path}`, {
-      method: options.body === undefined ? "GET" : "POST",
+      method: options.method ?? (options.body === undefined ? "GET" : "POST"),
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
