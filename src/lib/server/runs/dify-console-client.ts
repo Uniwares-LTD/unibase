@@ -80,6 +80,17 @@ export async function difyJson(
     await response.body?.cancel();
     if (
       management &&
+      path === "/workspaces/current/tool-provider/mcp" &&
+      options.body !== undefined &&
+      [400, 401, 403, 404, 405, 409, 422, 429].includes(response.status)
+    )
+      throw new AppError(
+        "DIFY_MCP_SETUP_REJECTED",
+        `Dify rejected MCP connection setup (${response.status}). Check management permissions and connection name, identifier and endpoint uniqueness, then retry.`,
+        409,
+      );
+    if (
+      management &&
       options.body === undefined &&
       response.status === 404 &&
       /^\/apps\/[a-f0-9-]+$/.test(path)

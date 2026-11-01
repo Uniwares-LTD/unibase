@@ -283,7 +283,14 @@ export async function ensureEnvironmentMcp(
         "This environment’s MCP identifier already exists outside managed setup. Rename that connection in Dify before retrying.",
       );
     const body = {
-      server_url: binding.endpoint,
+      // Dify also enforces URL uniqueness. Namespace the managed connection
+      // without modifying another provider or changing the canonical probe URL.
+      // This public discriminator carries no credential and grants no access.
+      server_url: (() => {
+        const url = new URL(binding.endpoint);
+        url.searchParams.set("connection", binding.providerId);
+        return url.href;
+      })(),
       name: expectedName,
       icon: "🔌",
       icon_type: "emoji",

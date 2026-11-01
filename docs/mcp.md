@@ -7,6 +7,11 @@ MCP provider in the configured Dify workspace. Setup verifies authenticated
 `get_connection_info_v1` identity and current tools, installs only this server's
 selected Run-client credential and refreshes discovery from Dify. An unrelated
 provider occupying the identifier is rejected; rename it explicitly before retrying.
+Managed Dify URLs add a public `connection=<managed identifier>` query discriminator
+because Dify requires endpoint URLs to be unique as well as connection identifiers.
+The canonical endpoint remains unchanged for identity probes and configuration.
+The query grants no access; service credentials and owned Run capabilities remain
+mandatory. Existing manual providers using the same endpoint are left untouched.
 Local tunnels use local-only `MCP_PUBLIC_URL`; hosted deployments use `APP_ORIGIN`.
 Redirects, foreign identity, missing permissions and unreachable endpoints fail closed.
 
