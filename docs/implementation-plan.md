@@ -54,6 +54,18 @@ Outstanding: approve and publish the issue; run the Lua grant-store test against
 
 ## Agreed decisions
 
+### Completed Unitale result retention — 2026-11-01
+
+The recurring completed-but-Running case was reproduced as expired Dify image
+signatures. Recovery now verifies original Run/file identities and the bundled
+Code validator before renewing missing links, preserves staged owned bytes, renews
+the worker lease during retention and reports settlement retries as reconciliation.
+Local verification: 47 affected worker/accounting, Dify, media and renewal tests,
+type checking, lint, documentation/translation/skill checks and build passed.
+One original staging image was renewed and downloaded without invoking a model;
+full original-attempt settlement remains a post-release acceptance check.
+See [release impact](deployment.md#completed-run-image-recovery-release-impact).
+
 ### Accepted extension: environment-owned Dify apps — 2026-11-01
 
 One app per project/environment, automatic managed MCP setup, exact-version copying,

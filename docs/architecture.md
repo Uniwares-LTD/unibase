@@ -552,7 +552,15 @@ successful structured result. Server-only ingestion accepts signed, matching-UUI
 image file paths on the configured Dify origin, bounds the download without
 service credentials or redirects, and reuses existing private normalization,
 staging and product promotion. Reconciliation reuses staged owned bytes after
-provider links expire. Browser results never include provider download links.
+provider links expire. If an unstaged Unitale image returns HTTP 403, the worker
+verifies its identity against the original successful Dify Run and verifies the
+bundled file-validator contract in both that Run and the current draft. It runs
+only that Code validator with the existing file reference to renew the signed
+URL, then repeats the same bounded download and normalization. It does not invoke
+the image tool or rewrite/publish a workflow. Changed or missing validators require
+review. Retention progress renews the worker's still-owned lease before each image;
+settlement failures show reconciliation and preserve terminal evidence and credit
+holds. Browser results never include provider download links.
 
 `productAssets` promotes validated Run images and tracks domain references,
 reusing the existing MongoDB bytes or private S3 object. Promotion, reference

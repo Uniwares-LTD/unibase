@@ -40,6 +40,7 @@ export type AiWorkerDependencies = {
   terminalOutput?: (
     job: AiJob,
     execution: ProviderExecution,
+    progress: () => Promise<void>,
   ) => Promise<"succeeded" | "failed">;
 };
 
@@ -116,7 +117,19 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
         await defer("decision-outcome-unconfirmed", true);
         return;
       }
-      const status = await deps.terminalOutput(job!, execution);
+      const status = await deps.terminalOutput(job!, execution, async () => {
+        // Image retention can span several bounded downloads. Extend only a
+        // still-owned lease; a superseded worker must stop before more I/O.
+        const current = now();
+        job = await patchAiJob(
+          db,
+          job!,
+          {
+            leaseUntil: new Date(current.getTime() + 180_000),
+          },
+          current,
+        );
+      });
       await settleAiJob(
         db,
         job!,
@@ -375,6 +388,8 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
         { type: "execution", execution: outcome.value },
         now(),
       );
+      job =
+        (await aiJobs(db).findOne({ _id: job._id, lease: job.lease })) ?? job;
       await finish(outcome.value);
     } else if (starting && outcome.kind === "rejected" && !job.runId) {
       await patchAiJob(
@@ -461,11 +476,23 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
         },
         now(),
       );
+    else if (
+      error instanceof AppError &&
+      error.code === "RESULT_MEDIA_UNAVAILABLE"
+    )
+      await defer("settlement-failed", true);
     else if (now() >= job.reviewAfter) {
       // Saved successful provider evidence can still fail product materialization.
       // Escalate that failure as well; otherwise the early recovery branch above
       // would retry a permanently stale source forever, keeping its credits held.
       await defer("settlement-failed", true);
+    } else if (
+      job.execution &&
+      !["running", "paused"].includes(job.execution.status)
+    ) {
+      // Preserve terminal evidence and the hold, but show reconciliation rather
+      // than leaving a completed provider execution labelled Running for hours.
+      await defer("settlement-failed");
     } else {
       // Keep the original lease on DB failures. The next worker must recover from
       // persisted dispatch intent; a caught exception never authorizes re-dispatch.

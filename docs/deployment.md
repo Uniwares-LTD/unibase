@@ -1,5 +1,19 @@
 # VPS deployment
 
+## Completed Run image recovery release impact
+
+**Operator intervention: none for the existing staging host.** This is an
+application/worker image change; host profiles, deployment contract, credentials,
+controller and database schema are unchanged. The installed Dify management
+credential can already run the bundled Code validator, verified against an existing
+generated file without invoking a model. Normal release replaces the AI worker,
+which resumes saved successful executions after their current leases expire.
+It renews missing image links and uses normal atomic retention/settlement; do not
+restart the Run, generate images again, or adjust credits manually. Changed or
+missing validators remain reviewable. Verify the original attempt, retained image
+count, released hold and single settlement after release. If recovery fails,
+inspect that attempt before retrying; production activation remains separate.
+
 ## Environment-binding release impact
 
 Local-only `MCP_PUBLIC_URL` is host-owned configuration in `deploy/contract.json`,

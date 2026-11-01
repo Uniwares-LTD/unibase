@@ -89,13 +89,13 @@ async function main() {
                 return false;
               }
             },
-            terminalOutput: async (job, result) => {
+            terminalOutput: async (job, result, progress) => {
               if (result.status === "failed" || result.status === "stopped") {
                 if (result.outputs?.result)
-                  await prepareResult(db, job, result);
+                  await prepareResult(db, job, result, progress);
                 return "failed";
               }
-              await prepareResult(db, job, result);
+              await prepareResult(db, job, result, progress);
               return parseResult(result.outputs).outcome === "success" &&
                 result.status === "succeeded"
                 ? "succeeded"

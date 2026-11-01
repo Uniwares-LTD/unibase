@@ -11,6 +11,7 @@ import { s3ObjectStore, type ObjectReference } from "./object-store";
 import { aiJobs, fingerprint, type AiJob } from "../ai/jobs";
 import type { ProviderExecution } from "../ai/types";
 import { providerImages, downloadProviderImage } from "./provider-images";
+import { renewProviderImage } from "./image-renewal";
 
 export type RunAsset = {
   _id: string;
@@ -33,6 +34,7 @@ export async function prepareResult(
   db: Db,
   job: AiJob,
   execution: ProviderExecution,
+  progress?: () => Promise<void>,
 ) {
   if (!job.run) return;
   const result = parseResult(execution.outputs);
@@ -56,6 +58,7 @@ export async function prepareResult(
     })),
   ];
   for (const image of images) {
+    await progress?.();
     if (ids.has(image.id))
       throw new AppError("INVALID_RESULT", "Duplicate generated image.");
     const id = uuid(fingerprint([job._id, image.id]));
@@ -67,15 +70,27 @@ export async function prepareResult(
         throw new AppError("INVALID_RESULT", "Result image ownership changed.");
       continue;
     }
-    const base64 = image.file
-      ? (
-          await downloadProviderImage(
-            image.file,
-            process.env.DIFY_BASE_URL!,
-            job.run.imageBytes,
-          )
-        ).toString("base64")
-      : image.base64;
+    let base64 = image.base64;
+    if (image.file) {
+      const download = (file: typeof image.file) =>
+        downloadProviderImage(
+          file!,
+          process.env.DIFY_BASE_URL!,
+          job.run!.imageBytes,
+        );
+      let bytes: Buffer;
+      try {
+        bytes = await download(image.file);
+      } catch (error) {
+        if (
+          !(error instanceof AppError) ||
+          error.code !== "PROVIDER_IMAGE_EXPIRED"
+        )
+          throw error;
+        bytes = await download(await renewProviderImage(job, image.file));
+      }
+      base64 = bytes.toString("base64");
+    }
     const normalized = await validatedImage(
       base64,
       job.run.imageBytes,

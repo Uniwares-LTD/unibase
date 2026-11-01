@@ -21,6 +21,7 @@ import {
   readRunAsset,
 } from "../../src/lib/server/runs/media";
 import type { ProviderExecution } from "../../src/lib/server/ai/types";
+import storyPanel from "../../src/lib/server/runs/templates/story-panel.json";
 test("Runs: frozen policies, normalized decisions, media ownership and linked recovery", async (t) => {
   const repl = await MongoMemoryReplSet.create({
     binary: { downloadDir: ".cache/mongodb-binaries" },
@@ -174,6 +175,128 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
           globalThis.fetch = oldFetch;
           if (oldBase === undefined) delete process.env.DIFY_BASE_URL;
           else process.env.DIFY_BASE_URL = oldBase;
+        }
+      },
+    );
+    await t.test(
+      "expired native images renew once, retain privately, and survive expired renewal links",
+      async () => {
+        const appId = randomUUID(),
+          providerId = randomUUID(),
+          imageId = randomUUID();
+        const nativeJob = {
+          ...job,
+          _id: randomUUID(),
+          runId: providerId,
+          binding: { ...job.binding, mode: "live" as const },
+          run: { ...job.run!, orchestrator: { ...definition, appId } },
+        };
+        const file = {
+          type: "image",
+          transfer_method: "tool_file",
+          related_id: imageId,
+          url: `/files/tools/${imageId}.png?timestamp=1&nonce=n&sign=old`,
+        };
+        const output = {
+          version: 1,
+          outcome: "success",
+          text: "Comic",
+          cards: [],
+          images: [],
+        };
+        const execution: ProviderExecution = {
+          runId: providerId,
+          workflowId: null,
+          status: "succeeded",
+          outputs: { result: output, unibase_images: [file] },
+          usage: {
+            scope: "execution",
+            id: providerId,
+            inputTokens: 1,
+            outputTokens: 1,
+            totalTokens: 2,
+            cost: null,
+            elapsedMs: 1,
+          },
+        };
+        const node = storyPanel.dsl.workflow.graph.nodes.find(
+          (n) => n.id === "validate_image1",
+        )!;
+        const priorEnv = {
+          DIFY_BASE_URL: process.env.DIFY_BASE_URL,
+          DIFY_CONSOLE_URL: process.env.DIFY_CONSOLE_URL,
+          DIFY_MANAGEMENT_KEY: process.env.DIFY_MANAGEMENT_KEY,
+          DIFY_WORKSPACE_ID: process.env.DIFY_WORKSPACE_ID,
+        };
+        const priorFetch = globalThis.fetch;
+        let renewals = 0,
+          downloads = 0,
+          progress = 0;
+        const { sampleImage } =
+          await import("../../src/lib/server/runs/sample");
+        Object.assign(process.env, {
+          DIFY_BASE_URL: "https://dify.example.test/v1",
+          DIFY_CONSOLE_URL: "https://dify.example.test/console/api",
+          DIFY_MANAGEMENT_KEY: "fixture",
+          DIFY_WORKSPACE_ID: randomUUID(),
+        });
+        globalThis.fetch = async (url, options) => {
+          const path = new URL(String(url)).pathname;
+          if (path.startsWith("/files/")) {
+            downloads++;
+            assert.equal(options?.headers, undefined);
+            return String(url).includes("sign=old")
+              ? new Response(null, { status: 403 })
+              : new Response(Buffer.from(sampleImage, "base64"), {
+                  headers: { "content-type": "image/png" },
+                });
+          }
+          if (path.endsWith(`/workflow-runs/${providerId}`))
+            return Response.json({
+              id: providerId,
+              status: "succeeded",
+              graph: { nodes: [node] },
+              outputs: execution.outputs,
+            });
+          if (path.endsWith("/workflows/draft"))
+            return Response.json({ graph: { nodes: [node] } });
+          assert.equal(
+            path,
+            `/console/api/apps/${appId}/workflows/draft/nodes/validate_image1/run`,
+          );
+          renewals++;
+          return Response.json({
+            node_id: node.id,
+            status: "succeeded",
+            outputs: {
+              files: [{ ...file, url: file.url.replace("old", "fresh") }],
+            },
+          });
+        };
+        try {
+          await prepareResult(db, nativeJob, execution, async () => {
+            progress++;
+          });
+          assert.equal(renewals, 1);
+          assert.equal(downloads, 2);
+          assert.equal(progress, 1);
+          const retained = await db
+            .collection<{ _id: string; result: { images: { id: string }[] } }>(
+              "runResults",
+            )
+            .findOne({ _id: nativeJob._id });
+          assert.equal(retained?.result.images.length, 1);
+          assert.equal(JSON.stringify(retained).includes("sign="), false);
+          globalThis.fetch = async () => {
+            throw Error("Must reuse retained bytes");
+          };
+          await prepareResult(db, nativeJob, execution);
+        } finally {
+          globalThis.fetch = priorFetch;
+          for (const [key, value] of Object.entries(priorEnv)) {
+            if (value === undefined) delete process.env[key];
+            else process.env[key] = value;
+          }
         }
       },
     );
@@ -531,6 +654,79 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
             );
           }
         }
+      },
+    );
+    await t.test(
+      "long terminal image retention renews the owned lease and settles once",
+      async () => {
+        const fixture = client.db("long-retention");
+        const uid = "long-retention";
+        let clock = new Date();
+        await grantCredits(fixture, uid, "seed", {
+          amount: 10,
+          source: "purchase",
+          reference: uid,
+        });
+        const saved = await createAiJob(
+          fixture,
+          { ...actor, uid },
+          randomUUID(),
+          {
+            ...request,
+            run: { ...request.run, logicalId: fingerprint(uid) },
+          },
+          clock,
+        );
+        const execution: ProviderExecution = {
+          runId: randomUUID(),
+          workflowId: null,
+          status: "succeeded",
+          outputs: null,
+          usage: {
+            scope: "execution",
+            id: uid,
+            inputTokens: 1,
+            outputTokens: 1,
+            totalTokens: 2,
+            cost: null,
+            elapsedMs: 1,
+          },
+        };
+        await aiJobs(fixture).updateOne(
+          { _id: saved._id },
+          { $set: { status: "running", execution, runId: execution.runId } },
+        );
+        let imports = 0;
+        const deps = {
+          now: () => clock,
+          authorize: async () => true,
+          validateOutput: () => true,
+          provider: () => {
+            throw Error("Must not dispatch or poll completed generation");
+          },
+          terminalOutput: async (
+            _job: unknown,
+            _execution: unknown,
+            progress: () => Promise<void>,
+          ) => {
+            for (let i = 0; i < 9; i++) {
+              clock = new Date(clock.getTime() + 60_000);
+              await progress();
+              imports++;
+            }
+            return "succeeded" as const;
+          },
+        };
+        await processOneAiJob(fixture, deps);
+        assert.equal(imports, 9);
+        assert.equal(
+          (await aiJobs(fixture).findOne({ _id: saved._id }))?.status,
+          "succeeded",
+        );
+        const wallet = await readWallet(fixture, uid, { now: clock });
+        assert.equal(wallet.reserved, 0);
+        assert.equal(wallet.balance, 9);
+        assert.equal(await processOneAiJob(fixture, deps), false);
       },
     );
     await t.test(
