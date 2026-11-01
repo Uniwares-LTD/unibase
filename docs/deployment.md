@@ -55,11 +55,15 @@ owns installed controller/configuration identities and capacity. The original pe
 correction mismatch is resolved. Environment-owned Unitale creation/registration was
 confirmed by the operator after the preceding environment-binding correction.
 This release adds automatic recovery of expired Unitale image links; one original
-file was renewed/downloaded without generation before release. The diagnostic
-grant expired during deployment, so the original attempt's full retention and
-credit settlement still require fresh read-only access. Earlier account/provider
-acceptance was not rerun by this release. This evidence update requires no repeated
-installation or release.
+file was renewed/downloaded without generation before release. Fresh read-only
+diagnostics confirmed original attempt
+`c852707d7958b7ec7b835fa4a28c08531b08a33d37c721f94a86bf378b5a2d16`
+succeeded at 09:21:55 UTC: all nine distinct images are retained, its hold is
+committed, and the ledger contains one two-credit settlement (one workflow credit,
+one Persona credit). Its provider Run ID is unchanged; recovery did not regenerate
+images or create a successor attempt. Earlier account/provider acceptance was not
+rerun by this release. This evidence update requires no repeated installation or
+release.
 
 ## Choose an operation
 
