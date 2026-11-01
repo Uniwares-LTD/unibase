@@ -58,6 +58,28 @@ Verified November 1, 2026; this is dated acceptance, not continuous monitoring.
 
 | Identity or check | Verified result |
 | --- | --- |
+| Source | `e768bf58ff36e183ab251773de736a98ab37e0ec`, promoted from main through [PR #28](https://github.com/Uniwares-LTD/unibase/pull/28) |
+| Image | `ghcr.io/uniwares-ltd/unibase@sha256:9fcc10389325daa4d4c94172400ed714cd9a3ccf57f5a903da66c26828633d23` |
+| Release | [41308776771](https://github.com/Uniwares-LTD/unibase/actions/runs/41308776771): preflight, build/publication, anonymous pull, deployment and readiness passed |
+| Separate check | [41309064914](https://github.com/Uniwares-LTD/unibase/actions/runs/41309064914): web and both workers passed |
+| Public readiness | `/api/health/ready` returned `ready` and the source commit above; Home and Account returned 200 |
+| Access boundary | Unauthenticated grant management returned 401 / `UNAUTHENTICATED` |
+| Maintenance result | `maintenance=disabled`; automatic cleanup remains disabled |
+
+Diagnostic access creation/copy, durable MongoDB grants and English-only administration
+are deployed. The user-approved three additive `diagnosticGrants` indexes were
+installed and read back at 12:54:28 UTC, before activation, against an absent/empty
+collection in `unibase_staging`. Host profile/controller identity and existing data
+were unchanged. No installation remains for this release, and documentation-only
+merges must not repeat it. Old Redis grants need one replacement after this cutover.
+Fresh authenticated creation/revocation and persistence across a subsequent release
+remain functional acceptance checks; earlier local browser/replica-set evidence is
+separate from these public/operational checks. Production remains inactive.
+
+### Previous artifact-retention release (2026-11-01)
+
+| Identity or check | Verified result |
+| --- | --- |
 | Source | `069af3a3466d9f64283b9afd11a07ee04eda4fa8`, promoted from main through [PR #25](https://github.com/Uniwares-LTD/unibase/pull/25) |
 | Image | `ghcr.io/uniwares-ltd/unibase@sha256:b1ece1da6fe95e69b6a3e6ee015ca34234a433a8ca157cbb63ddb16eb8b3a965` |
 | Release | [41297220499](https://github.com/Uniwares-LTD/unibase/actions/runs/41297220499): pinned-SSH preflight, build/publication, anonymous pull, deployment and readiness passed |
@@ -94,10 +116,10 @@ requires no repeated installation or release.
 
 ## Diagnostic grant persistence update
 
-The prepared create/copy update uses MongoDB for durable diagnostic grants and
-Redis only for counters. It is not part of the installed release evidence above.
-Before its separately authorized activation, run additive database indexes; old
-Redis grants require one replacement. No host/controller installation is required.
+The create/copy update is deployed with MongoDB for durable grants and Redis only
+for counters. The additive indexes were installed and verified before activation;
+do not repeat installation for the existing staging release. Old Redis grants
+require one replacement. No host/controller installation is required.
 See [owner, ordering, verification and failure/resume](diagnostics-api.md#durable-grant-rollout).
 
 ## Choose an operation

@@ -246,13 +246,18 @@ privileged controller update is needed for this activation.
 
 ### Durable grant rollout
 
-The create/copy and MongoDB persistence change is prepared locally, not installed
-on staging. Application/data impact: additive indexes and a one-time grant-store
-cutover; no host profile or controller changes.
+The create/copy and MongoDB persistence change is deployed on staging; see the
+[current release](deployment.md#current-staging-release). The three additive grant
+indexes were installed and read back on 2026-11-01 at 12:54:28 UTC against an
+absent/empty collection, before activation. Installation is complete and must not
+be repeated for a documentation-only merge. Application/data impact is limited to
+these indexes and the one-time grant-store cutover; host profile/controller and
+existing application data were unchanged.
 
 - **Owner/location:** the authorized application release operator, using the
   existing application Node administration environment and its configured database.
-- **Order:** take the normal operational backup; run `npm run db:indexes` from
+- **Order for a new installation:** inspect existing data and take the normal
+  operational backup before any change affecting it. Run `npm run db:indexes` from
   the new revision's Node administration environment before activating its web
   image. Publication/release still requires separate session authorization. No grant
   import is performed. Replace old Redis grants once.
@@ -289,3 +294,8 @@ environment/docs/i18n/skill checks passed. English/Arabic desktop and 390px dial
 checks used mocked grant API responses with disposable authentication/MongoDB;
 copy, manual fallback, focus, credential cleanup and hydration passed. Real Redis
 recreation and published-release persistence remain live acceptance checks.
+
+Staging release and independent deployment check passed on 2026-11-01; public
+readiness reported the promoted source and unauthenticated grant management returned
+401. Authenticated grant creation/revocation and persistence across a later release
+remain functional acceptance. See the current release record above.
