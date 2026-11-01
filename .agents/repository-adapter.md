@@ -95,7 +95,10 @@ accounting/idempotency evidence and notification transaction coupling.
 Use `npm.cmd` / `npx.cmd` on Windows when PowerShell wrappers are blocked; do not
 change machine execution policy. Read complete check output: the advisory build
 configuration does not run type checking. Use `npm run typecheck` separately.
-Check translated client navigation and English/Arabic 390px layouts after UI work.
+Check translated client navigation and English/Arabic 390px public layouts after UI work.
+Administration is English-only, including shared controls and administrative errors.
+Keep admin copy outside locale catalogs and verify English/LTR admin rendering with
+an Arabic public preference, plus preference restoration when leaving admin.
 CSP tests must inject into a served document; privileged Playwright evaluation is
 not evidence that document CSP permits an injected script. Keep auth/browser state
 under ignored output directories and stop only fixtures started by the task.

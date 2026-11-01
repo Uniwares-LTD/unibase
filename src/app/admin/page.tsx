@@ -1,5 +1,5 @@
 import { PageMessages } from "@/components/page-messages";
-import { getTranslations, getFormatter } from "next-intl/server";
+import { getFormatter } from "next-intl/server";
 import { PageHeader } from "@/components/page-patterns";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -17,11 +17,9 @@ import { administratorDashboard } from "@/lib/server/reports";
 import { adminSections } from "./sections";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getTranslations("ui"))("m4b42c6690ebe") };
+  return { title: "Administration" };
 }
 export default async function AdminPage() {
-  const translate = await getTranslations("ui");
-
   await adminPageSession();
   const format = await getFormatter();
   const metrics = await administratorDashboard();
@@ -30,20 +28,20 @@ export default async function AdminPage() {
     <PageMessages path="/admin">
       <div className="page-stack">
         <PageHeader
-          title={translate("md4b1ea5708dd")}
-          description={translate("m419e6b755e78")}
+          title="Overview"
+          description="Account access, credits and operational reports."
         />
         <section className="space-y-3" aria-labelledby="admin-metrics">
           <h2 id="admin-metrics" className="sr-only">
-            {translate("md4b1ea5708dd")}
+            Overview
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              [translate("md6923f4d988c"), metrics.profiles],
-              [translate("m8e82177f54fb"), metrics.admins],
-              [translate("m1819c4bcc007"), metrics.suspended],
-              [translate("m35fab64be703"), metrics.runtimeErrors],
-              [translate("m407c22231232"), metrics.auditedChanges],
+              ["Application profiles", metrics.profiles],
+              ["Active admins", metrics.admins],
+              ["Suspended accounts", metrics.suspended],
+              ["Recorded errors · 24h", metrics.runtimeErrors],
+              ["Audited changes · 24h", metrics.auditedChanges],
             ].map(([label, count]) => (
               <Card key={label}>
                 <CardHeader>
@@ -58,7 +56,8 @@ export default async function AdminPage() {
             ))}
           </div>
           <p className="text-sm text-muted-foreground">
-            {translate("m9dfde3fc0cef")}
+            Profiles count accounts that have signed in at least once. Error
+            totals include stored events only.
           </p>
         </section>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

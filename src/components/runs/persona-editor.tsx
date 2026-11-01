@@ -1,5 +1,6 @@
 "use client";
-import { useTranslations } from "next-intl";
+
+import { formatAdminNumber } from "@/lib/admin-labels";
 import { EmptyState, Notice } from "@/components/page-patterns";
 
 import { useId, useState } from "react";
@@ -35,8 +36,6 @@ function PersonaForm({
   saved: (row: Row) => void;
   onBusyChange: (busy: boolean) => void;
 }) {
-  const translate = useTranslations("ui");
-
   const prefix = useId();
   const [fields, setFields] = useState<PersonaFields>(() => ({
     name: initial.name,
@@ -65,10 +64,12 @@ function PersonaForm({
         revision: initial.revision + 1,
         updatedAt: new Date().toISOString(),
       });
-      setMessage(translate("mfca046ccd586"));
+      setMessage("Saved.");
     } catch (e) {
       setMessage(
-        e instanceof ApiError ? e.message : translate("m47715ac03001"),
+        e instanceof ApiError
+          ? e.message
+          : "Could not confirm the save. Reload before retrying.",
       );
     } finally {
       setBusy(false);
@@ -87,10 +88,10 @@ function PersonaForm({
         <div className="space-y-2" key={name}>
           <Label htmlFor={`${prefix}-${name}`}>
             {name === "instructions"
-              ? translate("m5935c69b327c")
+              ? "Persona instructions"
               : name === "name"
-                ? translate("mdcd1d5223f73")
-                : translate("m526e0087cc3f")}
+                ? "Name"
+                : "Description"}
           </Label>
           {name === "name" ? (
             <Input
@@ -121,9 +122,7 @@ function PersonaForm({
             }
           />
           <Label htmlFor={`${prefix}-${name}`}>
-            {name === "enabled"
-              ? translate("m92c1cdfdf4cb")
-              : translate("mbdb86505f806")}
+            {name === "enabled" ? "Enabled" : "Archived"}
           </Label>
         </div>
       ))}
@@ -138,7 +137,9 @@ function PersonaForm({
           })
         }
       />
-      <Label htmlFor={`${prefix}-limit`}>{translate("md834d30f922a")}</Label>
+      <Label htmlFor={`${prefix}-limit`}>
+        Maximum answers per attempt (1–100)
+      </Label>
       <Input
         id={`${prefix}-limit`}
         type="number"
@@ -149,7 +150,7 @@ function PersonaForm({
           setFields({ ...fields, maxCalls: Number(e.target.value) })
         }
       />
-      <Label htmlFor={`${prefix}-reason`}>{translate("mfcbdbd5d879b")}</Label>
+      <Label htmlFor={`${prefix}-reason`}>Change reason (optional)</Label>
       <Input
         id={`${prefix}-reason`}
         value={reason}
@@ -157,7 +158,7 @@ function PersonaForm({
         onChange={(e) => setReason(e.target.value)}
       />
       <Button type="submit" disabled={busy}>
-        {busy ? translate("m23e39291d613") : translate("mcc7e25dfff58")}
+        {busy ? "Saving…" : "Save persona"}
       </Button>
       {message && <Notice title={message} />}
     </form>
@@ -184,8 +185,6 @@ function PersonaDialog({
   row?: Row;
   saved: (row: Row) => void;
 }) {
-  const translate = useTranslations("ui");
-
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<Row>();
@@ -194,13 +193,13 @@ function PersonaDialog({
       open={open}
       onOpenChange={(next) => {
         if (busy) return;
-        if (next) setDraft(row ?? newPersona(translate("mb18a23ed8e48")));
+        if (next) setDraft(row ?? newPersona("Answer as this persona."));
         setOpen(next);
       }}
     >
       <DialogTrigger asChild>
         <Button variant={row ? "outline" : "default"}>
-          {row ? translate("m8bedc53465b0") : translate("mcef5da764d9e")}
+          {row ? "Edit persona" : "Add persona"}
         </Button>
       </DialogTrigger>
       <DialogContent
@@ -208,10 +207,11 @@ function PersonaDialog({
         showCloseButton={!busy}
       >
         <DialogHeader>
-          <DialogTitle>
-            {row ? `Edit ${row.name}` : translate("mcef5da764d9e")}
-          </DialogTitle>
-          <DialogDescription>{translate("m06bc719f9219")}</DialogDescription>
+          <DialogTitle>{row ? `Edit ${row.name}` : "Add persona"}</DialogTitle>
+          <DialogDescription>
+            Set the role instructions, pricing and answer limit for this
+            persona.
+          </DialogDescription>
         </DialogHeader>
         {open && draft && (
           <PersonaForm
@@ -229,8 +229,6 @@ function PersonaDialog({
   );
 }
 export function PersonaEditor({ initial }: { initial: View }) {
-  const translate = useTranslations("ui");
-
   const [rows, setRows] = useState(initial.personas);
   const [completionReady, setCompletionReady] = useState(
     initial.completion.ready,
@@ -261,13 +259,13 @@ export function PersonaEditor({ initial }: { initial: View }) {
                   }
                 >
                   {row.archived
-                    ? translate("mbdb86505f806")
+                    ? "Archived"
                     : row.enabled
-                      ? translate("m92c1cdfdf4cb")
-                      : translate("m75081b593d15")}
+                      ? "Enabled"
+                      : "Disabled"}
                 </Badge>
                 {!completionReady && (
-                  <Badge variant="outline">{translate("m0b8cf6e153eb")}</Badge>
+                  <Badge variant="outline">Completion unavailable</Badge>
                 )}
               </div>
             </CardHeader>
@@ -281,10 +279,12 @@ export function PersonaEditor({ initial }: { initial: View }) {
                 {row.instructions}
               </p>
               <p className="text-sm text-muted-foreground">
-                {translate("m9bbe22c13579", {
-                  count: row.maxCalls,
-                  revision: row.revision,
-                })}
+                {"Up to " +
+                  (row.maxCalls === 1
+                    ? formatAdminNumber(row.maxCalls) + " answer"
+                    : formatAdminNumber(row.maxCalls) + " answers") +
+                  " per attempt · Revision " +
+                  row.revision}
               </p>
               <PersonaDialog row={row} saved={saved} />
             </CardContent>
@@ -293,8 +293,8 @@ export function PersonaEditor({ initial }: { initial: View }) {
       </div>
       {!rows.length && (
         <EmptyState
-          title={translate("m130a7da2c155")}
-          description={translate("mc4ae5877e276")}
+          title="No personas yet. Add one to get started."
+          description="Personas answer workflow questions during runs."
         />
       )}
     </div>

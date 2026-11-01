@@ -1,16 +1,18 @@
 "use client";
-import { useLocale } from "next-intl";
 import { project } from "@/lib/project";
 import { useEffect } from "react";
 import { diagnostics } from "@/lib/client/diagnostics";
 
-export function BrowserRuntime() {
-  const locale = useLocale();
+export function BrowserRuntime({
+  preferredLocale,
+}: {
+  preferredLocale: string;
+}) {
   useEffect(() => {
     try {
-      localStorage.setItem(`${project.slug}-offline-locale`, locale);
+      localStorage.setItem(`${project.slug}-offline-locale`, preferredLocale);
     } catch {}
-  }, [locale]);
+  }, [preferredLocale]);
   useEffect(() => {
     // Listeners observe only event types; never suppress browser/React handling.
     const error = () => diagnostics.record("browser-error");

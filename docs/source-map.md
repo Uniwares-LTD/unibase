@@ -24,7 +24,15 @@
   flags from the host profile; [runtime settings](../scripts/runtime-settings.cjs)
   validate the image flag map. Infrastructure owns the shared v1/v2 request dispatcher and approval engine.
 
+- [Diagnostic grants](../src/lib/server/diagnostics/grant-store.ts) own durable
+  MongoDB verifiers and per-issuer issuance fences; Redis owns only shared counters.
+  The [diagnostics API](diagnostics-api.md) owns one-time credential delivery and rollout.
+
 ## Documentation
+
+Administration uses English source copy and `src/lib/admin-labels.ts` for data labels.
+`src/components/application-locale.tsx` switches shared shell language/direction at
+the admin boundary; public-page catalogs remain in `messages/`.
 
 [README](../README.md) owns setup; [architecture](architecture.md) owns current behavior;
 [implementation plan](implementation-plan.md) owns accepted milestones and remaining acceptance.

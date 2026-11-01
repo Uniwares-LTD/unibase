@@ -1,6 +1,6 @@
 import "server-only";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { getMessages, getLocale } from "next-intl/server";
 import { clientMessages } from "@/lib/server/client-messages";
 
 // A page provider travels with each RSC navigation; the persistent shell only
@@ -14,6 +14,7 @@ export async function PageMessages({
 }) {
   return (
     <NextIntlClientProvider
+      locale={await getLocale()}
       messages={clientMessages(await getMessages(), path)}
     >
       {children}

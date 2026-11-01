@@ -14,7 +14,6 @@ export function clientMessages(all: typeof messages, pathname: string) {
     states: all.states,
     common: all.common,
     ...(pathname.startsWith("/runs") ? { pricing: all.pricing } : {}),
-    ...(pathname.startsWith("/admin") ? { fields: all.fields } : {}),
     ui: Object.fromEntries(
       Object.entries(all.ui).filter(([key]) => wanted.has(key)),
     ),

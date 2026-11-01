@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // endpoint() applies session, origin/CSRF and request limits; the service
-// enforces administrator role and recent login for changes.
+// enforces current administrator role for changes.
 export async function GET(request: Request) {
   return endpoint(request, async () => json(await currentGrants()));
 }

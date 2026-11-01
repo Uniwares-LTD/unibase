@@ -274,7 +274,7 @@ and live acceptance are described in [VPS deployment](deployment.md).
 
 ## Diagnostics, offline behavior and Android
 
-The opt-in [diagnostics API](diagnostics-api.md) is separate from browser diagnostics. Administrators issue expiring, capability-scoped grants from Base settings. Grants are stored in Redis and verified with scrypt, the issuer's Firebase status and the issuer's access revision. A grant permits read-only diagnostics across accounts, through dedicated projection readers that never seed, settle or create records. Each access writes a sanitized 30-day record before data is returned. The endpoint is disabled in production.
+The opt-in [diagnostics API](diagnostics-api.md) is separate from browser diagnostics. Administrators issue expiring, capability-scoped grants from Base settings. Grants are generated server-side and copied once with their configured endpoint. MongoDB stores project/environment-scoped verifiers durably; Redis holds only rate-limit counters. Grants survive releases and Redis recreation, expire within the selected duration (up to 30 days), and are verified with scrypt, the issuer's Firebase status and the issuer's access revision. A grant permits read-only diagnostics across accounts, through dedicated projection readers that never seed, settle or create records. Each access writes a sanitized 30-day record before data is returned. The endpoint is disabled in production.
 
 `src/lib/diagnostics.ts` constructs records from an explicit allowlist: fixed event type, generated timestamp, bounded HTTP status, elapsed time and UUID request ID. Unknown/free-text fields never enter records. Server-only logging emits JSON with severity for API/helper completions and profile actions. Next.js `onRequestError` emits a safe event independently; it omits timing rather than inventing a request duration. No raw error, request URL, headers, body or identity is forwarded. Framework development output remains separate.
 
@@ -669,9 +669,14 @@ then the project default. Missing account timezone defaults to UTC; supported IA
 timezones are validated with Intl. The localization mutation updates only locale
 and timezone, independently of appearance and profile edits.
 
-The root renders lang/dir and Radix direction. Typed next-intl catalogs supply
-server text, with generated per-page client key inventories and a persistent shell
-catalog. Each page carries a provider on client navigation. Run/provider text,
+The root renders lang/dir and Radix direction. The administration area is always
+English and LTR, including shared shell controls, form validation and admin API/action
+messages. Administrative copy lives directly in its source components; dynamic
+state/field labels live in `src/lib/admin-labels.ts`, outside translation catalogs.
+Public pages retain typed next-intl catalogs, generated per-page client key inventories
+and a persistent shell catalog. Each page carries a provider on client navigation.
+The root provider switches presentation at the admin boundary without changing
+the saved language, timezone or offline language preference. Run/provider text,
 user-authored labels and identifiers retain their original content. Dates use the
 resolved timezone except administrative date filters/reports, which retain UTC.
 Notification templates resolve at read time; API error codes remain stable.

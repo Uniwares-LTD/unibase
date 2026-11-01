@@ -56,7 +56,7 @@ export const grantView = (grant: GrantRecord): GrantView => ({
 });
 const unavailable = () =>
   new AppError(
-    "DIAGNOSTICS_REDIS_UNAVAILABLE",
+    "DIAGNOSTICS_STORAGE_UNAVAILABLE",
     "Diagnostic access storage is unavailable.",
     503,
   );
@@ -105,11 +105,9 @@ export async function createGrant(
 ) {
   const parsed = grantCreateSchema.safeParse(input);
   if (!parsed.success)
-    throw new AppError(
-      "INVALID_INPUT",
-      "Check the phrase, expiry and capabilities.",
-    );
+    throw new AppError("INVALID_INPUT", "Check the expiry and capabilities.");
   const access = await accountAccess(db, issuer.uid);
+  const secret = randomBytes(32);
   const salt = randomBytes(16);
   const issuedAt = now();
   const grant: GrantRecord = {
@@ -121,9 +119,7 @@ export async function createGrant(
     issuedAt,
     expiresAt: issuedAt + grantDurations[parsed.data.duration] * 1000,
     salt: salt.toString("base64url"),
-    verifier: (
-      await derivePhrase(Buffer.from(parsed.data.phrase, "utf8"), salt)
-    ).toString("base64url"),
+    verifier: (await derivePhrase(secret, salt)).toString("base64url"),
     kdf: { ...KDF },
     cursorKey: randomBytes(32).toString("base64url"),
   };
@@ -170,7 +166,10 @@ export async function createGrant(
       503,
     );
   }
-  return grantView(grant);
+  return {
+    ...grantView(grant),
+    credential: `${grant.id}.${secret.toString("base64url")}`,
+  };
 }
 
 export async function listGrants(

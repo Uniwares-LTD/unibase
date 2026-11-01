@@ -1,5 +1,4 @@
 "use client";
-import { useTranslations } from "next-intl";
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -28,8 +27,6 @@ export function AiResolution({
   jobId: string;
   canAccept: boolean;
 }) {
-  const translate = useTranslations("ui");
-
   const id = useId();
   const router = useRouter();
   const [reason, setReason] = useState("");
@@ -51,14 +48,14 @@ export function AiResolution({
         },
       );
       router.refresh();
-      setMessage({ tone: "success", text: translate("m157fea7c0bc1") });
+      setMessage({ tone: "success", text: "Resolution recorded." });
     } catch (error) {
       setMessage({
         tone: "error",
         text:
           error instanceof ApiError
             ? error.message
-            : translate("m2371ba76283f"),
+            : "Could not confirm the resolution. Refresh before retrying.",
       });
     } finally {
       setBusy(false);
@@ -66,40 +63,42 @@ export function AiResolution({
   }
   return (
     <div className="space-y-3">
-      <Label htmlFor={id}>{translate("m777b71247907")}</Label>
+      <Label htmlFor={id}>Resolution explanation (optional)</Label>
       <Textarea
         id={id}
         value={reason}
         onChange={(event) => setReason(event.target.value)}
         maxLength={500}
         disabled={busy}
-        placeholder={translate("mc69dce41d50b")}
+        placeholder="Record the evidence and reason for this decision."
       />
       <div className="flex flex-wrap gap-2">
         {canAccept && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button disabled={busy}>{translate("me404048f0463")}</Button>
+              <Button disabled={busy}>
+                Accept saved result and settle its calculated charge
+              </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                  {translate("m54134a56ccdb")}
+                  Accept this result and charge the user?
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  {translate("m54f5ae56a858")}
+                  This settles the calculated charge from the user&apos;s reserved
+                  credits and closes the review. It is recorded in the audit
+                  log.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>
-                  {translate("md0d1f332872a")}
-                </AlertDialogCancel>
+                <AlertDialogCancel>Keep reserved</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => {
                     void resolve("accept");
                   }}
                 >
-                  {translate("m5f1832b2b9b3")}
+                  Accept and charge
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -108,26 +107,26 @@ export function AiResolution({
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="outline" disabled={busy}>
-              {translate("m2f4de33927e0")}
+              Resolve attempt and release credits
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{translate("m25929b7a63f6")}</AlertDialogTitle>
+              <AlertDialogTitle>Release the user’s credits?</AlertDialogTitle>
               <AlertDialogDescription>
-                {translate("m9f8a061314b8")}
+                This records an audited credit waiver and allows a new attempt.
+                It does not stop provider work that may still be running, so
+                costs can still accrue and work may be duplicated.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>
-                {translate("md0d1f332872a")}
-              </AlertDialogCancel>
+              <AlertDialogCancel>Keep reserved</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => {
                   void resolve("release");
                 }}
               >
-                {translate("m068930c9fe98")}
+                Release credits
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

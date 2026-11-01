@@ -1,43 +1,45 @@
-import { getTranslations } from "next-intl/server";
-
 // One ordered list feeds the administrator navigation and the overview cards.
 export async function adminSections() {
-  const translate = await getTranslations("ui");
   return [
     {
       href: "/admin/users",
-      label: translate("m6b0cc904d081"),
-      description: translate("m8e3573ba1909"),
+      label: "Users",
+      description:
+        "Find an account to review its profile, access and credit balance.",
     },
     {
       href: "/admin/reports",
-      label: translate("mdacca3cba3f3"),
-      description: translate("m348352db53e4"),
+      label: "Reports",
+      description:
+        "Filter recorded application events and administrator changes.",
     },
     {
       href: "/admin/operations",
-      label: translate("m358cc201f87d"),
-      description: translate("mf42e7a16fa5e"),
+      label: "Operations",
+      description:
+        "Worker health, payment recovery and content cleanup. Changes require administrator access.",
     },
     {
       href: "/admin/ai",
-      label: translate("m6a2e5e0ed2df"),
-      description: translate("mef30fbe8fba2"),
+      label: "AI operations",
+      description:
+        "Resolve uncertain executions and inspect provider usage independently of application credits.",
     },
     {
       href: "/admin/settings",
-      label: translate("m667f51f3c86a"),
-      description: translate("m2938db2aa6de"),
+      label: "Base settings",
+      description: "Application defaults, credits, and run policies.",
     },
     {
       href: "/admin/orchestrators",
-      label: translate("m9375b0d5e9f0"),
-      description: translate("m67c91f3a3462"),
+      label: "Orchestrators",
+      description: "Create from a template or register a Dify workflow.",
     },
     {
       href: "/admin/personas",
-      label: translate("mfa2ea3fb081c"),
-      description: translate("m519f46762642"),
+      label: "Personas",
+      description:
+        "Configure who answers workflow questions and their responder pricing.",
     },
   ];
 }

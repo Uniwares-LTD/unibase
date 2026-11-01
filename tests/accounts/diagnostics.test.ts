@@ -9,17 +9,23 @@ import {
   diagnosticCapabilities,
   diagnosticCapabilityNames,
   MAX_ACTIVE_GRANTS,
+  grantDurations,
+  grantCreateSchema,
 } from "../../src/lib/contracts/diagnostics";
 import {
   appointFirstAdmin,
   changeAccess,
 } from "../../src/lib/server/store/access";
+import {
+  mongoGrantStore,
+  createGrantIndexes,
+} from "../../src/lib/server/diagnostics/grant-store";
 import type {
   GrantRecord,
   GrantStore,
 } from "../../src/lib/server/diagnostics/grant-store";
 import {
-  createGrant,
+  createGrant as issueGeneratedGrant,
   listGrants,
   revokeGrant,
 } from "../../src/lib/server/diagnostics/grants";
@@ -45,8 +51,8 @@ import { AppError } from "../../src/lib/auth-policy";
 import { z } from "zod";
 
 /**
- * Test double for the Redis grant store. Production has no in-memory store;
- * the Lua-backed implementation is exercised separately against real Redis.
+ * Fault-injecting grant store for lifecycle and transport tests.
+ * Durable MongoDB and Redis limiters are exercised separately.
  */
 function memoryStore(clock: () => number) {
   const grants = new Map<string, GrantRecord>();
@@ -137,8 +143,16 @@ const SECRET_MARKERS = [
   "https://checkout.example/SECRET",
   PHRASE,
 ];
-const credential = (id: string, phrase = PHRASE) =>
-  `Bearer ${id}.${Buffer.from(phrase).toString("base64url")}`;
+const generatedCredentials = new Map<string, string>();
+async function createGrant(...args: Parameters<typeof issueGeneratedGrant>) {
+  const grant = await issueGeneratedGrant(...args);
+  generatedCredentials.set(grant.id, grant.credential);
+  return grant;
+}
+const credential = (id: string, phrase?: string) =>
+  phrase === undefined
+    ? `Bearer ${generatedCredentials.get(id)}`
+    : `Bearer ${id}.${Buffer.from(phrase).toString("base64url")}`;
 const post = (
   body: unknown,
   authorization: string | null,
@@ -360,7 +374,6 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
           { code: "INVALID_INPUT" },
         );
         const grant = await createGrant({ db, store, now }, issuer, {
-          phrase: PHRASE,
           duration: "1h",
           capabilities: ["runtime.status"],
         });
@@ -382,9 +395,18 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
         );
         assert.ok(!stored.includes(PHRASE));
         assert.ok(!stored.includes("verifier"));
+        assert.ok(!stored.includes(grant.credential));
+        const secret = Buffer.from(grant.credential.split(".")[1], "base64url");
+        assert.equal(secret.length, 32);
+        assert.ok(
+          !JSON.stringify(await store.get(grant.id, now())).includes(
+            secret.toString("base64url"),
+          ),
+        );
         const listed = await listGrants({ store, now }, issuer);
         assert.ok(listed.grants.some((g) => g.id === grant.id));
         assert.ok(!JSON.stringify(listed).includes("salt"));
+        assert.ok(!JSON.stringify(listed).includes("credential"));
         await revokeGrant({ db, store, now }, issuer, grant.id);
       },
     );
@@ -393,7 +415,6 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
       "store failure leaves no usable grant and a failed record",
       async () => {
         const input = {
-          phrase: PHRASE,
           duration: "15m",
           capabilities: ["runtime.status"],
         };
@@ -401,7 +422,7 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
           // Creation fails but removal is confirmed: an ordinary failure.
           store.setFailCreate(true);
           await assert.rejects(createGrant({ db, store, now }, issuer, input), {
-            code: "DIAGNOSTICS_REDIS_UNAVAILABLE",
+            code: "DIAGNOSTICS_STORAGE_UNAVAILABLE",
           });
           // Removal cannot be confirmed: report and record uncertainty.
           store.setDown(true);
@@ -432,7 +453,6 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
       const results = await Promise.allSettled(
         Array.from({ length: MAX_ACTIVE_GRANTS + 2 }, () =>
           createGrant({ db, store, now }, issuer, {
-            phrase: PHRASE,
             duration: "15m",
             capabilities: ["runtime.status"],
           }),
@@ -454,7 +474,7 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
     });
 
     await t.test(
-      "activation-audit failure reports withdrawal only when Redis confirms it",
+      "activation-audit failure reports withdrawal only when storage confirms it",
       async () => {
         const failingAudit = {
           collection: (name: string) =>
@@ -470,7 +490,6 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
           client: db.client,
         } as unknown as Db;
         const input = {
-          phrase: PHRASE,
           duration: "15m",
           capabilities: ["runtime.status"],
         };
@@ -498,8 +517,133 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
       },
     );
 
+    await t.test(
+      "MongoDB grants survive store/limiter replacement and enforce scope, limits and expiry",
+      async () => {
+        await createGrantIndexes(db);
+        const scope = "fixture:local:diagnostics";
+        const fresh = () => mongoGrantStore(db, scope, memoryStore(now));
+        const durable = fresh();
+        const issued = [];
+        for (const [duration, seconds] of Object.entries(grantDurations)) {
+          const created = await createGrant(
+            { db, store: durable, now },
+            issuer,
+            { duration, capabilities: ["capabilities.list"] },
+          );
+          issued.push(created);
+          assert.equal(Date.parse(created.expiresAt) - now(), seconds * 1000);
+          assert.ok(await fresh().get(created.id, now()));
+          assert.equal(
+            await fresh().get(created.id, Date.parse(created.expiresAt)),
+            null,
+          );
+          assert.equal(
+            await mongoGrantStore(
+              db,
+              "fixture:staging:diagnostics",
+              memoryStore(now),
+            ).get(created.id, now()),
+            null,
+          );
+          assert.equal(await durable.revoke("other-issuer", created.id), false);
+          const row = await db
+            .collection("diagnosticGrants")
+            .findOne({ id: created.id });
+          assert.ok(row?.expiresAt instanceof Date);
+          assert.ok(!JSON.stringify(row).includes(created.credential));
+          const response = await handleDiagnostics(
+            post(
+              { capability: "capabilities.list", payload: {} },
+              `Bearer ${created.credential}`,
+            ),
+            deps({ store: async () => fresh() }),
+          );
+          assert.equal(response.status, 200);
+        }
+        assert.equal(
+          grantCreateSchema.safeParse({
+            duration: "31d",
+            capabilities: ["runtime.status"],
+          }).success,
+          false,
+        );
+        for (const created of issued) {
+          await revokeGrant({ db, store: fresh(), now }, issuer, created.id);
+          assert.equal(await fresh().get(created.id, now()), null);
+          const response = await handleDiagnostics(
+            post(
+              { capability: "capabilities.list", payload: {} },
+              `Bearer ${created.credential}`,
+            ),
+            deps({ store: async () => fresh() }),
+          );
+          assert.equal(response.status, 401);
+        }
+        const closedClient = new MongoClient(repl.getUri());
+        await closedClient.close();
+        const unavailable = mongoGrantStore(
+          closedClient.db(db.databaseName),
+          scope,
+          memoryStore(now),
+        );
+        const unavailableResponse = await handleDiagnostics(
+          post(
+            { capability: "capabilities.list", payload: {} },
+            `Bearer ${issued[0].credential}`,
+          ),
+          deps({ store: async () => unavailable }),
+        );
+        assert.equal(unavailableResponse.status, 503);
+        await assert.rejects(listGrants({ store: unavailable, now }, issuer), {
+          code: "DIAGNOSTICS_STORAGE_UNAVAILABLE",
+        });
+        const results = await Promise.allSettled(
+          Array.from({ length: MAX_ACTIVE_GRANTS + 4 }, () =>
+            createGrant({ db, store: fresh(), now }, issuer, {
+              duration: "30d",
+              capabilities: ["runtime.status"],
+            }),
+          ),
+        );
+        assert.equal(
+          results.filter((r) => r.status === "fulfilled").length,
+          MAX_ACTIVE_GRANTS,
+        );
+        for (const result of results)
+          if (result.status === "rejected")
+            assert.equal(
+              (result.reason as AppError).code,
+              "DIAGNOSTIC_GRANT_LIMIT",
+            );
+        assert.equal(
+          (await durable.list(issuer.uid, now())).length,
+          MAX_ACTIVE_GRANTS,
+        );
+        for (const created of await durable.list(issuer.uid, now()))
+          await durable.revoke(issuer.uid, created.id);
+        const broken = mongoGrantStore(db, scope, {
+          hit: async () => {
+            throw new Error("Redis unavailable");
+          },
+        });
+        const created = await createGrant({ db, store: durable, now }, issuer, {
+          duration: "1h",
+          capabilities: ["capabilities.list"],
+        });
+        const response = await handleDiagnostics(
+          post(
+            { capability: "capabilities.list", payload: {} },
+            `Bearer ${created.credential}`,
+          ),
+          deps({ store: async () => broken }),
+        );
+        assert.equal(response.status, 503);
+        await durable.revoke(issuer.uid, created.id);
+      },
+    );
+
     const grant = await createGrant({ db, store, now }, issuer, {
-      phrase: PHRASE,
       duration: "4h",
       capabilities: all.filter((c) => diagnosticCapabilities[c] === "metadata"),
     });
@@ -588,7 +732,6 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
           assert.equal(response.status, 401);
         }
         const short = await createGrant({ db, store, now }, issuer, {
-          phrase: PHRASE,
           duration: "15m",
           capabilities: ["runtime.status"],
         });
@@ -596,7 +739,6 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
         assert.equal((await call(short.id, "runtime.status")).status, 401);
         clock -= 16 * 60 * 1000;
         const evicted = await createGrant({ db, store, now }, issuer, {
-          phrase: PHRASE,
           duration: "15m",
           capabilities: ["runtime.status"],
         });
@@ -606,7 +748,6 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
         assert.equal((await call(grant.id, "runtime.status")).status, 503);
         store.setDown(false);
         const revocable = await createGrant({ db, store, now }, issuer, {
-          phrase: PHRASE,
           duration: "15m",
           capabilities: ["runtime.status"],
         });
@@ -634,7 +775,6 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
 
         const second = { uid: "second", authTime };
         const secondGrant = await createGrant({ db, store, now }, second, {
-          phrase: PHRASE,
           duration: "1h",
           capabilities: ["runtime.status"],
         });
@@ -874,7 +1014,6 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
     } as never);
 
     const contentGrant = await createGrant({ db, store, now }, issuer, {
-      phrase: PHRASE,
       duration: "1h",
       capabilities: all,
     });
@@ -1417,7 +1556,7 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
 // The Lua-backed store needs a disposable Redis (e.g. the docker fixture used
 // by scripts/test-rate-limits.mjs). Never point this at shared infrastructure.
 test(
-  "redis grant store enforces the cap, ownership and expiry atomically",
+  "Redis diagnostic limiter shares counters and fails closed",
   {
     skip:
       !process.env.DIAGNOSTICS_TEST_REDIS_URL &&
@@ -1425,57 +1564,26 @@ test(
   },
   async () => {
     const { createClient } = await import("redis");
-    const { redisGrantStore } =
+    const { redisGrantLimiter } =
       await import("../../src/lib/server/diagnostics/grant-store");
     const client = createClient({
       url: process.env.DIAGNOSTICS_TEST_REDIS_URL,
     });
     await client.connect();
     const prefix = `test:${randomBytes(8).toString("hex")}:diagnostics`;
-    const store = redisGrantStore(client, prefix);
-    const now = Date.now();
-    const grant = (uid: string, ttl = 60000): GrantRecord => ({
-      id: randomBytes(16).toString("base64url"),
-      issuerUid: uid,
-      authTime: 1,
-      accessRevision: 0,
-      capabilities: ["runtime.status"],
-      issuedAt: now,
-      expiresAt: now + ttl,
-      salt: "s",
-      verifier: "v",
-      kdf: { N: 32768, r: 8, p: 1, keylen: 32 },
-      cursorKey: "k",
-    });
     try {
-      const results = await Promise.all(
-        Array.from({ length: MAX_ACTIVE_GRANTS + 5 }, () =>
-          store.create(grant("a"), MAX_ACTIVE_GRANTS, now),
-        ),
-      );
-      assert.equal(
-        results.filter((r) => r === "created").length,
-        MAX_ACTIVE_GRANTS,
-      );
-      const listed = await store.list("a", now);
-      assert.equal(listed.length, MAX_ACTIVE_GRANTS);
-      assert.equal(await store.revoke("b", listed[0].id), false);
-      assert.ok(await store.get(listed[0].id, now));
-      assert.equal(await store.revoke("a", listed[0].id), true);
-      assert.equal(await store.get(listed[0].id, now), null);
-      const short = grant("c", 200);
-      assert.equal(
-        await store.create(short, MAX_ACTIVE_GRANTS, now),
-        "created",
-      );
-      assert.equal(await store.create(short, MAX_ACTIVE_GRANTS, now), "exists");
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      assert.equal(await store.get(short.id, Date.now()), null);
-      assert.equal((await store.hit({ kind: "global" })).count, 1);
-      assert.equal((await store.hit({ kind: "global" })).count, 2);
+      const first = redisGrantLimiter(client, prefix);
+      const second = redisGrantLimiter(client, prefix);
+      assert.equal((await first.hit({ kind: "global" })).count, 1);
+      assert.equal((await second.hit({ kind: "global" })).count, 2);
+      assert.equal((await first.hit({ kind: "grant", id: "one" })).count, 1);
+      assert.equal((await second.hit({ kind: "grant", id: "two" })).count, 1);
     } finally {
       for (const key of await client.keys(`${prefix}:*`)) await client.del(key);
       await client.quit();
     }
+    await assert.rejects(
+      redisGrantLimiter(client, prefix).hit({ kind: "global" }),
+    );
   },
 );

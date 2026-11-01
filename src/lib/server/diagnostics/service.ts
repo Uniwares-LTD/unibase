@@ -1,12 +1,13 @@
 import "server-only";
 import { diagnosticsConfig } from "./availability";
+import { getConfig } from "../config";
 import { AppError } from "../../auth-policy";
 import { project } from "../../project";
 import { requireAdmin } from "../admin";
 import { adminAuth } from "../firebase";
 import { database } from "../mongo";
 import { redis, resetBrokenRedis } from "../redis";
-import { redisGrantStore } from "./grant-store";
+import { mongoGrantStore, redisGrantLimiter } from "./grant-store";
 import { createGrant, listGrants, revokeGrant } from "./grants";
 import type { DiagnosticsDependencies } from "./handler";
 import { registry } from "./registry";
@@ -23,16 +24,20 @@ async function store() {
       "Diagnostics requires Redis. Configure REDIS_URL.",
       503,
     );
+  let client;
   try {
-    return redisGrantStore(await redis(config.redisUrl), prefix());
+    client = await redis(config.redisUrl);
   } catch {
     resetBrokenRedis();
     throw new AppError(
       "DIAGNOSTICS_REDIS_UNAVAILABLE",
-      "Diagnostic access storage is unavailable.",
+      "Diagnostic request protection is unavailable.",
       503,
     );
   }
+  return guarded(async () =>
+    mongoGrantStore(database(), prefix(), redisGrantLimiter(client, prefix())),
+  );
 }
 async function guarded<T>(action: () => Promise<T>) {
   try {
@@ -42,9 +47,8 @@ async function guarded<T>(action: () => Promise<T>) {
       if (error.code === "DIAGNOSTICS_REDIS_UNAVAILABLE") resetBrokenRedis();
       throw error;
     }
-    resetBrokenRedis();
     throw new AppError(
-      "DIAGNOSTICS_REDIS_UNAVAILABLE",
+      "DIAGNOSTICS_STORAGE_UNAVAILABLE",
       "Diagnostic access storage is unavailable.",
       503,
     );
@@ -64,13 +68,14 @@ export async function currentGrants() {
 export async function issueGrant(input: unknown) {
   const grants = await store();
   const session = await requireAdmin();
-  return guarded(() =>
-    createGrant(
+  return guarded(async () => ({
+    ...(await createGrant(
       { db: database(), store: grants },
       { uid: session.uid, authTime: session.auth_time },
       input,
-    ),
-  );
+    )),
+    endpoint: new URL("/api/diagnostics", getConfig().server.origin).href,
+  }));
 }
 export async function withdrawGrant(id: string) {
   const grants = await store();

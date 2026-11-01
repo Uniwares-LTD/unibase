@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import type { Db } from "mongodb";
 import { windowScript } from "../rate-limit";
 import type { RedisClient } from "../redis";
 
@@ -25,7 +26,7 @@ const grantSchema = z.strictObject({
 });
 export type GrantRecord = z.infer<typeof grantSchema>;
 
-/** Redis is authoritative; there is deliberately no other implementation. */
+/** Durable grant storage plus shared, ephemeral request protection. */
 export interface GrantStore {
   create(
     grant: GrantRecord,
@@ -41,83 +42,134 @@ export interface GrantStore {
   ): Promise<{ count: number; retryAfter: number }>;
 }
 
-// Grants never outlive 24 hours; the per-issuer index lasts slightly longer.
-const INDEX_TTL_MS = 25 * 3600 * 1000;
-const createScript = `
-redis.call('ZREMRANGEBYSCORE', KEYS[2], '-inf', ARGV[3])
-if redis.call('ZCARD', KEYS[2]) >= tonumber(ARGV[4]) then return 0 end
-if redis.call('EXISTS', KEYS[1]) == 1 then return -1 end
-redis.call('SET', KEYS[1], ARGV[1], 'PXAT', ARGV[2])
-redis.call('ZADD', KEYS[2], ARGV[2], ARGV[5])
-redis.call('PEXPIRE', KEYS[2], ARGV[6])
-return 1`;
-const revokeScript = `
-local value = redis.call('GET', KEYS[1])
-if not value then return 0 end
-if cjson.decode(value).issuerUid ~= ARGV[1] then return 0 end
-redis.call('DEL', KEYS[1])
-redis.call('ZREM', KEYS[2], ARGV[2])
-return 1`;
+type StoredGrant = Omit<GrantRecord, "expiresAt"> & {
+  _id: string;
+  scope: string;
+  expiresAt: Date;
+};
+export type GrantLimiter = Pick<GrantStore, "hit">;
 
-export function redisGrantStore(
-  client: RedisClient,
-  prefix: string,
-  timeoutMs = 1500,
+export async function createGrantIndexes(db: Db) {
+  const grants = db.collection<StoredGrant>("diagnosticGrants");
+  await grants.createIndex({ scope: 1, id: 1 }, { unique: true });
+  await grants.createIndex({ scope: 1, issuerUid: 1, expiresAt: 1 });
+  await grants.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+}
+
+export function mongoGrantStore(
+  db: Db,
+  scope: string,
+  limiter: GrantLimiter,
 ): GrantStore {
-  const grantKey = (id: string) => `${prefix}:grant:${id}`;
-  const indexKey = (uid: string) =>
-    `${prefix}:issuer:${createHash("sha256").update(uid).digest("hex")}`;
-  const command = () => client.withAbortSignal(AbortSignal.timeout(timeoutMs));
-  const parse = (value: unknown, now: number) => {
-    if (typeof value !== "string") return null;
-    const parsed = grantSchema.safeParse(JSON.parse(value));
-    // Expiry is enforced explicitly as well as by Redis key expiry.
-    return parsed.success && parsed.data.expiresAt > now ? parsed.data : null;
+  const grants = db.collection<StoredGrant>("diagnosticGrants");
+  const decode = (row: StoredGrant): GrantRecord => {
+    const { _id, scope: storedScope, expiresAt, ...rest } = row;
+    void _id;
+    void storedScope;
+    return grantSchema.parse({ ...rest, expiresAt: expiresAt.getTime() });
   };
   return {
     async create(grant, limit, now) {
-      const result = await command().eval(createScript, {
-        keys: [grantKey(grant.id), indexKey(grant.issuerUid)],
-        arguments: [
-          JSON.stringify(grant),
-          String(grant.expiresAt),
-          String(now),
-          String(limit),
-          grant.id,
-          String(INDEX_TTL_MS),
-        ],
-      });
-      return result === 1 ? "created" : result === 0 ? "limit" : "exists";
+      // Create the fence outside the transaction so concurrent first issuance
+      // cannot race an upsert. Every issuance for this issuer writes this fence.
+      const fence = `${scope}:issuer:${createHash("sha256").update(grant.issuerUid).digest("hex")}`;
+      const control = db.collection<{ _id: string; tick: number }>("control");
+      await control.updateOne(
+        { _id: fence },
+        { $setOnInsert: { tick: 0 } },
+        { upsert: true, timeoutMS: 5000 },
+      );
+      const session = db.client.startSession();
+      try {
+        return await session.withTransaction(
+          async () => {
+            await control.updateOne(
+              { _id: fence },
+              { $inc: { tick: 1 } },
+              { session },
+            );
+            if (await grants.findOne({ scope, id: grant.id }, { session }))
+              return "exists" as const;
+            const count = await grants.countDocuments(
+              {
+                scope,
+                issuerUid: grant.issuerUid,
+                expiresAt: { $gt: new Date(now) },
+              },
+              { session },
+            );
+            if (count >= limit) return "limit" as const;
+            await grants.insertOne(
+              {
+                ...grant,
+                _id: `${scope}:${grant.id}`,
+                scope,
+                expiresAt: new Date(grant.expiresAt),
+              },
+              { session },
+            );
+            return "created" as const;
+          },
+          {
+            readConcern: { level: "snapshot" },
+            writeConcern: { w: "majority" },
+            timeoutMS: 5000,
+          },
+        );
+      } finally {
+        await session.endSession();
+      }
     },
     async get(id, now) {
       if (!grantIdPattern.test(id)) return null;
-      return parse(await command().get(grantKey(id)), now);
+      const row = await grants.findOne(
+        { scope, id, expiresAt: { $gt: new Date(now) } },
+        { timeoutMS: 1500 },
+      );
+      return row ? decode(row) : null;
     },
     async list(uid, now) {
-      const ids = await command().zRangeByScore(indexKey(uid), now + 1, "+inf");
-      if (!ids.length) return [];
-      const values = await command().mGet(ids.map(grantKey));
-      return values
-        .map((value) => parse(value, now))
-        .filter((grant): grant is GrantRecord => grant?.issuerUid === uid);
+      const rows = await grants
+        .find(
+          { scope, issuerUid: uid, expiresAt: { $gt: new Date(now) } },
+          { timeoutMS: 1500 },
+        )
+        .toArray();
+      return rows.map(decode);
     },
     async revoke(uid, id) {
       if (!grantIdPattern.test(id)) return false;
-      const result = await command().eval(revokeScript, {
-        keys: [grantKey(id), indexKey(uid)],
-        arguments: [uid, id],
-      });
-      return result === 1;
+      return (
+        (
+          await grants.deleteOne(
+            { scope, id, issuerUid: uid },
+            { timeoutMS: 1500, writeConcern: { w: "majority" } },
+          )
+        ).deletedCount === 1
+      );
     },
+    hit: limiter.hit,
+  };
+}
+
+/** Redis loss resets counters, never durable credentials. Fail closed on outage. */
+export function redisGrantLimiter(
+  client: RedisClient,
+  prefix: string,
+  timeoutMs = 1500,
+): GrantLimiter {
+  return {
     async hit(bucket) {
       const key =
         bucket.kind === "global"
           ? `${prefix}:rate:global`
           : `${prefix}:rate:grant:${bucket.id}`;
-      const [count, ttl] = (await command().eval(windowScript, {
-        keys: [key],
-        arguments: [],
-      })) as number[];
+      const [count, ttl] = (await client
+        .withAbortSignal(AbortSignal.timeout(timeoutMs))
+        .eval(windowScript, {
+          keys: [key],
+          arguments: [],
+        })) as number[];
       return { count, retryAfter: Math.max(1, ttl) };
     },
   };

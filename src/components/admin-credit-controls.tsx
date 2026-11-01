@@ -1,6 +1,6 @@
 "use client";
-import { useTranslations } from "next-intl";
 
+import { formatAdminNumber } from "@/lib/admin-labels";
 import { Notice } from "./page-patterns";
 import { useActionState, useId, useRef, useState } from "react";
 import { adjustUserCredits } from "@/app/admin/users/credit-actions";
@@ -30,8 +30,6 @@ export function AdminCreditControls({
   actorUid: string;
   initialKey: string;
 }) {
-  const translate = useTranslations("ui");
-
   const id = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const [key, setKey] = useState(initialKey);
@@ -49,16 +47,14 @@ export function AdminCreditControls({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{translate("m392bb77ad9bf")}</CardTitle>
+        <CardTitle>Credit adjustment</CardTitle>
       </CardHeader>
       <CardContent>
         <form id={id} ref={formRef} action={action} className="space-y-5">
           <input type="hidden" name="key" value={key} />
           <input type="hidden" name="confirmed" value="yes" />
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">
-              {translate("mc416069b7f61")}
-            </legend>
+            <legend className="text-sm font-medium">Adjustment</legend>
             <RadioGroup
               name="direction"
               value={direction}
@@ -66,8 +62,8 @@ export function AdminCreditControls({
               disabled={pending}
             >
               {[
-                ["grant", translate("mb2874ddcc6cd")],
-                ["deduct", translate("ma9fb5476cc11")],
+                ["grant", "Grant promotional credits"],
+                ["deduct", "Deduct available credits"],
               ].map(([value, label]) => (
                 <div key={value} className="flex items-center gap-2">
                   <RadioGroupItem value={value} id={`${id}-${value}`} />
@@ -77,7 +73,7 @@ export function AdminCreditControls({
             </RadioGroup>
           </fieldset>
           <div className="space-y-2">
-            <Label htmlFor={`${id}-amount`}>{translate("m0917222b9166")}</Label>
+            <Label htmlFor={`${id}-amount`}>Credit amount</Label>
             <Input
               type="number"
               id={`${id}-amount`}
@@ -90,9 +86,7 @@ export function AdminCreditControls({
             />
           </div>
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">
-              {translate("mfc4224acbacd")}
-            </legend>
+            <legend className="text-sm font-medium">Grant expiry</legend>
             <RadioGroup
               name="expiry"
               value={expiry}
@@ -100,9 +94,9 @@ export function AdminCreditControls({
               disabled={pending || direction !== "grant"}
             >
               {[
-                ["default", translate("m5499359c8cbe")],
-                ["perpetual", translate("mfe06351db8da")],
-                ["custom", translate("m87a565572d6d")],
+                ["default", "Default: 90 days"],
+                ["perpetual", "No expiry"],
+                ["custom", "Specific date (UTC)"],
               ].map(([value, label]) => (
                 <div key={value} className="flex items-center gap-2">
                   <RadioGroupItem value={value} id={`${id}-${value}`} />
@@ -114,7 +108,7 @@ export function AdminCreditControls({
           {direction === "grant" && expiry === "custom" && (
             <div className="space-y-2">
               <Label htmlFor={`${id}-expires`}>
-                {translate("m69ac01f0a993")}
+                Expiry date and time (UTC)
               </Label>
               <Input
                 type="datetime-local"
@@ -126,7 +120,9 @@ export function AdminCreditControls({
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor={`${id}-reason`}>{translate("m7019eb977268")}</Label>
+            <Label htmlFor={`${id}-reason`}>
+              Credit adjustment reason (optional)
+            </Label>
             <Input
               id={`${id}-reason`}
               name="reason"
@@ -135,11 +131,13 @@ export function AdminCreditControls({
               autoComplete="off"
             />
             <p className="text-xs text-muted-foreground">
-              {translate("m693900292adb")}
+              Recorded in the ledger and admin audit; visible to the account
+              owner. Do not enter secrets.
             </p>
           </div>
           <p className="text-sm text-muted-foreground">
-            {translate("me12e1f257817")}
+            Deductions cannot consume held credits or create debt. Grants cover
+            existing debt first.
           </p>
           <AlertDialog
             onOpenChange={(open) => {
@@ -149,41 +147,54 @@ export function AdminCreditControls({
               const amount = Number(data.get("amount") || 0);
               setSummary(
                 direction === "deduct"
-                  ? translate("m8ea21f8a681f", { amount })
+                  ? "Deduct " +
+                      (amount === 1
+                        ? formatAdminNumber(amount) + " credit"
+                        : formatAdminNumber(amount) + " credits") +
+                      " from this account."
                   : expiry === "perpetual"
-                    ? translate("mdc13adcc281f", { amount })
+                    ? "Grant " +
+                      (amount === 1
+                        ? formatAdminNumber(amount) + " promotional credit"
+                        : formatAdminNumber(amount) + " promotional credits") +
+                      " with no expiry."
                     : expiry === "custom"
-                      ? translate("mcbf58d3d9378", {
-                          amount,
-                          date: `${String(data.get("expiresAt") ?? "").replace("T", " ")} UTC`,
-                        })
-                      : translate("m04c6076cf344", { amount }),
+                      ? "Grant " +
+                        (amount === 1
+                          ? formatAdminNumber(amount) + " promotional credit"
+                          : formatAdminNumber(amount) +
+                            " promotional credits") +
+                        " expiring " +
+                        `${String(data.get("expiresAt") ?? "").replace("T", " ")} UTC` +
+                        "."
+                      : "Grant " +
+                        (amount === 1
+                          ? formatAdminNumber(amount) + " promotional credit"
+                          : formatAdminNumber(amount) +
+                            " promotional credits") +
+                        " expiring in 90 days.",
               );
             }}
           >
             <AlertDialogTrigger asChild>
               <Button type="button" disabled={pending}>
-                {pending
-                  ? translate("m23e39291d613")
-                  : translate("m9882a78b6a80")}
+                {pending ? "Saving…" : "Review credit adjustment"}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>
-                  {translate("m4809e4db7cb4")}
-                </AlertDialogTitle>
+                <AlertDialogTitle>Confirm credit adjustment</AlertDialogTitle>
                 <AlertDialogDescription>
                   <span className="block font-medium text-foreground">
                     {summary}
                   </span>
-                  {translate("m7f1e0ccdb520")}
+                  This immediately changes this account’s credits and records
+                  your reason. Check the amount, direction and grant expiry
+                  before confirming.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>
-                  {translate("m19766ed6ccb2")}
-                </AlertDialogCancel>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction asChild>
                   <Button
                     type="submit"
@@ -194,7 +205,7 @@ export function AdminCreditControls({
                         event.preventDefault();
                     }}
                   >
-                    {translate("m402f34285a9b")}
+                    Confirm adjustment
                   </Button>
                 </AlertDialogAction>
               </AlertDialogFooter>
