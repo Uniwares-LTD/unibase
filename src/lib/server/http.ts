@@ -82,7 +82,10 @@ export async function endpoint(
           message: await (
             await import("./error-message")
           )
-            .errorMessage(safe)
+            .errorMessage(
+              safe,
+              request ? new URL(request.url).pathname : undefined,
+            )
             .catch(() => safe.message),
           requestId,
         },

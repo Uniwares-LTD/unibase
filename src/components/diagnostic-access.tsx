@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "next-intl";
+
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { z } from "zod";
 import { api, ApiError } from "@/lib/client/api";
@@ -7,14 +7,24 @@ import {
   diagnosticCapabilities,
   diagnosticCapabilityNames,
   grantListSchema,
-  grantViewSchema,
+  grantCreatedSchema,
+  type GrantCreated,
+  type grantDurations,
   type DiagnosticCapability,
   type GrantView,
 } from "@/lib/contracts/diagnostics";
 import { DateLabel } from "./localized-value";
 import { Notice } from "./page-patterns";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { Copy, Check } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { Badge } from "./ui/badge";
@@ -53,87 +63,81 @@ import {
 } from "./ui/alert-dialog";
 
 type Message = { tone: "success" | "error" | "warning"; text: string };
-type Duration = "15m" | "1h" | "4h" | "24h";
+type Duration = keyof typeof grantDurations;
 const metadataDefaults = diagnosticCapabilityNames.filter(
   (name) => diagnosticCapabilities[name] === "metadata",
 );
 const contentCapabilities = diagnosticCapabilityNames.filter(
   (name) => diagnosticCapabilities[name] === "content",
 );
-const phraseBytes = (value: string) => new TextEncoder().encode(value).length;
-function generatePhrase() {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return btoa(String.fromCharCode(...bytes))
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/, "");
-}
-
 export function DiagnosticAccess({
   availability,
 }: {
   availability: { enabled: boolean; redisConfigured: boolean };
 }) {
-  const translate = useTranslations("ui");
   const id = useId();
-  const phraseInput = useRef<HTMLInputElement>(null);
-  const [phrase, setPhrase] = useState("");
-  const [revealed, setRevealed] = useState(false);
+  const copyInput = useRef<HTMLTextAreaElement>(null);
+  const createButton = useRef<HTMLButtonElement>(null);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
+    "idle",
+  );
   const [duration, setDuration] = useState<Duration>("1h");
   const [selected, setSelected] = useState<Set<DiagnosticCapability>>(
     () => new Set(metadataDefaults),
   );
   const [grants, setGrants] = useState<GrantView[] | null>(null);
-  const [created, setCreated] = useState<GrantView | null>(null);
+  const [created, setCreated] = useState<GrantCreated | null>(null);
   const [message, setMessage] = useState<Message | null>(null);
   const [busy, setBusy] = useState(false);
   const ready = availability.enabled && availability.redisConfigured;
 
-  const describe = useCallback(
-    (error: unknown): Message => {
-      // Network failures and unconfirmed creation share the uncertain state.
-      if (
-        !(error instanceof ApiError) ||
-        error.code === "DIAGNOSTIC_GRANT_OUTCOME_UNKNOWN"
-      )
+  const describe = useCallback((error: unknown): Message => {
+    // Network failures and unconfirmed creation share the uncertain state.
+    if (
+      !(error instanceof ApiError) ||
+      error.code === "DIAGNOSTIC_GRANT_OUTCOME_UNKNOWN"
+    )
+      return {
+        tone: "warning",
+        text: "The request outcome is uncertain. Check active grants before trying again.",
+      };
+    switch (error.code) {
+      case "RECENT_LOGIN_REQUIRED":
+        return {
+          tone: "error",
+          text: "Your sign-in is too old for this change. Sign out, sign in again and retry.",
+        };
+      case "DIAGNOSTICS_STORAGE_UNAVAILABLE":
+        return {
+          tone: "error",
+          text: "Diagnostic grant storage (MongoDB) is unavailable.",
+        };
+      case "DIAGNOSTICS_REDIS_UNAVAILABLE":
+        return {
+          tone: "error",
+          text: "Diagnostic request protection (Redis) is unavailable.",
+        };
+      case "NOT_FOUND":
+        return {
+          tone: "error",
+          text: "Diagnostics is disabled in this environment.",
+        };
+      case "DIAGNOSTIC_GRANT_LIMIT":
+        return {
+          tone: "error",
+          text: "You already have the maximum number of active grants. Revoke one first.",
+        };
+      case "DIAGNOSTIC_GRANT_UNCERTAIN":
         return {
           tone: "warning",
-          text: translate("mc0f1279ff09a"),
+          text: "Access could not be recorded, so it was withdrawn. Check active grants before trying again.",
         };
-      switch (error.code) {
-        case "RECENT_LOGIN_REQUIRED":
-          return {
-            tone: "error",
-            text: translate("mb6e57f92931a"),
-          };
-        case "DIAGNOSTICS_REDIS_UNAVAILABLE":
-          return {
-            tone: "error",
-            text: translate("m14f461383de8"),
-          };
-        case "NOT_FOUND":
-          return {
-            tone: "error",
-            text: translate("m7ae114e03b03"),
-          };
-        case "DIAGNOSTIC_GRANT_LIMIT":
-          return {
-            tone: "error",
-            text: translate("m16c0e73df5a7"),
-          };
-        case "DIAGNOSTIC_GRANT_UNCERTAIN":
-          return {
-            tone: "warning",
-            text: translate("m8d9c43c5e132"),
-          };
-        case "DIAGNOSTIC_GRANT_NOT_FOUND":
-          return { tone: "error", text: translate("m4809c79d109d") };
-        default:
-          return { tone: "error", text: error.message };
-      }
-    },
-    [translate],
-  );
+      case "DIAGNOSTIC_GRANT_NOT_FOUND":
+        return { tone: "error", text: "That grant is no longer active." };
+      default:
+        return { tone: "error", text: error.message };
+    }
+  }, []);
   const load = useCallback(
     (signal?: AbortSignal) =>
       api("/api/admin/diagnostics/grants", grantListSchema, { signal })
@@ -149,14 +153,6 @@ export function DiagnosticAccess({
     void load(controller.signal);
     return () => controller.abort();
   }, [ready, load]);
-  useEffect(() => {
-    const input = phraseInput.current;
-    // Clear the phrase from the field when the card leaves the page.
-    return () => {
-      if (input) input.value = "";
-    };
-  }, []);
-
   async function create() {
     setBusy(true);
     setMessage(null);
@@ -164,16 +160,15 @@ export function DiagnosticAccess({
     try {
       const grant = await api(
         "/api/admin/diagnostics/grants",
-        grantViewSchema,
+        grantCreatedSchema,
         {
           method: "POST",
-          body: { phrase, duration, capabilities: [...selected] },
+          body: { duration, capabilities: [...selected] },
         },
       );
-      setPhrase("");
-      setRevealed(false);
+      setCopyStatus("idle");
       setCreated(grant);
-      setMessage({ tone: "success", text: translate("m789c519909ea") });
+      setMessage({ tone: "success", text: "Diagnostic access created." });
     } catch (error) {
       setMessage(describe(error));
     } finally {
@@ -191,7 +186,7 @@ export function DiagnosticAccess({
         { method: "DELETE", body: { id: grantId } },
       );
       if (created?.id === grantId) setCreated(null);
-      setMessage({ tone: "success", text: translate("m97b0f342d989") });
+      setMessage({ tone: "success", text: "Diagnostic access revoked." });
     } catch (error) {
       setMessage(describe(error));
     } finally {
@@ -206,74 +201,48 @@ export function DiagnosticAccess({
       else next.delete(name);
       return next;
     });
-  const bytes = phraseBytes(phrase);
-  const valid = bytes >= 24 && bytes <= 256 && selected.size > 0;
+  const valid = selected.size > 0;
+  const accessDetails = created
+    ? `Diagnostic endpoint: ${created.endpoint} | Authorization: Bearer ${created.credential}`
+    : "";
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(accessDetails);
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("failed");
+      copyInput.current?.focus();
+      copyInput.current?.select();
+    }
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{translate("md5d6ffdde816")}</CardTitle>
-        <CardDescription>{translate("m4891896558f9")}</CardDescription>
+        <CardTitle>Diagnostic access</CardTitle>
+        <CardDescription>
+          Create temporary, read-only access to the diagnostics API. Grants are
+          separate from Base settings and are never saved with them.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         {!availability.enabled ? (
-          <Notice tone="info" title={translate("m7ae114e03b03")} />
+          <Notice
+            tone="info"
+            title="Diagnostics is disabled in this environment."
+          />
         ) : !availability.redisConfigured ? (
-          <Notice tone="warning" title={translate("m14f461383de8")}>
-            {translate("m7ec9b1dc7336")}
+          <Notice
+            tone="warning"
+            title="Diagnostic request protection (Redis) is unavailable."
+          >
+            Configure REDIS_URL for this environment; diagnostics has no other
+            grant store.
           </Notice>
         ) : (
           <>
             <div className="space-y-2">
-              <Label htmlFor={`${id}-phrase`}>
-                {translate("m289abe84dafc")}
-              </Label>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  ref={phraseInput}
-                  id={`${id}-phrase`}
-                  type={revealed ? "text" : "password"}
-                  autoComplete="off"
-                  spellCheck={false}
-                  value={phrase}
-                  disabled={busy}
-                  aria-describedby={`${id}-phrase-help`}
-                  onChange={(event) => setPhrase(event.target.value)}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => {
-                    setPhrase(generatePhrase());
-                    setRevealed(true);
-                  }}
-                >
-                  {translate("m49e49bb4401e")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={busy || !phrase}
-                  aria-pressed={revealed}
-                  onClick={() => setRevealed((value) => !value)}
-                >
-                  {revealed
-                    ? translate("mac20a57bfde0")
-                    : translate("m0df6f1cad36c")}
-                </Button>
-              </div>
-              <p
-                id={`${id}-phrase-help`}
-                className="text-xs text-muted-foreground"
-              >
-                {translate("m275192273458")}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={`${id}-duration`}>
-                {translate("ma5e4b9f547aa")}
-              </Label>
+              <Label htmlFor={`${id}-duration`}>Expires after</Label>
               <Select
                 value={duration}
                 disabled={busy}
@@ -283,24 +252,18 @@ export function DiagnosticAccess({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="15m">
-                    {translate("m2f18bc2a00e7")}
-                  </SelectItem>
-                  <SelectItem value="1h">
-                    {translate("mf8b8883f0c9d")}
-                  </SelectItem>
-                  <SelectItem value="4h">
-                    {translate("me5bc99278849")}
-                  </SelectItem>
-                  <SelectItem value="24h">
-                    {translate("mf0514e8df841")}
-                  </SelectItem>
+                  <SelectItem value="15m">15 minutes</SelectItem>
+                  <SelectItem value="1h">1 hour</SelectItem>
+                  <SelectItem value="4h">4 hours</SelectItem>
+                  <SelectItem value="24h">24 hours</SelectItem>
+                  <SelectItem value="7d">1 week (7 days)</SelectItem>
+                  <SelectItem value="30d">1 month (30 days)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <fieldset className="space-y-3">
               <legend className="text-sm font-medium">
-                {translate("mc9a175162e07")}
+                Metadata capabilities
               </legend>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {metadataDefaults.map((name) => (
@@ -323,10 +286,12 @@ export function DiagnosticAccess({
             </fieldset>
             <fieldset className="space-y-3">
               <legend className="text-sm font-medium">
-                {translate("m6429e63adaca")}
+                Content capabilities
               </legend>
               <p className="text-xs text-muted-foreground">
-                {translate("ma845eeac6c9e")}
+                These return stored prompts, answers, outputs and saved text
+                from any account. Select them only when the investigation needs
+                that content.
               </p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {contentCapabilities.map((name) => (
@@ -347,46 +312,92 @@ export function DiagnosticAccess({
                 ))}
               </div>
             </fieldset>
-            <Button disabled={busy || !valid} onClick={() => void create()}>
-              {translate("m9a1a36b83d8e")}
+            <Button
+              ref={createButton}
+              disabled={busy || !valid}
+              onClick={() => void create()}
+            >
+              Create access
             </Button>
           </>
         )}
         {message && <Notice tone={message.tone} title={message.text} />}
         {created && (
-          <Notice tone="info" title={translate("mcb537a764c25")}>
-            <p className="font-mono text-sm break-all" dir="ltr">
-              {created.id}
-            </p>
-            <p className="mt-2 text-sm">{translate("mbc0a20cf23e1")}</p>
-            <pre
-              className="mt-2 overflow-x-auto rounded bg-muted p-2 text-xs"
-              dir="ltr"
+          <Dialog
+            open
+            onOpenChange={(open) => {
+              if (!open) {
+                setCreated(null);
+                setCopyStatus("idle");
+              }
+            }}
+          >
+            <DialogContent
+              className="sm:max-w-lg rtl:translate-x-1/2"
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                createButton.current?.focus();
+              }}
             >
-              {`npm run diagnostics -- --grant ${created.id} --capability capabilities.list`}
-            </pre>
-          </Notice>
+              <DialogHeader>
+                <DialogTitle>Copy diagnostic access</DialogTitle>
+                <DialogDescription>
+                  Copy this string and paste it into the chat. It is shown only
+                  once. If you lose it, revoke this grant and create another.
+                </DialogDescription>
+              </DialogHeader>
+              <Label htmlFor={`${id}-access`}>Diagnostic access details</Label>
+              <div className="flex items-start gap-2">
+                <Textarea
+                  ref={copyInput}
+                  id={`${id}-access`}
+                  readOnly
+                  value={accessDetails}
+                  dir="ltr"
+                  rows={5}
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="min-w-0 flex-1 break-all font-mono text-xs"
+                  onFocus={(event) => event.currentTarget.select()}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => void copy()}
+                  aria-label="Copy access details"
+                >
+                  {copyStatus === "copied" ? (
+                    <Check aria-hidden="true" />
+                  ) : (
+                    <Copy aria-hidden="true" />
+                  )}
+                </Button>
+              </div>
+              <p role="status" className="text-sm text-muted-foreground">
+                {copyStatus === "copied"
+                  ? "Copied"
+                  : copyStatus === "failed"
+                    ? "Copy failed. Select the text and copy it manually."
+                    : null}
+              </p>
+            </DialogContent>
+          </Dialog>
         )}
         {ready && (
           <section className="space-y-2">
-            <h3 className="text-sm font-medium">
-              {translate("mb01b1a46c2bc")}
-            </h3>
+            <h3 className="text-sm font-medium">Your active grants</h3>
             {grants === null ? null : grants.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {translate("m4dbe01da882b")}
-              </p>
+              <p className="text-sm text-muted-foreground">No active grants.</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{translate("mcb537a764c25")}</TableHead>
-                    <TableHead>{translate("m9460f16ac9b5")}</TableHead>
-                    <TableHead>{translate("mf6725f3af08a")}</TableHead>
+                    <TableHead>Grant ID</TableHead>
+                    <TableHead>Capabilities</TableHead>
+                    <TableHead>Expires</TableHead>
                     <TableHead>
-                      <span className="sr-only">
-                        {translate("mff8059dc6752")}
-                      </span>
+                      <span className="sr-only">Actions</span>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -420,26 +431,25 @@ export function DiagnosticAccess({
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="outline" size="sm" disabled={busy}>
-                              {translate("m87e6d00bbf53")}
+                              Revoke
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>
-                                {translate("mda83f79af6e7")}
+                                Revoke diagnostic access?
                               </AlertDialogTitle>
                               <AlertDialogDescription>
-                                {translate("m26b3b0578965")}
+                                Requests using this grant stop working
+                                immediately. This cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>
-                                {translate("m19766ed6ccb2")}
-                              </AlertDialogCancel>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => void revoke(grant.id)}
                               >
-                                {translate("m87e6d00bbf53")}
+                                Revoke
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>

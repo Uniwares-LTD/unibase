@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { matchesRoute } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 
-// Labels are translated on the server; this component only marks the current page.
+// English labels come from the server; this component only marks the current page.
 export function AdminNav({
   label,
   items,

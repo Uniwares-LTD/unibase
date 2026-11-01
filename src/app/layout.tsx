@@ -1,9 +1,9 @@
 import { LocalizedValidation } from "@/components/localized-validation";
-import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import english from "../../messages/en.json";
 import { requestLocale } from "@/lib/server/locale";
 import { clientMessages } from "@/lib/server/client-messages";
-import { LocaleDirection } from "@/components/locale-direction";
+import { ApplicationLocale } from "@/components/application-locale";
 import type { Metadata, Viewport } from "next";
 import { BrowserRuntime } from "@/components/browser-runtime";
 import { SessionBoundary } from "@/components/session-boundary";
@@ -50,8 +50,15 @@ export default async function RootLayout({
   await connection();
   const publicConfig = await publicSettings();
   const viewer = await viewerState();
-  const { locale, timeZone } = await requestLocale();
-  const messages = clientMessages(await getMessages(), "__shell__");
+  const { locale: preferenceLocale, timeZone } = await requestLocale();
+  const locale = await getLocale();
+  const preferred = (await import(`../../messages/${preferenceLocale}.json`))
+    .default;
+  const englishMessages = clientMessages(english, "__shell__");
+  const messages =
+    preferenceLocale === "en"
+      ? englishMessages
+      : clientMessages(preferred, "__shell__");
   const preference = parseStylePreference(
     (await cookies()).get(STYLE_COOKIE)?.value,
   );
@@ -63,34 +70,31 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-svh font-sans antialiased">
-        <NextIntlClientProvider
-          locale={locale}
+        <ApplicationLocale
+          preference={preferenceLocale}
           timeZone={timeZone}
           messages={messages}
+          englishMessages={englishMessages}
         >
-          <LocaleDirection locale={locale}>
-            <ThemeProvider
-              nonce={(await headers()).get("x-nonce") ?? undefined}
+          <ThemeProvider nonce={(await headers()).get("x-nonce") ?? undefined}>
+            <StyleProvider
+              initialPreference={preference}
+              defaultStyle={publicConfig.defaultStyle}
             >
-              <StyleProvider
-                initialPreference={preference}
-                defaultStyle={publicConfig.defaultStyle}
-              >
-                <BrowserRuntime />
-                <LocalizedValidation />
-                <SessionBoundary>
-                  <AppShell
-                    appName={publicConfig.appName}
-                    signedIn={viewer.hasSession}
-                    accountMenu={<AccountMenuControls {...viewer} />}
-                  >
-                    {children}
-                  </AppShell>
-                </SessionBoundary>
-              </StyleProvider>
-            </ThemeProvider>
-          </LocaleDirection>
-        </NextIntlClientProvider>
+              <BrowserRuntime preferredLocale={preferenceLocale} />
+              <LocalizedValidation />
+              <SessionBoundary>
+                <AppShell
+                  appName={publicConfig.appName}
+                  signedIn={viewer.hasSession}
+                  accountMenu={<AccountMenuControls {...viewer} />}
+                >
+                  {children}
+                </AppShell>
+              </SessionBoundary>
+            </StyleProvider>
+          </ThemeProvider>
+        </ApplicationLocale>
       </body>
     </html>
   );

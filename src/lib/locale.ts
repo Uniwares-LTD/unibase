@@ -2,6 +2,20 @@ import { z } from "zod";
 import { namespace, project } from "./project";
 export const localeSchema = z.enum(["en", "ar"]);
 export type Locale = z.infer<typeof localeSchema>;
+export function isAdminPath(pathname: string) {
+  return (
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname === "/api/admin" ||
+    pathname.startsWith("/api/admin/")
+  );
+}
+export function presentationLocale(
+  preference: Locale,
+  pathname: string,
+): Locale {
+  return isAdminPath(pathname) ? "en" : preference;
+}
 export const localeCookie = namespace("locale");
 export const timeZoneSchema = z
   .string()

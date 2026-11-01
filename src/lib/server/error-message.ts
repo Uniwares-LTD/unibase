@@ -1,7 +1,11 @@
 import "server-only";
 import { requestLocale } from "./locale";
 import type { AppError } from "../auth-policy";
-export async function errorMessage(error: AppError) {
+import { headers } from "next/headers";
+import { isAdminPath } from "../locale";
+export async function errorMessage(error: AppError, pathname?: string) {
+  if (isAdminPath(pathname ?? (await headers()).get("x-pathname") ?? ""))
+    return error.message;
   const { locale } = await requestLocale();
   if (locale === "en") return error.message;
   const { errors } = await import("../../../messages/ar.json");

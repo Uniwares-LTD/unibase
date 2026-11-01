@@ -48,7 +48,7 @@ Publication, merges, deployments, releases and permissions retain separate autho
 - Place server-only access in `src/lib/server` with `server-only` imports. Explicitly allowlist public configuration. Never serialize process.env, credentials, or private configuration to the browser.
 - Local operation must remain possible without cloud credentials. Live provider activation and deployment require separate session authorization.
 - Project identity, modules, locales and examples come from `project.config.json`; preserve existing namespaces and accepted Run/accounting records. Read [reusable service contracts](docs/services.md) before changing ownership, quotas, domain adapters, limits or notification transactions.
-- Keep translated UI in typed catalogs, use page-scoped client dictionaries and logical RTL styles, and preserve document CSP nonces during client navigation.
+- Keep public translated UI in typed catalogs with page-scoped client dictionaries and logical RTL styles. Administration is English-only: keep admin copy in source, outside locale catalogs, and preserve the user's public language preference when entering/leaving admin. Preserve document CSP nonces during client navigation.
 - Reuse shadcn components through the CLI. Compose application UI from those primitives; do not create alternative buttons, dialogs, menus, or form controls when shadcn provides them.
 - Use semantic CSS variables for themes. Verify desktop/mobile navigation, keyboard focus, and hydration after UI changes.
 

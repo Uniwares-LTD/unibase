@@ -1,6 +1,6 @@
 "use client";
 import { useId, useState } from "react";
-import { useTranslations } from "next-intl";
+
 import { Notice } from "@/components/page-patterns";
 import { z } from "zod";
 import { api, ApiError } from "@/lib/client/api";
@@ -32,7 +32,6 @@ export function CompletionEditor({
   initial: View;
   onReady: (ready: boolean) => void;
 }) {
-  const translate = useTranslations("ui");
   const prefix = useId();
   const [settings, setSettings] = useState<PersonaCompletionSettings>(
     initial.settings,
@@ -58,10 +57,12 @@ export function CompletionEditor({
         initial.connectionReady && settings.enabled && !!settings.model;
       setReady(available);
       onReady(available);
-      setMessage(translate("mfca046ccd586"));
+      setMessage("Saved.");
     } catch (error) {
       setMessage(
-        error instanceof ApiError ? error.message : translate("m47715ac03001"),
+        error instanceof ApiError
+          ? error.message
+          : "Could not confirm the save. Reload before retrying.",
       );
     } finally {
       setBusy(false);
@@ -70,23 +71,24 @@ export function CompletionEditor({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{translate("m9de0877167bc")}</CardTitle>
+        <CardTitle>Persona completion</CardTitle>
         <p className="text-sm text-muted-foreground">
-          {translate("m812dd5feea1f")}
+          Configure the model and shared instructions used by every persona.
         </p>
         <div className="flex flex-wrap gap-2">
           <Badge variant={ready ? "default" : "secondary"}>
-            {ready ? translate("m5fa7aac5375c") : translate("m330010f40240")}
+            {ready ? "Ready" : "Not ready"}
           </Badge>
           {initial.connectionReady && (
-            <Badge variant="outline">{translate("m4fd1710a736c")}</Badge>
+            <Badge variant="outline">Connection configured</Badge>
           )}
         </div>
       </CardHeader>
       <CardContent>
         {!initial.connectionReady && (
           <p className="mb-4 text-sm text-muted-foreground">
-            {translate("m96aedb4532ab")}
+            Set the server completion environment variables to enable a
+            connection.
           </p>
         )}
         <form className="space-y-4" onSubmit={save}>
@@ -99,14 +101,10 @@ export function CompletionEditor({
                   setSettings({ ...settings, enabled: v === true })
                 }
               />
-              <Label htmlFor={`${prefix}-enabled`}>
-                {translate("m92c1cdfdf4cb")}
-              </Label>
+              <Label htmlFor={`${prefix}-enabled`}>Enabled</Label>
             </div>
             <div className="space-y-2">
-              <Label htmlFor={`${prefix}-model`}>
-                {translate("m089ef2b6dbb3")}
-              </Label>
+              <Label htmlFor={`${prefix}-model`}>Model ID</Label>
               <Input
                 id={`${prefix}-model`}
                 value={settings.model}
@@ -120,7 +118,7 @@ export function CompletionEditor({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor={`${prefix}-temperature`}>
-                  {translate("me1a4077b26af")}
+                  Temperature (optional)
                 </Label>
                 <Input
                   id={`${prefix}-temperature`}
@@ -140,7 +138,7 @@ export function CompletionEditor({
               </div>
               <div className="space-y-2">
                 <Label htmlFor={`${prefix}-tokens`}>
-                  {translate("m28b2aeb30c06")}
+                  Maximum output tokens
                 </Label>
                 <Input
                   id={`${prefix}-tokens`}
@@ -160,7 +158,7 @@ export function CompletionEditor({
             </div>
             <div className="space-y-2">
               <Label htmlFor={`${prefix}-parameter`}>
-                {translate("me4bd0748fb49")}
+                Token limit parameter
               </Label>
               <Select
                 value={settings.tokenParameter}
@@ -185,7 +183,7 @@ export function CompletionEditor({
             </div>
             <div className="space-y-2">
               <Label htmlFor={`${prefix}-instructions`}>
-                {translate("m71e1b0b067f6")}
+                Shared instructions
               </Label>
               <Textarea
                 id={`${prefix}-instructions`}
@@ -207,15 +205,16 @@ export function CompletionEditor({
                   })
                 }
               >
-                {translate("mbc5b45ae7b60")}
+                Reset to default
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              {translate("m299efc821572")}
+              Shared settings apply to future Runs. Each persona supplies its
+              own role instructions.
             </p>
             <div className="space-y-2">
               <Label htmlFor={`${prefix}-reason`}>
-                {translate("mfcbdbd5d879b")}
+                Change reason (optional)
               </Label>
               <Input
                 id={`${prefix}-reason`}
@@ -225,7 +224,7 @@ export function CompletionEditor({
               />
             </div>
             <Button type="submit">
-              {busy ? translate("m23e39291d613") : translate("md599b2bbf718")}
+              {busy ? "Saving…" : "Save completion settings"}
             </Button>
           </fieldset>
           {message && <Notice title={message} />}

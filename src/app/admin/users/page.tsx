@@ -1,6 +1,6 @@
-import { StateLabel } from "@/components/localized-value";
+import { AdminStateLabel as StateLabel } from "@/components/admin-state-label";
 import { PageMessages } from "@/components/page-messages";
-import { getTranslations } from "next-intl/server";
+
 import { PageHeader, EmptyState } from "@/components/page-patterns";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -20,15 +20,13 @@ import {
 } from "@/components/ui/table";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getTranslations("ui"))("m6b0cc904d081") };
+  return { title: "Users" };
 }
 export default async function UsersPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const translate = await getTranslations("ui");
-
   await adminPageSession();
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.trim() : "";
@@ -46,12 +44,12 @@ export default async function UsersPage({
     <PageMessages path="/admin/users">
       <div className="page-stack">
         <PageHeader
-          title={translate("m6b0cc904d081")}
-          description={translate("m8e3573ba1909")}
+          title="Users"
+          description="Find an account to review its profile, access and credit balance."
         />
         <form method="get" className="flex max-w-xl flex-wrap items-end gap-3">
           <div className="min-w-0 flex-1 space-y-2">
-            <Label htmlFor="user-search">{translate("mcc6302d75cf6")}</Label>
+            <Label htmlFor="user-search">Exact email or Firebase UID</Label>
             <Input
               id="user-search"
               name="q"
@@ -59,19 +57,19 @@ export default async function UsersPage({
               maxLength={320}
             />
           </div>
-          <Button type="submit">{translate("m49c266baaaa7")}</Button>
+          <Button type="submit">Search</Button>
           <Button variant="outline" asChild>
-            <Link href="/admin/users">{translate("m83b12c2216ef")}</Link>
+            <Link href="/admin/users">Clear</Link>
           </Button>
         </form>
         {rows.length ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{translate("mb512d97e7cbf")}</TableHead>
-                <TableHead>{translate("m14736a2eb9f4")}</TableHead>
-                <TableHead>{translate("m920e413c7d41")}</TableHead>
-                <TableHead>{translate("m45989de49fb7")}</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Details</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -79,13 +77,11 @@ export default async function UsersPage({
                 <TableRow key={user.uid}>
                   <TableCell className="max-w-64 whitespace-normal break-words">
                     <p className="font-medium">
-                      {user.displayName || translate("mefeba8456698")}
+                      {user.displayName || "Unnamed account"}
                     </p>
                     <p>{user.email || user.uid}</p>
                     <p className="text-xs text-muted-foreground">
-                      {user.verified
-                        ? translate("m1685290ae957")
-                        : translate("m3b2bf5217a3d")}
+                      {user.verified ? "Verified email" : "Unverified email"}
                     </p>
                   </TableCell>
                   <TableCell>
@@ -96,7 +92,7 @@ export default async function UsersPage({
                   <TableCell>
                     <StateLabel value={user.status} />
                     {user.providerDisabled && (
-                      <p className="text-xs">{translate("m1ce1a0ec624b")}</p>
+                      <p className="text-xs">Disabled in Firebase</p>
                     )}
                   </TableCell>
                   <TableCell>
@@ -104,7 +100,7 @@ export default async function UsersPage({
                       <Link
                         href={`/admin/users/${encodeURIComponent(user.uid)}`}
                       >
-                        {translate("m5a23444828db")}
+                        Manage
                       </Link>
                     </Button>
                   </TableCell>
@@ -114,22 +110,20 @@ export default async function UsersPage({
           </Table>
         ) : (
           <EmptyState
-            title={translate("m277fdaebdd67")}
-            description={translate("m5aa0770ff868")}
+            title="No matching accounts."
+            description="Search by exact email or UID, or clear the search to browse accounts."
           />
         )}
         {(pageToken || nextPageToken) && (
           <div className="flex flex-wrap gap-2">
             {pageToken && (
               <Button variant="outline" asChild>
-                <Link href={pageHref()}>{translate("m9f410341c431")}</Link>
+                <Link href={pageHref()}>First page</Link>
               </Button>
             )}
             {nextPageToken && (
               <Button variant="outline" asChild>
-                <Link href={pageHref(nextPageToken)}>
-                  {translate("mc08ac736a5e2")}
-                </Link>
+                <Link href={pageHref(nextPageToken)}>Next page</Link>
               </Button>
             )}
           </div>

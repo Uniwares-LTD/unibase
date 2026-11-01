@@ -353,7 +353,10 @@ rejected, including concurrent changes. User search accepts an exact email or UI
 Base settings also offers **Diagnostic access** when `DIAGNOSTICS_ENABLED=true`
 and Redis is configured (local or staging only). It issues expiring, read-only
 grants for `POST /api/diagnostics`; use `npm run diagnostics -- --help` for the
-operator helper. See [diagnostics API](docs/diagnostics-api.md).
+operator helper. Click Create and copy the complete access string from the popup;
+no phrase is required. Grants support up to 30 days and persist in MongoDB across
+releases. Run `npm run db:indexes` before activating this update; existing Redis
+grants need one replacement after the switch. See [diagnostics API](docs/diagnostics-api.md).
 
 Release images select this flag from `deploy/environments/*.json` and preload it
 before web/worker startup: staging is enabled, local/production are disabled.
@@ -566,8 +569,10 @@ Run `npm run db:indexes` for notification pagination/retention indexes and keep 
 maintenance worker running for delivery and 90-day cleanup. Notifications are
 in-app only; no external messaging provider is needed.
 
-Language and timezone are available under Preferences. English and Arabic use the
-same URLs; Arabic renders right to left. Browser language selection works before
+Language and timezone are available under Preferences. Public pages use the same
+URLs for English and Arabic; Arabic renders right to left. Administration is always
+English and left to right, without changing your public-app language preference.
+Browser language selection works before
 sign-in, and verified accounts can save language/timezone independently of
 appearance. See [locale architecture](docs/architecture.md#locale-and-direction).
 `npm run check:i18n` verifies generated client dictionary and offline assets.

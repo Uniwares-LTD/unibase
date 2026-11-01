@@ -1,9 +1,9 @@
 "use client";
 import { DateLabel } from "@/components/localized-value";
 
-import { StateLabel } from "@/components/localized-value";
-import { useTranslations } from "next-intl";
+import { AdminStateLabel as StateLabel } from "@/components/admin-state-label";
 
+import { adminFieldLabel } from "@/lib/admin-labels";
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
@@ -25,15 +25,12 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/page-patterns";
 
 type Json = z.infer<ReturnType<typeof z.json>>;
-function errorMessage(
-  e: unknown,
-  translate: ReturnType<typeof useTranslations<"ui">>,
-) {
+function errorMessage(e: unknown) {
   return e instanceof ApiError
     ? e.message
     : e instanceof Error
       ? e.message
-      : translate("me0dcb8fe5e54");
+      : "Could not confirm the request.";
 }
 const modes: Record<string, string[]> = {
   defaultStyle: ["classic", "glass", "soft-blue"],
@@ -75,12 +72,9 @@ export function SettingsField({
   tokenPricingOnly?: boolean;
   onChange: (value: Json) => void;
 }) {
-  const translate = useTranslations("ui");
-
   const id = useId();
-  const fields = useTranslations("fields");
   const [invalid, setInvalid] = useState(false);
-  const label = fields.has(name as never) ? fields(name as never) : name;
+  const label = adminFieldLabel(name);
   if (Array.isArray(value))
     return (
       <div className="space-y-2">
@@ -100,7 +94,7 @@ export function SettingsField({
               e.target.setCustomValidity("");
               setInvalid(false);
             } catch {
-              e.target.setCustomValidity(translate("m6b761165184a"));
+              e.target.setCustomValidity("Enter a valid JSON list.");
               setInvalid(true);
             }
           }}
@@ -113,7 +107,9 @@ export function SettingsField({
               : "text-sm text-muted-foreground"
           }
         >
-          {invalid ? translate("m6b761165184a") : translate("md3d289611706")}
+          {invalid
+            ? "Enter a valid JSON list."
+            : "Credit pack definitions: ID, label, credits, and optional payment product references."}
         </p>
       </div>
     );
@@ -223,8 +219,6 @@ export function BaseSettingsEditor({
 }: {
   initial: Awaited<ReturnType<typeof settingsView>>;
 }) {
-  const translate = useTranslations("ui");
-
   const [settings, setSettings] = useState(initial.settings);
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState<{
@@ -241,10 +235,10 @@ export function BaseSettingsEditor({
         method: "POST",
         body: { revision: initial.revision, reason, settings },
       });
-      setMessage({ tone: "success", text: translate("mae493e21cd43") });
+      setMessage({ tone: "success", text: "Settings saved." });
       router.refresh();
     } catch (e) {
-      setMessage({ tone: "error", text: errorMessage(e, translate) });
+      setMessage({ tone: "error", text: errorMessage(e) });
     } finally {
       setBusy(false);
     }
@@ -256,33 +250,33 @@ export function BaseSettingsEditor({
         value={settings}
         onChange={(value) => setSettings(value as typeof settings)}
       />
-      <Label htmlFor="settings-reason">{translate("mfcbdbd5d879b")}</Label>
+      <Label htmlFor="settings-reason">Change reason (optional)</Label>
       <Input
         id="settings-reason"
         value={reason}
         onChange={(e) => setReason(e.target.value)}
       />
       <Button disabled={busy} onClick={() => void save()}>
-        {translate("m7f3a3b142814")}
+        Save settings
       </Button>
       {message && <Notice tone={message.tone} title={message.text} />}
       <Card>
         <CardHeader>
-          <CardTitle>{translate("m580e5a99ca05")}</CardTitle>
+          <CardTitle>Configuration status</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
             {(
               [
-                [translate("m7a607bd1c964"), initial.configuration.difyMode],
+                ["Dify", initial.configuration.difyMode],
                 [
-                  translate("m1353e96d4dae"),
+                  "Management",
                   initial.configuration.managementConfigured
                     ? "configured"
                     : "disabled",
                 ],
-                [translate("m06b67240d8e7"), initial.configuration.storage],
-                [translate("m63dee508c64a"), initial.configuration.payments],
+                ["Storage", initial.configuration.storage],
+                ["Payments", initial.configuration.payments],
               ] as const
             ).map(([term, value]) => (
               <div key={term} className="contents">
@@ -294,19 +288,16 @@ export function BaseSettingsEditor({
             ))}
           </dl>
           <p className="mt-3 text-sm text-muted-foreground">
-            {translate("m32e4874ab38a")}
+            Credentials and connection settings are configured on the server.
           </p>
         </CardContent>
       </Card>
       <section>
-        <h2 className="font-semibold">{translate("m5ae0d3d186c7")}</h2>
-        <p>
-          {translate("mad84843ce0c9")} {initial.revision}
-        </p>
+        <h2 className="font-semibold">Revision history</h2>
+        <p>Current revision: {initial.revision}</p>
         {initial.history.map((row) => (
           <p key={row.revision}>
-            {translate("m2e516d68f42f")} {row.revision} ·{" "}
-            <DateLabel value={row.updatedAt} />
+            Revision {row.revision} · <DateLabel value={row.updatedAt} />
           </p>
         ))}
       </section>

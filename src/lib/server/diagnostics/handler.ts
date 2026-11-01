@@ -29,7 +29,7 @@ const AUDIT_RESERVE_MS = 1500;
 export type DiagnosticsDependencies = {
   config: DiagnosticsConfig;
   db: () => Db;
-  /** Throws when Redis is unreachable. */
+  /** Throws when required grant-storage or request-protection dependencies are unavailable. */
   store: () => Promise<GrantStore>;
   identity: {
     getUser(uid: string): Promise<UserRecord | null>;
