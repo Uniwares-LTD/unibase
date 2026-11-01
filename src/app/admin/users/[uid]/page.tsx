@@ -1,5 +1,5 @@
 import { PageMessages } from "@/components/page-messages";
-import { getTranslations } from "next-intl/server";
+
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-patterns";
 import Link from "next/link";
@@ -24,10 +24,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const user = await managedUser((await params).uid).catch(() => null);
   return {
-    title:
-      user?.displayName ||
-      user?.email ||
-      (await getTranslations("ui"))("mddb585602c09"),
+    title: user?.displayName || user?.email || "Manage account",
   };
 }
 export default async function UserPage({
@@ -37,8 +34,6 @@ export default async function UserPage({
   params: Promise<{ uid: string }>;
   searchParams: Promise<{ before?: string }>;
 }) {
-  const translate = await getTranslations("ui");
-
   const { uid } = await params;
   const actor = await adminPageSession();
   const user = await managedUser(uid);
@@ -55,15 +50,15 @@ export default async function UserPage({
         <Button variant="ghost" asChild className="-ms-3 w-fit">
           <Link href="/admin/users">
             <ArrowLeft aria-hidden="true" className="rtl:rotate-180" />
-            {translate("m82545b8b2f36")}
+            All users
           </Link>
         </Button>
         <PageHeader
-          title={user.displayName || user.email || translate("mddb585602c09")}
-          description={translate("m9a1945b0e48e")}
+          title={user.displayName || user.email || "Manage account"}
+          description="Review this account's access, profile and credits."
         />
         <div className="break-all">
-          <p>{user.email || translate("m2f44d9d0a44f")}</p>
+          <p>{user.email || "No email"}</p>
           <p className="text-sm text-muted-foreground">
             <bdi>{user.uid}</bdi>
           </p>

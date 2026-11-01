@@ -1,6 +1,8 @@
-import { StateLabel, DateLabel } from "@/components/localized-value";
+import { formatAdminNumber } from "@/lib/admin-labels";
+import { DateLabel } from "@/components/localized-value";
+import { AdminStateLabel as StateLabel } from "@/components/admin-state-label";
 import { PageMessages } from "@/components/page-messages";
-import { getTranslations } from "next-intl/server";
+
 import Link from "next/link";
 import { EmptyState, PageHeader } from "@/components/page-patterns";
 import { AdminCleanup, PaymentReview } from "@/components/admin-operations";
@@ -28,12 +30,9 @@ import {
 } from "@/lib/server/operations";
 import { readSettings } from "@/lib/server/settings";
 export async function generateMetadata() {
-  return { title: (await getTranslations("ui"))("m358cc201f87d") };
+  return { title: "Operations" };
 }
 export default async function OperationsPage() {
-  const translate = await getTranslations("ui");
-  const common = await getTranslations("common");
-
   await adminPageSession();
   const { settings } = await readSettings();
   const [summary, reports, payments] = await Promise.all([
@@ -45,27 +44,30 @@ export default async function OperationsPage() {
     <PageMessages path="/admin/operations">
       <div className="page-stack">
         <PageHeader
-          title={translate("m358cc201f87d")}
-          description={translate("mf42e7a16fa5e")}
+          title="Operations"
+          description="Worker health, payment recovery and content cleanup. Changes require administrator access."
           actions={
             <Button variant="outline" asChild>
-              <Link href="/admin/ai">{translate("mdb59f8979df7")}</Link>
+              <Link href="/admin/ai">Review uncertain AI executions</Link>
             </Button>
           }
         />
         <Card>
           <CardHeader>
-            <CardTitle>{translate("m5fb09750c87b")}</CardTitle>
-            <CardDescription>{translate("m342c457b5f7c")}</CardDescription>
+            <CardTitle>Workers and queues</CardTitle>
+            <CardDescription>
+              A worker is unhealthy after five minutes without progress or after
+              a failed cycle. Refresh for current readings.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {summary.workers.length ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{translate("m05d41cd07984")}</TableHead>
-                    <TableHead>{translate("m63d5bf22846d")}</TableHead>
-                    <TableHead>{translate("m247a3dc2ade7")}</TableHead>
+                    <TableHead>Worker</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last progress</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -79,8 +81,8 @@ export default async function OperationsPage() {
                       </TableCell>
                       <TableCell>
                         {w.ageSeconds === null
-                          ? common("notReported")
-                          : common("secondsAgo", { seconds: w.ageSeconds })}
+                          ? "Not reported"
+                          : w.ageSeconds + " seconds ago"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -88,36 +90,46 @@ export default async function OperationsPage() {
               </Table>
             ) : (
               <EmptyState
-                title={translate("m169450ea35de")}
-                description={translate("m80c6dac89059")}
+                title="No worker readings"
+                description="Workers report here after their first cycle."
               />
             )}
             <p>
               {summary.paymentPending
-                ? translate("me2090104504d", {
-                    count: summary.paymentPending,
-                    seconds: summary.paymentAgeSeconds ?? 0,
-                  })
-                : translate("mc00902deeed0")}
+                ? (summary.paymentPending === 1
+                    ? formatAdminNumber(summary.paymentPending) +
+                      " payment notification pending"
+                    : formatAdminNumber(summary.paymentPending) +
+                      " payment notifications pending") +
+                  ", oldest " +
+                  (summary.paymentAgeSeconds ?? 0) +
+                  " seconds ago."
+                : "No payment notifications are pending."}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>{translate("mc9e1264f5def")}</CardTitle>
-            <CardDescription>{translate("me5a3391be2de")}</CardDescription>
+            <CardTitle>Manual payment reconciliation</CardTitle>
+            <CardDescription>
+              An attempt that started but never reported back needs review.
+              Check Stripe, then retry verification. Never grant credits from a
+              browser return URL alone.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <PaymentReview enabled={summary.stripeEnabled} />
             <section className="space-y-3">
-              <h3 className="font-semibold">{translate("mc77db1086fac")}</h3>
+              <h3 className="font-semibold">
+                Oldest 25 pending or disputed orders
+              </h3>
               {payments.orders.length ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{translate("mf808e400f5b9")}</TableHead>
-                      <TableHead>{translate("m63d5bf22846d")}</TableHead>
-                      <TableHead>{translate("mcebc9d5e96c2")}</TableHead>
+                      <TableHead>Order</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>User</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -143,20 +155,20 @@ export default async function OperationsPage() {
                 </Table>
               ) : (
                 <EmptyState
-                  title={translate("m81d429e85210")}
-                  description={translate("mada127018fd0")}
+                  title="No pending or disputed orders."
+                  description="Orders that need attention appear here."
                 />
               )}
             </section>
             <section className="space-y-3">
-              <h3 className="font-semibold">{translate("m5552a9df200b")}</h3>
+              <h3 className="font-semibold">Latest 20 review attempts</h3>
               {payments.reviews.length ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{translate("mf808e400f5b9")}</TableHead>
-                      <TableHead>{translate("m63d5bf22846d")}</TableHead>
-                      <TableHead>{translate("mbfb2c437e72d")}</TableHead>
+                      <TableHead>Order</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -177,8 +189,8 @@ export default async function OperationsPage() {
                 </Table>
               ) : (
                 <EmptyState
-                  title={translate("m00f836d67e63")}
-                  description={translate("m73cad2013bf9")}
+                  title="No review attempts yet"
+                  description="Verification attempts appear here after you run one."
                 />
               )}
             </section>
@@ -186,22 +198,26 @@ export default async function OperationsPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>{translate("m00210238862e")}</CardTitle>
-            <CardDescription>{translate("m3e5cf61fe610")}</CardDescription>
+            <CardTitle>Local AI cleanup</CardTitle>
+            <CardDescription>
+              Approved storage removals retry automatically. Refresh to update
+              reports; if a removal keeps failing, check the maintenance worker
+              and storage permissions.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <AdminCleanup defaultDays={settings.runs.cleanupDays} />
             <section className="space-y-3">
-              <h3 className="font-semibold">{translate("m0aabfed81c23")}</h3>
+              <h3 className="font-semibold">Latest 20 cleanup reports</h3>
               {reports.length ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{translate("mbfb2c437e72d")}</TableHead>
-                      <TableHead>{translate("m63d5bf22846d")}</TableHead>
-                      <TableHead>{translate("m392b784d73f6")}</TableHead>
-                      <TableHead>{translate("mde81a3c550f0")}</TableHead>
-                      <TableHead>{translate("m02354fbeafb9")}</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Removed content</TableHead>
+                      <TableHead>Result</TableHead>
+                      <TableHead>Storage removals</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -214,24 +230,33 @@ export default async function OperationsPage() {
                           <StateLabel value={r.state} />
                         </TableCell>
                         <TableCell>
-                          {translate("m3d2a712d18ec", {
-                            jobs: r.jobs,
-                            files: r.files,
-                            abandoned: r.abandonedUploads,
-                          })}
+                          {(r.jobs === 1
+                            ? formatAdminNumber(r.jobs) + " execution"
+                            : formatAdminNumber(r.jobs) + " executions") +
+                            ", " +
+                            (r.files === 1
+                              ? formatAdminNumber(r.files) + " upload"
+                              : formatAdminNumber(r.files) + " uploads") +
+                            ", " +
+                            (r.abandonedUploads === 1
+                              ? formatAdminNumber(r.abandonedUploads) +
+                                " abandoned upload"
+                              : formatAdminNumber(r.abandonedUploads) +
+                                " abandoned uploads")}
                         </TableCell>
                         <TableCell>
-                          {translate("mf011bbfa0471", {
-                            changed: r.changed,
-                            skipped: r.skipped,
-                          })}
+                          {r.changed +
+                            " changed or queued, " +
+                            r.skipped +
+                            " skipped"}
                         </TableCell>
                         <TableCell>
-                          {translate("mae57704b8090", {
-                            deleted: r.storageDeleted,
-                            pending: r.storagePending,
-                            failed: r.storageFailed,
-                          })}
+                          {r.storageDeleted +
+                            " complete, " +
+                            r.storagePending +
+                            " pending, " +
+                            r.storageFailed +
+                            " failed (retry scheduled)"}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -239,8 +264,8 @@ export default async function OperationsPage() {
                 </Table>
               ) : (
                 <EmptyState
-                  title={translate("m1da65c87be1d")}
-                  description={translate("m51de3320d284")}
+                  title="No cleanup reports yet"
+                  description="Reports appear here after a cleanup runs."
                 />
               )}
             </section>

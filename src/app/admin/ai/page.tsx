@@ -1,6 +1,8 @@
-import { DateLabel, StateLabel } from "@/components/localized-value";
+import { formatAdminNumber } from "@/lib/admin-labels";
+import { DateLabel } from "@/components/localized-value";
+import { AdminStateLabel as StateLabel } from "@/components/admin-state-label";
 import { PageMessages } from "@/components/page-messages";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getFormatter } from "next-intl/server";
 import Link from "next/link";
 import { EmptyState, PageHeader } from "@/components/page-patterns";
 import { AiResolution } from "@/components/ai-resolution";
@@ -27,7 +29,7 @@ import { AppError } from "@/lib/auth-policy";
 import { redirect } from "next/navigation";
 
 export async function generateMetadata() {
-  return { title: (await getTranslations("ui"))("m6a2e5e0ed2df") };
+  return { title: "AI operations" };
 }
 function UserLink({ uid }: { uid: string }) {
   return (
@@ -44,7 +46,6 @@ export default async function AdminAiPage({
 }: {
   searchParams: Promise<{ cursor?: string }>;
 }) {
-  const translate = await getTranslations("ui");
   const format = await getFormatter();
 
   await adminPageSession();
@@ -59,44 +60,54 @@ export default async function AdminAiPage({
     operationsSummary(),
   ]);
   const jobs = page.jobs;
-  const unknown = translate("mb764cdc0eab7");
+  const unknown = "Unknown";
   return (
     <PageMessages path="/admin/ai">
       <div className="page-stack">
         <PageHeader
-          title={translate("m6a2e5e0ed2df")}
-          description={translate("mef30fbe8fba2")}
+          title="AI operations"
+          description="Resolve uncertain executions and inspect provider usage independently of application credits."
           actions={
             <Button variant="outline" asChild>
-              <Link href="/admin/operations">{translate("m2c4eca1ae1d9")}</Link>
+              <Link href="/admin/operations">
+                Worker health, payments and cleanup
+              </Link>
             </Button>
           }
         />
         <Card>
           <CardHeader>
             <CardTitle>
-              {translate("m6b1761d93b24", {
-                count: summary.queued,
-                seconds: summary.queueAgeSeconds ?? 0,
-                review: summary.unresolved,
-              })}
+              {(summary.queued === 1
+                ? formatAdminNumber(summary.queued) + " active execution"
+                : formatAdminNumber(summary.queued) + " active executions") +
+                " · oldest " +
+                (summary.queueAgeSeconds ?? 0) +
+                " seconds · " +
+                summary.unresolved +
+                " need review"}
             </CardTitle>
-            <CardDescription>{translate("ma9e95902e378")}</CardDescription>
+            <CardDescription>
+              Check worker health first. Accept only saved successful results
+              with billing evidence; otherwise record the evidence and release
+              the credits.
+            </CardDescription>
           </CardHeader>
         </Card>
         <section className="space-y-4" aria-labelledby="ai-review">
           <div>
             <h2 id="ai-review" className="text-xl font-semibold">
-              {translate("m32b9928815c9")}
+              Executions needing review
             </h2>
             <p className="text-sm text-muted-foreground">
-              {translate("md76e07b2a26c")}
+              Oldest first, 25 per page. Resolving requires administrator
+              access.
             </p>
           </div>
           {!jobs.length && (
             <EmptyState
-              title={translate("m42101b166a60")}
-              description={translate("m70125e5c8822")}
+              title="No executions need review."
+              description="Uncertain executions appear here for resolution."
             />
           )}
           {jobs.map((job) => (
@@ -106,27 +117,25 @@ export default async function AdminAiPage({
                   {job.capability} · <StateLabel value={job.status} />
                 </CardTitle>
                 <CardDescription>
-                  {translate("m4aa83b5db5c2", { credits: job.credits })} ·{" "}
-                  {job.failure ?? translate("m3d68c1a96f89")}
+                  {"Up to " +
+                    (job.credits === 1
+                      ? formatAdminNumber(job.credits) + " credit"
+                      : formatAdminNumber(job.credits) + " credits") +
+                    " reserved"}{" "}
+                  · {job.failure ?? "Reconciliation required"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
-                  <dt className="text-muted-foreground">
-                    {translate("mc52f1b7e3c78")}
-                  </dt>
+                  <dt className="text-muted-foreground">Job</dt>
                   <dd className="break-all font-mono text-xs">
                     <bdi>{job.id}</bdi>
                   </dd>
-                  <dt className="text-muted-foreground">
-                    {translate("mcebc9d5e96c2")}
-                  </dt>
+                  <dt className="text-muted-foreground">User</dt>
                   <dd>
                     <UserLink uid={job.uid} />
                   </dd>
-                  <dt className="text-muted-foreground">
-                    {translate("m3925579b2387")}
-                  </dt>
+                  <dt className="text-muted-foreground">Provider execution</dt>
                   <dd className="break-all font-mono text-xs">
                     {job.runId ? <bdi>{job.runId}</bdi> : unknown}
                   </dd>
@@ -139,7 +148,7 @@ export default async function AdminAiPage({
             <div className="flex flex-wrap gap-3">
               {cursor && (
                 <Button asChild variant="outline">
-                  <Link href="/admin/ai">{translate("m9f410341c431")}</Link>
+                  <Link href="/admin/ai">First page</Link>
                 </Button>
               )}
               {page.next && (
@@ -147,7 +156,7 @@ export default async function AdminAiPage({
                   <Link
                     href={`/admin/ai?cursor=${encodeURIComponent(page.next)}`}
                   >
-                    {translate("m7b4136c664d7")}
+                    Next review page
                   </Link>
                 </Button>
               )}
@@ -157,22 +166,24 @@ export default async function AdminAiPage({
         <section className="space-y-3" aria-labelledby="ai-usage">
           <div>
             <h2 id="ai-usage" className="text-xl font-semibold">
-              {translate("m35a40961b140")}
+              Latest usage observations
             </h2>
             <p className="text-sm text-muted-foreground">
-              {translate("mc383a13649b1")}
+              Latest 100 observations. Token counts can overlap; unknown cost is
+              not zero, simulated records are not real spend, and currencies are
+              not converted.
             </p>
           </div>
           {usage.length ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{translate("mb33765682791")}</TableHead>
-                  <TableHead>{translate("m762615fccde4")}</TableHead>
-                  <TableHead>{translate("ma039dfb9628b")}</TableHead>
-                  <TableHead>{translate("mf58870719676")}</TableHead>
-                  <TableHead>{translate("mda59e0e45c51")}</TableHead>
-                  <TableHead>{translate("m5da7e2fe0b5b")}</TableHead>
+                  <TableHead>Capability / user</TableHead>
+                  <TableHead>Provider / scope</TableHead>
+                  <TableHead>Tokens</TableHead>
+                  <TableHead>Reported cost</TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Settled credits</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -214,7 +225,7 @@ export default async function AdminAiPage({
                     <TableCell className="tabular-nums">
                       {item.scope === "execution"
                         ? item.settledCredits == null
-                          ? translate("m331551b0de41")
+                          ? "Pending"
                           : format.number(item.settledCredits)
                         : "—"}
                       {item.parentAttemptId && (
@@ -222,7 +233,7 @@ export default async function AdminAiPage({
                           className="max-w-48 truncate text-xs"
                           title={item.parentAttemptId}
                         >
-                          {translate("mcaf27a22a958")} {item.parentAttemptId}
+                          Paid with parent {item.parentAttemptId}
                         </p>
                       )}
                     </TableCell>
@@ -232,8 +243,8 @@ export default async function AdminAiPage({
             </Table>
           ) : (
             <EmptyState
-              title={translate("m8a62c4d5e81c")}
-              description={translate("ma4fbf41fc63e")}
+              title="No usage observations yet."
+              description="Provider usage appears here after executions run."
             />
           )}
         </section>

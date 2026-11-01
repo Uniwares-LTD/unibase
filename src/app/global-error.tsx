@@ -1,6 +1,6 @@
 "use client";
 import recovery from "../../messages/recovery.json";
-import { localeCookie, resolveLocale } from "@/lib/locale";
+import { localeCookie, resolveLocale, presentationLocale } from "@/lib/locale";
 import { useEffect, useSyncExternalStore } from "react";
 import { diagnostics } from "@/lib/client/diagnostics";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,16 @@ export default function GlobalError({
   const locale = useSyncExternalStore<"en" | "ar">(
     () => () => {},
     () =>
-      resolveLocale(
-        document.cookie
-          .split("; ")
-          .find((v) => v.startsWith(localeCookie + "="))
-          ?.split("=")[1],
-        undefined,
-        navigator.language,
+      presentationLocale(
+        resolveLocale(
+          document.cookie
+            .split("; ")
+            .find((v) => v.startsWith(localeCookie + "="))
+            ?.split("=")[1],
+          undefined,
+          navigator.language,
+        ),
+        location.pathname,
       ),
     () => "en",
   );

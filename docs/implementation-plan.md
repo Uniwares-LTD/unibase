@@ -50,7 +50,43 @@ and prepared. Protected host-profile installation, matching release, Dify catalo
 refresh and one owned Run restart remain live acceptance steps; the old failed
 attempt's detailed historical cause was not recorded.
 
-Outstanding: approve and publish the issue; run the Lua grant-store test against a disposable Redis; verify grant revocation in a browser with Redis; and complete the Unitale permission correction's operator installation and live Run acceptance.
+Outstanding: approve and publish the issue; run the Redis limiter test against a disposable Redis; verify grant revocation in a browser with Redis; and complete the Unitale permission correction's operator installation and live Run acceptance.
+
+## Accepted diagnostic grant usability and persistence ? 2026-11-01
+
+The accepted follow-up removes manual phrases, returns one-time server-generated
+access details in a copy dialog, adds seven- and thirty-day durations, and makes
+MongoDB authoritative while retaining Redis rate limits. Existing Redis grants
+will deliberately require one replacement after the switch; no migration is included.
+Local verification: 23 diagnostics checks passed with one optional real Redis
+limiter check skipped because Docker's engine was unavailable; all 71 general
+tests, type checking, lint, environment/docs/i18n/skill checks and production build
+passed. English/Arabic desktop and 390px browser checks passed with mocked grant
+responses and disposable authentication/MongoDB: copy, clipboard rejection/manual
+selection, focus, credential cleanup and hydration. MongoDB tests verified scope,
+exact expiry, concurrent limits, replacement store/limiter instances and outages.
+A separate read-only review checked credential disclosure, audit/revocation behavior,
+translations and rollout guidance. Publication, additive index installation,
+real Redis recreation and live acceptance remain separate.
+See [diagnostic rollout](diagnostics-api.md#durable-grant-rollout).
+
+## Accepted English-only administration — 2026-11-01
+
+Administration now uses English source copy rather than locale catalogs, including
+navigation, metadata, confirmations, diagnostic access, state/field labels and
+administrative API/action errors. Removed 357 unused administrative UI keys from
+both English and Arabic catalogs, plus administrative fields, actions and states.
+Shared public-page translations remain available. Admin presentation is English/LTR
+without changing saved public language/timezone or offline language preferences.
+
+Local verification: all 73 unit tests and 10 isolated HTTP integration tests passed;
+type checking, lint, production build and documentation/i18n/skill checks passed.
+Browser verification covered all eight admin sections at 1280px and 390px with an
+Arabic profile/cookie, user details, confirmation/copy dialogs, English admin and
+Arabic public API errors, server-rendered lang/dir and client navigation restoring
+Arabic/RTL. Grant creation responses were mocked; authentication and MongoDB were
+disposable. No hydration/translation errors were detected. A separate read-only
+review checked the final change. Publication/deployment remain separate.
 
 ## Agreed decisions
 

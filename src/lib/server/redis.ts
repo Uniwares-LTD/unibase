@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "redis";
 
-// Shared Redis connection for request protection and diagnostic grants.
+// Shared Redis connection for request protection and diagnostic rate limits.
 // Commands fail fast instead of queueing while disconnected.
 const newClient = (url: string) =>
   createClient({

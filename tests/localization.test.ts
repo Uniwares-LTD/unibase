@@ -11,12 +11,34 @@ import {
   resolveLocale,
   localizationSchema,
   timeZoneSchema,
+  presentationLocale,
 } from "../src/lib/locale";
 import {
   profileSchema,
   appearanceUpdateSchema,
   accountDetailsUpdateSchema,
 } from "../src/lib/contracts/profile";
+test("admin screens and APIs use English without changing the public language preference", () => {
+  for (const pathname of [
+    "/admin",
+    "/admin/settings",
+    "/admin/users/user-1",
+    "/api/admin/settings",
+  ]) {
+    assert.equal(presentationLocale("ar", pathname), "en");
+  }
+  for (const pathname of [
+    "/",
+    "/preferences",
+    "/runs",
+    "/administrator",
+    "/api/profile",
+    "/api/administration",
+  ]) {
+    assert.equal(presentationLocale("ar", pathname), "ar");
+    assert.equal(presentationLocale("en", pathname), "en");
+  }
+});
 test("locale precedence and time zones reject invalid preferences without changing independent profile fields", () => {
   assert.equal(resolveLocale("ar", "en", "en"), "ar");
   assert.equal(resolveLocale(undefined, "ar", "en"), "ar");

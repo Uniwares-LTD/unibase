@@ -92,6 +92,14 @@ Run and financial records remain in MongoDB. See
 [diagnostic grant lifecycle](diagnostics-api.md#grants). This evidence-only update
 requires no repeated installation or release.
 
+## Diagnostic grant persistence update
+
+The prepared create/copy update uses MongoDB for durable diagnostic grants and
+Redis only for counters. It is not part of the installed release evidence above.
+Before its separately authorized activation, run additive database indexes; old
+Redis grants require one replacement. No host/controller installation is required.
+See [owner, ordering, verification and failure/resume](diagnostics-api.md#durable-grant-rollout).
+
 ## Choose an operation
 
 - Existing installation: follow [routine release and protected changes](#repeatable-release-and-protected-change-path).

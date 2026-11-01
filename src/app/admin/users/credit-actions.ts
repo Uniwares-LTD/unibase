@@ -1,5 +1,5 @@
 "use server";
-import { getTranslations } from "next-intl/server";
+
 import { errorMessage } from "@/lib/server/error-message";
 import { limitRequest } from "@/lib/server/rate-limit";
 import { headers } from "next/headers";
@@ -65,7 +65,7 @@ export async function adjustUserCredits(
     revalidatePath("/credits");
     logOperation("credit-adjustment", started, 200);
     return {
-      message: (await getTranslations("actions"))("m440127e9250a"),
+      message: "Credit adjustment saved and audited.",
       saved: true,
     };
   } catch (error) {

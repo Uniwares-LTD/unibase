@@ -1,5 +1,5 @@
-import { StateLabel } from "./localized-value";
-import { useTranslations } from "next-intl";
+import { AdminStateLabel as StateLabel } from "@/components/admin-state-label";
+
 import Link from "next/link";
 import { events } from "@/lib/diagnostics";
 import { auditEvents, type ReportFilters } from "@/lib/contracts/reports";
@@ -15,8 +15,6 @@ import {
 } from "./ui/select";
 
 export function ReportFiltersForm({ filters }: { filters: ReportFilters }) {
-  const translate = useTranslations("ui");
-
   const eventOptions = filters.kind === "audit" ? auditEvents : events;
   return (
     <form
@@ -26,13 +24,13 @@ export function ReportFiltersForm({ filters }: { filters: ReportFilters }) {
     >
       <input type="hidden" name="kind" value={filters.kind} />
       <div className="space-y-2">
-        <Label htmlFor="report-event">{translate("m4e1f49a9c8ae")}</Label>
+        <Label htmlFor="report-event">Event</Label>
         <Select name="event" defaultValue={filters.event ?? "any"}>
           <SelectTrigger id="report-event" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="any">{translate("m20b8487b3804")}</SelectItem>
+            <SelectItem value="any">All events</SelectItem>
             {eventOptions.map((event) => (
               <SelectItem key={event} value={event}>
                 <StateLabel value={event} />
@@ -44,17 +42,13 @@ export function ReportFiltersForm({ filters }: { filters: ReportFilters }) {
       {filters.kind === "runtime" ? (
         <>
           <div className="space-y-2">
-            <Label htmlFor="report-severity">
-              {translate("m5e9f98120dbe")}
-            </Label>
+            <Label htmlFor="report-severity">Severity</Label>
             <Select name="severity" defaultValue={filters.severity ?? "any"}>
               <SelectTrigger id="report-severity" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="any">
-                  {translate("m222b823b4b06")}
-                </SelectItem>
+                <SelectItem value="any">All severities</SelectItem>
                 {["info", "warn", "error"].map((severity) => (
                   <SelectItem key={severity} value={severity}>
                     <StateLabel value={severity} />
@@ -64,7 +58,7 @@ export function ReportFiltersForm({ filters }: { filters: ReportFilters }) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="report-request">{translate("md561f528baf7")}</Label>
+            <Label htmlFor="report-request">Request ID</Label>
             <Input
               id="report-request"
               name="requestId"
@@ -76,7 +70,7 @@ export function ReportFiltersForm({ filters }: { filters: ReportFilters }) {
       ) : (
         <>
           <div className="space-y-2">
-            <Label htmlFor="report-actor">{translate("m547a040caa3f")}</Label>
+            <Label htmlFor="report-actor">Actor UID</Label>
             <Input
               id="report-actor"
               name="actorUid"
@@ -85,7 +79,7 @@ export function ReportFiltersForm({ filters }: { filters: ReportFilters }) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="report-target">{translate("m7b7cac4c5726")}</Label>
+            <Label htmlFor="report-target">Target UID</Label>
             <Input
               id="report-target"
               name="targetUid"
@@ -96,7 +90,7 @@ export function ReportFiltersForm({ filters }: { filters: ReportFilters }) {
         </>
       )}
       <div className="space-y-2">
-        <Label htmlFor="report-from">{translate("mbec5d54fdef3")}</Label>
+        <Label htmlFor="report-from">From (UTC)</Label>
         <Input
           id="report-from"
           name="from"
@@ -105,14 +99,14 @@ export function ReportFiltersForm({ filters }: { filters: ReportFilters }) {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="report-to">{translate("m615e9f898f44")}</Label>
+        <Label htmlFor="report-to">Through (UTC)</Label>
         <Input id="report-to" name="to" type="date" defaultValue={filters.to} />
       </div>
       <div className="flex flex-wrap items-end gap-2">
-        <Button type="submit">{translate("md80ab19b7edb")}</Button>
+        <Button type="submit">Apply filters</Button>
         <Button variant="outline" asChild>
           <Link href={`/admin/reports?kind=${filters.kind}`}>
-            {translate("m7179ea0035fc")}
+            Clear filters
           </Link>
         </Button>
       </div>

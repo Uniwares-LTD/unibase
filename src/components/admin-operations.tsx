@@ -1,5 +1,6 @@
 "use client";
-import { useFormatter, useTranslations } from "next-intl";
+import { formatAdminNumber } from "@/lib/admin-labels";
+import { useFormatter } from "next-intl";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -36,8 +37,6 @@ import {
 type Message = { tone: "success" | "error"; text: string };
 
 export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
-  const translate = useTranslations("ui");
-  const common = useTranslations("common");
   const format = useFormatter();
 
   const router = useRouter();
@@ -68,12 +67,14 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
       setMessage({
         tone: "success",
         text: execute
-          ? common("cleanupResult", {
-              changed: saved.changed,
-              skipped: saved.skipped,
-              pending: saved.storagePending,
-            })
-          : translate("m542774327097"),
+          ? "Cleanup approved: " +
+            saved.changed +
+            " changed or queued, " +
+            saved.skipped +
+            " skipped after rechecking eligibility. " +
+            saved.storagePending +
+            " storage removals pending. Refresh reports for completion."
+          : "Preview ready. Nothing has been removed. Preview expires in 15 minutes.",
       });
     } catch (error) {
       setMessage({
@@ -81,7 +82,7 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
         text:
           error instanceof ApiError
             ? error.message
-            : translate("mce7eacc0c6ea"),
+            : "Could not confirm the operation. Refresh reports before retrying.",
       });
     } finally {
       setBusy(false);
@@ -89,11 +90,15 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
   }
   return (
     <div className="space-y-4">
-      <p>{translate("m35792baf7fcd")}</p>
+      <p>
+        Remove saved prompts and results from old finished executions, failed
+        upload references, or abandoned private uploads. Active and uncertain
+        executions are never included; billing, usage and audit records stay.
+      </p>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
-          <Label htmlFor="cleanup-days">{translate("m9615621f3aab")}</Label>
+          <Label htmlFor="cleanup-days">Older than (days)</Label>
           <Input
             id="cleanup-days"
             type="number"
@@ -108,7 +113,7 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cleanup-limit">{translate("m45d76d00c4e3")}</Label>
+          <Label htmlFor="cleanup-limit">Maximum records</Label>
           <Input
             id="cleanup-limit"
             type="number"
@@ -123,7 +128,7 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cleanup-scope">{translate("m47bd29075f8b")}</Label>
+          <Label htmlFor="cleanup-scope">Content</Label>
           <Select
             value={scope}
             disabled={busy}
@@ -136,14 +141,14 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="jobs">{translate("m927295b89ae4")}</SelectItem>
+              <SelectItem value="jobs">Completed AI content</SelectItem>
               <SelectItem value="failed-files">
-                {translate("m75f3eb58d023")}
+                Failed upload references
               </SelectItem>
-              <SelectItem value="both">{translate("mb6c1d862f9f7")}</SelectItem>
+              <SelectItem value="both">Both</SelectItem>
 
               <SelectItem value="abandoned-uploads">
-                {translate("m2b9345e24621")}
+                Abandoned private uploads
               </SelectItem>
             </SelectContent>
           </Select>
@@ -161,22 +166,36 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
         }
         onClick={() => void run(false)}
       >
-        {translate("m44dd7c57aa6f")}
+        Preview cleanup
       </Button>
       {report && (
         <div className="space-y-3">
           <p>
-            {translate("m05e6f6947516", {
-              jobs: report.jobs,
-              files: report.files,
-              abandoned: report.abandonedUploads,
-              cutoff: format.dateTime(new Date(report.cutoff), {
+            {(report.jobs === 1
+              ? formatAdminNumber(report.jobs) + " execution"
+              : formatAdminNumber(report.jobs) + " executions") +
+              ", " +
+              (report.files === 1
+                ? formatAdminNumber(report.files) + " failed upload"
+                : formatAdminNumber(report.files) + " failed uploads") +
+              " and " +
+              (report.abandonedUploads === 1
+                ? formatAdminNumber(report.abandonedUploads) +
+                  " abandoned upload"
+                : formatAdminNumber(report.abandonedUploads) +
+                  " abandoned uploads") +
+              " older than " +
+              format.dateTime(new Date(report.cutoff), {
                 dateStyle: "medium",
-              }),
-            })}
+              }) +
+              "."}
           </p>
 
-          <p className="text-sm">{translate("mb2926688070e")}</p>
+          <p className="text-sm">
+            This is one bounded batch. Generate another preview for remaining
+            eligible content. Changed records are skipped rather than replaced
+            with new targets.
+          </p>
           <Button
             variant="outline"
             onClick={() => {
@@ -192,12 +211,12 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
               setTimeout(() => URL.revokeObjectURL(url), 1000);
             }}
           >
-            {translate("m6c68ad180780")}
+            Download report
           </Button>
           {report.state === "preview" && (
             <>
               <Label htmlFor="cleanup-reason">
-                {translate("mdc2a867b85b6")}
+                Cleanup explanation (optional)
               </Label>
               <Textarea
                 id="cleanup-reason"
@@ -215,24 +234,26 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
                       report.jobs + report.files + report.abandonedUploads === 0
                     }
                   >
-                    {translate("m32a06aa8e2b4")}
+                    Execute previewed cleanup
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      {translate("mad6d7832fb38")}
+                      Remove the previewed local content?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      {translate("mb419ef9fb491")}
+                      This cannot be undone here. Only the IDs in this preview
+                      are considered. Billing and audit records remain, and
+                      AI-provider files are not deleted. Approved abandoned
+                      private uploads are removed from application storage by
+                      the maintenance worker.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>
-                      {translate("m19766ed6ccb2")}
-                    </AlertDialogCancel>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={() => void run(true)}>
-                      {translate("m2c456b847520")}
+                      Confirm cleanup
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -247,9 +268,6 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
 }
 
 export function PaymentReview({ enabled }: { enabled: boolean }) {
-  const translate = useTranslations("ui");
-  const common = useTranslations("common");
-
   const router = useRouter();
   const [orderId, setOrderId] = useState("");
   const [sessionId, setSessionId] = useState("");
@@ -279,7 +297,10 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
       );
       setMessage({
         tone: "success",
-        text: common("verification", { state: result.state }),
+        text:
+          "Verification: " +
+          result.state +
+          ". Review the order and provider evidence before another attempt.",
       });
       setKey(null);
       router.refresh();
@@ -289,7 +310,7 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
         text:
           error instanceof ApiError
             ? error.message
-            : translate("m8800cc777df4"),
+            : "Outcome uncertain. Retry unchanged fields to retrieve this attempt's report.",
       });
     } finally {
       setBusy(false);
@@ -297,9 +318,15 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
   }
   return (
     <div className="space-y-3">
-      <p>{translate("m6da46287930a")}</p>
-      {!enabled && <p>{translate("me00023c11aff")}</p>}
-      <Label htmlFor="payment-order">{translate("md89d8487ce82")}</Label>
+      <p>
+        Recheck an existing order against Stripe. Verified payments, refunds and
+        disputes update credits through the existing ledger. This does not issue
+        a refund or invent a payment outcome.
+      </p>
+      {!enabled && (
+        <p>Stripe reconciliation is disabled in this environment.</p>
+      )}
+      <Label htmlFor="payment-order">Order ID</Label>
       <Input
         id="payment-order"
         value={orderId}
@@ -309,7 +336,9 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
           setKey(null);
         }}
       />
-      <Label htmlFor="payment-session">{translate("mce0713af4770")}</Label>
+      <Label htmlFor="payment-session">
+        Verified Checkout session ID (optional recovery)
+      </Label>
       <Input
         id="payment-session"
         value={sessionId}
@@ -319,7 +348,7 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
           setKey(null);
         }}
       />
-      <Label htmlFor="payment-reason">{translate("m5b00de00b264")}</Label>
+      <Label htmlFor="payment-reason">Review explanation (optional)</Label>
       <Textarea
         id="payment-reason"
         value={reason}
@@ -335,20 +364,24 @@ export function PaymentReview({ enabled }: { enabled: boolean }) {
           <Button
             disabled={!enabled || busy || !/^[a-f0-9]{64}$/.test(orderId)}
           >
-            {translate("m60f56b618433")}
+            Verify payment and reconcile credits
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{translate("mb9e55cd63279")}</AlertDialogTitle>
+            <AlertDialogTitle>
+              Verify this payment with Stripe?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {translate("m1c1fb02fcf3d", { order: orderId.slice(0, 12) })}
+              {"Order " +
+                orderId.slice(0, 12) +
+                "… is rechecked against Stripe. If a payment, refund or dispute is confirmed, the user's credits change through the ledger."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{translate("m19766ed6ccb2")}</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => void reconcile()}>
-              {translate("m97d4a98b53c2")}
+              Verify and reconcile
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

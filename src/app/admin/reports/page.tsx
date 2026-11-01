@@ -1,6 +1,7 @@
-import { DateLabel, StateLabel } from "@/components/localized-value";
+import { DateLabel } from "@/components/localized-value";
+import { AdminStateLabel as StateLabel } from "@/components/admin-state-label";
 import { PageMessages } from "@/components/page-messages";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getFormatter } from "next-intl/server";
 import { PageHeader, EmptyState, Notice } from "@/components/page-patterns";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -21,20 +22,19 @@ import {
 } from "@/components/ui/table";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getTranslations("ui"))("mdacca3cba3f3") };
+  return { title: "Reports" };
 }
 export default async function ReportsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const translate = await getTranslations("ui");
   const labels: Record<string, string> = {
-    role: translate("m14736a2eb9f4"),
-    status: translate("m920e413c7d41"),
-    displayName: translate("m2b7f6a84de91"),
-    balance: translate("md05e07b7c14e"),
-    debt: translate("m026e2f9afbc7"),
+    role: "Role",
+    status: "Status",
+    displayName: "Display name",
+    balance: "Balance",
+    debt: "Debt",
   };
   const format = await getFormatter();
   const describe = (value?: Record<string, string | number>) => {
@@ -90,35 +90,31 @@ export default async function ReportsPage({
     <PageMessages path="/admin/reports">
       <div className="page-stack">
         <PageHeader
-          title={translate("mdacca3cba3f3")}
-          description={translate("m348352db53e4")}
+          title="Reports"
+          description="Filter recorded application events and administrator changes."
         />
         <div className="flex flex-wrap gap-2">
           <Button
             variant={filters.kind === "runtime" ? "default" : "outline"}
             asChild
           >
-            <Link href="/admin/reports?kind=runtime">
-              {translate("m36d4ba8ec08d")}
-            </Link>
+            <Link href="/admin/reports?kind=runtime">Runtime logs</Link>
           </Button>
           <Button
             variant={filters.kind === "audit" ? "default" : "outline"}
             asChild
           >
-            <Link href="/admin/reports?kind=audit">
-              {translate("m7bef383a41b9")}
-            </Link>
+            <Link href="/admin/reports?kind=audit">Admin audit</Link>
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
           {filters.kind === "runtime"
-            ? translate("m516858760886")
-            : translate("m7dcbd8824b11")}
+            ? "Structured application events from the last 30 days. Storage is best-effort; missing events may still be in operator stdout logs. Bodies, messages, stacks, tokens and query strings are excluded."
+            : "Permanent administrator changes with actors, targets and recorded reasons. Ledger history is on each user’s account."}
         </p>
         <Card>
           <CardHeader>
-            <CardTitle>{translate("m546ebb8eb993")}</CardTitle>
+            <CardTitle>Filters</CardTitle>
           </CardHeader>
           <CardContent>
             <ReportFiltersForm
@@ -127,14 +123,19 @@ export default async function ReportsPage({
             />
           </CardContent>
         </Card>
-        {!report && <Notice tone="error" title={translate("m660546dec247")} />}
+        {!report && (
+          <Notice
+            tone="error"
+            title="Check the report filters and date range."
+          />
+        )}
         {report && (
           <Card>
             <CardHeader>
               <CardTitle>
                 {report.kind === "runtime"
-                  ? translate("m3c7233dd5a5d")
-                  : translate("m764343d9295e")}
+                  ? "Runtime events"
+                  : "Administrator audit"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -144,12 +145,12 @@ export default async function ReportsPage({
                     <TableHeader>
                       <TableRow>
                         {[
-                          translate("ma4528df6c39b"),
-                          translate("m4e1f49a9c8ae"),
-                          translate("m5e9f98120dbe"),
-                          translate("m920e413c7d41"),
-                          translate("m4fc52a3c4c55"),
-                          translate("md561f528baf7"),
+                          "When (UTC)",
+                          "Event",
+                          "Severity",
+                          "Status",
+                          "Duration",
+                          "Request ID",
                         ].map((title) => (
                           <TableHead key={title}>{title}</TableHead>
                         ))}
@@ -190,10 +191,10 @@ export default async function ReportsPage({
                     <TableHeader>
                       <TableRow>
                         {[
-                          translate("ma4528df6c39b"),
-                          translate("m4e1f49a9c8ae"),
-                          translate("me2d52ebeb243"),
-                          translate("m424afea39c64"),
+                          "When (UTC)",
+                          "Event",
+                          "Actor / target",
+                          "Change and reason",
                         ].map((title) => (
                           <TableHead key={title}>{title}</TableHead>
                         ))}
@@ -210,26 +211,14 @@ export default async function ReportsPage({
                           </TableCell>
                           <TableCell>
                             <div className="min-w-40 max-w-56 break-all whitespace-normal text-xs">
-                              <p>
-                                {translate("mcf72bcca6c26")}{" "}
-                                {userLink(row.actorUid)}
-                              </p>
-                              <p>
-                                {translate("m890d34fffcde")}{" "}
-                                {userLink(row.targetUid)}
-                              </p>
+                              <p>Actor: {userLink(row.actorUid)}</p>
+                              <p>Target: {userLink(row.targetUid)}</p>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="min-w-48 max-w-80 space-y-2 break-words whitespace-normal text-xs">
-                              <p>
-                                {translate("mc19f75585ade")}{" "}
-                                {describe(row.before)}
-                              </p>
-                              <p>
-                                {translate("m13f844407f91")}{" "}
-                                {describe(row.after)}
-                              </p>
+                              <p>Before: {describe(row.before)}</p>
+                              <p>After: {describe(row.after)}</p>
                               <p>{row.reason}</p>
                             </div>
                           </TableCell>
@@ -240,8 +229,8 @@ export default async function ReportsPage({
                 )
               ) : (
                 <EmptyState
-                  title={translate("m7c08cf52e3dc")}
-                  description={translate("m9a70f3ed210b")}
+                  title="No matching records."
+                  description="Adjust the filters or return to the latest records."
                 />
               )}
               <div className="flex flex-wrap gap-2">
@@ -250,15 +239,13 @@ export default async function ReportsPage({
                     <Link
                       href={`/admin/reports?${new URLSearchParams([...next].filter(([key]) => key !== "cursor"))}`}
                     >
-                      {translate("m2bd6e5d112dc")}
+                      Latest records
                     </Link>
                   </Button>
                 )}
                 {report.nextCursor && (
                   <Button variant="outline" asChild>
-                    <Link href={`/admin/reports?${next}`}>
-                      {translate("m10a2e3a80b0c")}
-                    </Link>
+                    <Link href={`/admin/reports?${next}`}>Older records</Link>
                   </Button>
                 )}
               </div>
