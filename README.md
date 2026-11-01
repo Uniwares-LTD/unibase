@@ -1,5 +1,27 @@
 # Base
 
+## Dify environment connections
+
+Each Dify app belongs to one project/environment. In Administration → Orchestrators,
+Create prepares that environment's MCP connection automatically. An unmanaged or
+foreign app offers **Create a copy for this environment**: select an exact published
+version; the source app is never modified. Destination apps have an environment
+suffix and `app:<project>-<environment>` tag. Remove unmanaged registrations manually
+and replace them with environment-owned copies; there is no adoption or migration.
+
+For local registration, configure `MCP_PUBLIC_URL` privately with your running HTTPS
+tunnel's `/api/mcp` endpoint and restart the web process. Hosted environments use
+`APP_ORIGIN` plus `/api/mcp` and reject this setting. The selected `RUN_MCP_CLIENT_ID`
+needs `server:read` and the workflow's tool permissions. No credentials or temporary
+tunnel addresses belong in template DSL files.
+
+Base settings → Runs → External MCP mappings accepts a list of
+`{ "source": "source_provider_id", "destination": "destination_provider_id" }`.
+These explicitly approve third-party MCP connections for the current environment;
+they contain no credentials. Unmapped nodes block copying/registration. Copied secret
+variables start empty; configure destination resources in Dify before registering
+an app marked Setup required. See [MCP environment binding](docs/mcp.md#environment-owned-dify-apps).
+
 Deployment work starts with the [staging transition status](docs/deployment.md#staging-transition-status--2026-10-24)
 and private [shared infrastructure inventory](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/inventory/srv1.md).
 They record the verified staging handoff and deferred recovery/shared-service work.

@@ -19,6 +19,12 @@ import {
 import type { OrchestratorRecord } from "../../src/lib/server/runs/orchestrators";
 import type { difyJson } from "../../src/lib/server/runs/dify-console-client";
 import { readReports } from "../../src/lib/server/store/reports";
+import {
+  bindingTestEnvironment,
+  mockBindingProbe,
+  environmentRequest,
+  ownFixtureApp,
+} from "./fixtures/environment-binding";
 
 test("Orchestrator lifecycle: deletion, outages, disable, unregister and registration fencing", async (t) => {
   const repl = await MongoMemoryReplSet.create({
@@ -35,6 +41,7 @@ test("Orchestrator lifecycle: deletion, outages, disable, unregister and registr
     notBefore: 0,
   });
   const env = {
+    ...bindingTestEnvironment,
     DIFY_MODE: "live",
     DIFY_BASE_URL: "https://dify.test/v1",
     DIFY_CONSOLE_URL: "https://dify.test/console/api",
@@ -44,7 +51,8 @@ test("Orchestrator lifecycle: deletion, outages, disable, unregister and registr
   const apps = new Map<string, { name: string; workflowId: string }>();
   let outage = false;
   let pause: (() => Promise<void>) | undefined;
-  const request: typeof difyJson = async (path, config = {}) => {
+  mockBindingProbe(t, env);
+  const rawRequest: typeof difyJson = async (path, config = {}) => {
     if (outage)
       throw new AppError("DIFY_REJECTED", "Provider unavailable", 502);
     if (path.startsWith("/apps?"))
@@ -58,6 +66,8 @@ test("Orchestrator lifecycle: deletion, outages, disable, unregister and registr
       };
     if (path === "/info") return { mode: "workflow" };
     if (path === "/parameters") return { user_input_form: [] };
+    if (path === "/workspaces/current/tools/mcp")
+      return [{ id: "fixture", is_team_authorization: true, tools: [] }];
     const match = /^\/apps\/([a-f0-9-]+)(.*)$/.exec(path);
     if (!match) throw Error(`Unexpected ${path}`);
     const app = apps.get(match[1]);
@@ -85,10 +95,12 @@ test("Orchestrator lifecycle: deletion, outages, disable, unregister and registr
     }
     throw Error(`Unexpected ${path}`);
   };
+  const request = environmentRequest(db, env, rawRequest);
   const records = db.collection<OrchestratorRecord>("orchestrators");
   async function registered() {
     const appId = randomUUID();
     apps.set(appId, { name: "Lifecycle workflow", workflowId: randomUUID() });
+    await ownFixtureApp(appId, db, env);
     const result = await registerDifyOrchestrator(
       appId,
       actor,

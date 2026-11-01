@@ -43,7 +43,7 @@
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET"
   ],
-  "localOnly": ["FIREBASE_AUTH_EMULATOR_HOST"],
+  "localOnly": ["FIREBASE_AUTH_EMULATOR_HOST", "MCP_PUBLIC_URL"],
   "tooling": ["ANDROID_HOST", "GOOGLE_APPLICATION_CREDENTIALS"],
   "credentialPatterns": ["^DIFY_KEY_[A-Z0-9_]+$", "^MCP_TOKEN_[A-Z0-9_]+$"],
   "mcpPermissions": [

@@ -16,6 +16,17 @@ import { acquireAppCredential, executionKey } from "./credentials";
 import { inspectDifyWorkflow, verifyMcpTools } from "./dify-capabilities";
 import type { OrchestratorRecord } from "./orchestrators";
 import {
+  bindEnvironmentGraph,
+  ensureEnvironmentMcp,
+  environmentIdentity,
+  ownershipId,
+  verifyAppOwnership,
+  verifyDestinationResources,
+  type AppOwnership,
+} from "./environment-binding";
+import type { WorkflowBinding } from "@/lib/contracts/environment-binding";
+import { tools } from "../mcp/tools";
+import {
   difyAppCatalog,
   reconcileOrchestratorAvailability,
 } from "./orchestrator-lifecycle";
@@ -154,6 +165,10 @@ export async function discoverDifyOrchestrators(
     workflowId?: string;
     stage?: string;
     message?: string;
+    environment?: string;
+    owned?: boolean;
+    connection?: string;
+    source?: { appId: string; workflowId: string };
   }[] = [];
   let catalog: Awaited<ReturnType<typeof difyAppCatalog>> = [];
   let warning: string | undefined;
@@ -197,6 +212,17 @@ export async function discoverDifyOrchestrators(
     merged.map(async (app) => {
       const state = records.find((record) => record.appId === app.id);
       const saved = local.find((r) => r.definition.appId === app.id);
+      const ownership = await db
+        .collection<AppOwnership>("difyAppOwnership")
+        .findOne({ _id: ownershipId(app.id, env) });
+      const current = environmentIdentity(env);
+      const owned =
+        !!ownership &&
+        Object.entries(current).every(
+          ([key, value]) =>
+            ownership.binding[key as keyof WorkflowBinding] === value,
+        );
+      const marked = /\[(local|staging|production)\]$/.exec(app.name)?.[1];
       const registered = !!saved && saved.lifecycle !== "unregistered";
       const status = await publicStatus(state ?? null, db, env, saved);
       return {
@@ -214,6 +240,10 @@ export async function discoverDifyOrchestrators(
             }
           : {}),
         ...status,
+        owned,
+        environment: ownership?.binding.environment ?? marked ?? "unmanaged",
+        connection: owned ? ownership.binding.providerId : undefined,
+        source: ownership?.source,
         ...(warning && status.status === "ready"
           ? {
               status: "unavailable" as const,
@@ -225,7 +255,11 @@ export async function discoverDifyOrchestrators(
     }),
   );
   apps.push(...rows);
-  return { apps, ...(warning ? { warning } : {}) };
+  return {
+    apps,
+    currentEnvironment: environmentIdentity(env).environment,
+    ...(warning ? { warning } : {}),
+  };
 }
 
 export async function registrationStatus(
@@ -341,6 +375,7 @@ export async function registerDifyOrchestrator(
       actor.auth_time,
     );
   try {
+    await verifyAppOwnership(appId, db, request, env);
     const app = z
       .object({
         name: z.string(),
@@ -356,13 +391,56 @@ export async function registerDifyOrchestrator(
       conversation_variables: z.json().optional(),
     });
     let workflow: (z.infer<typeof draftSchema> & { id: string }) | null;
+    let binding: WorkflowBinding;
+    const prepareBinding = async (graph: unknown) => {
+      const inspected = inspectDifyWorkflow(graph, responseMode);
+      const required = inspected.mcpTools
+        .filter((t) => tools.some((own) => own.name === t.toolName))
+        .map((t) => t.toolName);
+      return ensureEnvironmentMcp(required, db, request, env, () =>
+        stage("Preparing environment MCP"),
+      );
+    };
     if (selection) {
       workflow = await selectedWorkflowVersion(appId, selection, request);
+      binding = await prepareBinding(workflow.graph);
+      await bindEnvironmentGraph(workflow.graph, binding, db, false);
+      await verifyDestinationResources(workflow, request);
     } else {
-      const draft = draftSchema.parse(
+      let draft = draftSchema.parse(
         await request(`/apps/${appId}/workflows/draft`, { management: true }),
       );
+      binding = await prepareBinding(draft.graph);
+      const bound = await bindEnvironmentGraph(draft.graph, binding, db, true);
+      if (
+        fingerprint(z.json().parse(bound)) !==
+        fingerprint(z.json().parse(draft.graph))
+      ) {
+        await stage("Binding environment tools");
+        await request(`/apps/${appId}/workflows/draft`, {
+          management: true,
+          body: {
+            graph: bound,
+            features: draft.features ?? {},
+            hash: draft.hash,
+            conversation_variables: draft.conversation_variables ?? [],
+          },
+        });
+        draft = draftSchema.parse(
+          await request(`/apps/${appId}/workflows/draft`, { management: true }),
+        );
+        if (
+          fingerprint(z.json().parse(bound)) !==
+          fingerprint(z.json().parse(draft.graph))
+        )
+          throw new AppError(
+            "DIFY_DRAFT_CHANGED",
+            "The Dify draft changed during environment binding. Review it and retry.",
+            409,
+          );
+      }
       const draftFit = inspectDifyWorkflow(draft.graph, responseMode);
+      await verifyDestinationResources(draft, request);
       await verifyMcpTools(draftFit.mcpTools, request);
       const publicationSchema = draftSchema.extend({ id: z.string().uuid() });
       const current = await request(`/apps/${appId}/workflows/publish`, {
@@ -417,6 +495,8 @@ export async function registerDifyOrchestrator(
         409,
       );
     const fit = inspectDifyWorkflow(workflow.graph, responseMode);
+    await bindEnvironmentGraph(workflow.graph, binding, db, false);
+    await verifyAppOwnership(appId, db, request, env);
     await verifyMcpTools(fit.mcpTools, request);
     await stage("Connecting app key");
     const credential = await acquireAppCredential(
@@ -433,6 +513,7 @@ export async function registerDifyOrchestrator(
       order: 0,
       appId,
       workflowId: workflow.id,
+      environmentBinding: binding,
       keyEnv: `DIFY_KEY_AUTO_${appId.replaceAll("-", "_").toUpperCase()}`,
       credentialId: credential.credentialId,
       enabled: true,

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { generatedCardSchema, cardRegistry, parseCard } from "../runs/cards";
 import { aiPricingSchema } from "../config/ai-pricing";
 import { answererSchema } from "./personas";
+import { workflowBindingSchema } from "./environment-binding";
 
 export const domainTargetSchema = z.strictObject({
   kind: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
@@ -56,6 +57,7 @@ export const orchestratorSchema = z
     order: z.number().int().min(0).max(1000),
     appId: z.string().uuid().optional(),
     workflowId: z.string().uuid().optional(),
+    environmentBinding: workflowBindingSchema.optional(),
     keyEnv: z.string().regex(/^DIFY_KEY_[A-Z0-9_]+$/),
     credentialId: z
       .string()
