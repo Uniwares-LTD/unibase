@@ -146,6 +146,13 @@ Call `capabilities.list` for the inputs each capability accepts.
 
 \* Content capability: requires explicit selection and an exact ID.
 
+`run.get` also returns the accepted target, result-application status, owned Run
+image metadata and promoted product-image references for its current attempt page.
+These bounded projections exclude image bytes, object-store locations and lease
+tokens. `resultMetadataTruncated` reports incomplete asset/application metadata;
+individual product reference lists also report truncation. This distinguishes a
+completed workflow from a completed save that did not attach the expected images.
+
 Readers live in `src/lib/server/diagnostics` and use dedicated projections. They do
 not call helpers that write as a side effect: `readSettings` seeds defaults, credit
 reads expire lots, admin reports write the access-control fence, and

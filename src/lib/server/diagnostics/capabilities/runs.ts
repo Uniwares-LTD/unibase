@@ -8,6 +8,7 @@ import {
   publicRunInputs,
 } from "../../../contracts/runs";
 import type { AiJob } from "../../ai/jobs";
+import { jobTarget } from "../../domains";
 import type { Reservation } from "../../store/credit-types";
 import type { WorkerHeartbeat } from "../../worker-heartbeat";
 import { privateToolPermissions } from "../../mcp/private-tools";
@@ -68,6 +69,7 @@ function transition(event: unknown) {
 }
 /** Metadata summary of one attempt; inputs and outputs are content. */
 function attemptSummary(job: AiJob) {
+  const target = job.run ? jobTarget(job) : undefined;
   return {
     attemptId: job._id,
     logicalId: job.run?.logicalId ?? null,
@@ -85,6 +87,14 @@ function attemptSummary(job: AiJob) {
         }
       : null,
     capability: job.capability,
+    target: target
+      ? {
+          adapter: target.adapter,
+          version: target.version,
+          kind: target.kind,
+          id: target.id,
+        }
+      : null,
     binding: {
       name: job.binding.name,
       revision: job.binding.revision,
@@ -210,7 +220,7 @@ export const runSearch = define({
 const getInput = z.strictObject({ id: idInput, cursor: cursorInput });
 export const runGet = define({
   description:
-    "One logical Run: paged attempts, status transitions, decisions metadata and dispatch/accounting evidence.",
+    "One logical Run: paged attempts, decisions, dispatch/accounting evidence, saved-result application and owned asset metadata.",
   inputs: {
     id: "logical Run ID or attempt ID",
     cursor: "optional nextCursor for further attempts",
@@ -291,11 +301,82 @@ export const runGet = define({
         { timeoutMS: context.timeoutMS() },
       )
       .toArray();
+    const [applications, assets, productAssets] = await Promise.all([
+      context.db
+        .collection<Document & { _id: string }>("resultApplications")
+        .find(
+          { uid: anchor.uid, jobId: { $in: ids } },
+          {
+            timeoutMS: context.timeoutMS(),
+            projection: {
+              jobId: 1,
+              status: 1,
+              artifactId: 1,
+              nextAttemptAt: 1,
+            },
+          },
+        )
+        .limit(PAGE_SIZE + 1)
+        .toArray(),
+      context.db
+        .collection<Document & { _id: string }>("runAssets")
+        .find(
+          { uid: anchor.uid, jobId: { $in: ids } },
+          {
+            timeoutMS: context.timeoutMS(),
+            projection: { jobId: 1, status: 1, bytes: 1, retained: 1 },
+          },
+        )
+        .limit(PAGE_SIZE * 10 + 1)
+        .toArray(),
+      context.db
+        .collection<Document & { _id: string }>("productAssets")
+        .find(
+          { uid: anchor.uid, jobId: { $in: ids } },
+          {
+            timeoutMS: context.timeoutMS(),
+            projection: { jobId: 1, state: 1, references: 1 },
+          },
+        )
+        .limit(PAGE_SIZE * 10 + 1)
+        .toArray(),
+    ]);
     return {
       logicalId: logicalId ?? null,
       accountUid: anchor.uid,
       attempts: page.rows,
       nextCursor: page.nextCursor,
+      resultApplications: applications.slice(0, PAGE_SIZE).map((row) => ({
+        id: row._id,
+        attemptId: row.jobId,
+        status: row.status,
+        artifactId: row.artifactId ?? null,
+        nextAttemptAt: iso(row.nextAttemptAt),
+      })),
+      assets: assets.slice(0, PAGE_SIZE * 10).map((row) => ({
+        id: row._id,
+        attemptId: row.jobId,
+        status: row.status,
+        bytes: row.bytes,
+        retained: !!row.retained,
+      })),
+      productAssets: productAssets.slice(0, PAGE_SIZE * 10).map((row) => ({
+        id: row._id,
+        attemptId: row.jobId,
+        state: row.state,
+        references: Array.isArray(row.references)
+          ? row.references
+              .filter((value): value is string => typeof value === "string")
+              .slice(0, 20)
+              .map((value) => value.slice(0, 256))
+          : [],
+        referencesTruncated:
+          Array.isArray(row.references) && row.references.length > 20,
+      })),
+      resultMetadataTruncated:
+        applications.length > PAGE_SIZE ||
+        assets.length > PAGE_SIZE * 10 ||
+        productAssets.length > PAGE_SIZE * 10,
       transitions: events.map((event) => ({
         attemptId: event.jobId,
         timestamp: iso(event.timestamp),

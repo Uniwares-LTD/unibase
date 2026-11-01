@@ -1151,6 +1151,109 @@ test("diagnostics: grants, authentication, capabilities and read-only evidence",
     );
 
     await t.test(
+      "Run metadata distinguishes applied saves from missing images without exposing bytes",
+      async () => {
+        store.resetCounters();
+        await db.collection("aiJobs").updateOne({ _id: jobId } as never, {
+          $set: {
+            "run.target": {
+              adapter: "artifact",
+              version: "1",
+              kind: "artifact",
+              id: "artifact-1",
+              privateField: "DO_NOT_EXPOSE_TARGET",
+            },
+          },
+        });
+        await db.collection("resultApplications").insertOne({
+          _id: "application-meta",
+          uid: "member-1",
+          jobId,
+          artifactId: "artifact-1",
+          status: "applied",
+          nextAttemptAt: new Date(clock),
+          secret: "DO_NOT_EXPOSE_APPLICATION",
+          lease: "DO_NOT_EXPOSE_LEASE",
+        } as never);
+        await db.collection("runAssets").insertMany([
+          {
+            _id: "owned-image",
+            uid: "member-1",
+            jobId,
+            status: "ready",
+            bytes: 123,
+            base64: "DO_NOT_EXPOSE_IMAGE_BYTES",
+            object: { key: "DO_NOT_EXPOSE_STORAGE" },
+          },
+          {
+            _id: "foreign-image",
+            uid: "other-member",
+            jobId,
+            status: "ready",
+            bytes: 123,
+          },
+        ] as never);
+        await db.collection("productAssets").insertOne({
+          _id: "owned-product",
+          uid: "member-1",
+          jobId,
+          state: "ready",
+          references: ["artifact:artifact-1"],
+          base64: "DO_NOT_EXPOSE_PRODUCT_BYTES",
+        } as never);
+        const before = await snapshot(db);
+        const response = await call(grant.id, "run.get", { id: jobId });
+        assert.equal(response.status, 200);
+        const data = response.body.data;
+        assert.equal(data.resultApplications[0].status, "applied");
+        assert.deepEqual(data.attempts[0].target, {
+          adapter: "artifact",
+          version: "1",
+          kind: "artifact",
+          id: "artifact-1",
+        });
+        assert.equal(data.resultApplications[0].artifactId, "artifact-1");
+        assert.deepEqual(data.assets, [
+          {
+            id: "owned-image",
+            attemptId: jobId,
+            status: "ready",
+            bytes: 123,
+            retained: false,
+          },
+        ]);
+        assert.deepEqual(data.productAssets, [
+          {
+            id: "owned-product",
+            attemptId: jobId,
+            state: "ready",
+            references: ["artifact:artifact-1"],
+            referencesTruncated: false,
+          },
+        ]);
+        assert.equal(data.resultMetadataTruncated, false);
+        assert.ok(!JSON.stringify(data).includes("DO_NOT_EXPOSE"));
+        assert.ok(!JSON.stringify(data).includes("foreign-image"));
+        assert.deepEqual(await snapshot(db), before);
+        await db.collection("runAssets").insertMany(
+          Array.from({ length: 251 }, (_, i) => ({
+            _id: `extra-meta-${i}`,
+            uid: "member-1",
+            jobId,
+            status: "staged",
+            bytes: 1,
+            base64: "DO_NOT_EXPOSE_EXTRA_BYTES",
+          })) as never,
+        );
+        const limited = await call(grant.id, "run.get", { id: jobId });
+        assert.equal(limited.status, 200);
+        assert.equal(limited.body.data.assets.length, 250);
+        assert.equal(limited.body.data.resultMetadataTruncated, true);
+        assert.ok(!JSON.stringify(limited.body).includes("DO_NOT_EXPOSE"));
+      },
+    );
+
+    await t.test(
       "one deadline from request entry bounds authentication",
       async () => {
         store.resetCounters();

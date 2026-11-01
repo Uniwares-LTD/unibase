@@ -14,6 +14,12 @@ missing validators remain reviewable. Verify the original attempt, retained imag
 count, released hold and single settlement after release. If recovery fails,
 inspect that attempt before retrying; production activation remains separate.
 
+The follow-up save investigation adds bounded read-only application/asset metadata
+to `run.get`. This is also an image-only change with no operator intervention,
+host profile change, migration or new diagnostic permission. Existing `run.get`
+grants can read the additional metadata; bytes, storage locations and leases remain
+excluded. It does not retry saves or change financial records.
+
 ## Environment-binding release impact
 
 Local-only `MCP_PUBLIC_URL` is host-owned configuration in `deploy/contract.json`,
