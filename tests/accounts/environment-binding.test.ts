@@ -241,6 +241,74 @@ test("Environment ownership, resumable provider setup, copying and registration 
       },
     );
     await t.test(
+      "managed setup coexists with an existing manual connection to the same MCP endpoint",
+      async () => {
+        const db = client.db("same_endpoint");
+        const manual = {
+          id: randomUUID(),
+          name: "Manual staging",
+          server_identifier: "unibase_staging",
+          server_url: binding.endpoint,
+        };
+        const original = structuredClone(manual);
+        const providers = [manual];
+        let creates = 0;
+        const request: typeof difyJson = async (path, options = {}) => {
+          if (path === "/workspaces/current/tool-providers?type=mcp")
+            return providers;
+          if (path === "/workspaces/current/tool-provider/mcp") {
+            const body = options.body as typeof manual;
+            // Dify 1.17.1 enforces URL uniqueness, independently of the server identifier.
+            if (
+              providers.some(
+                (p) =>
+                  p.server_url === body.server_url &&
+                  p.id !== body.id &&
+                  p.id !==
+                    (options.body as { provider_id?: string }).provider_id,
+              )
+            )
+              throw new AppError(
+                "DIFY_REJECTED",
+                "Server URL already exists",
+                502,
+              );
+            if (options.method === "PUT") return {};
+            creates++;
+            providers.push({ ...body, id: randomUUID() });
+            return {};
+          }
+          return {
+            server_identifier: binding.providerId,
+            is_team_authorization: true,
+            tools: [{ name: "get_run_context_v1" }],
+          };
+        };
+        const result = await ensureEnvironmentMcp(
+          ["get_run_context_v1"],
+          db,
+          request,
+          env,
+          async () => {},
+        );
+        assert.deepEqual(result, binding);
+        assert.equal(creates, 1);
+        assert.deepEqual(manual, original);
+        const url = new URL(providers[1].server_url);
+        assert.equal(url.searchParams.get("connection"), binding.providerId);
+        url.search = "";
+        assert.equal(url.href, binding.endpoint);
+        await ensureEnvironmentMcp(
+          ["get_run_context_v1"],
+          db,
+          request,
+          env,
+          async () => {},
+        );
+        assert.equal(creates, 1);
+      },
+    );
+    await t.test(
       "unknown provider creation reconciles once; collisions and stale discovery fail closed",
       async () => {
         const db = client.db("provider"),
