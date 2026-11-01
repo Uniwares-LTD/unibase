@@ -63,7 +63,10 @@ the worker lease during retention and reports settlement retries as reconciliati
 Local verification: 47 affected worker/accounting, Dify, media and renewal tests,
 type checking, lint, documentation/translation/skill checks and build passed.
 One original staging image was renewed and downloaded without invoking a model;
-full original-attempt settlement remains a post-release acceptance check.
+the [staging release and independent check](deployment.md#current-staging-release)
+passed. Fresh diagnostic access confirmed the original attempt succeeded with nine
+distinct retained images and one two-credit settlement at 09:21:55 UTC. The hold
+is committed; recovery preserved the original provider execution without generation.
 See [release impact](deployment.md#completed-run-image-recovery-release-impact).
 
 ### Accepted extension: environment-owned Dify apps — 2026-11-01

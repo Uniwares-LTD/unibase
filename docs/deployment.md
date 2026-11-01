@@ -14,6 +14,12 @@ missing validators remain reviewable. Verify the original attempt, retained imag
 count, released hold and single settlement after release. If recovery fails,
 inspect that attempt before retrying; production activation remains separate.
 
+The follow-up save investigation adds bounded read-only application/asset metadata
+to `run.get`. This is also an image-only change with no operator intervention,
+host profile change, migration or new diagnostic permission. Existing `run.get`
+grants can read the additional metadata; bytes, storage locations and leases remain
+excluded. It does not retry saves or change financial records.
+
 ## Environment-binding release impact
 
 Local-only `MCP_PUBLIC_URL` is host-owned configuration in `deploy/contract.json`,
@@ -39,22 +45,31 @@ environment's provider or retry failed Runs in bulk.
 
 ## Current staging release
 
-Verified October 31, 2026; this is dated acceptance, not continuous monitoring.
+Verified November 1, 2026; this is dated acceptance, not continuous monitoring.
 
 | Identity or check | Verified result |
 | --- | --- |
-| Source | `45dfb3c285d13566ad6f32dd39cccffbc2864914`, promoted from main through [PR #12](https://github.com/Uniwares-LTD/unibase/pull/12) |
-| Image | `ghcr.io/uniwares-ltd/unibase@sha256:a0eb62455b71b1eb3661d1e4c5fa703f8157ed98fd4740f984f535009083d13b` |
-| Release | [41217972955](https://github.com/Uniwares-LTD/unibase/actions/runs/41217972955): pinned-SSH preflight, build/publication, anonymous pull, deployment and readiness passed |
-| Separate check | [41218296466](https://github.com/Uniwares-LTD/unibase/actions/runs/41218296466): web and both workers passed |
+| Source | `cf2464d23b0d4bff55cc2dbfb9955a7bc376ed01`, promoted from main through [PR #19](https://github.com/Uniwares-LTD/unibase/pull/19) |
+| Image | `ghcr.io/uniwares-ltd/unibase@sha256:2cf2d45d9ff2b937b178faa4b17e795cc0b34b20d613b1b90b00778b3761a92d` |
+| Release | [41291838645](https://github.com/Uniwares-LTD/unibase/actions/runs/41291838645): pinned-SSH preflight, build/publication, anonymous pull, deployment and readiness passed |
+| Separate check | [41292222392](https://github.com/Uniwares-LTD/unibase/actions/runs/41292222392): web and both workers passed |
 | Public readiness | `/api/health/ready` returned `ready` and the source commit above |
 | Maintenance result | `maintenance=disabled`; automatic cleanup remains disabled |
 
 Infrastructure's [host inventory](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/inventory/srv1.md#installed-control-and-capacity--2026-10-31)
 owns installed controller/configuration identities and capacity. The original permission
-correction mismatch is resolved. Dify catalog/permission functional acceptance and an
-owned Run retry remain pending and separately authorized. Earlier account/provider
-acceptance was not rerun by this release.
+correction mismatch is resolved. Environment-owned Unitale creation/registration was
+confirmed by the operator after the preceding environment-binding correction.
+This release adds automatic recovery of expired Unitale image links; one original
+file was renewed/downloaded without generation before release. Fresh read-only
+diagnostics confirmed original attempt
+`c852707d7958b7ec7b835fa4a28c08531b08a33d37c721f94a86bf378b5a2d16`
+succeeded at 09:21:55 UTC: all nine distinct images are retained, its hold is
+committed, and the ledger contains one two-credit settlement (one workflow credit,
+one Persona credit). Its provider Run ID is unchanged; recovery did not regenerate
+images or create a successor attempt. Earlier account/provider acceptance was not
+rerun by this release. This evidence update requires no repeated installation or
+release.
 
 ## Choose an operation
 
