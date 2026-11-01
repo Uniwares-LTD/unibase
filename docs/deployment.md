@@ -58,10 +58,10 @@ Verified November 1, 2026; this is dated acceptance, not continuous monitoring.
 
 | Identity or check | Verified result |
 | --- | --- |
-| Source | `c190d26cbe329a704dfb88569194cf9ee4fbf1be`, promoted from main through [PR #23](https://github.com/Uniwares-LTD/unibase/pull/23) |
-| Image | `ghcr.io/uniwares-ltd/unibase@sha256:da2eed56a480d1728bb76143e8a66ed40ace88589d99e432a605b86a31162e58` |
-| Release | [41294993500](https://github.com/Uniwares-LTD/unibase/actions/runs/41294993500): pinned-SSH preflight, build/publication, anonymous pull, deployment and readiness passed |
-| Separate check | [41295302194](https://github.com/Uniwares-LTD/unibase/actions/runs/41295302194): web and both workers passed |
+| Source | `069af3a3466d9f64283b9afd11a07ee04eda4fa8`, promoted from main through [PR #25](https://github.com/Uniwares-LTD/unibase/pull/25) |
+| Image | `ghcr.io/uniwares-ltd/unibase@sha256:b1ece1da6fe95e69b6a3e6ee015ca34234a433a8ca157cbb63ddb16eb8b3a965` |
+| Release | [41297220499](https://github.com/Uniwares-LTD/unibase/actions/runs/41297220499): pinned-SSH preflight, build/publication, anonymous pull, deployment and readiness passed |
+| Separate check | [41302822308](https://github.com/Uniwares-LTD/unibase/actions/runs/41302822308): web and both workers passed |
 | Public readiness | `/api/health/ready` returned `ready` and the source commit above |
 | Maintenance result | `maintenance=disabled`; automatic cleanup remains disabled |
 
@@ -80,11 +80,17 @@ images or create a successor attempt. Earlier account/provider acceptance was no
 rerun by this release. This evidence update requires no repeated installation or
 release.
 
-The latest release adds read-only save/asset metadata for the remaining artifact
-association investigation. Its Compose log confirms Redis recreation, which clears
-the in-memory diagnostic grants; renewed post-release access is required. The
-completed Run and its financial records remain in MongoDB. See
-[diagnostic grant lifecycle](diagnostics-api.md#grants).
+The subsequent artifact association retry failed while all nine Run images remained
+ready. The latest release stages image copies within MongoDB before the short
+publish transaction and records safe failure details. An owner-initiated retry after
+release was verified through fresh diagnostics: application `applied`, nine ready
+Run images, nine promoted product images, nine images on the saved artifact, no
+failure, and the original two-credit charge unchanged. The earlier failure's exact cause was not recorded; the successful
+retry does not establish a historical error code. The preceding diagnostic release's
+Compose log also confirmed Redis recreation, which clears temporary grants. The
+Run and financial records remain in MongoDB. See
+[diagnostic grant lifecycle](diagnostics-api.md#grants). This evidence-only update
+requires no repeated installation or release.
 
 ## Choose an operation
 
