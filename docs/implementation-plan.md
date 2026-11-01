@@ -76,18 +76,11 @@ transaction, validates expected images, and records sanitized failure codes/phas
 Sixty affected tests passed with one optional Redis test skipped; type checking,
 lint, documentation/skill checks, build and separate read-only review passed.
 Command-monitoring tests verify nine large images publish without image bytes in
-transaction requests or responses. Existing failed saves require an owner-initiated
-retry after release; live artifact attachment acceptance remains separate.
-
-The follow-up artifact attachment retry also failed while all nine Run images
-remained ready. Its old application record did not retain the underlying error.
-The correction stages payload copies within MongoDB before the short metadata
-transaction, validates expected images, and records sanitized failure codes/phases.
-Sixty affected tests passed with one optional Redis test skipped; type checking,
-lint, documentation/skill checks, build and separate read-only review passed.
-Command-monitoring tests verify nine large images publish without image bytes in
-transaction requests or responses. Existing failed saves require an owner-initiated
-retry after release; live artifact attachment acceptance remains separate.
+transaction requests or responses. After the authorized staging release and
+independent check, an owner-initiated retry was verified as `applied` with nine
+promoted images and the original two-credit charge unchanged. The earlier save
+failure's exact historical cause was not recorded. See the deployment acceptance
+record above; production activation remains separate.
 
 ### Accepted extension: environment-owned Dify apps — 2026-11-01
 
