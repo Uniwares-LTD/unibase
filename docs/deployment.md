@@ -20,6 +20,15 @@ host profile change, migration or new diagnostic permission. Existing `run.get`
 grants can read the additional metadata; bytes, storage locations and leases remain
 excluded. It does not retry saves or change financial records.
 
+The attachment correction stages image copies inside MongoDB before the publish
+transaction and records safe failure codes. **Operator intervention: none.** It
+uses the existing collections and database write access; there is no profile,
+credential, controller, index installation or migration. Existing failed saves
+remain failed until their signed-in owner clicks **Retry save** after release.
+This attaches retained images without generation or another credit charge. Create
+a fresh diagnostic grant after deployment's Redis recreation to verify the same
+attempt, application status, nine artifact references and unchanged settlement.
+
 ## Environment-binding release impact
 
 Local-only `MCP_PUBLIC_URL` is host-owned configuration in `deploy/contract.json`,
