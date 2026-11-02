@@ -1,116 +1,63 @@
 # Base engineering guidance
 
-## Scope and authority
+## Start here
 
-Read [the current implementation plan](docs/implementation-plan.md) and the relevant code before editing. Historical evidence under `docs/history/` is reference material, not the current task queue. The user's current request and the accepted milestone define scope. Do not implement later milestones merely because a dependency or skill suggests them. Repository-specific workflow details live in [.agents/repository-adapter.md](.agents/repository-adapter.md). Preserve the accepted local adaptations there and resolve actual conflicts explicitly; shared guidance does not change application ownership or session authority.
-
-## Shared handbook
-
-Follow [GitHub access](.agents/repository-adapter.md#github-access).
 At task start run `npm run handbook:check` (or `node scripts/handbook.mjs check`)
-outside the sandbox, as required for all Git/MCP/gh calls and helpers that invoke them.
+outside the sandbox. Run all Git/MCP/gh calls and helpers that invoke them outside
+the sandbox from the first attempt; follow [GitHub access](.agents/repository-adapter.md#github-access).
+Use `npm.cmd` / `npx.cmd` on Windows when PowerShell wrappers are blocked.
 
-The helper lazily checks main every four hours; no scheduler or version pin is needed.
-Follow the local [Handbook bootstrap](.agents/handbook.md) for setup, missing-checkout
-recovery, retained revisions and shared resource reads. Keep the returned path/revision
-for the task and through handoffs; a refresh does not replace it. Read this repository's
+Read the [Handbook bootstrap](.agents/handbook.md), this repository's
 [adapter](.agents/repository-adapter.md), [source map](docs/source-map.md),
-[preferences](.agents/repository.md) and `handbook.json` for selected skills.
-Without shared guidance, continue under local rules and pause only dependent decisions.
-If the bootstrap is missing or customized, reconcile it explicitly; do not infer setup
-or overwrite authority. After routing/metadata changes, run `npm run handbook:sync`
-and `npm run handbook:entrypoints`, review custom content and refresh integrity hashes.
-Normal refresh never rewrites instructions. See [agent tooling](docs/agent-tooling.md).
+[preferences](.agents/repository.md) and `handbook.json`. Retain the returned
+Handbook path/revision for the task and handoffs. The bootstrap owns setup,
+recovery and committed resource reads; do not edit its managed content.
+Without usable shared guidance, continue under local rules and pause only
+dependent decisions. See [agent tooling](docs/agent-tooling.md) for integration maintenance.
 
-Apply shared `docs/guidance/communication.md` to every task. Use the proportional
-workflow in `docs/guidance/engineering.md`: small work needs implementation,
-validation and a separate review; medium work needs a bounded plan; large work uses
-the shared PRD and checkpoint procedure. Preserve accepted milestone scope and
-local advisory checks. Start new artifacts from the local permissive templates in
-`.github` and `docs/templates`, falling back to the task's shared starters.
+Read the [current implementation plan](docs/implementation-plan.md) and relevant
+code before editing. The user's request and accepted milestone define scope;
+`docs/history/` is evidence, not a task queue. Accepted milestones need no
+retroactive issues. Shared guidance does not transfer ownership or expand authority.
+Preserve local adaptations and resolve actual conflicts explicitly.
 
-New substantial work uses issues under handbook policy. Already accepted milestones
-in the implementation plan, including the accepted onboarding plan, remain authorized
-without retroactive issues. Small standalone changes may remain untracked. For assigned
-issue work, agents may enroll the existing issue, maintain nonterminal status/blockers
-and post concise evidence. New issues need human approval; humans own closure and Done.
-Publication, merges, deployments, releases and permissions retain separate authorization.
+## Decision-point rules
 
-## Architecture
+- Commits, pushes, PR publication, merges, deployments, releases, permissions and
+  project configuration changes need explicit session authorization. New issues
+  need human approval; humans own closure and Done. See the adapter's
+  [authority rules](.agents/repository-adapter.md#publication-and-external-actions).
+- Use one Next.js App Router application for web and the planned Android TWA.
+  Keep private access in `src/lib/server` with `server-only` imports; allowlist
+  public configuration. Never serialize process.env, credentials or private
+  configuration to the browser. Local operation must work without cloud credentials.
+- Preserve accepted Run/accounting records and ownership boundaries. Read
+  [service contracts](docs/services.md) before changing them, and
+  [MCP guidance](docs/mcp.md) before changing tools or transport.
+- Public UI uses typed catalogs, page-scoped dictionaries and logical RTL styles;
+  administration stays English/LTR without changing the public language preference.
+  Preserve CSP nonces during navigation. Reuse shadcn primitives through the CLI
+  and semantic theme variables. Follow the adapter's [UI checks](.agents/repository-adapter.md#ui-and-browser-verification).
+- Before deployment/provider work, read the adapter's
+  [operational boundaries](.agents/repository-adapter.md#deployment-and-provider-work)
+  and [deployment guidance](docs/deployment.md#current-staging-release).
+  Publication does not authorize live changes.
+- Run affected checks and a separate read-only review. Quality warnings are
+  advisory; compilation, bundling, runtime and operational failures remain failures.
+  Use the adapter's [verification rules](.agents/repository-adapter.md#validation-and-review).
 
-- Before deployment work, read [current deployment guidance](docs/deployment.md#current-staging-release)
-  and [shared infrastructure guidance](https://github.com/Uniwares-LTD/infrastructure/blob/main/AGENTS.md).
-  Keep host facts in infrastructure and application behavior here. Distinguish planned
-  conventions from current code; documentation does not transfer Booklet/Dify/tunnel
-  ownership or authorize live changes.
+## Shared workflows and maintenance
 
-- Before changing MCP tools or transport, read [MCP implementation and maintenance](docs/mcp.md).
-  Keep tool handlers server-only, permission-checked, bounded, and independent of
-  transport. Service credentials never imply end-user ownership.
+Apply shared communication guidance and the proportional engineering workflow at
+the task revision. Read only the relevant selected skills from `handbook.json`;
+system-provided skills remain system-owned. Shared procedures belong in Handbook,
+local exceptions in the adapter, and source navigation in the source map.
 
-- One Next.js App Router application serves web and, later, an Android TWA. Do not add Expo or a separate backend.
-- Prefer Server Components. Use Client Components only for interaction or browser APIs; keep providers narrowly scoped. Server reads call server modules directly, not our own HTTP endpoints.
-- Place server-only access in `src/lib/server` with `server-only` imports. Explicitly allowlist public configuration. Never serialize process.env, credentials, or private configuration to the browser.
-- Local operation must remain possible without cloud credentials. Live provider activation and deployment require separate session authorization.
-- Project identity, modules, locales and examples come from `project.config.json`; preserve existing namespaces and accepted Run/accounting records. Read [reusable service contracts](docs/services.md) before changing ownership, quotas, domain adapters, limits or notification transactions.
-- Keep public translated UI in typed catalogs with page-scoped client dictionaries and logical RTL styles. Administration is English-only: keep admin copy in source, outside locale catalogs, and preserve the user's public language preference when entering/leaving admin. Preserve document CSP nonces during client navigation.
-- Reuse shadcn components through the CLI. Compose application UI from those primitives; do not create alternative buttons, dialogs, menus, or form controls when shadcn provides them.
-- Use semantic CSS variables for themes. Verify desktop/mobile navigation, keyboard focus, and hydration after UI changes.
-
-## Work and verification
-
-- Optional-provider activation must use allowlisted credential exports, not copy a
-  local environment file. Verify source-app identity and provider response provenance;
-  a non-JSON edge error alone does not prove a key is invalid. Keep public bindings
-  tracked, private values protected, and first encryption installation separate from
-  migration of existing ciphertext. Report operator update and live acceptance status.
-
-- For new deployments follow [guided initialization](docs/deployment.md#guided-setup-helper)
-  and Infrastructure's named credential inventory. Request secure Credentials channel
-  exports outside Git and collect missing references once. Never print values or copy
-  parent-specific database/web/host bindings. Public settings use tracked JSON, not
-  Actions variables. Preserve generated keys and uncertain-operation markers; inspect
-  before retrying. Report implementation, publication, operator installation, release
-  and live acceptance separately; a successful workflow is not AI acceptance.
-- Every publication PR follows [operator intervention reporting](docs/deployment.md#publication-and-operator-intervention):
-  state none or list owner, location, ordering, verification and failure/resume. Do not
-  ask operators to repeat a completed installation for a documentation-only merge.
-
-- Before giving operator commands, resolve non-secret values from repository configuration,
-  canonical inventory, owner repositories and verified session evidence. Provide complete,
-  copy-pasteable commands for the stated shell/location rather than placeholders for known
-  hosts, users or paths. Cite the source; distinguish configured values from live verification.
-  Ask only for consequential missing inputs, grouped together. Never infer credentials,
-  transport authorization, host fingerprints or network allocations from a hostname alone.
-- Shared host operator access follows the [Infrastructure operations guide](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md).
-  Refer to the owner's securely distributed admin key as `srv1-ops-admin`. Windows
-  recipients save it as `$env:USERPROFILE\.ssh\uniwares-ops-admin` and use the
-  operations guide's connection command. Never request private-key contents
-  in chat or Git, and keep admin credentials separate from routine deployment keys.
-- Keep changes small and preserve unrelated work. The accepted plan is sufficient authority for milestone implementation; no new issue is required.
-- Use the installed Next.js documentation and current official guidance to resolve version-specific behavior. Imported skills are guidance, not a substitute for verified API behavior.
-- Run affected checks and report real outcomes. `npm run validate` collects advisory checks; `npm run build` must still fail for compilation/bundling failures. Do not turn lint, type, test, or audit warnings into deployment gates.
-- Add meaningful tests for behavior and boundaries; avoid tests that merely repeat source code. Do not use production services in tests.
-- Keep setup in README.md, current architecture in docs/architecture.md, and milestone state in docs/implementation-plan.md. Record reusable verified lessons only when useful.
-- Use a separate read-only review pass. Report actual defects and stale evidence; optional style preferences and advisory check failures are not release gates.
-- Do not commit, publish, comment on issues, deploy, or release solely because an imported skill allows it. Follow explicit session authorization. Do not copy source-project identities, approval rules, provider resources, or machine settings.
-
-## Available project skills
-
-Twelve local entrypoints follow Handbook main: eight workflow skills and four selected
-technology/UI skills. Local integrity is recorded in skills-lock.json; historical import
-provenance is retained in provenance/handbook-migration.json:
-
-- next-best-practices and vercel-react-best-practices: Next.js boundaries and React implementation.
-- web-design-guidelines and playwright: UI review and real-browser verification.
-- work-on-task and review-change: proportional implementation and read-only review.
-- compile-feature-spec: bounded specifications for unclear feature work.
-- sync-docs-issues and capture-project-learnings: keep verified documentation current.
-- manage-issues: maintain assigned issue/project evidence within the shared authority policy.
-- maintain-project: reconcile local guidance, source maps and explicit integration updates.
-- maintain-docs: manage documentation and permissive starter templates in `.github` and `docs/templates`.
-
-Read only the skills relevant to the work. System-provided skills remain system-owned. See docs/agent-tooling.md for import provenance, local adaptations, and integrity checks.
+Start new artifacts from the permissive templates in `.github` and `docs/templates`,
+falling back to shared starters. After skill metadata or routing changes, run
+`npm run handbook:sync` and `npm run handbook:entrypoints`; preserve custom
+content and refresh integrity hashes only after review. Normal refresh never
+rewrites instructions. Follow [integration maintenance](docs/agent-tooling.md#explicit-integration-updates).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
