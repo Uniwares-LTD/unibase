@@ -638,9 +638,9 @@ Public settings live in `deploy/environments/local.json`, `staging.json` and
 repository secrets, public GHCR and its own workflows. The legacy **Provision
 environment** workflow refuses staging and requires production compatibility work
 before activation; Google OIDC/private-pull instructions describe that legacy path.
-Shared tunnel/Dify ownership remains with agentic-poc. The optional
-[owner integration](deploy/shared-owner/README.md) is a generic reference, not a
-first-staging prerequisite or a transfer of ownership.
+Shared tunnel and Dify ownership stay with Infrastructure; register each derived
+app's repository, slug, environment, hostname and port there in a reviewed owner
+change.
 
 ### Deployment commands
 
