@@ -1,8 +1,10 @@
-import { project, moduleEnabled } from "@/lib/project";
+import { project, moduleEnabled, moduleIds } from "@/lib/project";
 import "server-only";
 import { z } from "zod";
 import { demoScenarioTools } from "./demo-scenarios";
 import { privateTools } from "./private-tools";
+import { serverExtensions } from "../../../project/server";
+import { extensionTools, validateServerExtensions } from "../extensions";
 
 export const catalogVersion = "1.3.0";
 export type ToolContext = {
@@ -87,10 +89,19 @@ const registeredTools: readonly RegisteredTool[] = [
   ...privateTools,
 ];
 
-export const tools = registeredTools.filter(
-  (tool) =>
-    (project.examples ||
-      !["reference:read", "demo:read"].includes(tool.permission)) &&
-    (!tool.permission.startsWith("artifact:") || moduleEnabled("artifacts")) &&
-    (!tool.permission.startsWith("run:") || moduleEnabled("runs")),
+validateServerExtensions(
+  registeredTools.map((tool) => tool.name),
+  serverExtensions,
+  moduleIds,
 );
+export const tools = [
+  ...registeredTools.filter(
+    (tool) =>
+      (project.examples ||
+        !["reference:read", "demo:read"].includes(tool.permission)) &&
+      (!tool.permission.startsWith("artifact:") ||
+        moduleEnabled("artifacts")) &&
+      (!tool.permission.startsWith("run:") || moduleEnabled("runs")),
+  ),
+  ...extensionTools(serverExtensions, moduleEnabled),
+];

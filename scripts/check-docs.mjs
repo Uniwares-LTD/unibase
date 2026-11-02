@@ -6,6 +6,7 @@ const files = [
   "README.md",
   "AGENTS.md",
   "CLAUDE.md",
+  "CHANGELOG.md",
   ...["docs", ".agents", ".claude", "dify", "src/lib/server/runs/templates"].flatMap(
     (dir) =>
       fs

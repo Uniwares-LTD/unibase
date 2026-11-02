@@ -66,7 +66,8 @@ unsafe-eval. See [deployment](deployment.md) and [MCP](mcp.md) for operational s
 
 ## Domain extensions and migration
 
-Register trusted adapters in `src/lib/server/domains.ts`, with a stable ID/version,
+Register trusted adapters through `src/project/server.ts` (core adapters live in
+`src/lib/server/domains.ts`), with a stable ID/version,
 reference kind, ownership validation, target-picker metadata and transactional
 result application. Register orchestrators against allowlisted adapters. Browser
 and provider output cannot select handlers or owners. Preserve registered versions

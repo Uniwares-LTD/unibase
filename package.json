@@ -45,6 +45,7 @@
     "project:create": "node --import tsx scripts/create-project.ts",
     "test:initializer": "node --import tsx --test tests/initializer.test.ts",
     "test:initialized-projects": "node --import tsx scripts/test-initialized-projects.ts",
+    "check:template": "node scripts/template-version.mjs",
     "check:docs": "node scripts/check-docs.mjs && node scripts/environment-docs.mjs --check",
     "provision:preview": "python scripts/deploy/provision.py",
     "handbook:setup": "node scripts/handbook.mjs setup",

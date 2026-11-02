@@ -90,7 +90,8 @@ credentials, caches, browser state, databases or the generated Android wrapper.
    Use `--mode examples` only with an examples manifest. `--source` optionally
    selects another local Git checkout. The revision must contain this initializer
    contract; uncommitted working-tree edits are never copied. `project.source.json`
-   records the source commit for later upstream comparisons. Use
+   records the source commit and template version for later upstream comparisons;
+   [CHANGELOG.md](CHANGELOG.md) lists each template release and its upgrade notes. Use
    `--infrastructure-profile PATH` only to explicitly select shared public
    connections; derived projects otherwise clear source installation connections.
 

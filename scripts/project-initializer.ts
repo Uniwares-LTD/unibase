@@ -15,6 +15,7 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 import { projectSchema, moduleIds } from "../src/lib/project";
+import { validTemplateVersion } from "./template-version.mjs";
 
 type Options = {
   source: string;
@@ -145,6 +146,10 @@ export async function createProject(options: Options) {
       throw new Error(
         "The reviewed revision does not contain the reusable-project contract.",
       );
+  if (!names.has("template.json"))
+    throw new Error(
+      "The reviewed revision predates template versioning; select a revision with template.json.",
+    );
   const blobs = git(
     source,
     ["cat-file", "--batch"],
@@ -419,9 +424,13 @@ export async function createProject(options: Options) {
         .replaceAll(`namespace=${old.slug}`, `namespace=${manifest.slug}`),
     );
   }
+  const template = await readJson("template.json");
+  if (!validTemplateVersion(template.version))
+    throw new Error("The reviewed revision has no valid template version.");
   await json("project.source.json", {
     version: 1,
     revision,
+    templateVersion: template.version,
     mode: options.mode,
   });
   await mkdir(path.join(staging, "docs"), { recursive: true });

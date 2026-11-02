@@ -59,6 +59,31 @@ The Next.js instrumentation hook checks application, database, authentication an
 
 ## Extension conventions
 
+### Project extensions
+
+Project features and samples register through two project-owned lists instead of
+editing core files. [src/project/extensions.ts](../src/project/extensions.ts) is
+client-safe data: a module descriptor (routes, collections, workers, configuration
+and dependencies), sidebar/account links and English administration sections.
+[src/project/server.ts](../src/project/server.ts) is server-only: MCP tools, domain
+adapters and idempotent index setup for an extension module. The contracts live in
+`src/lib/extensions.ts` and `src/lib/server/extensions.ts`.
+
+Core composes these after its own entries: module IDs and descriptors (so the
+manifest, `moduleForPath`, workers, configuration checks and diagnostics include
+them), navigation, administration sections, the MCP catalog, the domain registry
+and `db:indexes`. Registration is validated when the registry loads: IDs,
+collections and admin links must be unique, dependencies must be core or listed
+earlier, module routes must not overlap core or other extension routes, links stay
+inside their module's routes, and MCP tool names are unique. A module is enabled
+only when its dependencies are. A server extension may attach to a core module ID.
+The domain registry composes on first use, so extension code may import Runs or
+domain services; import only types from `src/lib/server/mcp/tools.ts`. Contributions follow `moduleEnabled`; adapters of a
+disabled module stay registered for accepted attempts but reject new targets.
+Routes still live under `src/app` and must call `requireModule`. Link labels use
+`ui` catalog keys through a literal `t("m…")` call so client key inventories
+find them.
+
 ### MCP tools
 
 `/api/mcp` is an opt-in Node Route Handler using the official MCP SDK's stateless
@@ -701,7 +726,10 @@ financial and Run history is preserved independently of new admission visibility
 The initializer reads an immutable reviewed Git tree into a new empty directory.
 It rejects symlinks/submodules, case-colliding paths, unsafe destinations and missing
 source contracts; excludes environment overrides, credentials, generated Android,
-caches/browser/database state and Git history; and records the source revision.
+caches/browser/database state and Git history; and records the source revision
+and the `template.json` version. Revisions without `template.json` predate template
+versioning and are rejected. [CHANGELOG.md](../CHANGELOG.md) defines release
+semantics and upgrade notes; `npm run check:template` reports drift.
 Package identity, local connections and deployment examples derive from the manifest.
 Application mode enables reusable modules with providers inactive and examples
 hidden. Example mode must be explicitly selected. Local fixture verification uses

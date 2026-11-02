@@ -18,6 +18,7 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
       packages: { "": { name: "unibase" } },
     }),
     "project.config.json": JSON.stringify(project),
+    "template.json": '{"version":"2.4.1","changelog":"CHANGELOG.md"}',
     ".env.example":
       "APP_NAME=Base\nFIREBASE_PROJECT_ID=demo-unibase\nMONGODB_DATABASE=unibase_local\n# PAYMENTS_MODE=disabled\n",
     "deploy/config.example.json": JSON.stringify({
@@ -242,12 +243,11 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     ).packages[""].name,
     "fixture-alpha",
   );
-  assert.equal(
-    JSON.parse(
-      await readFile(path.join(destination, "project.source.json"), "utf8"),
-    ).revision,
-    revision,
+  const sourceRecord = JSON.parse(
+    await readFile(path.join(destination, "project.source.json"), "utf8"),
   );
+  assert.equal(sourceRecord.revision, revision);
+  assert.equal(sourceRecord.templateVersion, "2.4.1");
   const second = path.join(root, "beta");
   await createProject({
     source,
@@ -317,6 +317,31 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
         mode: "application",
       }),
     );
+  // Revisions before template versioning, or with an invalid version, are refused.
+  for (const [content, message] of [
+    [null, /predates template versioning/],
+    ['{"version":"01.0.0"}', /no valid template version/],
+  ] as const) {
+    if (content === null) git(["rm", "-q", "--cached", "template.json"]);
+    else {
+      await writeFile(path.join(source, "template.json"), content);
+      git(["add", "-f", "template.json"]);
+    }
+    const unversioned = git(
+      ["commit-tree", git(["write-tree"])],
+      "Unversioned test source\n",
+    );
+    await assert.rejects(
+      createProject({
+        source,
+        revision: unversioned,
+        destination: path.join(root, "unversioned"),
+        manifest,
+        mode: "application",
+      }),
+      message,
+    );
+  }
   await assert.rejects(
     createProject({
       source,

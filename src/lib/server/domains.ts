@@ -3,6 +3,9 @@ import type { ClientSession, Db } from "mongodb";
 import type { OrchestratorDefinition } from "../contracts/runs";
 import type { AiJob } from "./ai/jobs";
 import { AppError } from "../auth-policy";
+import { moduleEnabled, moduleIds } from "../project";
+import { validateServerExtensions } from "./extensions";
+import { serverExtensions } from "../../project/server";
 
 export type OwnedTarget = {
   adapter: string;
@@ -100,7 +103,39 @@ const artifact: DomainAdapter = {
     );
   },
 };
-export const domains = domainRegistry([artifact]);
+// Adapters of disabled extension modules stay registered so accepted attempts
+// still resolve; resolveTarget rejects new selections for them. Composition is
+// deferred to first use so extension code may import this module without a
+// load-time cycle through src/project/server.ts.
+let composed:
+  | {
+      registry: ReturnType<typeof domainRegistry>;
+      modules: Map<string, string>;
+    }
+  | undefined;
+function composition() {
+  if (!composed) validateServerExtensions([], serverExtensions, moduleIds);
+  composed ??= {
+    registry: domainRegistry([
+      artifact,
+      ...serverExtensions.flatMap(
+        (extension) => extension.domainAdapters ?? [],
+      ),
+    ]),
+    modules: new Map(
+      serverExtensions.flatMap((extension) =>
+        (extension.domainAdapters ?? []).map((adapter) => [
+          `${adapter.id}@${adapter.version}`,
+          extension.module,
+        ]),
+      ),
+    ),
+  };
+  return composed;
+}
+export const domains = {
+  get: (id: string, version: string) => composition().registry.get(id, version),
+};
 export function jobTarget(job: AiJob): OwnedTarget | undefined {
   return (
     job.run?.target ??
@@ -140,6 +175,13 @@ export function resolveTarget(
   }
   const choice = definition.domainAdapter ?? { id: "artifact", version: "1" };
   const adapter = domains.get(choice.id, choice.version);
+  const owner = composition().modules.get(`${adapter.id}@${adapter.version}`);
+  if (owner && !moduleEnabled(owner as Parameters<typeof moduleEnabled>[0]))
+    throw new AppError(
+      "DOMAIN_UNAVAILABLE",
+      "This target integration is unavailable.",
+      409,
+    );
   if (adapter.kind !== selected.kind)
     throw new AppError(
       "INVALID_INPUT",

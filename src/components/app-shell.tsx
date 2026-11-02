@@ -1,7 +1,8 @@
 "use client";
 import { useTranslations, useLocale } from "next-intl";
 
-import { moduleEnabled, moduleForPath } from "@/lib/project";
+import { moduleEnabled, moduleForPath, projectExtensions } from "@/lib/project";
+import { extensionLinks } from "@/lib/extensions";
 import {
   Bell,
   BookOpen,
@@ -41,6 +42,7 @@ function useRoutes(signedIn: boolean) {
     { href: "/runs", label: translate("m848f54e89660"), Icon: ListChecks },
     { href: "/files", label: translate("mabc7e9892806"), Icon: Folder },
     { href: "/artifacts", label: translate("m068c9472b061"), Icon: Bookmark },
+    ...extensionLinks(projectExtensions, "main", translate),
   ].filter((route) => {
     const id = moduleForPath(route.href);
     return !id || moduleEnabled(id);
@@ -63,6 +65,7 @@ export function useAccountRoutes() {
       label: translate("m66962f72a088"),
       Icon: Settings2,
     },
+    ...extensionLinks(projectExtensions, "account", translate),
   ].filter((route) => {
     const id = moduleForPath(route.href);
     return !id || moduleEnabled(id);
