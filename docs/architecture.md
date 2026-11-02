@@ -372,6 +372,19 @@ Images contain bounded validated bytes and UUID references that the server remap
 to owned asset IDs. Model-selected URLs are never fetched. Image normalization,
 Mongo/private S3 storage and exact-object deletion remain server-only.
 
+Each normalized PNG also gets WebP display variants stored inline with the asset:
+`thumb` (400 px) and `preview` (1280 px), never enlarged and omitted when not
+smaller than the original. `/api/run-assets/<id>?size=thumb|preview|original`
+checks session and ownership once per request, reads variants without loading
+the original payload, and verifies digests before sending. Assets saved earlier
+get variants on first request or through the `runs:0002-asset-variants`
+migration; unprocessable images keep serving the original, and lazy generation
+runs at most two at a time per process. Deleting a saved asset removes its
+variants with its payload. Responses are `private, max-age=300` with the digest
+as ETag: repeat views within five minutes stay local, later views revalidate
+with a session and ownership check that reads only digests and answers `304`.
+Lists use thumbnails, Run results use previews that open the original.
+
 `/admin/settings` stores typed `baseSettings`, revisions and audited updates.
 Environment values seed once; public pages use bootstrap appearance until
 initialization. Database-dependent actions fail when settings cannot be read.

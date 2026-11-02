@@ -12,6 +12,11 @@ import { aiJobs, fingerprint, type AiJob } from "../ai/jobs";
 import type { ProviderExecution } from "../ai/types";
 import { providerImages, downloadProviderImage } from "./provider-images";
 import { renewProviderImage } from "./image-renewal";
+import {
+  buildAssetVariants,
+  type AssetSize,
+  type AssetVariants,
+} from "./asset-variants";
 
 export type RunAsset = {
   _id: string;
@@ -24,6 +29,9 @@ export type RunAsset = {
   digest: string;
   base64?: string;
   object?: ObjectReference;
+  // Present once display variants were generated; a missing size means the
+  // original is already as small as that variant would be.
+  variants?: AssetVariants;
   status: "staged" | "ready";
   createdAt: Date;
 };
@@ -111,6 +119,8 @@ export async function prepareResult(
       mime: normalized.mime,
       bytes: normalized.bytes.length,
       digest,
+      // A variant failure never fails the result; the original is served.
+      variants: await buildAssetVariants(normalized.bytes).catch(() => ({})),
       status: "staged",
       createdAt: new Date(),
     };
@@ -226,18 +236,30 @@ export async function attachResult(db: Db, job: AiJob, session: ClientSession) {
   )
     await queueResultApplication(db, job, session);
 }
-export async function readRunAsset(db: Db, uid: string, id: string) {
-  const asset =
-    (await db
-      .collection<RunAsset>("runAssets")
-      .findOne({ _id: id, uid, status: "ready" })) ??
-    (await db.collection<RunAsset>("productAssets").findOne({
-      _id: id,
-      uid,
-      state: "ready",
-      "references.0": { $exists: true },
-    }));
-  if (!asset) throw new AppError("ASSET_NOT_FOUND", "Image unavailable.", 404);
+// Owned, ready assets: Run results first, then saved product copies.
+const assetSources = [
+  { collection: "runAssets", filter: { status: "ready" } },
+  {
+    collection: "productAssets",
+    filter: { state: "ready", "references.0": { $exists: true } },
+  },
+] as const;
+async function findRunAsset(
+  db: Db,
+  uid: string,
+  id: string,
+  projection?: Document,
+) {
+  for (const source of assetSources) {
+    const asset = await db
+      .collection<RunAsset>(source.collection)
+      .findOne({ _id: id, uid, ...source.filter }, { projection });
+    if (asset) return { asset, collection: source.collection };
+  }
+  throw new AppError("ASSET_NOT_FOUND", "Image unavailable.", 404);
+}
+// The verified original bytes of an asset document that includes its payload.
+export async function readOriginalAsset(asset: RunAsset) {
   let bytes: Buffer;
   if (asset.base64) bytes = Buffer.from(asset.base64, "base64");
   else {
@@ -255,5 +277,98 @@ export async function readRunAsset(db: Db, uid: string, id: string) {
     createHash("sha256").update(bytes).digest("hex") !== asset.digest
   )
     throw new AppError("ASSET_UNAVAILABLE", "Image unavailable.", 503);
-  return { asset, bytes };
+  return bytes;
+}
+// Lazy generation decodes full images; keep it bounded per process.
+let generating = 0;
+const waiting: (() => void)[] = [];
+async function limited<T>(work: () => Promise<T>) {
+  // A released slot passes directly to the oldest waiter, so a new caller
+  // cannot take it in between and exceed the limit.
+  if (generating >= 2)
+    await new Promise<void>((resolve) => waiting.push(resolve));
+  else generating++;
+  try {
+    return await work();
+  } finally {
+    const next = waiting.shift();
+    if (next) next();
+    else generating--;
+  }
+}
+// Generates and stores missing variants once. A processing failure is
+// recorded as no variants, so the original is served without retrying.
+export async function ensureAssetVariants(
+  db: Db,
+  collection: (typeof assetSources)[number]["collection"],
+  asset: RunAsset,
+) {
+  if (asset.variants) return asset.variants;
+  const original = await readOriginalAsset(asset);
+  const variants = await limited(() => buildAssetVariants(original)).catch(
+    (): AssetVariants => ({}),
+  );
+  // Only a still-ready, still-owned asset receives variants, so generation
+  // racing a deletion never writes image data back onto a removed record.
+  const source = assetSources.find((entry) => entry.collection === collection)!;
+  await db.collection<RunAsset>(collection).updateOne(
+    {
+      _id: asset._id,
+      uid: asset.uid,
+      ...source.filter,
+      variants: { $exists: false },
+    },
+    { $set: { variants } },
+  );
+  return variants;
+}
+export async function runAssetDigest(
+  db: Db,
+  uid: string,
+  id: string,
+  size: AssetSize | "original",
+) {
+  const { asset } = await findRunAsset(db, uid, id, {
+    base64: 0,
+    "variants.thumb.base64": 0,
+    "variants.preview.base64": 0,
+  });
+  if (size === "original") return asset.digest;
+  if (!asset.variants) return undefined;
+  return asset.variants[size]?.digest ?? asset.digest;
+}
+export async function readRunAsset(
+  db: Db,
+  uid: string,
+  id: string,
+  size: AssetSize | "original" = "original",
+) {
+  if (size !== "original") {
+    // Variant reads never load the large original payload.
+    const other = size === "thumb" ? "preview" : "thumb";
+    const found = await findRunAsset(db, uid, id, {
+      base64: 0,
+      [`variants.${other}`]: 0,
+    });
+    let variants = found.asset.variants;
+    if (!variants) {
+      const { asset } = await findRunAsset(db, uid, id);
+      variants = await ensureAssetVariants(db, found.collection, asset);
+    }
+    const variant = variants?.[size];
+    if (variant) {
+      const bytes = Buffer.from(variant.base64, "base64");
+      if (
+        bytes.length === variant.bytes &&
+        createHash("sha256").update(bytes).digest("hex") === variant.digest
+      )
+        return { bytes, mime: variant.mime, digest: variant.digest };
+    }
+  }
+  const { asset } = await findRunAsset(db, uid, id, { variants: 0 });
+  return {
+    bytes: await readOriginalAsset(asset),
+    mime: asset.mime,
+    digest: asset.digest,
+  };
 }

@@ -35,16 +35,21 @@ export function json(data: unknown, status = 200) {
     },
   });
 }
+type Session = Awaited<
+  ReturnType<typeof import("./session").requireSession>
+>;
+// Request endpoints pass their verified session to the action, so handlers
+// need not verify the session cookie a second time.
 export async function endpoint(
   request: Request,
-  action: () => Promise<Response>,
+  action: (actor: Session) => Promise<Response>,
 ): Promise<Response>;
 export async function endpoint(
   action: () => Promise<Response>,
 ): Promise<Response>;
 export async function endpoint(
   requestOrAction: Request | (() => Promise<Response>),
-  suppliedAction?: () => Promise<Response>,
+  suppliedAction?: (actor: Session) => Promise<Response>,
 ) {
   const request =
     typeof requestOrAction === "function" ? undefined : requestOrAction;
@@ -53,15 +58,18 @@ export async function endpoint(
 
   const requestId = randomUUID();
   const started = performance.now();
+  let actor: Session | undefined;
   try {
     if (request) {
       const id = moduleForPath(new URL(request.url).pathname);
       if (id) requireModule(id);
       if (request.method !== "GET") await checkMutation(request);
-      const actor = await (await import("./session")).requireSession(false);
+      actor = await (await import("./session")).requireSession(false);
       await limitRequest("account:" + actor.uid, requestPolicy(request));
     }
-    const response = await action();
+    const response = await (action as (actor?: Session) => Promise<Response>)(
+      actor,
+    );
     response.headers.set("X-Request-ID", requestId);
     logOperation("request", started, response.status, requestId);
     return response;
