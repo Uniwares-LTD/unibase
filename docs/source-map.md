@@ -24,6 +24,7 @@
 - [Scripts](../scripts) own local checks, initialization and operator commands.
 - [Template version](../template.json) and the [changelog](../CHANGELOG.md) own template
   release identity and upgrade notes; [the check](../scripts/template-version.mjs) validates them.
+  [The update command](../scripts/template-update.mjs) merges template releases into derived projects.
 - [Deployment](../deploy) owns application configuration/templates; [MCP](mcp.md) and
   [Dify integration](../dify) describe application transport and workflow contracts.
   The [host projection](../scripts/deploy/release_settings.py) separates image-owned

@@ -31,6 +31,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 - Removable samples: `samples.json`, `npm run samples`, `check:samples` and
   `samples:remove`. The notes sample is the reference project extension.
 - Extension links name a Lucide icon (`icon`) instead of a component (`Icon`).
+- History-preserving initializer: derived projects share template history with
+  one initialization commit and an `upstream` remote; revisions whose history
+  touched private paths are refused. `npm run template:update -- <version>`
+  merges a release and prints its upgrade notes.
 
 ### Upgrade notes
 

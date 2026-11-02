@@ -72,9 +72,12 @@ Their maintainers review the inherited guidance and perform this setup separatel
 
 ## Start a derived project
 
-Use the initializer from a reviewed source revision. It creates a separate empty
-project directory; it never copies Git history, local environment overrides,
-credentials, caches, browser state, databases or the generated Android wrapper.
+Use the initializer from a reviewed source revision. It creates a new Git
+repository that shares the template's history: one initialization commit on top of
+the reviewed revision and an `upstream` remote for later template releases. It
+never copies local environment overrides, caches, browser state, databases or the
+generated Android wrapper. Because history is shared, it refuses a revision whose
+history ever contained private material such as `.env` files or credentials.
 
 1. Copy `project.config.json` to a reviewable manifest outside the destination.
    Set a unique `slug`, `displayName`, locales/default locale and style. Keep all
@@ -103,15 +106,35 @@ credentials, caches, browser state, databases or the generated Android wrapper.
 4. Application mode starts with providers inactive and examples hidden. Examples
    mode explicitly selects local fake Runs and simulated payments; it never
    activates live credentials. Configure owned staging providers separately.
-5. Review the samples with `npm.cmd run samples` and remove unwanted ones with
+5. Set your own `origin` (`git remote add origin <your repository URL>`) before
+   pushing. Pass `--upstream <template repository URL>` to the initializer when the
+   source checkout's `origin` is not the URL later updates should fetch from.
+6. Review the samples with `npm.cmd run samples` and remove unwanted ones with
    `npm.cmd run samples:remove -- <name>` ([samples guide](src/samples/README.md)).
    Replace product copy, icons and colors; regenerate icons with
    `npm.cmd run icons:generate`. Review generated deployment placeholders, ports,
    and private subnets for the target host. Initializer subnets/ports are suggested
    isolated defaults, not a host inventory or a collision-proof allocator.
-6. Run `npm.cmd run validate`, inspect advisory results, then `npm.cmd run build`
-   and affected HTTP/browser suites. Initialize the new repository and publish only
-   when explicitly authorized. Preserve source licenses and skill provenance.
+7. Run `npm.cmd run validate`, inspect advisory results, then `npm.cmd run build`
+   and affected HTTP/browser suites. Publish the new repository only when
+   explicitly authorized. Preserve source licenses and skill provenance.
+
+### Receive template updates
+
+In a derived project with a clean working tree, run
+`npm.cmd run template:update -- 1.2.0` (a version, or any upstream ref). It
+fetches `upstream`, merges the `template-v1.2.0` tag with a merge commit and prints
+the upgrade notes since the recorded version. Files the project deleted stay
+deleted (listed as "kept deleted"; a template fix to such a file, including a
+security fix, is not applied, so review the list), and removed samples stay
+removed. `project.source.json` records the release before any manual step. Other conflicts stop with the merge open:
+resolve them, `git add`, `git commit`. Then apply the upgrade notes and run
+`npm.cmd ci`, `npm.cmd run validate` and `npm.cmd run build`.
+
+To release the template, move the `Unreleased` changelog entries under a new
+version heading with upgrade notes, set that version in `template.json`, merge, and
+tag the merge commit `template-v<version>`. Pushing tags needs the same
+authorization as other publication.
 
 | Identity                                                                                       | Canonical source                                                                                                                                             |
 | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |

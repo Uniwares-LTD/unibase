@@ -89,4 +89,34 @@ integrated diff against `b32ff2b`.
   removed in a full copy, typecheck, unit tests, check:docs and production build
   pass. Reviews found side-effect import scanning, removal preflight, unverified
   sessions, delete labels and limit messaging; fixed. Not yet browser-verified.
-- Next: checkpoint 5.
+- Checkpoint 5 plan (2026-11-02). Runs files stay in place; `samples.json`
+  lists their paths. Nineteen core files import Runs code; implicit couplings
+  are the `runs`/`artifacts` core descriptors, shell links, admin sections, the
+  `runs` settings section, run notification templates and the AI worker.
+  Deployment stays unchanged: `scripts/ai-worker.ts` becomes a core host for
+  extension worker cycles and idles with heartbeats when none are registered.
+  - 5a Extension slots, no behavior change: worker cycles and heartbeat
+    details, payment-maintenance cycles, settings sections (stored sections of
+    removed extensions are ignored on read and preserved on write), notification
+    templates and categories, diagnostics capabilities, file-reference, cleanup
+    and operations hooks, configuration checks, admin settings/operations panels.
+  - 5b Register Runs, Dify, personas and artifacts through
+    `src/samples/runs/{extension,server}.ts`; remove the core descriptors and
+    direct imports. Persisted IDs, collections and handler versions unchanged.
+  - 5c `samples.json` entries, `check:samples`, removal verification (build,
+    core tests, historical credit and notification reads), docs.
+- Checkpoint 5 deferred by the user (2026-11-02) after the scope review above:
+  the diagnostics API contract, stored settings, both workers and notifications
+  make it larger than one checkpoint. Checkpoint 6 runs first; the 5a-5c plan
+  stays as the resume point.
+- Checkpoint 6 complete (2026-11-02): history-preserving initializer (one
+  initialization commit, `upstream` remote, private-history refusal, shallow
+  refusal, credential-free upstream URLs) and `template:update` (release tags,
+  kept deletions, removed-sample conflict resolution and reapplication, release
+  recorded before manual resolution, upgrade notes). Decision: initializer text
+  rewrites stay and are documented as expected conflict points. Reviews found
+  conflict-path recording, ref order, worktrees, sample merges, URL and `.npmrc`
+  checks; fixed. `test:initialized-projects` installs and builds two projects.
+- Human gate: tagging and pushing the first release (`template-v1.0.0` after
+  moving Unreleased entries) needs publication authorization.
+- Next: checkpoint 5 (deferred) when the user resumes it.

@@ -9,9 +9,9 @@ import {
   readdir,
   realpath,
   rename,
+  rm,
   rmdir,
   writeFile,
-  chmod,
 } from "node:fs/promises";
 import path from "node:path";
 import { projectSchema, moduleIds } from "../src/lib/project";
@@ -24,17 +24,91 @@ type Options = {
   manifest: unknown;
   mode: "application" | "examples";
   infrastructureProfile?: unknown;
+  // Remote URL for template updates; defaults to the source's origin.
+  upstream?: string;
 };
+// Generated, local or source-owned files: deleted in the initialization commit.
 const excluded =
-  /^(?:\.git(?:\/|$)|node_modules\/|\.next\/|\.cache\/|\.codex\/|\.aws\/|\.firebase\/|\.setup\/|output\/|dist\/|coverage\/|test-results\/|playwright-report\/|\.playwright-cli\/|android\/project\/|deploy\/config\.json$|\.env(?!\.example$)|.*(?:\/|^)(?:credentials|service-account)[^/]*\.json$)|\.(?:pem|key|keystore|jks|aab|apk|tsbuildinfo|log)$/i;
-function git(source: string, args: string[], input?: string) {
+  /^(?:\.git(?:\/|$)|node_modules\/|\.next\/|\.cache\/|\.codex\/|\.firebase\/|\.setup\/|output\/|dist\/|coverage\/|test-results\/|playwright-report\/|\.playwright-cli\/|android\/project\/|deploy\/config\.json$|\.agents\/(?:tracking\.json|repository\.md)$|deploy\/shared-owner\/.*\.patch$)|(?:^|\/)(?:\.vscode|\.idea)(?:\/|$)|(?:^|\/)\.npmrc$|\.(?:aab|apk|tsbuildinfo|log)$/i;
+// Private material. Derived projects share the template's history, so a
+// revision whose history ever contained such a path is refused, not filtered.
+const privatePath =
+  /(?:^|\/)(?:\.env(?!\.example$)[^/]*|\.aws|secrets?|credentials?)(?:\/|$)|(?:service[-_]?account|credentials?)[^/]*\.json$|\.(?:pem|key|keystore|jks)$/i;
+// Scans every path any commit touched; object listings deduplicate identical
+// content under one name and would miss a private file that matches another.
+function privateHistory(source: string, revision: string) {
+  const names = new Set(
+    git(source, [
+      "log",
+      "--format=",
+      "--name-only",
+      "--no-renames",
+      "-m",
+      "-z",
+      revision,
+    ])
+      .toString()
+      .split(/[\0\n]/)
+      .filter(Boolean),
+  );
+  for (const name of names) {
+    if (privatePath.test(name)) return name;
+    if (!/(?:^|\/)\.npmrc$/i.test(name)) continue;
+    for (const commit of git(source, ["rev-list", revision, "--", name])
+      .toString()
+      .split("\n")
+      .filter(Boolean)) {
+      const blob = spawnSync(
+        "git",
+        ["-C", source, "show", `${commit}:${name}`],
+        {
+          encoding: "utf8",
+          windowsHide: true,
+        },
+      );
+      // Literal auth values are private; ${ENV} references are not.
+      if (
+        blob.status === 0 &&
+        /(?:_auth(?:Token)?|_password|password)\s*=\s*(?!\$\{)\S/i.test(
+          blob.stdout,
+        )
+      )
+        return name;
+    }
+  }
+  return undefined;
+}
+// Credentials embedded in a remote URL are never copied to the new repository.
+function upstreamUrl(source: string, supplied?: string) {
+  let url = supplied;
+  if (!url) {
+    const origin = spawnSync(
+      "git",
+      ["-C", source, "remote", "get-url", "origin"],
+      {
+        encoding: "utf8",
+        windowsHide: true,
+      },
+    );
+    url = origin.status === 0 ? origin.stdout.trim() : source;
+  }
+  // A password in any scheme, or any user info in HTTP(S), is a credential;
+  // ssh://git@host and scp-style git@host:org/repo name only an account.
+  if (
+    /^[a-z][a-z0-9+.-]*:\/\/[^/@]*:[^/@]*@/i.test(url) ||
+    /^https?:\/\/[^/]*@/i.test(url)
+  )
+    throw new Error("The upstream URL must not contain credentials.");
+  return url;
+}
+function git(source: string, args: string[], input?: string | Buffer) {
   const result = spawnSync("git", ["-C", source, ...args], {
     input,
     maxBuffer: 128 * 1024 * 1024,
     windowsHide: true,
   });
   if (result.status !== 0)
-    throw new Error("The reviewed Git source could not be read.");
+    throw new Error(`Git ${args[0]} failed during project initialization.`);
   return result.stdout;
 }
 function inside(parent: string, child: string) {
@@ -112,23 +186,23 @@ export async function createProject(options: Options) {
         name.startsWith("/")
       )
         throw new Error("Unsafe source path.");
-      if (
-        excluded.test(name) ||
-        [".agents/tracking.json", ".agents/repository.md"].includes(name) ||
-        /^deploy\/shared-owner\/.*\.patch$/.test(name) ||
-        /(^|\/)(?:\.env(?!\.example$)[^/]*|\.npmrc|\.vscode|\.idea|secrets?|credentials?)(?:\/|$)|\.env$|(?:service[-_]?account|credentials?)[^/]*\.json$/i.test(
-          name,
-        )
-      )
-        return null;
       if (type !== "blob" || !["100644", "100755"].includes(mode))
         throw new Error("Source symlinks and submodules are not supported.");
-      return { mode, object, name };
-    })
-    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
-  const names = new Set(entries.map((entry) => entry.name.toLowerCase()));
-  if (names.size !== entries.length)
+      return { mode, object, name, removed: excluded.test(name) };
+    });
+  if (
+    new Set(entries.map((entry) => entry.name.toLowerCase())).size !==
+    entries.length
+  )
     throw new Error("Source paths collide on case-insensitive filesystems.");
+  const removed = entries
+    .filter((entry) => entry.removed)
+    .map((entry) => entry.name);
+  const names = new Set(
+    entries
+      .filter((entry) => !entry.removed)
+      .map((entry) => entry.name.toLowerCase()),
+  );
   for (const required of [
     "package.json",
     "package-lock.json",
@@ -150,38 +224,38 @@ export async function createProject(options: Options) {
     throw new Error(
       "The reviewed revision predates template versioning; select a revision with template.json.",
     );
-  const blobs = git(
-    source,
-    ["cat-file", "--batch"],
-    entries.map((entry) => entry.object).join("\n") + "\n",
-  );
+  // A shallow source would yield a broken repository and an incomplete scan.
+  if (
+    git(source, ["rev-parse", "--is-shallow-repository"]).toString().trim() ===
+    "true"
+  )
+    throw new Error(
+      "Initialize from a full clone of the template, not a shallow one.",
+    );
+  const upstream = upstreamUrl(source, options.upstream);
+  const leaked = privateHistory(source, revision);
+  if (leaked)
+    throw new Error(
+      `The reviewed history contains private material (${leaked}); derived projects would inherit it.`,
+    );
   await mkdir(path.dirname(target), { recursive: true });
   const staging = await mkdtemp(
     path.join(path.dirname(target), `.${manifest.slug}-create-`),
   );
   // On failure retain only this newly created staging directory for inspection;
   // never recursively remove an existing user destination.
-  let offset = 0;
-  for (const entry of entries) {
-    const end = blobs.indexOf(10, offset);
-    const header = blobs.subarray(offset, end).toString();
-    const match = /^[a-f0-9]+ blob (\d+)$/.exec(header);
-    if (!match) throw new Error("Invalid source object.");
-    const size = Number(match[1]);
-    if (
-      !Number.isSafeInteger(size) ||
-      size > 16 * 1024 * 1024 ||
-      end + size + 1 >= blobs.length
-    )
-      throw new Error("Source file exceeds the initializer bound.");
-    const file = path.join(staging, entry.name);
-    await mkdir(path.dirname(file), { recursive: true });
-    await writeFile(file, blobs.subarray(end + 1, end + 1 + size), {
-      flag: "wx",
-    });
-    if (entry.mode === "100755") await chmod(file, 0o755);
-    offset = end + size + 2;
-  }
+  // The derived repository shares the reviewed commit's history so later
+  // template releases merge; only objects reachable from it are copied.
+  git(staging, ["init", "-q", "-b", "main"]);
+  git(
+    staging,
+    ["index-pack", "--stdin"],
+    git(source, ["pack-objects", "--revs", "--stdout", "-q"], revision + "\n"),
+  );
+  git(staging, ["update-ref", "refs/heads/main", revision]);
+  git(staging, ["reset", "-q", "--hard"]);
+  for (const name of removed)
+    await rm(path.join(staging, name), { force: true });
   const json = async (file: string, value: unknown) =>
     writeFile(path.join(staging, file), JSON.stringify(value, null, 2) + "\n");
   const readJson = async (file: string) =>
@@ -389,7 +463,7 @@ export async function createProject(options: Options) {
   }
   for (const entry of entries.filter(
     (entry) =>
-      entry.name.startsWith(".github/workflows/") ||
+      (!entry.removed && entry.name.startsWith(".github/workflows/")) ||
       entry.name === "Dockerfile" ||
       entry.name === "public/sw.js",
   )) {
@@ -431,6 +505,7 @@ export async function createProject(options: Options) {
     version: 1,
     revision,
     templateVersion: template.version,
+    upstreamRemote: "upstream",
     mode: options.mode,
   });
   await mkdir(path.join(staging, "docs"), { recursive: true });
@@ -459,6 +534,24 @@ export async function createProject(options: Options) {
       "and inspect deploy:ops maintenance staging before release. Retention keeps at least three successful releases " +
       "and fourteen days of activations, plus current/previous and pending recovery; image pulls require 20 GiB free.\n",
   );
+  git(staging, ["add", "-A"]);
+  const commit = spawnSync(
+    "git",
+    [
+      "-C",
+      staging,
+      "commit",
+      "-q",
+      "-m",
+      `Initialize ${manifest.slug} from template ${template.version}`,
+    ],
+    { windowsHide: true },
+  );
+  if (commit.status !== 0)
+    throw new Error(
+      "Could not create the initialization commit. Configure git user.name and user.email.",
+    );
+  git(staging, ["remote", "add", "upstream", upstream]);
   await checkedDestination(source, target);
   try {
     await rmdir(target);

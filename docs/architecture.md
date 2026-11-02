@@ -746,11 +746,26 @@ Runtime environments retain credentials and connection settings. Module descript
 select navigation/admission, index ownership and worker requirements; accepted
 financial and Run history is preserved independently of new admission visibility.
 
-The initializer reads an immutable reviewed Git tree into a new empty directory.
-It rejects symlinks/submodules, case-colliding paths, unsafe destinations and missing
-source contracts; excludes environment overrides, credentials, generated Android,
-caches/browser/database state and Git history; and records the source revision
-and the `template.json` version. Revisions without `template.json` predate template
+The initializer copies the objects reachable from a reviewed commit into a new
+repository, checks it out on `main`, deletes generated and source-owned files
+(caches, build output, generated Android, editor settings, tracking selections),
+applies the identity rewrites and records everything in one initialization commit
+with an `upstream` remote. It rejects symlinks/submodules, case-colliding paths,
+unsafe destinations, missing source contracts and any revision whose history ever
+touched private paths (`.env` files, credential or service-account JSON, keys,
+`secrets/`, an `.npmrc` with auth). `project.source.json` records the source
+revision, the `template.json` version, the upstream remote name and removed
+samples.
+
+`npm run template:update -- <version>` fetches `upstream`, merges the
+`template-v<version>` tag with a merge commit and prints the upgrade notes between
+the recorded and the new version. It keeps files the project deliberately deleted
+when the template changed them, resolves `samples.json` and registry conflicts
+caused by removed samples, then reapplies those removals from the release's
+declarations. Other conflicts stop with the merge open for manual resolution. The
+files the initializer rewrites (package identity, environment examples, deployment
+examples, workflow names, the Dockerfile and offline assets) are the expected manual
+conflict points. Revisions without `template.json` predate template
 versioning and are rejected. [CHANGELOG.md](../CHANGELOG.md) defines release
 semantics and upgrade notes; `npm run check:template` reports drift.
 Package identity, local connections and deployment examples derive from the manifest.

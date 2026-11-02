@@ -7,6 +7,13 @@ import { createProject } from "../scripts/project-initializer";
 import { project } from "../src/lib/project";
 
 test("initializer copies the reviewed tree, isolates identity, excludes private state and rejects unsafe targets", async () => {
+  // The initialization commit uses git's configured identity.
+  Object.assign(process.env, {
+    GIT_AUTHOR_NAME: "Initializer fixture",
+    GIT_AUTHOR_EMAIL: "fixture@example.invalid",
+    GIT_COMMITTER_NAME: "Initializer fixture",
+    GIT_COMMITTER_EMAIL: "fixture@example.invalid",
+  });
   await mkdir(".cache/initializer-tests", { recursive: true });
   const root = await mkdtemp(path.resolve(".cache/initializer-tests/fixture-")),
     source = path.join(root, "source");
@@ -29,6 +36,8 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     "public/offline.html": "namespace=unibase",
     "public/offline-locale.js": "unibase-offline-locale",
     "README.md": "reviewed source",
+    // Like the template, keep LF checkouts independent of core.autocrlf.
+    ".gitattributes": "* text=auto eol=lf\n",
     "scripts/handbook.mjs":
       "throw new Error('initializer must not run handbook setup');",
     ".agents/skills/manage-issues/SKILL.md": "shared entrypoint fixture",
@@ -43,11 +52,8 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     ".cache/handbook/baseline.json": "PRIVATE_HANDBOOK_CACHE",
     ".github/workflows/deploy.yml":
       "name: Release Unibase\non: workflow_dispatch\n",
-    ".env.local": "PRIVATE_SENTINEL",
-    "nested/.env.production": "PRIVATE_SENTINEL",
-    "secrets/provider.json": "PRIVATE_SENTINEL",
-    "serviceAccount.json": "PRIVATE_SENTINEL",
-    ".npmrc": "//registry/:_authToken=PRIVATE_SENTINEL",
+    ".npmrc": "cache=.cache/npm\n",
+    ".vscode/settings.json": "{}",
     "android/project/app/build.gradle": "old identity",
     "output/browser.json": "PRIVATE_SENTINEL",
   };
@@ -218,18 +224,33 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
   assert.equal(derivedStaging.atlas.mongoUser, "fixture_alpha_staging");
   const copied = await readdir(destination, { recursive: true });
   for (const name of [
-    ".git",
-    ".env.local",
-    "secrets/provider.json",
-    "serviceAccount.json",
     "output/browser.json",
     "android/project/app/build.gradle",
+    ".vscode/settings.json",
   ])
     assert.ok(!copied.includes(name.replaceAll("/", path.sep)), name);
+  // The derived repository shares the reviewed history: one initialization
+  // commit on top of the source revision, and an upstream remote.
+  const derived = (...args: string[]) => {
+    const result = spawnSync("git", ["-C", destination, ...args], {
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  assert.equal(derived("rev-parse", "HEAD^"), revision);
+  assert.equal(
+    derived("log", "-1", "--format=%s"),
+    "Initialize fixture-alpha from template 2.4.1",
+  );
+  assert.equal(derived("status", "--porcelain"), "");
+  assert.equal(derived("remote", "get-url", "upstream"), source);
+  assert.equal(derived("branch", "--show-current"), "main");
+  // Excluded generated files are deleted in the initialization commit.
   assert.ok(
-    !(await readFile(path.join(destination, ".npmrc"), "utf8")).includes(
-      "PRIVATE_SENTINEL",
-    ),
+    derived("show", "--name-status", "--format=", "HEAD")
+      .split("\n")
+      .includes("D\tandroid/project/app/build.gradle"),
   );
   const env = await readFile(path.join(destination, ".env.example"), "utf8");
   assert.match(env, /demo-fixture-alpha/);
@@ -317,6 +338,42 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
         mode: "application",
       }),
     );
+  // Private material anywhere in the reviewed history is refused, even when a
+  // later commit deleted it, because derived projects inherit the history.
+  for (const [name, content] of [
+    [".env.local", "PRIVATE_SENTINEL"],
+    ["secrets/provider.json", "{}"],
+    ["serviceAccount.json", "{}"],
+    [".npmrc", "//registry/:_authToken=PRIVATE_SENTINEL"],
+  ]) {
+    await mkdir(path.dirname(path.join(source, name)), { recursive: true });
+    await writeFile(path.join(source, name), content);
+    git(["add", "-f", name]);
+    const leaked = git(
+      ["commit-tree", git(["write-tree"]), "-p", revision],
+      "Private test source\n",
+    );
+    git(["rm", "-q", "--cached", name]);
+    if (name === ".npmrc") {
+      await writeFile(path.join(source, name), "cache=.cache/npm\n");
+      git(["add", "-f", name]);
+    }
+    const cleaned = git(
+      ["commit-tree", git(["write-tree"]), "-p", leaked],
+      "Cleaned test source\n",
+    );
+    await assert.rejects(
+      createProject({
+        source,
+        revision: cleaned,
+        destination: path.join(root, "leaked"),
+        manifest,
+        mode: "application",
+      }),
+      /private material/,
+    );
+  }
+
   // Revisions before template versioning, or with an invalid version, are refused.
   for (const [content, message] of [
     [null, /predates template versioning/],
@@ -342,6 +399,22 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
       message,
     );
   }
+  for (const upstream of [
+    "https://user:token@github.com/org/template.git",
+    "https://token@github.com/org/template.git",
+    "ssh://git:secret@github.com/org/template.git",
+  ])
+    await assert.rejects(
+      createProject({
+        source,
+        revision,
+        destination: path.join(root, "credentials"),
+        manifest,
+        mode: "application",
+        upstream,
+      }),
+      /must not contain credentials/,
+    );
   await assert.rejects(
     createProject({
       source,

@@ -49,6 +49,7 @@
     "samples": "node scripts/samples.mjs list",
     "samples:remove": "node scripts/samples.mjs remove",
     "check:samples": "node scripts/samples.mjs check",
+    "template:update": "node scripts/template-update.mjs",
     "check:template": "node scripts/template-version.mjs",
     "check:docs": "node scripts/check-docs.mjs && node scripts/environment-docs.mjs --check",
     "provision:preview": "python scripts/deploy/provision.py",
