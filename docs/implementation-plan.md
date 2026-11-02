@@ -50,9 +50,93 @@ and prepared. Protected host-profile installation, matching release, Dify catalo
 refresh and one owned Run restart remain live acceptance steps; the old failed
 attempt's detailed historical cause was not recorded.
 
-Outstanding: approve and publish the issue; run the Lua grant-store test against a disposable Redis; verify grant revocation in a browser with Redis; and complete the Unitale permission correction's operator installation and live Run acceptance.
+Outstanding: approve and publish the issue; run the Redis limiter test against a disposable Redis; verify grant revocation in a browser with Redis; and complete the Unitale permission correction's operator installation and live Run acceptance.
+
+## Accepted diagnostic grant usability and persistence ? 2026-11-01
+
+The accepted follow-up removes manual phrases, returns one-time server-generated
+access details in a copy dialog, adds seven- and thirty-day durations, and makes
+MongoDB authoritative while retaining Redis rate limits. Existing Redis grants
+will deliberately require one replacement after the switch; no migration is included.
+Local verification: 23 diagnostics checks passed with one optional real Redis
+limiter check skipped because Docker's engine was unavailable; all 71 general
+tests, type checking, lint, environment/docs/i18n/skill checks and production build
+passed. English/Arabic desktop and 390px browser checks passed with mocked grant
+responses and disposable authentication/MongoDB: copy, clipboard rejection/manual
+selection, focus, credential cleanup and hydration. MongoDB tests verified scope,
+exact expiry, concurrent limits, replacement store/limiter instances and outages.
+A separate read-only review checked credential disclosure, audit/revocation behavior,
+translations and rollout guidance. Publication and additive index installation are
+complete; staging release/readiness and the independent web/worker check passed.
+See the [current release](deployment.md#current-staging-release). The real Redis
+fixture and fresh authenticated grant lifecycle/persistence acceptance remain separate.
+See [diagnostic rollout](diagnostics-api.md#durable-grant-rollout).
+
+## Accepted English-only administration — 2026-11-01
+
+Administration now uses English source copy rather than locale catalogs, including
+navigation, metadata, confirmations, diagnostic access, state/field labels and
+administrative API/action errors. Removed 357 unused administrative UI keys from
+both English and Arabic catalogs, plus administrative fields, actions and states.
+Shared public-page translations remain available. Admin presentation is English/LTR
+without changing saved public language/timezone or offline language preferences.
+
+Local verification: all 73 unit tests and 10 isolated HTTP integration tests passed;
+type checking, lint, production build and documentation/i18n/skill checks passed.
+Browser verification covered all eight admin sections at 1280px and 390px with an
+Arabic profile/cookie, user details, confirmation/copy dialogs, English admin and
+Arabic public API errors, server-rendered lang/dir and client navigation restoring
+Arabic/RTL. Grant creation responses were mocked; authentication and MongoDB were
+disposable. No hydration/translation errors were detected. A separate read-only
+review checked the final change. Publication and staging release/check are complete;
+authenticated live UI/grant acceptance remains separate from local browser evidence.
+See the [current release](deployment.md#current-staging-release).
 
 ## Agreed decisions
+
+### Completed Unitale result retention — 2026-11-01
+
+The recurring completed-but-Running case was reproduced as expired Dify image
+signatures. Recovery now verifies original Run/file identities and the bundled
+Code validator before renewing missing links, preserves staged owned bytes, renews
+the worker lease during retention and reports settlement retries as reconciliation.
+Local verification: 47 affected worker/accounting, Dify, media and renewal tests,
+type checking, lint, documentation/translation/skill checks and build passed.
+One original staging image was renewed and downloaded without invoking a model;
+the [staging release and independent check](deployment.md#current-staging-release)
+passed. Fresh diagnostic access confirmed the original attempt succeeded with nine
+distinct retained images and one two-credit settlement at 09:21:55 UTC. The hold
+is committed; recovery preserved the original provider execution without generation.
+See [release impact](deployment.md#completed-run-image-recovery-release-impact).
+
+The follow-up artifact attachment retry also failed while all nine Run images
+remained ready. Its old application record did not retain the underlying error.
+The correction stages payload copies within MongoDB before the short metadata
+transaction, validates expected images, and records sanitized failure codes/phases.
+Sixty affected tests passed with one optional Redis test skipped; type checking,
+lint, documentation/skill checks, build and separate read-only review passed.
+Command-monitoring tests verify nine large images publish without image bytes in
+transaction requests or responses. After the authorized staging release and
+independent check, an owner-initiated retry was verified as `applied` with nine
+promoted images and the original two-credit charge unchanged. The earlier save
+failure's exact historical cause was not recorded. See the deployment acceptance
+record above; production activation remains separate.
+
+### Accepted extension: environment-owned Dify apps — 2026-11-01
+
+One app per project/environment, automatic managed MCP setup, exact-version copying,
+visible ownership and registration/admission guards are implemented in the working tree.
+Existing unmanaged registrations are removed manually; no migration or production
+activation is included. Local verification: 215 account tests passed with one optional
+Redis test skipped; the 59 affected checks also passed after review hardening, along
+with 70 general tests, type checking and production build. English/Arabic desktop
+and 390px browser checks used an isolated account and mocked Dify management responses.
+Environment/docs/i18n/skill checks and lint passed. Fourteen Python deployment checks
+passed; cross-repository parity was skipped without Infrastructure, and the complete
+Linux deployment runner could not start because Docker Desktop's engine was unavailable.
+Separate read-only review checked the final implementation; publication, operator/control
+preparation and fresh local/staging live acceptance remain separate. Paid execution
+needs separate authorization. See [environment binding](mcp.md#environment-owned-dify-apps).
 
 Valid verified sessions authorize application and administrator changes throughout
 their normal lifetime, without a separate 30-minute mutation cutoff. Current-role,

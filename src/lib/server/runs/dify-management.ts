@@ -17,6 +17,16 @@ export { managementCommandSchema } from "@/lib/contracts/orchestrator-management
 export async function manageDify(input: unknown) {
   const command = managementCommandSchema.parse(input);
   const actor = await requireAdmin();
+  if (command.action === "copy")
+    return createDifyOrchestrator(
+      command.key,
+      actor,
+      undefined,
+      undefined,
+      undefined,
+      "document-summary",
+      { appId: command.appId, selection: command.selection },
+    );
   if (command.action === "disable" || command.action === "unregister")
     return changeOrchestrator(command.action, command.orchestratorId, actor);
   if (command.action === "create")

@@ -1,6 +1,6 @@
 "use client";
-import { StateLabel } from "./localized-value";
-import { useTranslations } from "next-intl";
+import { AdminStateLabel as StateLabel } from "./admin-state-label";
+import { adminStateLabel } from "@/lib/admin-labels";
 
 import { Notice } from "./page-patterns";
 import { useActionState, useId, useRef, useState } from "react";
@@ -37,9 +37,6 @@ function ChangeForm({
   user: ManagedUser;
   actorUid: string;
 }) {
-  const translate = useTranslations("ui");
-  const states = useTranslations("states");
-
   const id = useId();
   const form = useRef<HTMLFormElement>(null);
   const [change, setChange] = useState({ summary: "", risky: false });
@@ -51,9 +48,7 @@ function ChangeForm({
     <Card>
       <CardHeader>
         <CardTitle>
-          {kind === "access"
-            ? translate("mfacc8e750d37")
-            : translate("m57af318d79ea")}
+          {kind === "access" ? "Role and access" : "Application profile"}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -61,7 +56,7 @@ function ChangeForm({
           <input type="hidden" name="confirmed" value="yes" />
           {kind === "profile" ? (
             <div className="space-y-2">
-              <Label htmlFor={`${id}-name`}>{translate("m2b7f6a84de91")}</Label>
+              <Label htmlFor={`${id}-name`}>Display name</Label>
               <Input
                 id={`${id}-name`}
                 name="displayName"
@@ -103,7 +98,7 @@ function ChangeForm({
             </>
           )}
           <div className="space-y-2">
-            <Label htmlFor={`${id}-reason`}>{translate("m0f7d4664a9bc")}</Label>
+            <Label htmlFor={`${id}-reason`}>Reason (optional)</Label>
             <Input
               id={`${id}-reason`}
               name="reason"
@@ -112,7 +107,8 @@ function ChangeForm({
               autoComplete="off"
             />
             <p className="text-xs text-muted-foreground">
-              {translate("m55aae024034e")}
+              Recorded in the administrator audit history. Do not enter
+              passwords or other secrets.
             </p>
           </div>
           <AlertDialog
@@ -122,10 +118,12 @@ function ChangeForm({
               const data = new FormData(form.current);
               if (kind === "profile") {
                 setChange({
-                  summary: translate("m04cd39380d7b", {
-                    from: user.displayName,
-                    to: String(data.get("displayName") ?? ""),
-                  }),
+                  summary:
+                    "Display name changes from “" +
+                    user.displayName +
+                    "” to “" +
+                    String(data.get("displayName") ?? "") +
+                    "”.",
                   risky: false,
                 });
                 return;
@@ -133,12 +131,16 @@ function ChangeForm({
               const role = String(data.get("role") ?? user.role);
               const status = String(data.get("status") ?? user.status);
               setChange({
-                summary: translate("m19556d039b80", {
-                  fromRole: states(user.role),
-                  toRole: states(role as ManagedUser["role"]),
-                  fromStatus: states(user.status),
-                  toStatus: states(status as ManagedUser["status"]),
-                }),
+                summary:
+                  "Role changes from " +
+                  adminStateLabel(user.role) +
+                  " to " +
+                  adminStateLabel(role as ManagedUser["role"]) +
+                  "; status from " +
+                  adminStateLabel(user.status) +
+                  " to " +
+                  adminStateLabel(status as ManagedUser["status"]) +
+                  ".",
                 risky:
                   (user.role === "admin" && role === "member") ||
                   (user.status === "active" && status === "suspended"),
@@ -147,30 +149,24 @@ function ChangeForm({
           >
             <AlertDialogTrigger asChild>
               <Button type="button" disabled={pending}>
-                {pending
-                  ? translate("m23e39291d613")
-                  : translate("mda59c55382da")}
+                {pending ? "Saving…" : "Review change"}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>
-                  {translate("m8accb43f940d")}
-                </AlertDialogTitle>
+                <AlertDialogTitle>Confirm account change</AlertDialogTitle>
                 <AlertDialogDescription>
                   <span className="block font-medium text-foreground">
                     {change.summary}
                   </span>
                   {kind === "access"
-                    ? translate("mea2566c4c00e")
-                    : translate("m8b84d40526a0")}{" "}
-                  {translate("mcbc1ff7ddf4c")}
+                    ? "Access changes take effect immediately. Reactivation requires a new sign-in."
+                    : "This changes the application display name."}{" "}
+                  The change and your reason will be audited.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>
-                  {translate("m19766ed6ccb2")}
-                </AlertDialogCancel>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction asChild>
                   <Button
                     type="submit"
@@ -181,7 +177,7 @@ function ChangeForm({
                         event.preventDefault();
                     }}
                   >
-                    {translate("m704ac1d7acd8")}
+                    Confirm change
                   </Button>
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -205,12 +201,10 @@ export function AdminUserControls({
   user: ManagedUser;
   actorUid: string;
 }) {
-  const translate = useTranslations("ui");
-
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        {translate("mbd90f64a0b40")}
+        You cannot remove your own administrator access.
       </p>
       <ChangeForm kind="access" user={user} actorUid={actorUid} />
       <ChangeForm kind="profile" user={user} actorUid={actorUid} />

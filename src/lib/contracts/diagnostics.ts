@@ -49,21 +49,15 @@ export const grantDurations = {
   "1h": 3600,
   "4h": 4 * 3600,
   "24h": 24 * 3600,
+  "7d": 7 * 24 * 3600,
+  "30d": 30 * 24 * 3600,
 } as const;
 export const MAX_ACTIVE_GRANTS = 20;
 export const PHRASE_MIN_BYTES = 24;
 export const PHRASE_MAX_BYTES = 256;
 
-const utf8Bytes = (value: string) => new TextEncoder().encode(value).length;
 export const grantCreateSchema = z.strictObject({
-  phrase: z
-    .string()
-    .refine(
-      (value) =>
-        utf8Bytes(value) >= PHRASE_MIN_BYTES &&
-        utf8Bytes(value) <= PHRASE_MAX_BYTES,
-    ),
-  duration: z.enum(["15m", "1h", "4h", "24h"]),
+  duration: z.enum(["15m", "1h", "4h", "24h", "7d", "30d"]),
   capabilities: z
     .array(diagnosticCapabilitySchema)
     .min(1)
@@ -79,6 +73,11 @@ export const grantViewSchema = z.strictObject({
   issuedAt: z.iso.datetime(),
   expiresAt: z.iso.datetime(),
 });
+export const grantCreatedSchema = grantViewSchema.extend({
+  credential: z.string().regex(/^[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/),
+  endpoint: z.url(),
+});
+export type GrantCreated = z.infer<typeof grantCreatedSchema>;
 export type GrantView = z.infer<typeof grantViewSchema>;
 export const grantListSchema = z.strictObject({
   grants: z.array(grantViewSchema),

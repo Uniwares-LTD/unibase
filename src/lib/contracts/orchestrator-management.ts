@@ -10,6 +10,12 @@ export const managementCommandSchema = z.discriminatedUnion("action", [
     templateId: orchestratorTemplateIdSchema.default("document-summary"),
   }),
   z.strictObject({
+    action: z.literal("copy"),
+    key: z.uuid(),
+    appId: z.uuid(),
+    selection: workflowVersionSelectionSchema,
+  }),
+  z.strictObject({
     action: z.literal("register"),
     appId: z.string().uuid(),
     selection: workflowVersionSelectionSchema.optional(),

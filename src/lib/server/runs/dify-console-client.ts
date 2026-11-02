@@ -32,6 +32,7 @@ export async function difyJson(
     key?: string;
     body?: unknown;
     timeoutMs?: number;
+    method?: "GET" | "POST" | "PUT";
   } = {},
 ) {
   const management = options.management ?? false;
@@ -47,7 +48,7 @@ export async function difyJson(
   let response: Response;
   try {
     response = await fetch(`${baseUrl(management)}${path}`, {
-      method: options.body === undefined ? "GET" : "POST",
+      method: options.method ?? (options.body === undefined ? "GET" : "POST"),
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
@@ -77,6 +78,17 @@ export async function difyJson(
   }
   if (!response.ok) {
     await response.body?.cancel();
+    if (
+      management &&
+      path === "/workspaces/current/tool-provider/mcp" &&
+      options.body !== undefined &&
+      [400, 401, 403, 404, 405, 409, 422, 429].includes(response.status)
+    )
+      throw new AppError(
+        "DIFY_MCP_SETUP_REJECTED",
+        `Dify rejected MCP connection setup (${response.status}). Check management permissions and connection name, identifier and endpoint uniqueness, then retry.`,
+        409,
+      );
     if (
       management &&
       options.body === undefined &&

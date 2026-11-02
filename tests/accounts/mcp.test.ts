@@ -99,6 +99,45 @@ const env = {
   MCP_TOKEN_LIMITED: otherToken,
 };
 
+test("Dify connection URL discriminator does not grant authentication or tool permissions", async () => {
+  const options = {
+    config: parseMcpConfig(env, "http://localhost:3000"),
+    appName: "Fixture",
+    log() {},
+  };
+  const invoke = (secret?: string) =>
+    handleMcp(
+      new Request(
+        "http://localhost:3000/api/mcp?connection=unibase_managed_staging",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json, text/event-stream",
+            ...(secret ? { Authorization: `Bearer ${secret}` } : {}),
+          },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/list",
+            params: {},
+          }),
+        },
+      ),
+      options,
+    );
+  assert.equal((await invoke()).status, 401);
+  const limited = await invoke(otherToken);
+  assert.equal(limited.status, 200);
+  const catalog = await limited.json();
+  assert(
+    !catalog.result.tools.some(
+      (tool: { name: string }) => tool.name === "get_reference_document_v1",
+    ),
+  );
+  assert.equal((await invoke(token)).status, 200);
+});
+
 test("MCP configuration is opt-in, strict and does not reflect secrets", () => {
   assert.deepEqual(parseMcpConfig({}, "http://localhost:3000"), {
     enabled: false,
@@ -270,6 +309,16 @@ test("MCP official client: real HTTP, discovery, calls and concurrent permission
       clients.map((c) => c.client.listTools()),
     );
     assert(full.tools.some((t) => t.name === "get_reference_document_v1"));
+    const identity = await clients[0].client.callTool({
+      name: "get_connection_info_v1",
+      arguments: {},
+    });
+    assert.deepEqual(Object.keys(identity.structuredContent as object).sort(), [
+      "environment",
+      "origin",
+      "project",
+    ]);
+    assert.equal(identity.isError, undefined);
     assert(!limited.tools.some((t) => t.name === "get_reference_document_v1"));
     const result = await clients[0].client.callTool({
       name: "get_reference_document_v1",
@@ -426,6 +475,7 @@ test("MCP supports legacy Streamable HTTP clients and cancellation", async () =>
       .sort(),
     [
       "calculate_demo_quote_v1",
+      "get_connection_info_v1",
       "get_demo_catalog_v1",
       "get_reference_document_v1",
       "get_server_info_v1",

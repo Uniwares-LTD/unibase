@@ -93,6 +93,23 @@ test("Management selections allow only an app, UUID and bounded page; legacy reg
     managementCommandSchema.parse({ action: "versions", appId }),
     { action: "versions", appId, page: 1 },
   );
+  const copy = {
+    action: "copy",
+    appId,
+    key: randomUUID(),
+    selection: { workflowId, page: 1 },
+  };
+  assert(managementCommandSchema.safeParse(copy).success);
+  assert.equal(
+    managementCommandSchema.safeParse({ ...copy, environment: "production" })
+      .success,
+    false,
+  );
+  assert.equal(
+    managementCommandSchema.safeParse({ ...copy, selection: undefined })
+      .success,
+    false,
+  );
   for (const selection of [
     { workflowId, page: 0 },
     { workflowId, page: 100000 },

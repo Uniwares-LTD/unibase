@@ -2,10 +2,19 @@
 
 ## Components
 
+- [Environment binding](../src/lib/server/runs/environment-binding.ts) owns Dify app
+  ownership, managed MCP setup, endpoint identity, graph binding and destination
+  prerequisites. [Creation](../src/lib/server/runs/creation.ts) journals exact-version
+  copying; [binding contracts](../src/lib/contracts/environment-binding.ts) expose
+  allowlisted identity/provenance. Browsers never receive MCP credentials.
+
 - [Application routes](../src/app) own layouts, pages, Server Actions and HTTP entrypoints.
 - [UI](../src/components) and [design system](design-system.md) own reusable primitives and interaction.
 - [Server modules](../src/lib/server) own authorization, persistence, provider adapters and workers;
   [service contracts](services.md) define ownership, quotas and transaction boundaries.
+- [Image renewal](../src/lib/server/runs/image-renewal.ts) verifies original Unitale
+  file identities and the bundled Code validator before renewing expired Dify links.
+  [Media retention](../src/lib/server/runs/media.ts) stages owned bytes before settlement.
 - [Configuration](../project.config.json) owns project identity/modules; [pure parsers](../src/lib/config)
   separate public settings from private server configuration.
 - [Scripts](../scripts) own local checks, initialization and operator commands.
@@ -15,7 +24,15 @@
   flags from the host profile; [runtime settings](../scripts/runtime-settings.cjs)
   validate the image flag map. Infrastructure owns the shared v1/v2 request dispatcher and approval engine.
 
+- [Diagnostic grants](../src/lib/server/diagnostics/grant-store.ts) own durable
+  MongoDB verifiers and per-issuer issuance fences; Redis owns only shared counters.
+  The [diagnostics API](diagnostics-api.md) owns one-time credential delivery and rollout.
+
 ## Documentation
+
+Administration uses English source copy and `src/lib/admin-labels.ts` for data labels.
+`src/components/application-locale.tsx` switches shared shell language/direction at
+the admin boundary; public-page catalogs remain in `messages/`.
 
 [README](../README.md) owns setup; [architecture](architecture.md) owns current behavior;
 [implementation plan](implementation-plan.md) owns accepted milestones and remaining acceptance.

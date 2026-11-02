@@ -50,7 +50,7 @@ Application validation, deployment validation and generated setup documentation
 share accepted names. Deployment keeps staging and production credentials,
 databases, origins and ingress networks separate; errors suppress secret values.
 
-Redis also stores [diagnostic grants](diagnostics-api.md), the only grant store; eviction or loss ends access. Diagnostic readers are read-only by construction and must not reuse service methods that seed settings, expire credit lots, refresh access fences or create Run capabilities.
+MongoDB stores durable, project/environment-scoped [diagnostic grants](diagnostics-api.md); Redis holds only their rate-limit counters. Publishing or recreating Redis preserves grants; unavailable dependencies fail closed. Diagnostic readers are read-only by construction and must not reuse service methods that seed settings, expire credit lots, refresh access fences or create Run capabilities.
 
 Redis uses atomic counters with 60-second expiry, scoped to project/environment
 and verified account or MCP client. Defaults per minute are 120 reads, 30 ordinary
@@ -71,6 +71,13 @@ reference kind, ownership validation, target-picker metadata and transactional
 result application. Register orchestrators against allowlisted adapters. Browser
 and provider output cannot select handlers or owners. Preserve registered versions
 for accepted attempts; the artifact adapter reads legacy records.
+
+An optional adapter `prepare` hook may stage private, idempotent data before the
+publish transaction. It must not publish references, charge credits or bypass the
+current ownership/target checks in `apply`. Artifact preparation copies ready Run
+images within MongoDB; unreferenced copies stay inaccessible through product reads.
+Application failures retain an allowlisted code, phase and timestamp rather than
+raw exception text. Failed saves still require the owner's explicit retry.
 
 After reviewing the target database and taking the normal operational backup,
 `node --conditions=react-server --import tsx scripts/migrate-domain-references.ts`

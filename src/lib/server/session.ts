@@ -6,6 +6,7 @@ import { signInPath } from "../return-path";
 import { adminAuth } from "./firebase";
 import { cookieName, cookieOptions } from "./http";
 import { database } from "./mongo";
+import { signinAppearance } from "./store/signin-appearance";
 import {
   accountAccess,
   accessPermitsSession,
@@ -114,7 +115,12 @@ export async function createSession(idToken: string) {
     ...cookieOptions(),
     maxAge: SESSION_SECONDS,
   });
-  return { verified: claims.email_verified === true };
+  return {
+    verified: claims.email_verified === true,
+    appearance: claims.email_verified
+      ? await signinAppearance(database(), claims.uid)
+      : undefined,
+  };
 }
 export async function clearSession() {
   const session = await getSession();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter } from "next-intl";
 import { api } from "@/lib/client/api";
 import {
   workflowVersionsSchema,
@@ -33,14 +33,15 @@ export function WorkflowVersionPicker({
   label,
   disabled,
   onRegister,
+  copy = false,
 }: {
   appId: string;
   currentWorkflowId?: string;
   label: string;
   disabled: boolean;
   onRegister: (selection?: WorkflowVersionSelection) => void;
+  copy?: boolean;
 }) {
-  const t = useTranslations("ui");
   const format = useFormatter();
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -79,14 +80,15 @@ export function WorkflowVersionPicker({
         if (result.versions.some((row) => row.id === currentWorkflowId))
           setSelected((prior) => prior || currentWorkflowId!);
       } catch {
-        if (!controller.signal.aborted) setError(t("m812bc445e642"));
+        if (!controller.signal.aborted)
+          setError("Versions could not be loaded. Close and reopen to retry.");
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
     }
     void load();
     return () => controller.abort();
-  }, [open, appId, page, currentWorkflowId, t]);
+  }, [open, appId, page, currentWorkflowId]);
   const chosen = versions.find((row) => row.id === selected);
   return (
     <Dialog
@@ -108,21 +110,28 @@ export function WorkflowVersionPicker({
       </DialogTrigger>
       <DialogContent className="rtl:translate-x-1/2">
         <DialogHeader>
-          <DialogTitle>{t("m00e8b2d8315a")}</DialogTitle>
-          <DialogDescription>{t("m10a987df15bf")}</DialogDescription>
+          <DialogTitle>Choose workflow version</DialogTitle>
+          <DialogDescription>
+            Choose the version for future Runs. Accepted Runs keep their saved
+            version.
+          </DialogDescription>
         </DialogHeader>
         {currentWorkflowId && (
           <p className="break-all text-sm">
-            {t("m2db0073126bf", { id: currentWorkflowId })}
+            {"Current Unibase version: " + currentWorkflowId}
           </p>
         )}
-        <Label htmlFor={id}>{t("m02b2218fdf03")}</Label>
+        <Label htmlFor={id}>Workflow version</Label>
         <Select value={selected} onValueChange={setSelected} disabled={loading}>
           <SelectTrigger id={id} className="w-full min-w-0">
-            <SelectValue placeholder={t("m549618280324")} />
+            <SelectValue placeholder="Select a version" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="draft">{t("m10f515d80f01")}</SelectItem>
+            {!copy && (
+              <SelectItem value="draft">
+                Saved draft — publish if changed
+              </SelectItem>
+            )}
             {versions.map((row) => (
               <SelectItem key={row.id} value={row.id}>
                 {row.name ||
@@ -133,16 +142,19 @@ export function WorkflowVersionPicker({
                   timeStyle: "short",
                 })}{" "}
                 · {row.id.slice(0, 8)}
-                {row.id === currentWorkflowId ? ` · ${t("m9ce08f625aa4")}` : ""}
+                {row.id === currentWorkflowId ? ` · ${"Current"}` : ""}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         {selected === "draft" && (
-          <p className="text-sm text-muted-foreground">{t("mb6247af24de8")}</p>
+          <p className="text-sm text-muted-foreground">
+            This publishes the saved Dify draft if it has changed, then
+            registers it for new Runs.
+          </p>
         )}
         {chosen && <p className="break-all text-sm">{chosen.id}</p>}
-        {loading && <p role="status">{t("m8244e1ce0d56")}</p>}
+        {loading && <p role="status">Loading versions…</p>}
         {error && <p role="alert">{error}</p>}
         {error ? (
           <Button
@@ -151,7 +163,7 @@ export function WorkflowVersionPicker({
               setOpen(false);
             }}
           >
-            {t("m641365d3fb4d")}
+            Close
           </Button>
         ) : (
           hasMore && (
@@ -160,7 +172,7 @@ export function WorkflowVersionPicker({
               disabled={loading}
               onClick={() => setPage((value) => value + 1)}
             >
-              {t("m6b3446e28837")}
+              Load more versions
             </Button>
           )
         )}
@@ -176,7 +188,9 @@ export function WorkflowVersionPicker({
               );
             }}
           >
-            {t("m34c988995ae9")}
+            {copy
+              ? "Create a copy for this environment"
+              : "Register selected version"}
           </Button>
         </DialogFooter>
       </DialogContent>

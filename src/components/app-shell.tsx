@@ -153,7 +153,7 @@ export function AppShell({
       matchesRoute(pathname, route.href),
     )?.label ??
     (pathname.startsWith("/admin")
-      ? translate("m4b42c6690ebe")
+      ? "Administration"
       : pathname === "/design-system"
         ? translate("m4a866105af15")
         : appName);

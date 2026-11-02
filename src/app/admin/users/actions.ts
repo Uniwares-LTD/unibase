@@ -1,5 +1,5 @@
 "use server";
-import { getTranslations } from "next-intl/server";
+
 import { errorMessage } from "@/lib/server/error-message";
 import { limitRequest } from "@/lib/server/rate-limit";
 import { headers } from "next/headers";
@@ -60,7 +60,7 @@ export async function changeUser(
     revalidatePath("/preferences");
     logOperation(event, started, 200);
     return {
-      message: (await getTranslations("actions"))("m01f2d087f576"),
+      message: "Change saved and audited.",
       saved: true,
     };
   } catch (error) {

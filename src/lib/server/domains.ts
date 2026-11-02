@@ -17,6 +17,11 @@ export interface DomainAdapter {
   picker: { label: string; path: string };
   own(db: Db, uid: string, id: string, session?: ClientSession): Promise<void>;
   admit(db: Db, uid: string, id: string, session: ClientSession): Promise<void>;
+  // Idempotent private staging only. Authorization and publication remain in apply().
+  prepare?(
+    db: Db,
+    intent: { uid: string; jobId: string; target: OwnedTarget },
+  ): Promise<void>;
   apply(
     db: Db,
     intent: { uid: string; jobId: string; target: OwnedTarget },
@@ -79,6 +84,12 @@ const artifact: DomainAdapter = {
       { ...intent, artifactId: intent.target.id },
       session,
     );
+  },
+  async prepare(db, intent) {
+    const { ownedArtifact } = await import("./runs/artifacts");
+    await ownedArtifact(db, intent.uid, intent.target.id);
+    const { stageProductAssets } = await import("./runs/assets");
+    await stageProductAssets(db, intent.uid, intent.jobId);
   },
   async approval(db, job, value) {
     const { validateApprovalIntent } = await import("./runs/artifacts");

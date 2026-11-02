@@ -551,10 +551,11 @@ test("durable AI jobs, credit boundaries and recovery", async (t) => {
               if (fail) throw new Error("Required feature write failed");
             },
           };
-        await assert.rejects(
-          processOneAiJob(db, deps),
-          /Required feature write failed/,
-        );
+        await processOneAiJob(db, deps);
+        const reconciling = await aiJobs(db).findOne({ _id: saved._id });
+        assert.equal(reconciling?.status, "unknown");
+        assert.equal(reconciling?.failure, "settlement-failed");
+        assert.equal(reconciling?.execution?.status, "succeeded");
         assert.equal(await db.collection("featureResults").countDocuments(), 0);
         assert.equal(
           (await readWallet(db, actor.uid, { now: start })).balance,

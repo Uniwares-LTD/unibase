@@ -1,5 +1,43 @@
 # MCP implementation and maintenance
 
+## Environment-owned Dify apps
+
+Creation/copying manage a deterministic `<project_with_underscores>_managed_<environment>`
+MCP provider in the configured Dify workspace. Setup verifies authenticated
+`get_connection_info_v1` identity and current tools, installs only this server's
+selected Run-client credential and refreshes discovery from Dify. An unrelated
+provider occupying the identifier is rejected; rename it explicitly before retrying.
+Managed Dify URLs add a public `connection=<managed identifier>` query discriminator
+because Dify requires endpoint URLs to be unique as well as connection identifiers.
+The canonical endpoint remains unchanged for identity probes and configuration.
+The query grants no access; service credentials and owned Run capabilities remain
+mandatory. Existing manual providers using the same endpoint are left untouched.
+Local tunnels use local-only `MCP_PUBLIC_URL`; hosted deployments use `APP_ORIGIN`.
+Redirects, foreign identity, missing permissions and unreachable endpoints fail closed.
+
+`difyAppOwnership` records the journaled import, environment and optional exact source
+publication. App names end in `[local]`, `[staging]` or `[production]` with the
+`app:<project>-<environment>` tag. Names/tags alone never confer ownership. Registration
+requires the stored import and matching remote metadata; it cannot adopt an app.
+Copying exports an exact publication without secrets into a new destination app,
+preserving the source draft, publications, credential and MCP connection.
+
+Published-version registration validates bindings without rewriting them. Explicit
+draft registration may bind known Unibase tools and publish the owned draft.
+Third-party MCP nodes require destination mappings in Base settings. Missing models,
+knowledge bases, builtin-tool authorization and secret variables block registration;
+configure the destination and resume. No models or workflow tools are invoked.
+
+`environmentMcpSetups` leases/journals provider setup and retains provider UUIDs to
+detect replacement/collision. App imports retain the creation journal; unknown imports
+are never repeated. Registration snapshots environment/endpoint identity with the
+definition, and live new Run admission rejects missing/foreign bindings. Existing
+unmanaged registrations are removed manually; no migration is performed.
+
+The identity tool requires `server:read` and returns only project, environment and
+configured origin. No environment dump, tokens or user data are exposed. Validation
+does not execute arbitrary Code nodes or certify external services' runtime behavior.
+
 Unibase exposes optional, authenticated, bounded tools at `/api/mcp` inside the
 existing Next.js Node application. No separate server or AI worker is required
 to call MCP. A Dify workflow invoking it still uses the normal Run attempt/credit flow.

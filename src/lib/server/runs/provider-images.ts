@@ -64,7 +64,10 @@ export async function downloadProviderImage(
   });
   if (!response.ok) {
     await response.body?.cancel();
-    throw new AppError("INVALID_IMAGE", "The generated image is unavailable.");
+    throw new AppError(
+      response.status === 403 ? "PROVIDER_IMAGE_EXPIRED" : "INVALID_IMAGE",
+      "The generated image is unavailable.",
+    );
   }
   if (
     !/^image\/(png|jpeg|webp)(;|$)/i.test(

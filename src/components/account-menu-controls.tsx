@@ -101,7 +101,7 @@ export function AccountMenuControls({
             <DropdownMenuItem asChild>
               <Link href="/admin">
                 <ShieldCheck aria-hidden="true" />
-                {translate("m4b42c6690ebe")}
+                Administration
               </Link>
             </DropdownMenuItem>
           )}
