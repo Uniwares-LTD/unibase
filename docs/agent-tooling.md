@@ -5,6 +5,25 @@ Handbook owns eight workflow and four selected technology/UI skills. Canonical l
 .claude/skills references route to them; CLAUDE.md imports @AGENTS.md. Project facts and
 adaptations remain in the [adapter](../.agents/repository-adapter.md) and
 [source map](source-map.md), declared by [handbook.json](../handbook.json).
+
+## Guidance ownership
+
+Maintain each rule at its owning source and link to it from other entrypoints.
+Keep short authority and safety reminders where an agent makes the decision.
+
+| Source | Owns |
+| --- | --- |
+| [AGENTS.md](../AGENTS.md) | Task-start routing and decision-point reminders; retain Next.js's generated block |
+| [Repository adapter](../.agents/repository-adapter.md) | Local constraints, verification and accepted shared-policy exceptions |
+| [Source map](source-map.md#task-routing) | Task routing, canonical sources, code boundaries and ownership |
+| [Handbook bootstrap](../.agents/handbook.md) and skill wrappers | Generated access/discovery instructions; update through explicit sync |
+| This guide | Integration commands, maintenance procedures, client limits and historical provenance |
+| [handbook.json](../handbook.json) and [preferences](../.agents/repository.md) | Selected skills/source paths and confirmed repository choices |
+
+Shared workflows remain in Handbook at the task revision. Do not copy skill bodies,
+skill catalogs or bootstrap recovery steps into the root instructions or adapter.
+Canonical application/operational documents retain their detailed procedures.
+
 The [repository preferences](../.agents/repository.md) record user-confirmed language
 and durable branches; [tracking](../.agents/tracking.json) records this repository's
 project selection when configured. An unconfigured selection grants no tracking
