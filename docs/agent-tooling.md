@@ -48,6 +48,15 @@ still retains the earlier task revision; migration explicitly used the merged sn
 above without changing that active baseline. No application build or live-service check
 was needed for this guidance/tooling-only change.
 
+The latest-main review on 2026-11-02 checked
+`6205b01d94153824f02b678957ef51af18419015` (merged Handbook PR #17).
+Its only change after PR #16 is the normal merge-commit preference, now reflected
+in the adapter. No script, bootstrap, skill metadata or routing update is needed.
+The refresh helper retained its usable earlier baseline because the Handbook
+checkout is on a work branch; main was fetched and inspected without switching it.
+Readiness, entrypoint drift, skill integrity, documentation and translation checks
+passed for this follow-up, with no blocking findings in the separate read-only review.
+
 Review Handbook's merged onboarding instructions at the task revision before reconciling
 launcher/offline-tool copies. Preserve local scope, accepted milestones and advisory checks.
 Materialize filesystem resources with `node scripts/handbook.mjs resources --path PATH --revision SHA`,

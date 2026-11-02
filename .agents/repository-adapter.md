@@ -55,6 +55,10 @@ repository's accepted reviewable-working-tree workflow. Shared command gates are
 only a backstop; retiring a prompt does not expand that authority. Integrate through
 PRs; deployment promotion and external access changes remain separately authorized.
 
+Follow Handbook's normal merge-commit preference for authorized PR merges, preserving
+commit identities and the PR boundary. Squash or rebase merges require an explicit
+request or repository policy; report an unavailable preferred method before merging.
+
 
 For assigned issue work, handbook policy authorizes enrollment of its existing issue,
 nonterminal status/blocker maintenance and concise evidence comments. Confirm the acting
