@@ -7,7 +7,6 @@ import {
   validateExtensions,
 } from "../src/lib/extensions";
 
-const Icon = () => null;
 const notes = defineExtension({
   id: "notes",
   module: {
@@ -18,12 +17,17 @@ const notes = defineExtension({
     collections: ["notes"],
   },
   routes: [
-    { href: "/notes", placement: "main", label: () => "Notes", Icon },
+    {
+      href: "/notes",
+      placement: "main",
+      label: () => "Notes",
+      icon: "notebook-pen",
+    },
     {
       href: "/notes/archive",
       placement: "account",
       label: () => "Archive",
-      Icon,
+      icon: "notebook-pen",
     },
   ],
   adminSections: [

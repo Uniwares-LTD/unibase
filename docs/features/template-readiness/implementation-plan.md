@@ -83,4 +83,10 @@ integrated diff against `b32ff2b`.
   found lease-expiry, error-mapping, owner-typo, late-heartbeat and docs gaps;
   fixed. Notification-template and worker extension slots (R2) move to
   checkpoint 5, where the Runs extraction first needs them.
-- Next: checkpoint 4.
+- Checkpoint 4 complete (2026-11-02): notes reference sample, `samples.json`,
+  `samples`/`check:samples`/`samples:remove`. Extension links name a Lucide
+  `icon` because a component import crashed `react-server` scripts. With notes
+  removed in a full copy, typecheck, unit tests, check:docs and production build
+  pass. Reviews found side-effect import scanning, removal preflight, unverified
+  sessions, delete labels and limit messaging; fixed. Not yet browser-verified.
+- Next: checkpoint 5.

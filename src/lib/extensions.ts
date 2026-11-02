@@ -1,5 +1,5 @@
-import type { ComponentType } from "react";
 import type { useTranslations } from "next-intl";
+import type { IconName } from "lucide-react/dynamic";
 
 // Client-safe extension contract. Project features and samples contribute
 // through src/project/extensions.ts instead of editing core lists. Keep these
@@ -19,7 +19,9 @@ export type ExtensionRoute = {
   placement: "main" | "account";
   // Use a literal t("m…") call so i18n-client-sections can find the key.
   label: (t: ReturnType<typeof useTranslations<"ui">>) => string;
-  Icon: ComponentType<{ className?: string }>;
+  // A Lucide icon name. Server scripts load this registry, so it holds no
+  // React components; the shell renders the icon on the client.
+  icon: IconName;
 };
 // Administration is English-only: copy lives in source, not catalogs.
 export type ExtensionAdminSection = {
@@ -112,10 +114,10 @@ export function extensionLinks(
   return extensions.flatMap((extension) =>
     (extension.routes ?? [])
       .filter((route) => route.placement === placement)
-      .map(({ href, label, Icon }) => ({
+      .map(({ href, label, icon }) => ({
         href,
         label: label(translate),
-        Icon,
+        icon,
       })),
   );
 }

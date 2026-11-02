@@ -103,7 +103,9 @@ credentials, caches, browser state, databases or the generated Android wrapper.
 4. Application mode starts with providers inactive and examples hidden. Examples
    mode explicitly selects local fake Runs and simulated payments; it never
    activates live credentials. Configure owned staging providers separately.
-5. Replace product copy, icons and colors; regenerate icons with
+5. Review the samples with `npm.cmd run samples` and remove unwanted ones with
+   `npm.cmd run samples:remove -- <name>` ([samples guide](src/samples/README.md)).
+   Replace product copy, icons and colors; regenerate icons with
    `npm.cmd run icons:generate`. Review generated deployment placeholders, ports,
    and private subnets for the target host. Initializer subnets/ports are suggested
    isolated defaults, not a host inventory or a collision-proof allocator.

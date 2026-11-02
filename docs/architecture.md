@@ -80,9 +80,18 @@ only when its dependencies are. A server extension may attach to a core module I
 The domain registry composes on first use, so extension code may import Runs or
 domain services; import only types from `src/lib/server/mcp/tools.ts`. Contributions follow `moduleEnabled`; adapters of a
 disabled module stay registered for accepted attempts but reject new targets.
-Routes still live under `src/app` and must call `requireModule`. Link labels use
-`ui` catalog keys through a literal `t("m…")` call so client key inventories
-find them.
+Routes still live under `src/app`: module routes are gated by the proxy and
+`endpoint()`; pages outside module routes, such as administration, check
+`moduleEnabled` themselves. Link labels use `ui` catalog keys through a literal
+`t("m…")` call so client key inventories find them. Links name a Lucide icon
+instead of importing a component, because server scripts load the registry under
+the `react-server` condition; the shell loads these icons lazily, so they appear
+just after the core icons on first paint. Extension MCP permissions are added to
+`mcpPermissions` in the environment catalog so client grants validate.
+
+Samples are removable features declared in [samples.json](../samples.json); see
+[the samples guide](../src/samples/README.md). The notes sample is the reference
+for a complete extension.
 
 ### MCP tools
 

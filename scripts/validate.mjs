@@ -9,6 +9,7 @@ const checks = [
   "test:handbook",
   "check:docs",
   "check:template",
+  "check:samples",
   "check:i18n",
   "typecheck",
   "lint",

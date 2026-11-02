@@ -10,4 +10,4 @@ Values and conditional requirements are described in .env.example and service gu
 | tooling | `ANDROID_HOST`, `GOOGLE_APPLICATION_CREDENTIALS` |
 | credentialPatterns | `^DIFY_KEY_[A-Z0-9_]+$`, `^MCP_TOKEN_[A-Z0-9_]+$` |
 
-MCP permissions: `server:read`, `reference:read`, `demo:read`, `run:read`, `artifact:read`, `artifact:write`.
+MCP permissions: `server:read`, `reference:read`, `demo:read`, `run:read`, `artifact:read`, `artifact:write`, `notes:read`.

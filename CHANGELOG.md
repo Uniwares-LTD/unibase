@@ -28,6 +28,9 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 - Forward-only database migrations: `npm run db:migrate`, server extension
   `migrations`, and migrations during new-environment provisioning. Replaces
   `scripts/migrate-domain-references.ts` with `runs:0001-domain-references`.
+- Removable samples: `samples.json`, `npm run samples`, `check:samples` and
+  `samples:remove`. The notes sample is the reference project extension.
+- Extension links name a Lucide icon (`icon`) instead of a component (`Icon`).
 
 ### Upgrade notes
 

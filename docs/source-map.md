@@ -17,6 +17,8 @@
   [Media retention](../src/lib/server/runs/media.ts) stages owned bytes before settlement.
 - [Project extensions](../src/project) are project-owned registrations of features and
   samples; core reads them through [the contract](../src/lib/extensions.ts).
+- [Samples](../src/samples/README.md) are removable reference features declared in
+  [samples.json](../samples.json); [the samples script](../scripts/samples.mjs) checks and removes them.
 - [Configuration](../project.config.json) owns project identity/modules; [pure parsers](../src/lib/config)
   separate public settings from private server configuration.
 - [Scripts](../scripts) own local checks, initialization and operator commands.
