@@ -139,6 +139,6 @@ keeps database recovery separate from application rollback.
 
 ## Test data and external checks
 
-Auth Emulator accounts disappear when it stops. Development MongoDB data persists under `.cache/mongodb-data`, so recreating the same email after an emulator restart creates a new Firebase UID and a separate profile. Use fresh test accounts; do not expect an email address alone to restore an old UID's profile.
+Auth Emulator accounts disappear when it stops. Development MongoDB data persists under `.cache/mongodb/<slug>`, so recreating the same email after an emulator restart creates a new Firebase UID and a separate profile. Use fresh test accounts; do not expect an email address alone to restore an old UID's profile.
 
 Local success does not verify real Google OAuth, real email delivery, the live Firebase helper proxy, or Atlas connectivity. Those checks require the environment configuration described in [the README](../README.md#m2-account-configuration). Current completion evidence and dependency warnings are recorded in [the implementation plan](implementation-plan.md).

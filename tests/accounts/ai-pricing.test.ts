@@ -248,15 +248,19 @@ test("variable AI settlement is atomic, capped, replay-safe and compatible with 
       "failed required materialization rolls back both charge and release",
       async () => {
         const { db, job } = await fixture();
-        await assert.rejects(
-          processOneAiJob(db, {
-            ...deps,
-            materialize: async () => {
-              throw new Error("required write failed");
-            },
-          }),
-          /required write failed/,
-        );
+        // Terminal provider evidence is preserved: the worker records a
+        // reconciliation state instead of throwing, and keeps the hold.
+        await processOneAiJob(db, {
+          ...deps,
+          materialize: async () => {
+            throw new Error("required write failed");
+          },
+        });
+        const deferred = await aiJobs(db).findOne({ _id: job._id });
+        assert.equal(deferred?.failure, "settlement-failed");
+        assert.equal(deferred?.status, "unknown");
+        assert.equal(deferred?.lease, null);
+        assert.ok(deferred?.execution);
         const wallet = await readWallet(db, actor.uid, { now });
         assert.equal(wallet.balance, 100);
         assert.equal(wallet.reserved, 10);

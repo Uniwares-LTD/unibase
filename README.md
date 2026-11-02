@@ -250,7 +250,7 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. Local development needs no cloud credentials. For account features, start `npm run emulators:auth` and `npm run emulators:mongo` in separate terminals first. The MongoDB runner downloads a local binary on first use, retains development data under `.cache/mongodb-data`, and creates the unique profile UID index. Firebase's emulator UI is at http://127.0.0.1:4000; verification and password-reset links are available in the emulator output. Auth emulator accounts reset when the emulator stops. On Windows PowerShell, use `npm.cmd` and `npx.cmd` if execution policy blocks the `.ps1` wrappers; do not change system execution policy just for this project. npm caches downloads in the ignored `.cache/npm` directory.
+Open http://localhost:3000. Local development needs no cloud credentials. For account features, start `npm run emulators:auth` and `npm run emulators:mongo` in separate terminals first. The MongoDB runner downloads a local binary on first use, retains development data under `.cache/mongodb/<slug>`, and creates the unique profile UID index. Firebase's emulator UI is at http://127.0.0.1:4000; verification and password-reset links are available in the emulator output. Auth emulator accounts reset when the emulator stops. On Windows PowerShell, use `npm.cmd` and `npx.cmd` if execution policy blocks the `.ps1` wrappers; do not change system execution policy just for this project. npm caches downloads in the ignored `.cache/npm` directory.
 
 Copy `.env.example` to `.env.local` only when overriding the local defaults. `APP_NAME` controls the displayed name; `APP_STYLE` sets the Classic/Glass/Soft Blue default; `APP_ENV` is local, staging, or production; `APP_ORIGIN` is an origin with no credentials, path, query, or fragment. Staging/production require an explicit HTTPS origin. Only the application name, validated default style and explicit Firebase browser configuration are passed to browser components. Restart the development server after changing environment configuration.
 
@@ -346,8 +346,9 @@ bounded and are recorded with the change.
 
 Local MongoDB now runs a single-node replica set so access and audit changes can
 commit together. Stop your existing `npm run emulators:mongo` runner before
-restarting it with the updated script; it keeps `.cache/mongodb-data`. Do not delete
-development data for this migration. Atlas also needs transaction support.
+restarting it with the updated script. Data now lives under `.cache/mongodb/<slug>`;
+the runner never deletes the earlier `.cache/mongodb-data` and explains how to move
+it when it belongs to the current slug. Atlas also needs transaction support.
 
 In every environment, the first verified sign-in for `admin@uniwares.co.uk`
 automatically appoints that account as the initial administrator, provided no

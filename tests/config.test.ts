@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { parseConfig } from "../src/lib/config/schema";
 import { parsePublicConfig } from "../src/lib/config/public";
 import { project } from "../src/lib/project";
+import { validateEnvironmentNames } from "../src/lib/config/environment";
 
 test("local development needs no cloud credentials", () => {
   assert.deepEqual(parseConfig({}), {
@@ -81,4 +82,15 @@ test("invalid configuration names fields without reflecting supplied values", ()
   }
   assert.throws(() => parseConfig({ APP_ENV: "secret-env-value" }), /APP_ENV/);
   assert.throws(() => parseConfig({ APP_NAME: " " }), /APP_NAME/);
+});
+
+test("declared tooling names pass while unknown application names fail", () => {
+  // Agent hosts set MCP_CONNECTION_NONBLOCKING; it is tooling, not app config.
+  assert.doesNotThrow(() =>
+    validateEnvironmentNames({ MCP_CONNECTION_NONBLOCKING: "true" }),
+  );
+  assert.throws(
+    () => validateEnvironmentNames({ MCP_UNKNOWN_SETTING: "x" }),
+    /Invalid application environment setting name/,
+  );
 });
