@@ -31,7 +31,14 @@ export type ProfileUpdate = z.infer<typeof profileUpdateSchema>;
 export const sessionInputSchema = z
   .object({ idToken: z.string().min(1).max(16000) })
   .strict();
-export const sessionResultSchema = z.object({ verified: z.boolean() });
+export const sessionAppearanceSchema = profileSchema.pick({
+  theme: true,
+  style: true,
+});
+export const sessionResultSchema = z.object({
+  verified: z.boolean(),
+  appearance: sessionAppearanceSchema.optional(),
+});
 export const successSchema = z.object({ ok: z.literal(true) });
 export const csrfSchema = z.object({
   token: z.string().regex(/^[a-f0-9]{64}$/),
