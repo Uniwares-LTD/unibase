@@ -5,6 +5,25 @@ Handbook owns eight workflow and four selected technology/UI skills. Canonical l
 .claude/skills references route to them; CLAUDE.md imports @AGENTS.md. Project facts and
 adaptations remain in the [adapter](../.agents/repository-adapter.md) and
 [source map](source-map.md), declared by [handbook.json](../handbook.json).
+
+## Guidance ownership
+
+Maintain each rule at its owning source and link to it from other entrypoints.
+Keep short authority and safety reminders where an agent makes the decision.
+
+| Source | Owns |
+| --- | --- |
+| [AGENTS.md](../AGENTS.md) | Task-start routing and decision-point reminders; retain Next.js's generated block |
+| [Repository adapter](../.agents/repository-adapter.md) | Local constraints, verification and accepted shared-policy exceptions |
+| [Source map](source-map.md#task-routing) | Task routing, canonical sources, code boundaries and ownership |
+| [Handbook bootstrap](../.agents/handbook.md) and skill wrappers | Generated access/discovery instructions; update through explicit sync |
+| This guide | Integration commands, maintenance procedures, client limits and historical provenance |
+| [handbook.json](../handbook.json) and [preferences](../.agents/repository.md) | Selected skills/source paths and confirmed repository choices |
+
+Shared workflows remain in Handbook at the task revision. Do not copy skill bodies,
+skill catalogs or bootstrap recovery steps into the root instructions or adapter.
+Canonical application/operational documents retain their detailed procedures.
+
 The [repository preferences](../.agents/repository.md) record user-confirmed language
 and durable branches; [tracking](../.agents/tracking.json) records this repository's
 project selection when configured. An unconfigured selection grants no tracking
@@ -15,11 +34,11 @@ destination or authority. Local configuration does not verify live access or wor
 Run `npm run handbook:setup` once with Node, Git and read access to the private Handbook.
 No application dependency installation is needed. It uses a sibling checkout unless
 `-- --path PATH` or UNIWARES_HANDBOOK_PATH supplies a local override. Never commit machine paths.
-At task start run `npm run handbook:check` and retain the full path/revision in conversation
-context through later skills and handoff/resume. Read shared text with git show at that
-revision, including docs/bootstrap.md, policy and relevant skills. A later refresh or
-`--force` does not replace the active task revision. Recover lost context first; explicitly
-establish a new baseline and report discontinuity only when recovery fails.
+The generated [local bootstrap](../.agents/handbook.md) owns new-device setup consent,
+missing-checkout recovery, task revision retention and immutable resource resolution.
+Read it before shared skills. Root instructions retain task-start and local-authority
+reminders; project adaptations belong in the adapter. Normal refresh never rewrites
+these local files. Use `npm.cmd` on Windows when PowerShell wrappers are blocked.
 
 The launcher runs committed helper content. Required guidance/helper compatibility is
 checked before promotion; cached/offline guidance stays usable. Follow-main refresh has
@@ -27,6 +46,35 @@ a four-hour success/failure cooldown, explicit force and no scheduler. No persis
 task records or per-consumer revision pins are added.
 
 ## Explicit integration updates
+
+The 2026-11-02 reconciliation adopts merged [Handbook PR #16](https://github.com/Uniwares-LTD/handbook/pull/16)
+at `2c6dea49690975be10a19761c5b59e67e27e1420` as provenance, not a version pin.
+Both scripts match that committed source. Twelve canonical wrappers route through
+one managed `.agents/handbook.md`; Claude wrappers still route to canonical skills.
+The planning metadata and two missing large-work starters are included. Customized
+content, selected skills, tracking, client settings and local adaptations are preserved.
+
+Shared procedure edits need no consumer rewrite. Bootstrap prose changes update one
+local guide; discovery metadata changes update matching wrappers. Launcher changes
+require explicit reconciliation. Missing/customized bootstrap content produces
+readiness diagnostics; sync preserves customized managed bodies and custom suffixes.
+Integrity covers the bootstrap as well as canonical and Claude wrappers.
+
+Verification: all 14 Handbook tests and the initializer isolation fixture passed;
+readiness, snapshot entrypoint parity, integrity, documentation and translation checks
+passed. Check/doctor reported a usable cached baseline with no warnings. The cache
+still retains the earlier task revision; migration explicitly used the merged snapshot
+above without changing that active baseline. No application build or live-service check
+was needed for this guidance/tooling-only change.
+
+The latest-main review on 2026-11-02 checked
+`6205b01d94153824f02b678957ef51af18419015` (merged Handbook PR #17).
+Its only change after PR #16 is the normal merge-commit preference, now reflected
+in the adapter. No script, bootstrap, skill metadata or routing update is needed.
+The refresh helper retained its usable earlier baseline because the Handbook
+checkout is on a work branch; main was fetched and inspected without switching it.
+Readiness, entrypoint drift, skill integrity, documentation and translation checks
+passed for this follow-up, with no blocking findings in the separate read-only review.
 
 Review Handbook's merged onboarding instructions at the task revision before reconciling
 launcher/offline-tool copies. Preserve local scope, accepted milestones and advisory checks.
@@ -49,6 +97,10 @@ Use `npm run handbook:templates -- --source SNAPSHOT` to preview templates and a
 `--write` to copy missing files. Existing copies are project-owned; replace only named
 files with `--update PATH`. Issue/PR starters live in .github; document starters live
 in docs/templates. Existing guidance, source map and preferences are preserved.
+The PRD and checkpoint implementation-plan starters support large work; small tasks
+need no planning artifact and medium plans can remain in the conversation. The shared
+engineering guidance defines proportional review; local advisory checks and explicit
+commit/publication authority still apply.
 
 Run `npm run handbook:ready` offline after updates. Missing files, invalid references and
 incomplete source-map structure produce warnings without readiness exit-code gates.
@@ -75,11 +127,11 @@ After an interrupted lock, inspect its PID and remove it only after confirming n
 
 Codex discovery uses .agents/skills. Claude uses CLAUDE.md imports and .claude/skills.
 Markdown references install no hooks, permissions, subagents or dependencies.
-Fresh-session Codex discovery/activation, local reads, refresh and handoff/resume acceptance
-remain pending. Normal-permission Node child-process Git execution previously encountered
-spawnSync git EPERM; elevated terminal success is not native-client acceptance.
-Claude runtime checks are explicitly deferred. Verify relevant activation and local map/adapter
-reads in each actual client without creating issues or live demonstration projects.
+Handbook PR #16 passed fresh Codex A/A and A/B discovery, routing, revision and resource
+probes plus local lifecycle checks in disposable consumer fixtures. Claude routing
+was reviewed statically as explicitly accepted by the user; no native Claude run is
+claimed. This consumer migration uses that accepted design with local regression
+checks; it is not a new end-to-end app/browser acceptance or native-client run.
 
 ## Local contracts and provenance
 

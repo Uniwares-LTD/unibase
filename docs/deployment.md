@@ -219,7 +219,9 @@ its publication is separate from this existing-host application release.
 
 After host bootstrap and provider bindings, the trusted root operator runs the
 installed `scripts/deploy/prepare-host.py --credentials <protected-file>` preview,
-then the same command with `--apply --indexes`. Use `python3 -B` from the reviewed
+then the same command with `--apply --indexes` (add `--migrate` after the
+operational backup when upgrade notes require pending data migrations; it runs
+index preparation first, with or without `--indexes`). Use `python3 -B` from the reviewed
 root-owned bundle. The private JSON contains `firebase` (the existing service-account
 object), `firebaseApiKey`, `firebaseAppId`, and the new app user's `mongodbUri`.
 This command validates existing credentials, creates private runtime configuration

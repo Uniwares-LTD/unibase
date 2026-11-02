@@ -166,7 +166,8 @@ class FakeHost(provisioning.Host):
     def registry_preflight(self, credentials):
         pass
 
-    def indexes(self, checkout, uid=None):
+    def indexes(self, checkout, uid=None, migrate=False):
+        self.migrated = migrate
         if self.fail_indexes:
             raise ValueError("Synthetic index failure")
 
@@ -205,6 +206,7 @@ class ProvisionTests(unittest.TestCase):
         self.assertEqual((self.host.directory / "redis-password").read_bytes(), redis)
         self.assertEqual(self.host.key_file.read_bytes(), key)
         self.assertEqual(len(self.api.apps), 1)
+        self.assertTrue(self.host.migrated)
         self.assertEqual(len([row for row in self.api.operations if row[2].endswith("/keys") and row[1] == "POST"]), 1)
         for canary in (password, redis.decode().strip(), "private-key-canary", "pull-token-canary"):
             self.assertNotIn(canary, output)

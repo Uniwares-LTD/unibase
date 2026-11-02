@@ -13,6 +13,7 @@ async function main() {
           "--manifest",
           "--mode",
           "--infrastructure-profile",
+          "--upstream",
         ].includes(args[i]) ||
         !args[i + 1] ||
         values[args[i]]
@@ -38,9 +39,10 @@ async function main() {
       infrastructureProfile: values["--infrastructure-profile"]
         ? JSON.parse(await readFile(values["--infrastructure-profile"], "utf8"))
         : undefined,
+      upstream: values["--upstream"],
     });
     console.log(
-      `Created ${result.slug} from ${result.revision}. Install dependencies and review .env.example before starting.`,
+      `Created ${result.slug} from ${result.revision} with one initialization commit and an upstream remote. Install dependencies and review .env.example before starting; set your own origin before pushing.`,
     );
   } catch (error) {
     console.error(

@@ -10,7 +10,8 @@
     "mcp",
     "files",
     "notifications",
-    "artifacts"
+    "artifacts",
+    "notes"
   ],
   "locales": ["en", "ar"],
   "defaultLocale": "en",

@@ -6,12 +6,19 @@ const files = [
   "README.md",
   "AGENTS.md",
   "CLAUDE.md",
-  ...["docs", ".agents", ".claude", "dify", "src/lib/server/runs/templates"].flatMap(
-    (dir) =>
-      fs
-        .readdirSync(dir, { recursive: true })
-        .filter((file) => file.endsWith(".md"))
-        .map((file) => path.join(dir, file)),
+  "CHANGELOG.md",
+  ...[
+    "docs",
+    ".agents",
+    ".claude",
+    "dify",
+    "src/lib/server/runs/templates",
+    "src/samples",
+  ].flatMap((dir) =>
+    fs
+      .readdirSync(dir, { recursive: true })
+      .filter((file) => file.endsWith(".md"))
+      .map((file) => path.join(dir, file)),
   ),
 ];
 const failures = [];

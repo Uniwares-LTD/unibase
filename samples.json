@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "samples": {
+    "notes": {
+      "description": "Reference feature: owned notes with routes, an MCP tool, administration, navigation, both locales, indexes and a migration.",
+      "requires": [],
+      "paths": [
+        "src/samples/notes",
+        "src/app/notes",
+        "src/app/api/notes",
+        "src/app/admin/notes",
+        "tests/accounts/notes.test.ts"
+      ],
+      "modules": ["notes"],
+      "messages": [
+        "m8a7525b1492f",
+        "m7e8cd2056da7",
+        "md8da2c49df39",
+        "m63565c0485fe",
+        "m57bde4deb215",
+        "m55576676783c",
+        "m76ea482f843e",
+        "mb64495b0aa67",
+        "m8ee11db3ff88",
+        "m205655852b1b",
+        "mb4c7358981b6",
+        "m393509c1225a"
+      ],
+      "mcpPermissions": ["notes:read"]
+    }
+  }
+}

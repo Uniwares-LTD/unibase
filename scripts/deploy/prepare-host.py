@@ -66,6 +66,7 @@ def main():
     parser.add_argument('--credentials', required=True, type=Path)
     parser.add_argument('--apply', action='store_true')
     parser.add_argument('--indexes', action='store_true', help='Explicit additive index preparation after bindings exist')
+    parser.add_argument('--migrate', action='store_true', help='Prepare indexes, then apply pending forward-only data migrations; take the operational backup first')
     args = parser.parse_args()
     if os.geteuid() != 0:
         raise ValueError('Run through the reviewed operator installation, not the deploy account')
@@ -104,8 +105,8 @@ def main():
             if not (host.root / name).exists():
                 private_write(host.root / name, (candidate / name).read_text())
         subprocess.run(['/bin/bash', str(ROOT / 'scripts/deploy/vps.sh'), 'setup', 'staging', '--apply'], check=True)
-        if args.indexes:
-            host.indexes(ROOT)
+        if args.indexes or args.migrate:
+            host.indexes(ROOT, migrate=args.migrate)
         print('Private staging configuration installed; application deployment remains separate')
 
 

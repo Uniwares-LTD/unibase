@@ -1,6 +1,6 @@
 ---
 name: compile-feature-spec
-description: "Turns an unclear feature, documentation or integration request into a bounded, implementation-ready specification without changing code. Use when a request is vague, before building a feature, or when asked to scope, spec or plan work."
+description: "Produces bounded specs, PRDs and implementation plans without implementing the change. Use when consequential requirements are unclear, a medium or large task needs planning, or the user asks to scope, spec or plan work; not for obvious small changes or casual questions."
 ---
 
 Read and follow the canonical local entrypoint
@@ -8,4 +8,4 @@ Read and follow the canonical local entrypoint
 Resolve its relative references from that canonical file, not this wrapper.
 For shared guidance, retain the task's Handbook revision through continuation.
 This reference grants no hooks, tools, permissions, or delegation authority.
-<!-- handbook-managed:6ec1a4aa4b781f6f8a6015b177f0c1ba1224db684f90ffb7a8dadbc690c8c357 -->
+<!-- handbook-managed:41f2c7a23e1e3c79f06ac650a6401afa8f783e315f1667fb7b5057e2f936f0fd -->

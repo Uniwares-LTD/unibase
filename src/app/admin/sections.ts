@@ -1,6 +1,10 @@
+import { moduleEnabled, projectExtensions } from "@/lib/project";
+import { extensionAdminSections } from "@/lib/extensions";
+
 // One ordered list feeds the administrator navigation and the overview cards.
+// Project extensions append their sections after the core entries.
 export async function adminSections() {
-  return [
+  const sections = [
     {
       href: "/admin/users",
       label: "Users",
@@ -42,4 +46,14 @@ export async function adminSections() {
         "Configure who answers workflow questions and their responder pricing.",
     },
   ];
+  const hrefs = new Set(sections.map((section) => section.href));
+  for (const section of extensionAdminSections(
+    projectExtensions,
+    moduleEnabled,
+  )) {
+    if (hrefs.has(section.href))
+      throw new Error(`Admin section ${section.href} is already registered.`);
+    sections.push(section);
+  }
+  return sections;
 }

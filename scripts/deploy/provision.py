@@ -128,7 +128,7 @@ class Host:
             if result.returncode:
                 raise ValueError("GHCR pull credential authentication failed before provisioning")
 
-    def indexes(self, checkout, uid=None):
+    def indexes(self, checkout, uid=None, migrate=False):
         # Administration tooling stays out of the production image. Only this
         # disposable container downloads npm tools; no provider admin token enters it.
         args = ["docker", "run", "--rm", "--memory", "1g", "--cpus", "1", "--network", "host", "--env-file", str(self.directory / "runtime.env"),
@@ -137,6 +137,7 @@ class Host:
                 self.config["deployment"]["adminImage"], "sh", "-eu", "-c",
                 "cp -a /source /tmp/admin; cd /tmp/admin; npm ci --ignore-scripts --no-audit --no-fund >/tmp/install.log 2>&1; "
                 "npm run db:indexes >/tmp/admin.log 2>&1; " +
+                ("npm run db:migrate >>/tmp/admin.log 2>&1; " if migrate else "") +
                 ("npm run admin:bootstrap -- \"$1\" >>/tmp/admin.log 2>&1" if uid else "true"), "admin"]
         if uid:
             args.append(uid)
@@ -190,7 +191,8 @@ def provision(config, host, resources, apply, credentials, checkout, uid=None):
                            input=credentials["GHCR_PULL_TOKEN"].encode(), capture_output=True, timeout=60)
     if login.returncode:
         raise ValueError("GHCR scoped pull authentication failed")
-    host.indexes(checkout, uid)
+    # A new environment's database is fresh, so pending migrations are additive.
+    host.indexes(checkout, uid, migrate=True)
     state["configured"] = True
     state["pending"] = pending
     host.save_state(state)

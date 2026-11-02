@@ -46,6 +46,11 @@ for (const name of skills) {
     `---\nname: ${name}\ndescription: Fixture ${name}\n---\nFixture procedure.\n`,
   );
 }
+mkdirSync(path.join(source, "docs"));
+writeFileSync(
+  path.join(source, "docs/consumer-bootstrap.md"),
+  "# Fixture bootstrap\nRun handbook:check; retain the revision.\n",
+);
 mkdirSync(path.join(source, "scripts"));
 writeFileSync(
   path.join(source, ".agents/gated-commands.json"),
@@ -125,8 +130,12 @@ test("consumer sync is idempotent and offline readiness needs no clone or creden
     path.join(root, ".agents/skills/playwright/SKILL.md"),
     "utf8",
   );
-  assert.match(wrapper, /existing Handbook path and full revision/);
-  assert.match(wrapper, /resources --revision SHA/);
+  assert.match(wrapper, /retained Handbook path and full revision/);
+  assert.match(wrapper, /Handbook bootstrap/);
+  assert.match(
+    readFileSync(path.join(root, ".agents/handbook.md"), "utf8"),
+    /handbook:check/,
+  );
 });
 
 test("readiness reports broken references, absent map sections and invalid metadata", (t) => {
@@ -205,11 +214,12 @@ test("unmanaged consumer skills survive adoption and removed skills are reported
   );
 });
 
-test("skill integrity detects a deleted Claude reference", (t) => {
+test("skill integrity detects changed or deleted bootstrap and deleted Claude references", (t) => {
   const root = mkdtempSync(path.join(tmpdir(), "handbook-integrity-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   for (const name of [
     ".agents/skills",
+    ".agents/handbook.md",
     ".claude/skills",
     "CLAUDE.md",
     "handbook.json",
@@ -228,6 +238,14 @@ test("skill integrity detects a deleted Claude reference", (t) => {
     });
   const before = check();
   assert.equal(before.status, 0, before.error?.message || before.stderr);
+  const bootstrap = path.join(root, ".agents/handbook.md");
+  const original = readFileSync(bootstrap, "utf8");
+  writeFileSync(bootstrap, original + "\nUnreviewed change.\n");
+  assert.equal(check().status, 1, "modified bootstrap must fail integrity");
+  rmSync(bootstrap);
+  assert.equal(check().status, 1, "deleted bootstrap must fail integrity");
+  writeFileSync(bootstrap, original);
+  assert.equal(check().status, 0);
   rmSync(path.join(root, ".claude/skills/review-change/SKILL.md"));
   const after = check();
   assert.equal(after.status, 1, after.error?.message || after.stderr);

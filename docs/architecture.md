@@ -59,6 +59,40 @@ The Next.js instrumentation hook checks application, database, authentication an
 
 ## Extension conventions
 
+### Project extensions
+
+Project features and samples register through two project-owned lists instead of
+editing core files. [src/project/extensions.ts](../src/project/extensions.ts) is
+client-safe data: a module descriptor (routes, collections, workers, configuration
+and dependencies), sidebar/account links and English administration sections.
+[src/project/server.ts](../src/project/server.ts) is server-only: MCP tools, domain
+adapters and idempotent index setup for an extension module. The contracts live in
+`src/lib/extensions.ts` and `src/lib/server/extensions.ts`.
+
+Core composes these after its own entries: module IDs and descriptors (so the
+manifest, `moduleForPath`, workers, configuration checks and diagnostics include
+them), navigation, administration sections, the MCP catalog, the domain registry
+and `db:indexes`. Registration is validated when the registry loads: IDs,
+collections and admin links must be unique, dependencies must be core or listed
+earlier, module routes must not overlap core or other extension routes, links stay
+inside their module's routes, and MCP tool names are unique. A module is enabled
+only when its dependencies are. A server extension may attach to a core module ID.
+The domain registry composes on first use, so extension code may import Runs or
+domain services; import only types from `src/lib/server/mcp/tools.ts`. Contributions follow `moduleEnabled`; adapters of a
+disabled module stay registered for accepted attempts but reject new targets.
+Routes still live under `src/app`: module routes are gated by the proxy and
+`endpoint()`; pages outside module routes, such as administration, check
+`moduleEnabled` themselves. Link labels use `ui` catalog keys through a literal
+`t("m…")` call so client key inventories find them. Links name a Lucide icon
+instead of importing a component, because server scripts load the registry under
+the `react-server` condition; the shell loads these icons lazily, so they appear
+just after the core icons on first paint. Extension MCP permissions are added to
+`mcpPermissions` in the environment catalog so client grants validate.
+
+Samples are removable features declared in [samples.json](../samples.json); see
+[the samples guide](../src/samples/README.md). The notes sample is the reference
+for a complete extension.
+
 ### MCP tools
 
 `/api/mcp` is an opt-in Node Route Handler using the official MCP SDK's stateless
@@ -95,7 +129,21 @@ Persisted changes must preserve profiles, access, wallets, ledger and idempotenc
 records. Prefer additive indexes/fields and explicit, versioned migrations when
 stored data actually changes. Review existing-data compatibility and rollback
 before dropping indexes or rewriting records. `db:indexes` is idempotent index
-setup, not a migration/reset framework; never import the source project's destructive reset.
+setup; never import the source project's destructive reset.
+
+`npm run db:migrate` applies forward-only data migrations from
+`src/lib/server/core-migrations.ts` and server extensions' `migrations`, in that
+order. IDs are `<owner>:<NNNN>-<name>`; the owner is `core` or the module that owns
+the data, so records stay valid when a module moves between core, samples and
+projects. A leased `control` lock serializes runners; applied IDs are recorded in
+`migrations` with a source checksum. Migrations must be idempotent: a failure
+records nothing and the next run retries. Disabled owners are skipped until
+enabled. A changed checksum is reported but never rerun; add a new migration
+instead. Take the operational backup first; it is the rollback. Run indexes before
+migrations. The lease renews while a migration runs. Provisioning's administration
+container has a 15-minute limit, so run long migrations with `npm run db:migrate`
+directly. New environments run both during provisioning; existing ones run
+`db:migrate` (or `prepare-host.py --apply --migrate`) when upgrade notes say so.
 Dify orchestrator Runs extend the shared durable execution engine.
 The existing payment worker stays focused on payment reconciliation and credit
 maintenance. Quality warnings remain advisory; required behavior must still work.
@@ -698,10 +746,28 @@ Runtime environments retain credentials and connection settings. Module descript
 select navigation/admission, index ownership and worker requirements; accepted
 financial and Run history is preserved independently of new admission visibility.
 
-The initializer reads an immutable reviewed Git tree into a new empty directory.
-It rejects symlinks/submodules, case-colliding paths, unsafe destinations and missing
-source contracts; excludes environment overrides, credentials, generated Android,
-caches/browser/database state and Git history; and records the source revision.
+The initializer copies the objects reachable from a reviewed commit into a new
+repository, checks it out on `main`, deletes generated and source-owned files
+(caches, build output, generated Android, editor settings, tracking selections),
+applies the identity rewrites and records everything in one initialization commit
+with an `upstream` remote. It rejects symlinks/submodules, case-colliding paths,
+unsafe destinations, missing source contracts and any revision whose history ever
+touched private paths (`.env` files, credential or service-account JSON, keys,
+`secrets/`, an `.npmrc` with auth). `project.source.json` records the source
+revision, the `template.json` version, the upstream remote name and removed
+samples.
+
+`npm run template:update -- <version>` fetches `upstream`, merges the
+`template-v<version>` tag with a merge commit and prints the upgrade notes between
+the recorded and the new version. It keeps files the project deliberately deleted
+when the template changed them, resolves `samples.json` and registry conflicts
+caused by removed samples, then reapplies those removals from the release's
+declarations. Other conflicts stop with the merge open for manual resolution. The
+files the initializer rewrites (package identity, environment examples, deployment
+examples, workflow names, the Dockerfile and offline assets) are the expected manual
+conflict points. Revisions without `template.json` predate template
+versioning and are rejected. [CHANGELOG.md](../CHANGELOG.md) defines release
+semantics and upgrade notes; `npm run check:template` reports drift.
 Package identity, local connections and deployment examples derive from the manifest.
 Application mode enables reusable modules with providers inactive and examples
 hidden. Example mode must be explicitly selected. Local fixture verification uses
