@@ -130,7 +130,7 @@ All public hostnames use the existing host Cloudflare connector. Staging uses di
 Production uses the restricted controller and pinned SSH path once its own bindings are configured; it is not activated. This project
 does not create, reinstall, restart or own that connector or Dify Community.
 `agentic-poc` remains their owner; its Terraform writes the complete tunnel route
-list. The first staging route is a reviewed owner-side Terraform change. Unibase reads
+list. The first staging route is a reviewed owner-side Terraform change. The application reads
 live tunnel/DNS configuration and refuses a missing, shadowed or incorrect route;
 it does not write Cloudflare configuration.
 
@@ -196,10 +196,6 @@ connections. Without it the initializer clears source SSH/provider/owner connect
 and derives fresh project names, databases/users, paths, workflow labels and suggested
 ports/subnets. Profiles allow only the documented public connection sections; they
 never carry credentials. Review host allocations even when using suggested values.
-
-The base now uses `unibase` namespaces. Old `unitale` databases and private files
-are neither migrated nor deleted. Existing `.env.local` values still override the
-new defaults; review those overrides to start with fresh local namespaces.
 
 ## Secrets and one-time access bootstrap
 

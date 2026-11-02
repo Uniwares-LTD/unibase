@@ -4,6 +4,7 @@ import { AdminStateLabel as StateLabel } from "@/components/admin-state-label";
 import { PageMessages } from "@/components/page-messages";
 
 import Link from "next/link";
+import { moduleEnabled } from "@/lib/project";
 import { EmptyState, PageHeader } from "@/components/page-patterns";
 import { AdminCleanup, PaymentReview } from "@/components/admin-operations";
 import { adminPageSession } from "@/lib/server/admin-view";
@@ -47,9 +48,11 @@ export default async function OperationsPage() {
           title="Operations"
           description="Worker health, payment recovery and content cleanup. Changes require administrator access."
           actions={
-            <Button variant="outline" asChild>
-              <Link href="/admin/ai">Review uncertain AI executions</Link>
-            </Button>
+            moduleEnabled("runs") && (
+              <Button variant="outline" asChild>
+                <Link href="/admin/ai">Review uncertain AI executions</Link>
+              </Button>
+            )
           }
         />
         <Card>

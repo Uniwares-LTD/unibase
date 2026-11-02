@@ -838,7 +838,7 @@ for exact interfaces, rollout ordering and production acceptance.
 Staging shares Firebase identities with explicit web registrations and app-specific
 MongoDB data/roles; production requires a separate Firebase project per app. Atlas
 capacity is externally owned. agentic-poc owns the existing tunnel/SSH Access/Dify
-and its Terraform writes the complete route list. Unibase verifies its owner-managed
+and its Terraform writes the complete route list. The application verifies its owner-managed
 route; it does not install a route controller or use Booklet's deployment workflow.
 The [ownership follow-ups](deployment.md#shared-ownership-follow-ups) require an
 explicit migration before authority changes.

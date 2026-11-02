@@ -7,7 +7,9 @@ whole lifecycle; command details are in the [README](../README.md#start-a-derive
 ## Create a project
 
 Create projects only with `npm run project:create` from a released template commit
-(a `template-v<version>` tag). Do not use GitHub's "Use this template" button: it
+(the commit of a `template-v<version>` tag, for example
+`git rev-parse template-v0.3.0^{commit}`), passing `--image-owner` with the GitHub
+organization that will own the project's repository. Do not use GitHub's "Use this template" button: it
 copies files without history, and `template:update` could never merge into such a
 repository. The initializer:
 
@@ -32,8 +34,9 @@ repository. The initializer:
    `public/offline.html`.
 5. Write the project's first milestones in `docs/implementation-plan.md`.
 6. For deployment, follow [derived-project deployment initialization](deployment.md#derived-project-deployment-initialization).
-   Set `deployment.imageRepository` to `ghcr.io/<owner>/<repository>` (it must equal
-   the GitHub repository), create the `_staging` and `_prod` branches, and create
+   `deployment.imageRepository` must equal `ghcr.io/<owner>/<repository>` of the
+   GitHub repository (`--image-owner` sets the owner; rename it if the repository
+   name differs from the slug), create the `_staging` and `_prod` branches, and create
    GitHub environments with these secrets:
    - `staging` and `prod`: `DEPLOY_SSH_PRIVATE_KEY`, `DEPLOY_SSH_HOST_KEY`,
      `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, `CLOUDFLARE_READ_TOKEN`;
@@ -65,8 +68,9 @@ Extend through the registries instead of editing core lists. The
 ## Receive template updates
 
 With a clean working tree run `npm run template:update -- <version>`. It merges the
-release, keeps files the project deliberately deleted, keeps the project's own
-installation files, reapplies removed samples and prints the upgrade notes. Other
+release, keeps files the project deliberately deleted, keeps the project's version
+of its own installation files when they conflict (clean template changes to them
+still apply), reapplies removed samples and prints the upgrade notes. Other
 conflicts stop with the merge open. Never edit `template.json` or `CHANGELOG.md`
 by hand in a project; they describe the template release it last merged.
 

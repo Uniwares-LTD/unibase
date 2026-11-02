@@ -72,7 +72,7 @@ history ever contained private material such as `.env` files or credentials.
 2. Run from the source repository with its pinned dependencies installed:
 
    ```powershell
-   npm.cmd run project:create -- --revision FULL_REVIEWED_COMMIT_ID --destination D:/Projects/my-product --manifest D:/Projects/my-product.manifest.json --mode application
+   npm.cmd run project:create -- --revision TEMPLATE_RELEASE_COMMIT_ID --destination D:/Projects/my-product --manifest D:/Projects/my-product.manifest.json --mode application --image-owner Uniwares-LTD
    ```
 
    Use `--mode examples` only with an examples manifest. `--source` optionally
@@ -112,7 +112,11 @@ fetches `upstream`, merges the `template-v1.2.0` tag with a merge commit and pri
 the upgrade notes since the recorded version. Files the project deleted stay
 deleted (listed as "kept deleted"; a template fix to such a file, including a
 security fix, is not applied, so review the list), and removed samples stay
-removed. `project.source.json` records the release before any manual step. Other conflicts stop with the merge open:
+removed. When a project-owned installation file (`project.config.json`,
+`deploy/environments/*.json`, Handbook choices, the implementation plan) conflicts,
+the project's version is kept and listed as "kept project version"; template changes
+that merge cleanly still apply. `project.source.json` records the release before
+any manual step. Other conflicts stop with the merge open:
 resolve them, `git add`, `git commit`. Then apply the upgrade notes and run
 `npm.cmd ci`, `npm.cmd run validate` and `npm.cmd run build`.
 
@@ -129,8 +133,8 @@ authorization as other publication.
 | Public deployment settings and credentials                                                     | Tracked `deploy/environments/*.json` plus private credentials; [environment catalog](docs/environment-catalog.md) and [deployment guide](docs/deployment.md) |
 | Android                                                                                        | Optional manifest package identity, explicit host/signing configuration; regenerate before building                                                          |
 
-The base's recorded verification remains historical evidence for a derived product;
-replace its milestone scope with the new product's accepted work.
+The initializer gives the new product an empty implementation plan; record its
+own accepted work there.
 
 ## Dify environment connections
 
@@ -493,7 +497,7 @@ The worker runs the bundled `dist/ai-worker.cjs` loaded when its process starts;
 rebuilding the file alone does not update a running process. Keep its bundle in
 sync with the web server, especially when adding persona or artifact features.
 
-Administration ? Application settings initializes defaults once, then saved policies
+Administration → Application settings initializes defaults once, then saved policies
 control web/worker behavior. Branding is explicitly allowlisted; management/encryption secrets,
 connection/origin settings and Android build identity stay in environment
 configuration. Accepted attempts and purchases retain their original billing

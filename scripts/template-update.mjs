@@ -157,7 +157,11 @@ export async function templateUpdate(
     if (row.startsWith("DU ")) {
       git(["rm", "-q", "--", file]);
       kept.push(file);
-    } else if (projectOwned.some((pattern) => pattern.test(file))) {
+    } else if (
+      // Only states with a project-side version can keep it.
+      !/^(?:UA|DD) /.test(row) &&
+      projectOwned.some((pattern) => pattern.test(file))
+    ) {
       git(["checkout", "--ours", "--", file]);
       git(["add", "--", file]);
       projectVersions.push(file);
