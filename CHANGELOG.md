@@ -20,6 +20,16 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+None.
+
+### Upgrade notes
+
+None.
+
+## 0.2.0 — 2026-11-02
+
+### Changes
+
 - Template versioning: `template.json`, this changelog and the recorded
   `templateVersion` in derived projects' `project.source.json`.
 - Project extension registry: `src/project/extensions.ts` and
