@@ -17,7 +17,7 @@ dependent decisions. See [agent tooling](docs/agent-tooling.md) for integration 
 
 Read the [current implementation plan](docs/implementation-plan.md) and relevant
 code before editing. The user's request and accepted milestone define scope;
-`docs/history/` is evidence, not a task queue. Accepted milestones need no
+Accepted milestones need no
 retroactive issues. Shared guidance does not transfer ownership or expand authority.
 Preserve local adaptations and resolve actual conflicts explicitly.
 

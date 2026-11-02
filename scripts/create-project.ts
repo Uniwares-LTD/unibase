@@ -14,6 +14,7 @@ async function main() {
           "--mode",
           "--infrastructure-profile",
           "--upstream",
+          "--image-owner",
         ].includes(args[i]) ||
         !args[i + 1] ||
         values[args[i]]
@@ -40,6 +41,7 @@ async function main() {
         ? JSON.parse(await readFile(values["--infrastructure-profile"], "utf8"))
         : undefined,
       upstream: values["--upstream"],
+      imageOwner: values["--image-owner"],
     });
     console.log(
       `Created ${result.slug} from ${result.revision} with one initialization commit and an upstream remote. Install dependencies and review .env.example before starting; set your own origin before pushing.`,

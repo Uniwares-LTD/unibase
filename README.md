@@ -1,46 +1,31 @@
 # Base
 
-## Dify environment connections
+Base is a reusable Next.js application template. It provides TypeScript,
+Tailwind CSS and shadcn/ui; Firebase Authentication with MongoDB profiles;
+English-only administration; credits and Stripe payments; private files;
+in-app notifications; rate limits; diagnostics; MCP; optional durable Dify Runs
+with personas and saved artifacts; PWA support with a prepared Android Trusted
+Web Activity; and Classic/Glass/Soft Blue styles with light/dark/system themes.
 
-Each Dify app belongs to one project/environment. In Administration → Orchestrators,
-Create prepares that environment's MCP connection automatically. An unmanaged or
-foreign app offers **Create a copy for this environment**: select an exact published
-version; the source app is never modified. Destination apps have an environment
-suffix and `app:<project>-<environment>` tag. Remove unmanaged registrations manually
-and replace them with environment-owned copies; there is no adoption or migration.
+Products are created from it with `npm run project:create` and receive later
+template releases with `npm run template:update`. Project identity and modules
+come from `project.config.json`; `APP_NAME` overrides the display name at
+runtime. Project features extend the template through `src/project/`.
 
-For local registration, configure `MCP_PUBLIC_URL` privately with your running HTTPS
-tunnel's `/api/mcp` endpoint and restart the web process. Hosted environments use
-`APP_ORIGIN` plus `/api/mcp` and reject this setting. The selected `RUN_MCP_CLIENT_ID`
-needs `server:read` and the workflow's tool permissions. No credentials or temporary
-tunnel addresses belong in template DSL files.
+## Documentation
 
-Base settings → Runs → External MCP mappings accepts a list of
-`{ "source": "source_provider_id", "destination": "destination_provider_id" }`.
-These explicitly approve third-party MCP connections for the current environment;
-they contain no credentials. Unmapped nodes block copying/registration. Copied secret
-variables start empty; configure destination resources in Dify before registering
-an app marked Setup required. See [MCP environment binding](docs/mcp.md#environment-owned-dify-apps).
-
-Deployment work starts with the [staging transition status](docs/deployment.md#staging-transition-status--2026-10-24)
-and private [shared infrastructure inventory](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/inventory/srv1.md).
-They record the verified staging handoff and deferred recovery/shared-service work.
-
-For new applications, follow [derived-project deployment initialization](docs/deployment.md#derived-project-deployment-initialization)
-and its named credential checklist. Public settings live in tracked environment JSON;
-GitHub Actions configuration variables are unused for deployment.
-
-Base is a Next.js application foundation with PWA support and a prepared Android Trusted Web Activity project. It uses TypeScript, Tailwind CSS, shadcn/ui, Firebase Authentication, MongoDB profiles, admin and credit management, optional Dify execution, and Classic/Glass/Soft Blue styles and persisted light/dark/system themes. See [the implementation plan](docs/implementation-plan.md) for verification status and remaining Android, production and recovery acceptance.
-
-These guides describe the reusable Base project. `APP_NAME` controls the web
-shell, metadata and install manifest at runtime; the credential-free default is
-Base. Project identity and reusable modules are declared in `project.config.json`.
-The initializer derives isolated namespaces while preserving the existing installation.
-
-Use [the full feature test plan](docs/test-plan.md) for regression coverage and
-[the readiness audit](docs/implementation-plan.md#clone-readiness-audit--2026-10-10)
-for historical evidence and external limits. Current reuse acceptance is recorded in
-[the hardening extension](docs/implementation-plan.md#accepted-reuse-and-service-hardening-extension---2026-10-13).
+- [Using the template](docs/template.md): create a project, the first steps
+  after creation, adding a feature, receiving updates and releasing the template.
+- [Architecture](docs/architecture.md), [services](docs/services.md),
+  [runs](docs/runs.md), [MCP](docs/mcp.md), [payments](docs/payments.md) and the
+  [design system](docs/design-system.md) describe current behavior.
+- [Local testing](docs/local-testing.md) and the [feature test plan](docs/test-plan.md)
+  cover verification.
+- [Deployment](docs/deployment.md) covers environments, releases and new
+  installations; the private [shared infrastructure inventory](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/inventory/srv1.md)
+  owns hosts. Public settings live in tracked environment JSON.
+- The [implementation plan](docs/implementation-plan.md) lists open work and the
+  [changelog](CHANGELOG.md) lists template releases.
 
 ## Agent setup
 
@@ -144,9 +129,30 @@ authorization as other publication.
 | Public deployment settings and credentials                                                     | Tracked `deploy/environments/*.json` plus private credentials; [environment catalog](docs/environment-catalog.md) and [deployment guide](docs/deployment.md) |
 | Android                                                                                        | Optional manifest package identity, explicit host/signing configuration; regenerate before building                                                          |
 
-The base now uses fresh `unibase` namespaces. Old `unitale` data and private files remain untouched; review private local overrides before starting fresh.
 The base's recorded verification remains historical evidence for a derived product;
 replace its milestone scope with the new product's accepted work.
+
+## Dify environment connections
+
+Each Dify app belongs to one project/environment. In Administration → Orchestrators,
+Create prepares that environment's MCP connection automatically. An unmanaged or
+foreign app offers **Create a copy for this environment**: select an exact published
+version; the source app is never modified. Destination apps have an environment
+suffix and `app:<project>-<environment>` tag. Remove unmanaged registrations manually
+and replace them with environment-owned copies; there is no adoption or migration.
+
+For local registration, configure `MCP_PUBLIC_URL` privately with your running HTTPS
+tunnel's `/api/mcp` endpoint and restart the web process. Hosted environments use
+`APP_ORIGIN` plus `/api/mcp` and reject this setting. The selected `RUN_MCP_CLIENT_ID`
+needs `server:read` and the workflow's tool permissions. No credentials or temporary
+tunnel addresses belong in template DSL files.
+
+Base settings → Runs → External MCP mappings accepts a list of
+`{ "source": "source_provider_id", "destination": "destination_provider_id" }`.
+These explicitly approve third-party MCP connections for the current environment;
+they contain no credentials. Unmapped nodes block copying/registration. Copied secret
+variables start empty; configure destination resources in Dify before registering
+an app marked Setup required. See [MCP environment binding](docs/mcp.md#environment-owned-dify-apps).
 
 ## Personas and saved artifacts
 

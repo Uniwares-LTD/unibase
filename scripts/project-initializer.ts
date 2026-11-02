@@ -24,12 +24,14 @@ type Options = {
   manifest: unknown;
   mode: "application" | "examples";
   infrastructureProfile?: unknown;
+  // GHCR owner for deployment.imageRepository; must match the GitHub repository.
+  imageOwner?: string;
   // Remote URL for template updates; defaults to the source's origin.
   upstream?: string;
 };
 // Generated, local or source-owned files: deleted in the initialization commit.
 const excluded =
-  /^(?:\.git(?:\/|$)|node_modules\/|\.next\/|\.cache\/|\.codex\/|\.firebase\/|\.setup\/|output\/|dist\/|coverage\/|test-results\/|playwright-report\/|\.playwright-cli\/|android\/project\/|deploy\/config\.json$|\.agents\/(?:tracking\.json|repository\.md)$|deploy\/shared-owner\/.*\.patch$)|(?:^|\/)(?:\.vscode|\.idea)(?:\/|$)|(?:^|\/)\.npmrc$|\.(?:aab|apk|tsbuildinfo|log)$/i;
+  /^(?:\.git(?:\/|$)|node_modules\/|\.next\/|\.cache\/|\.codex\/|\.firebase\/|\.setup\/|output\/|dist\/|coverage\/|test-results\/|playwright-report\/|\.playwright-cli\/|android\/project\/|deploy\/config\.json$|\.agents\/(?:tracking\.json|repository\.md)$|docs\/features\/|deploy\/shared-owner\/.*\.patch$)|(?:^|\/)(?:\.vscode|\.idea)(?:\/|$)|(?:^|\/)\.npmrc$|\.(?:aab|apk|tsbuildinfo|log)$/i;
 // Private material. Derived projects share the template's history, so a
 // revision whose history ever contained such a path is refused, not filtered.
 const privatePath =
@@ -150,6 +152,9 @@ async function checkedDestination(source: string, destination: string) {
 }
 export async function createProject(options: Options) {
   const manifest = projectSchema.parse(options.manifest);
+  const imageOwner = options.imageOwner?.toLowerCase() ?? "replace-owner";
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/.test(imageOwner))
+    throw new Error("Image owner must be a GitHub user or organization name.");
   if (!["application", "examples"].includes(options.mode))
     throw new Error("Choose application or examples mode.");
   if (manifest.examples !== (options.mode === "examples"))
@@ -256,6 +261,19 @@ export async function createProject(options: Options) {
   git(staging, ["reset", "-q", "--hard"]);
   for (const name of removed)
     await rm(path.join(staging, name), { force: true });
+  // Prune directories the removals emptied, deepest first.
+  const emptied = [
+    ...new Set(
+      removed.flatMap((name) =>
+        name
+          .split("/")
+          .slice(0, -1)
+          .map((_, index, parts) => parts.slice(0, index + 1).join("/")),
+      ),
+    ),
+  ].sort((a, b) => b.split("/").length - a.split("/").length);
+  for (const directory of emptied)
+    await rmdir(path.join(staging, directory)).catch(() => undefined);
   const json = async (file: string, value: unknown) =>
     writeFile(path.join(staging, file), JSON.stringify(value, null, 2) + "\n");
   const readJson = async (file: string) =>
@@ -324,7 +342,7 @@ export async function createProject(options: Options) {
   }
   await writeFile(path.join(staging, ".env.example"), env);
   const deploy = await readJson("deploy/config.example.json");
-  deploy.imageRepository = `ghcr.io/replace-owner/${manifest.slug}`;
+  deploy.imageRepository = `ghcr.io/${imageOwner}/${manifest.slug}`;
   const seed = createHash("sha256")
     .update(manifest.slug)
     .digest()
@@ -345,7 +363,13 @@ export async function createProject(options: Options) {
   const profile = options.infrastructureProfile as
     Record<string, Record<string, unknown>> | undefined;
   const profileKeys: Record<string, string[]> = {
-    ssh: ["host", "user", "cloudflaredVersion", "cloudflaredSha256"],
+    ssh: [
+      "host",
+      "user",
+      "cloudflaredVersion",
+      "cloudflaredSha256",
+      "transport",
+    ],
     shared: [
       "ownerRepository",
       "ownerRef",
@@ -353,6 +377,7 @@ export async function createProject(options: Options) {
       "tunnelId",
       "cloudflareAccountId",
       "cloudflareZoneId",
+      "routeMode",
     ],
     atlas: ["projectId", "clusterName", "vpsEgressCidr"],
     google: [
@@ -360,6 +385,7 @@ export async function createProject(options: Options) {
       "parent",
       "workloadIdentityProvider",
       "provisionerServiceAccount",
+      "oauthClientId",
     ],
     deployment: ["redisImage", "nginxImage", "adminImage"],
     ghcr: ["pullUser"],
@@ -450,7 +476,7 @@ export async function createProject(options: Options) {
       packageName: manifest.android?.packageName ?? null,
     };
     config.atlas.mongoUser = `${prefix}_${environment}`;
-    config.deployment.imageRepository = `ghcr.io/replace-owner/${manifest.slug}`;
+    config.deployment.imageRepository = `ghcr.io/${imageOwner}/${manifest.slug}`;
     const deployIndex = Math.max(0, i - 1);
     config.deployment.port = 20000 + (seed % 15000) * 2 + deployIndex;
     const subnet = (seed % 32768) * 2 + deployIndex;
@@ -501,6 +527,23 @@ export async function createProject(options: Options) {
   const template = await readJson("template.json");
   if (!validTemplateVersion(template.version))
     throw new Error("The reviewed revision has no valid template version.");
+  // The template's milestones are not the project's: start an empty plan.
+  await writeFile(
+    path.join(staging, "docs/implementation-plan.md"),
+    `# Implementation plan
+
+Accepted milestones for ${manifest.displayName}. Accepted milestones authorize
+implementation without a new issue; add them here as they are agreed.
+
+## Current state
+
+Created from template ${template.version}.
+
+## Open work
+
+None yet.
+`,
+  );
   await json("project.source.json", {
     version: 1,
     revision,
@@ -512,7 +555,7 @@ export async function createProject(options: Options) {
   await json("deploy/image-retention.proposal.json", {
     version: 1,
     project: manifest.slug,
-    imageRepository: `ghcr.io/replace-owner/${manifest.slug}`,
+    imageRepository: `ghcr.io/${imageOwner}/${manifest.slug}`,
     environments: { staging: "staging", prod: "production" },
     automatic: false,
     status: "Owner review and explicit Infrastructure enrollment required",

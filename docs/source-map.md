@@ -66,7 +66,7 @@ the admin boundary; public-page catalogs remain in `messages/`.
 owns integration procedures and provenance; the [repository adapter](../.agents/repository-adapter.md)
 owns local constraints and Handbook exceptions. Root [instructions](../AGENTS.md)
 own task-start routing and short decision-point reminders; this map owns navigation.
-Historical evidence in [history](history) is not a task queue.
+Dated evidence lives in Git history, not in a docs folder.
 Repository [preferences](../.agents/repository.md) own issue language and durable branches;
 [tracking metadata](../.agents/tracking.json) records this repo's selection when configured.
 [Document starters](templates), [issue forms](../.github/ISSUE_TEMPLATE) and the
@@ -117,4 +117,4 @@ Deployment changes require configuration ownership classification and operator-i
 
 The [host release script](../scripts/deploy/vps.sh) delegates disk protection and image maintenance to Infrastructure's installed controller. [The initializer](../scripts/project-initializer.ts) generates a project-specific retention enrollment proposal, never host authorization.
 
-Current procedures link to dated evidence rather than duplicating it. Superseded first-deployment evidence is retained in [history](history/deployment-evidence-2026-10-25.md); it is not a task queue or runnable update procedure.
+Dated evidence lives in Git history and pull requests, not in current documents.

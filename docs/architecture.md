@@ -9,7 +9,7 @@ but cannot register directly. Registration and live Run admission enforce this b
 accepted definitions include the verified binding. Administration shows environment,
 verification state and source publication. See [environment binding](mcp.md#environment-owned-dify-apps).
 
-For deployment status and remaining changes, see the [staging transition](deployment.md#staging-transition-status--2026-10-24)
+For deployment status and remaining changes, see the [staging transition](deployment.md#deferred-compatibility-and-recovery-work)
 and [shared architecture](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/architecture.md).
 Current staging retains worker containers, app Redis and private Nginx.
 Shared-service and job-endpoint consolidation remains deferred.
