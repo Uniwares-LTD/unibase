@@ -66,8 +66,10 @@ responses and disposable authentication/MongoDB: copy, clipboard rejection/manua
 selection, focus, credential cleanup and hydration. MongoDB tests verified scope,
 exact expiry, concurrent limits, replacement store/limiter instances and outages.
 A separate read-only review checked credential disclosure, audit/revocation behavior,
-translations and rollout guidance. Publication, additive index installation,
-real Redis recreation and live acceptance remain separate.
+translations and rollout guidance. Publication and additive index installation are
+complete; staging release/readiness and the independent web/worker check passed.
+See the [current release](deployment.md#current-staging-release). The real Redis
+fixture and fresh authenticated grant lifecycle/persistence acceptance remain separate.
 See [diagnostic rollout](diagnostics-api.md#durable-grant-rollout).
 
 ## Accepted English-only administration — 2026-11-01
@@ -86,7 +88,9 @@ Arabic profile/cookie, user details, confirmation/copy dialogs, English admin an
 Arabic public API errors, server-rendered lang/dir and client navigation restoring
 Arabic/RTL. Grant creation responses were mocked; authentication and MongoDB were
 disposable. No hydration/translation errors were detected. A separate read-only
-review checked the final change. Publication/deployment remain separate.
+review checked the final change. Publication and staging release/check are complete;
+authenticated live UI/grant acceptance remains separate from local browser evidence.
+See the [current release](deployment.md#current-staging-release).
 
 ## Agreed decisions
 
