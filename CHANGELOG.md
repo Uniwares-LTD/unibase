@@ -20,7 +20,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
-None.
+- Local MongoDB data moves to `.cache/mongodb/<slug>`; the earlier
+  `.cache/mongodb-data` is left untouched.
+- `MCP_CONNECTION_NONBLOCKING` is a declared tooling variable, so agent hosts
+  that set it no longer fail application environment validation.
 
 ### Upgrade notes
 
