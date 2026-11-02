@@ -498,7 +498,10 @@ plan do not substitute for these checks on the new project.
   Add `-- --http` to verify account journeys in each generated project with its
   own project-specific, ephemeral Auth Emulator. Add `--offline` after `--` when
   the pinned dependency cache is already populated. The shared developer Auth
-  Emulator is not reused by this option.
+  Emulator is not reused by this option. Fixtures under
+  `.cache/initialized-projects/` are deleted after a passing run and kept after
+  a failure; add `--keep` to retain a passing run. Each run first removes
+  fixtures left by earlier runs.
 - Run `npm run test:limits` for two-process Redis limits, expiry, spoofed headers,
   failure and namespace isolation. Run `npm run test:deployment` for ingress,
   readiness, environment isolation and retained-release rollback tooling.
