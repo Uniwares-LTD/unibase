@@ -20,11 +20,20 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
-None.
+- Local MongoDB data moves to `.cache/mongodb/<slug>`; the earlier
+  `.cache/mongodb-data` is left untouched.
+- `MCP_CONNECTION_NONBLOCKING` is a declared tooling variable, so agent hosts
+  that set it no longer fail application environment validation.
+- Run result images get WebP `thumb` and `preview` variants; the asset route
+  serves `?size=`, verifies the session once, and caches privately for five
+  minutes with digest ETags.
+- `endpoint()` passes its verified session to request actions.
 
 ### Upgrade notes
 
-None.
+- Optional: after the operational backup, `npm run db:migrate` applies
+  `runs:0002-asset-variants` to pre-generate variants. Without it, variants are
+  created on first request.
 
 ## 0.2.0 — 2026-11-02
 

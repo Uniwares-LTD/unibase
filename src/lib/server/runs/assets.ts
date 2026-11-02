@@ -29,6 +29,7 @@ export async function stageProductAssets(db: Db, uid: string, jobId: string) {
             digest: 1,
             base64: 1,
             object: 1,
+            variants: 1,
             status: 1,
             createdAt: 1,
             state: { $literal: "ready" },
@@ -161,7 +162,8 @@ export async function scheduleAssetDeletion(
     },
     {
       $set: { state: asset.object ? "deleting" : "deleted" },
-      $unset: { base64: "" },
+      // Display variants are copies of the image and leave with the payload.
+      $unset: { base64: "", variants: "" },
       $inc: { fence: 1 },
     },
     { session },

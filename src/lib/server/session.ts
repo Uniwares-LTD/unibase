@@ -45,7 +45,13 @@ export async function requireSession(verified = true) {
   const session = await getSession();
   if (!session)
     throw new AppError("UNAUTHENTICATED", "Please sign in to continue.", 401);
-  if (verified && (!session.email_verified || !session.email))
+  return verified ? requireVerified(session) : session;
+}
+// Applies the verified-email rule to a session endpoint() already checked.
+export function requireVerified<
+  T extends { email_verified?: boolean; email?: string },
+>(session: T) {
+  if (!session.email_verified || !session.email)
     throw new AppError(
       "EMAIL_UNVERIFIED",
       "Verify your email to continue.",
