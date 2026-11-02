@@ -1,5 +1,24 @@
 # Base source map
 
+## Task routing
+
+Read the [repository adapter](../.agents/repository-adapter.md) for local rules,
+then use the row matching the task. Shared skills resolve at the retained Handbook
+revision; these links provide context, not additional authority.
+
+| Task | Start here | Add when applicable | Verification |
+| --- | --- | --- | --- |
+| Guidance and Handbook integration | [Agent tooling](agent-tooling.md), [handbook.json](../handbook.json) | Generated [bootstrap](../.agents/handbook.md), selected maintain-project skill | handbook:ready, handbook:entrypoints, check:skills, check:docs |
+| UI, locale or navigation | [Design system](design-system.md), [locale architecture](architecture.md#locale-and-direction) | Selected Next.js, React and Playwright skills; adapter UI checks | typecheck, lint, check:i18n, affected browser journeys |
+| Files, quotas, domains or accounting | [Service contracts](services.md) | [Server modules](../src/lib/server), accepted [plan](implementation-plan.md) | Affected behavior/boundary tests and adapter checks |
+| MCP or Dify workflows | [MCP guidance](mcp.md) | [Environment binding](../src/lib/server/runs/environment-binding.ts), [templates](../src/lib/server/runs/templates/README.md) | Affected accounts/MCP tests; typecheck/build for runtime changes |
+| Diagnostics | [Diagnostics API](diagnostics-api.md) | [Diagnostic server](../src/lib/server/diagnostics), service read-only boundaries | Affected diagnostics tests and inventories |
+| Deployment or provider activation | [Deployment guidance](deployment.md#current-staging-release) | Infrastructure owner guidance/inventory linked there; adapter operational boundaries | Impact classification and affected deployment checks; live actions need separate authorization |
+| New documentation or templates | [Canonical documents](#documentation) | Selected maintain-docs skill and [local starters](templates) | check:docs; opt-in template replacement |
+
+Command definitions and proportional selection remain in [package.json](../package.json)
+and the adapter; the table does not require unrelated suites for every task.
+
 ## Components
 
 - [Environment binding](../src/lib/server/runs/environment-binding.ts) owns Dify app
@@ -44,7 +63,9 @@ the admin boundary; public-page catalogs remain in `messages/`.
 [README](../README.md) owns setup; [architecture](architecture.md) owns current behavior;
 [implementation plan](implementation-plan.md) owns accepted milestones and remaining acceptance.
 [Deployment](deployment.md) owns application operations; [agent tooling](agent-tooling.md)
-and the [repository adapter](../.agents/repository-adapter.md) own local agent integration.
+owns integration procedures and provenance; the [repository adapter](../.agents/repository-adapter.md)
+owns local constraints and Handbook exceptions. Root [instructions](../AGENTS.md)
+own task-start routing and short decision-point reminders; this map owns navigation.
 Historical evidence in [history](history) is not a task queue.
 Repository [preferences](../.agents/repository.md) own issue language and durable branches;
 [tracking metadata](../.agents/tracking.json) records this repo's selection when configured.

@@ -5,6 +5,25 @@ Handbook owns eight workflow and four selected technology/UI skills. Canonical l
 .claude/skills references route to them; CLAUDE.md imports @AGENTS.md. Project facts and
 adaptations remain in the [adapter](../.agents/repository-adapter.md) and
 [source map](source-map.md), declared by [handbook.json](../handbook.json).
+
+## Guidance ownership
+
+Maintain each rule at its owning source and link to it from other entrypoints.
+Keep short authority and safety reminders where an agent makes the decision.
+
+| Source | Owns |
+| --- | --- |
+| [AGENTS.md](../AGENTS.md) | Task-start routing and decision-point reminders; retain Next.js's generated block |
+| [Repository adapter](../.agents/repository-adapter.md) | Local constraints, verification and accepted shared-policy exceptions |
+| [Source map](source-map.md#task-routing) | Task routing, canonical sources, code boundaries and ownership |
+| [Handbook bootstrap](../.agents/handbook.md) and skill wrappers | Generated access/discovery instructions; update through explicit sync |
+| This guide | Integration commands, maintenance procedures, client limits and historical provenance |
+| [handbook.json](../handbook.json) and [preferences](../.agents/repository.md) | Selected skills/source paths and confirmed repository choices |
+
+Shared workflows remain in Handbook at the task revision. Do not copy skill bodies,
+skill catalogs or bootstrap recovery steps into the root instructions or adapter.
+Canonical application/operational documents retain their detailed procedures.
+
 The [repository preferences](../.agents/repository.md) record user-confirmed language
 and durable branches; [tracking](../.agents/tracking.json) records this repository's
 project selection when configured. An unconfigured selection grants no tracking
@@ -47,6 +66,15 @@ passed. Check/doctor reported a usable cached baseline with no warnings. The cac
 still retains the earlier task revision; migration explicitly used the merged snapshot
 above without changing that active baseline. No application build or live-service check
 was needed for this guidance/tooling-only change.
+
+The latest-main review on 2026-11-02 checked
+`6205b01d94153824f02b678957ef51af18419015` (merged Handbook PR #17).
+Its only change after PR #16 is the normal merge-commit preference, now reflected
+in the adapter. No script, bootstrap, skill metadata or routing update is needed.
+The refresh helper retained its usable earlier baseline because the Handbook
+checkout is on a work branch; main was fetched and inspected without switching it.
+Readiness, entrypoint drift, skill integrity, documentation and translation checks
+passed for this follow-up, with no blocking findings in the separate read-only review.
 
 Review Handbook's merged onboarding instructions at the task revision before reconciling
 launcher/offline-tool copies. Preserve local scope, accepted milestones and advisory checks.

@@ -1,144 +1,177 @@
 # Base repository adapter
 
+This file owns local constraints and accepted Handbook adaptations. Root
+[instructions](../AGENTS.md) retain decision-point reminders; the
+[source map](../docs/source-map.md) owns navigation and canonical document ownership.
+Read the generated [bootstrap](handbook.md) for shared guidance access and
+[agent tooling](../docs/agent-tooling.md) for integration procedures and provenance.
+
 ## Repository and task contract
 
-- Project: Base. Resolve the actual repository identity from `git remote -v`; do not assume the extracted repository already exists. Read [repository preferences](repository.md) for issue language and durable branches.
-- Accepted implementation contract: docs/implementation-plan.md plus the user's current request.
-- Already accepted milestones in that plan, including the accepted handbook onboarding plan, need no retroactive issue or approval. New substantial work uses issues under handbook policy; small standalone changes may use the user's request directly. Clarify only material unresolved scope or architecture decisions.
-- Preserve the current work branch and existing changes. New work branches follow Handbook naming and the confirmed integration branch. Do not develop on durable branches. Existing accepted work branches need not be renamed during integration maintenance.
-
-## Canonical documentation
-
-- Setup and commands: README.md.
-- Current architecture: docs/architecture.md.
-- Milestones and remaining acceptance: docs/implementation-plan.md.
-- Application deployment/acceptance: docs/deployment.md; shared host/access/progress:
-  Infrastructure's docs/operations.md (linked from the deployment guide).
-- Historical trials: docs/history/. Preserve dated evidence and existing anchor links;
-  never treat an archived command or a past test result as current readiness.
-- Skill provenance and local guidance: docs/agent-tooling.md, skills-lock.json and provenance/handbook-migration.json.
-- Project-owned navigation and verified boundaries: docs/source-map.md; integration selection: handbook.json.
-- Add durable lessons to the nearest relevant document; do not create an incident diary or a competing source of truth.
-
-## Validation and review
-
-- Use npm run typecheck, npm run lint, npm test, npm run check:env, and npm run check:skills as relevant. npm run validate runs all advisory checks and reports each exit code without failing on quality warnings.
-- Build-sensitive work also runs npm run build. Desktop/mobile UI work uses Playwright against the local app; generated browser artifacts stay under output/playwright/ or .playwright-cli/ and out of Git.
-- Revalidate when source, dependency/configuration inputs, or relevant environment assumptions change.
-- A separate read-only review pass checks the exact final working tree against the task contract. Findings must identify actionable behavior defects. Report unverified scope honestly.
-- Imported wording that treats missing checks, type/test/lint warnings, or review results as automatic publication/deployment gates does not apply. Preserve the advisory quality policy while fixing in-scope defects and reporting evidence.
+- Project: Base. Resolve repository identity from `git remote -v`; do not assume
+  an extracted repository exists. [Preferences](repository.md) own issue language
+  and durable branches; [tracking](tracking.json) owns the selected destination.
+- The user's request and [implementation plan](../docs/implementation-plan.md)
+  define scope. Accepted milestones, including onboarding, need no retroactive
+  issue; new substantial work follows Handbook issue policy. Small standalone
+  changes may use the request directly. Do not implement later milestones.
+- Preserve unrelated work and existing work branches. Use Handbook branch naming
+  for new work; never develop on durable branches. Existing accepted branches
+  need not be renamed during integration maintenance.
+- Keep setup in README, current behavior in architecture, and milestone state in
+  the implementation plan, as linked by the source map. Preserve dated evidence
+  and anchors. Record useful lessons in the nearest canonical document rather
+  than a work log or competing source of truth.
 
 ## GitHub access
 
-Adopt Handbook's [GitHub access policy](https://github.com/Uniwares-LTD/handbook/blob/main/docs/work-policy.md#github-access):
-plain Git for supported operations, then working GitHub MCP, then CLI. If CLI lacks
-configuration or access, stop and guide repair. Chrome is only for actions unsupported
-by all three; explain the exact action and why those routes cannot perform it, then
-obtain explicit approval. Run Git/MCP/gh and helpers/tests that invoke them outside
-the sandbox from the first attempt using supported external/elevated execution.
-Required helper workflows and the local action authority below still apply.
+Follow Handbook's [GitHub access policy](https://github.com/Uniwares-LTD/handbook/blob/main/docs/work-policy.md#github-access)
+at the task revision: plain Git, then working capable GitHub MCP, then CLI.
+If CLI lacks configuration or access, stop that operation and guide repair.
+Chrome requires explicit approval for an exact action unsupported by all three.
+Run Git/MCP/gh and helpers/tests invoking them outside the sandbox from the first
+attempt. Required helper previews/readback and local authority still apply.
 
 ## Publication and external actions
 
-The consumer-owned [tracking selection](tracking.json) is the only source of this
-repository's tracking destination. If unconfigured, confirm a destination during
-adoption before any tracking operation. Use Backlog, Ready, In progress, In review, Done and
-Cancelled with separate blockers and one accountable human. Human acceptance owns
-closure; use ordinary Related to references rather than auto-closing keywords.
-Create approved issues through the task snapshot's create-issue.mjs helper; preserve
-human edits and inspect partial results before retrying. Tracking metadata records
-the existing selection, not evidence of current remote permissions or workflow state.
+Local authority exception: commits require explicit session authorization,
+unlike Handbook's work-branch commit default. This preserves the accepted
+reviewable-working-tree workflow. Pushes, PR publication, merges, deployments,
+releases, permissions and other project configuration changes also need explicit
+session authorization. Gates are a backstop, never authority.
 
-Local authority exception: unlike Handbook's work-branch commit default, commits
-still need explicit session authorization under AGENTS.md. This preserves the
-repository's accepted reviewable-working-tree workflow. Shared command gates are
-only a backstop; retiring a prompt does not expand that authority. Integrate through
-PRs; deployment promotion and external access changes remain separately authorized.
+For assigned issue work, enrollment of the existing issue, nonterminal status/
+blocker maintenance and concise evidence are authorized under Handbook policy.
+Resolve the accountable member from the assignment, not credentials. New issues
+and sub-issues need human approval and the task snapshot's create-issue helper;
+humans close/reopen issues and mark Done. Use ordinary Related to references.
+Reuse recorded tracking choices; unconfigured tracking needs destination
+confirmation before tracking operations. Preserve human edits and inspect partial
+results before retrying; metadata does not prove live permissions or workflow state.
 
+Integrate through PRs. Prefer normal merge commits to retain commit identities
+and PR boundaries; squash/rebase requires an explicit request or repository policy.
+Report an unavailable preferred method before merging. Deployment promotions
+follow the recorded source branches and remain separately authorized.
 
-For assigned issue work, handbook policy authorizes enrollment of its existing issue,
-nonterminal status/blocker maintenance and concise evidence comments. Confirm the acting
-member from the assignment; credentials alone do not establish ownership. Human approval
-is required for new issues/sub-issues; humans close/reopen issues and mark Done.
-Commits, pushes, PR publication, merges, deployment, releases, permission changes and
-other project configuration changes retain explicit session authorization.
+## Validation and review
 
-## Skill adaptations
+[package.json](../package.json) owns check commands. Run affected checks after
+relevant source, configuration, dependency or environment changes; read their
+complete output. Use typecheck, lint, tests and check:env as relevant.
+Build-sensitive work also runs `npm run build`; the build omits type checking,
+so run `npm run typecheck` separately. `npm run validate` collects advisory
+results; warnings and optional preferences never become release gates.
+Compilation, bundling, runtime and operational failures retain real failures.
 
-Eight workflow and four technology/UI skills resolve from the Handbook baseline
-returned at task start, without per-consumer version pins. Retain
-accepted milestone authority, proportional checks, no arbitrary retry limit, and no
-quality-warning release gates. Local application contracts remain authoritative;
-resolve actual conflicts without silently weakening authority.
+Add meaningful behavior/boundary tests, not source-mirroring tests; never use
+production services. Initializer Git fixtures must be disposable and cannot
+mutate this repository's index, refs or history. After relevant edits run
+`npm run check:docs`, `npm run check:i18n` and `npm run check:skills`.
+Refresh generated inventories/assets and skill hashes only for reviewed changes.
 
-For feature planning, resolve module selection, owned domain/file references, notifications,
-locale/RTL behavior and accepted-history compatibility through the service contracts.
-For reuse review, check initializer isolation/secret exclusions, module admission versus
-visibility, accepted adapters, scoped pagination, quota/reference transactions and outbox
-replay. For UI, check navigation, dictionaries, RTL and document nonces.
-Documentation synchronization reconciles generated environment/translation inventories
-with canonical sources and distinguishes current JSON templates from historical YAML.
-Preserve dated evidence; add useful lessons to existing canonical docs first.
-
-Playwright's Bash examples are portable examples. On Windows use npx.cmd with the same CLI, a workspace-local npm cache, and headless operation unless an interactive window is requested. This local browser verification needs no cloud credentials or permission ceremony.
-
+Use a separate read-only review of the final diff against the task contract.
+Fix actionable in-scope defects and report stale/missing evidence honestly.
+No local reviewer role is installed; delegation needs session authorization.
+Preserve proportional checks, no arbitrary retry limit and advisory quality policy
+when applying imported workflows.
 
 ## Reusable runtime contracts
 
-Read [service contracts](../docs/services.md), [locale architecture](../docs/architecture.md#locale-and-direction)
-and the current JSON [template catalog](../src/lib/server/runs/templates/README.md)
-for affected work. Project identity/modules/examples are setup decisions in
-`project.config.json`; credentials remain private runtime configuration. Retain
-accepted adapter versions, owner-bound cursors, reference fences, permanent
-accounting/idempotency evidence and notification transaction coupling.
+One Next.js App Router application serves web and the planned Android TWA; do
+not add Expo or a separate backend. Prefer Server Components; client boundaries
+exist for interaction/browser APIs with narrowly scoped providers. Server reads
+call server modules directly rather than this app's HTTP endpoints.
+Use installed Next.js documentation and current official guidance for version-specific
+behavior. Imported examples do not override verified APIs or require new caching/
+concurrency dependencies. Prefer allowlisted DTOs with explicit timestamp forms
+without claiming React cannot transport Date/Map/Set. Keep authorization fresh;
+never cache protected data across users.
 
-Use `npm.cmd` / `npx.cmd` on Windows when PowerShell wrappers are blocked; do not
-change machine execution policy. Read complete check output: the advisory build
-configuration does not run type checking. Use `npm run typecheck` separately.
-Check translated client navigation and English/Arabic 390px public layouts after UI work.
-Administration is English-only, including shared controls and administrative errors.
-Keep admin copy outside locale catalogs and verify English/LTR admin rendering with
-an Arabic public preference, plus preference restoration when leaving admin.
-CSP tests must inject into a served document; privileged Playwright evaluation is
-not evidence that document CSP permits an injected script. Keep auth/browser state
-under ignored output directories and stop only fixtures started by the task.
+[Service contracts](../docs/services.md) own files, quotas, domain adapters, limits
+and notification transactions. Preserve accepted adapter versions, owner-bound
+cursors, reference fences, accounting/idempotency evidence and outbox replay.
+Module admission is separate from navigation visibility. Project identity,
+modules, locales, examples and namespaces come from `project.config.json`;
+private credentials stay server-side. Initializers must isolate derived identities
+and exclude secrets and machine/source-project bindings.
+Use the current JSON [template catalog](../src/lib/server/runs/templates/README.md),
+distinguishing it from historical YAML. MCP handlers remain server-only,
+permission-checked, bounded and independent of transport; service credentials
+never confer end-user ownership. Read [MCP guidance](../docs/mcp.md) for affected work.
 
-After relevant edits, run `npm run check:docs`, `npm run check:i18n` and
-`npm run check:skills`. Refresh generated catalogs/assets or skill hashes only
-for reviewed changes. Historical verification stays separate from current setup.
-Initializer tests may create synthetic Git objects inside disposable fixtures;
-they must never mutate the working repository's index, refs or history.
+## UI and browser verification
+
+Follow [locale architecture](../docs/architecture.md#locale-and-direction) and
+the [design system](../docs/design-system.md). Public copy uses typed catalogs,
+page-scoped dictionaries and logical layout. Admin copy, shared controls and
+administrative errors are English-only, outside locale catalogs. Preserve user/
+model content and the user's public language/timezone/offline preferences.
+Reuse shadcn primitives through the CLI and semantic CSS theme variables.
+
+Verify desktop and 390px public English/Arabic layouts, English/LTR admin with
+an Arabic public preference, and preference restoration when leaving admin.
+Check navigation, Radix direction, bidirectional identifiers, keyboard focus,
+recovery copy, hydration and document nonces. CSP evidence requires injection
+into a served document; privileged Playwright evaluation does not prove CSP permits it.
+
+Use named headless Playwright sessions unless an interactive window is requested.
+On Windows use `npm.cmd` / `npx.cmd` with a workspace-local npm cache, or the
+task snapshot wrapper from the consumer cwd. No global CLI install, execution-policy
+change or cloud credentials are needed. Keep captures/auth state in ignored
+`output/playwright/` or `.playwright-cli/`; stop only task-started fixtures.
+
+## Deployment and provider work
+
+Read [deployment guidance](../docs/deployment.md#current-staging-release) and
+[Infrastructure guidance](https://github.com/Uniwares-LTD/infrastructure/blob/main/AGENTS.md)
+before deployment work. Infrastructure owns hosts, access, installed controller/
+configuration identities and capacity; this app owns serving release identity,
+behavior and acceptance. References transfer no Booklet/Dify/tunnel ownership.
+Distinguish planned conventions, current code and dated live evidence.
+
+Follow [guided initialization](../docs/deployment.md#guided-setup-helper) and
+Infrastructure's named credential inventory. Collect missing secure Credentials
+channel exports once, outside Git; use allowlisted credential exports, never copy
+a local environment file or parent database/web/host bindings. Public settings
+use tracked JSON, not Actions variables. Never print secrets. Preserve generated
+keys and uncertain-operation markers; inspect partial state before retrying.
+Verify source-app identity and provider provenance: a non-JSON edge error alone
+does not prove an invalid key. Separate first encryption installation from
+migration of existing ciphertext. Local operation needs no cloud credentials;
+live provider activation and deployment need separate session authorization.
+
+Before operator instructions, resolve non-secret values from configuration,
+canonical inventory and verified owner/session evidence. Give complete commands
+for the stated shell/location and cite configured versus live-verified facts.
+Group consequential missing inputs. Never infer credentials, transport access,
+host fingerprints or network allocations from hostnames. Shared-host access uses
+Infrastructure's [operations guide](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/operations.md):
+the securely distributed admin key is `srv1-ops-admin`, saved on Windows as
+`$env:USERPROFILE\.ssh\uniwares-ops-admin`. Never request its contents;
+keep it separate from routine deployment keys and use the owner's connection command.
+
+Classify image, host configuration, controller, provider and data impact; contract
+changes need validation, update behavior and compatibility coverage. Every
+publication PR follows [operator reporting](../docs/deployment.md#publication-and-operator-intervention):
+state none or name owner, location, ordering, verification and failure/resume.
+Verify executable prerequisites, not module presence alone. Report implementation,
+publication, operator installation, release and live/AI acceptance separately.
+Documentation-only publication must not repeat a completed installation.
+
+Image maintenance preserves application-then-host-image lock ordering,
+capability-bound requests and separate release/maintenance outcomes. Infrastructure
+owns enrollment, retention policy and timers; initializers emit proposals only.
+Protect current/previous images and uncertain recovery images.
 
 ## Shared integration maintenance
 
-Maintain docs/source-map.md when component boundaries, canonical sources, commands,
-generated areas or ownership change. Keep application facts here; propose reusable
-procedure changes to Handbook. After skill metadata/routing edits, explicitly sync
-and check entrypoints; preserve custom content and review hashes before updating them.
-Claude imports AGENTS.md and reads thin references to canonical .agents entrypoints.
-Skill references install no hooks or runtime dependencies. Explicit sync also
-maintains command safeguards in .agents/gated-commands.json and generated Claude
-ask/deny rules in .claude/settings.json. No local reviewer role is installed;
-use a separate read-only review pass unless delegation is authorized.
-
-Templates live in .github/ISSUE_TEMPLATE, .github/PULL_REQUEST_TEMPLATE.md and
-docs/templates. Use maintain-docs and handbook:templates to preview or copy missing
-starters. Existing copies are project-owned and replaced only by explicit per-file
-selection. Publication PRs retain operator intervention reporting from
-[deployment guidance](../docs/deployment.md#publication-and-operator-intervention).
-
-Preserved technology adaptations: prefer allowlisted DTOs (including explicit timestamp
-representations) without claiming React cannot transport Date/Map/Set. Performance
-examples do not require new caching/concurrency dependencies; retain fresh authorization
-and never cache protected data across users. UI review covers English/Arabic, desktop
-and 390px widths, logical layout, Radix direction, bidirectional identifiers, focus and
-translated recovery copy without translating user/model content. Browser verification
-uses named sessions, a workspace-local npm cache and ignored output/playwright captures;
-use npx.cmd on Windows, or the task's committed snapshot wrapper from the consumer cwd.
-No global CLI installation or execution-policy change is required.
-
-Deployment changes must classify image, host configuration, controller, provider or data impact. Report operator ordering, verification and failure/resume; unsupported requirements require a named owner action. Preserve session authority and separate publication from installation/live acceptance.
-
-Image-maintenance integration must preserve application-then-host-image lock ordering, capability-bound requests and separate release/maintenance outcomes. Enrollment, retention policy and timer activation belong to Infrastructure; initializers emit proposals only. Keep current/previous and uncertain recovery images protected.
-
-For operational documentation, keep current procedures separate from dated evidence. Infrastructure inventory owns installed host/configuration identities and capacity; application deployment guides own serving release identities and acceptance. Documentation-only publication must state that completed installations are not repeated. Inspect partial installation state before retrying, and verify executable prerequisites rather than module presence alone.
+[Agent tooling](../docs/agent-tooling.md) owns sync, templates, client safeguards,
+integrity and provenance. [handbook.json](../handbook.json) selects skills and
+local sources; do not duplicate that catalog in instructions. Maintain the source
+map when boundaries, commands, generated areas or ownership change. Reconcile
+environment/translation inventories with canonical sources; preserve dated evidence.
+Keep reusable procedures in Handbook and application adaptations here. After
+skill metadata/routing edits explicitly sync and check entrypoints, retaining
+custom content and reviewing hashes before refresh. Templates remain project-owned
+copies, updated only by explicit per-file selection.
