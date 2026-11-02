@@ -128,8 +128,16 @@ test("dirty helper is never executed; cached tracked helper remains usable", asy
 });
 test("missing checkout and wrong origin do not initialize or overwrite during check/doctor", async (t) => {
   const f = fixture(t);
-  await assert.rejects(runHandbook("check", f), /Handbook unavailable/);
-  await assert.rejects(runHandbook("doctor", f), /Handbook unavailable/);
+  for (const command of ["check", "doctor", "resources"]) {
+    await assert.rejects(runHandbook(command, f), (error) => {
+      assert.equal(error.code, "HANDBOOK_SETUP_REQUIRED");
+      assert.equal(error.path, f.directory);
+      assert.equal(error.origin, f.origin);
+      assert.match(error.message, /After approval/);
+      assert(error.message.includes(f.directory));
+      return true;
+    });
+  }
   assert(!existsSync(f.directory));
   await runHandbook("setup", f);
   git(

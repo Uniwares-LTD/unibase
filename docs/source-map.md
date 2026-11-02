@@ -26,6 +26,9 @@ Repository [preferences](../.agents/repository.md) own issue language and durabl
 [tracking metadata](../.agents/tracking.json) records this repo's selection when configured.
 [Document starters](templates), [issue forms](../.github/ISSUE_TEMPLATE) and the
 [PR template](../.github/PULL_REQUEST_TEMPLATE.md) are permissive project-owned copies.
+Large-work starters include the [PRD](templates/prd.md) and
+[checkpoint implementation plan](templates/implementation-plan.md); they do not replace
+the accepted project implementation plan.
 
 ## Commands
 

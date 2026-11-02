@@ -10,7 +10,7 @@
       "sourcePath": ".agents/skills/capture-project-learnings",
       "channel": "main",
       "files": {
-        ".agents/skills/capture-project-learnings/SKILL.md": "5646ee12ef5e1bada9b2c0a11aab4d723ed1b4270029dec3d316b0f3d9f51fd8",
+        ".agents/skills/capture-project-learnings/SKILL.md": "07ff969c6e0a6cc6966c12fcbae9b7fd2544b493593d4386c0a37087696b4127",
         ".agents/skills/capture-project-learnings/agents/openai.yaml": "88d64c14af35b5804e217a0f9fd61142e8fc712a8a2e5fb9d734408014b1c512"
       }
     },
@@ -20,7 +20,7 @@
       "sourcePath": ".agents/skills/compile-feature-spec",
       "channel": "main",
       "files": {
-        ".agents/skills/compile-feature-spec/SKILL.md": "fe2f1f5c840c0b34b4d1de50586e7d251530cdc5acdb5bdbeaa68bf7009a4ce2",
+        ".agents/skills/compile-feature-spec/SKILL.md": "2e9030c5c4d5f9b689a4dab8e849899602ae6ebcc4456894ca4810e0f3aa0997",
         ".agents/skills/compile-feature-spec/agents/openai.yaml": "4294ee2e6f4fa0ea97df363330f9dee8b07c490d5679477224c7acf97aa869a9"
       }
     },
@@ -30,7 +30,7 @@
       "sourcePath": ".agents/skills/maintain-docs",
       "channel": "main",
       "files": {
-        ".agents/skills/maintain-docs/SKILL.md": "4955f0bd4ea36da547e0b78d7448e272219bf254eeb57d07091fa0ecb6b10dfd"
+        ".agents/skills/maintain-docs/SKILL.md": "53711713020f8329725156305b4d85030c56f74cb269bea39cffd80d751941de"
       }
     },
     "maintain-project": {
@@ -39,7 +39,7 @@
       "sourcePath": ".agents/skills/maintain-project",
       "channel": "main",
       "files": {
-        ".agents/skills/maintain-project/SKILL.md": "8f67fada444181c7635730c0cffe6a4ebd2024a12f0d729bceb5ac37e5fdec5e"
+        ".agents/skills/maintain-project/SKILL.md": "ec0cab8675e15959d4b873f7343e00a767f61a3870b7ee2b3b4212e1ed925efb"
       }
     },
     "manage-issues": {
@@ -48,7 +48,7 @@
       "sourcePath": ".agents/skills/manage-issues",
       "channel": "main",
       "files": {
-        ".agents/skills/manage-issues/SKILL.md": "e39efd683d7ffc7e536e0372b731065cedc25e9578af9ea866519538b4aad906"
+        ".agents/skills/manage-issues/SKILL.md": "456e3f96b15b8164d4cc9c01c85b9cb2e58571425618cbbb44dc37a50697a337"
       }
     },
     "next-best-practices": {
@@ -57,7 +57,7 @@
       "sourcePath": ".agents/skills/next-best-practices",
       "channel": "main",
       "files": {
-        ".agents/skills/next-best-practices/SKILL.md": "5f4fb2248c2fc0d4b9e3a1e39e695f25c45267dbf1859e7441c55bd152280a1c"
+        ".agents/skills/next-best-practices/SKILL.md": "b7f47c8578e7dfd9c75d5c84ef4333093467d8a458c627831a3ee05605a4e427"
       }
     },
     "playwright": {
@@ -68,7 +68,7 @@
       "files": {
         ".agents/skills/playwright/LICENSE.txt": "c16f8dcf1a368b83be78d826ea23de4079fe1b4469a0ab9ee20563f37ff3d44b",
         ".agents/skills/playwright/NOTICE.txt": "417d5d3372914ecfd9fe102ac1d7dc2119253209f9718d6c222f616876c1904b",
-        ".agents/skills/playwright/SKILL.md": "4d720450f45eec554c1f1ebc204b9fd828026f334bd7c9b689650f9c82087129"
+        ".agents/skills/playwright/SKILL.md": "7bcf0826a79eba431998b57a7e5028167fe9faa08f0fcf4901e7a7f130c03045"
       }
     },
     "review-change": {
@@ -77,7 +77,7 @@
       "sourcePath": ".agents/skills/review-change",
       "channel": "main",
       "files": {
-        ".agents/skills/review-change/SKILL.md": "6aca384fa418a01c2ce7c42151dbc7eca7cf607c289d4c0fb2fd301d184a708d",
+        ".agents/skills/review-change/SKILL.md": "9e9649d9dd0fa0c26e0ea0d571974a520b0e0cbe35871307852296ac7674449d",
         ".agents/skills/review-change/agents/openai.yaml": "a89e4bc18623e21f2fe83121b268e208a8ab85bd3a2f10d200806cb9092a57ec"
       }
     },
@@ -87,7 +87,7 @@
       "sourcePath": ".agents/skills/sync-docs-issues",
       "channel": "main",
       "files": {
-        ".agents/skills/sync-docs-issues/SKILL.md": "0555dd55df09ace539d1b145309ad53784b5eb7b214d9b97ea00431ce5a82cf4",
+        ".agents/skills/sync-docs-issues/SKILL.md": "7f30f97015b83fb6a16fc5dfacd7bd2ae95ff3ba349fbad28d4426dae0000438",
         ".agents/skills/sync-docs-issues/agents/openai.yaml": "a70469432fe0b50814a8387931d9c91d44264d798479418f35ed6c0c5e09fcbf"
       }
     },
@@ -97,7 +97,7 @@
       "sourcePath": ".agents/skills/vercel-react-best-practices",
       "channel": "main",
       "files": {
-        ".agents/skills/vercel-react-best-practices/SKILL.md": "0d3704be314677c59d3164a26c4d0684732b7dc15f8c95f7367b81161c3f72e0"
+        ".agents/skills/vercel-react-best-practices/SKILL.md": "dba0c1e81f601054b274ef9cad34bf8563c9d0e861e3a7ef5389345a9bd0446d"
       }
     },
     "web-design-guidelines": {
@@ -106,7 +106,7 @@
       "sourcePath": ".agents/skills/web-design-guidelines",
       "channel": "main",
       "files": {
-        ".agents/skills/web-design-guidelines/SKILL.md": "09323ddc1b93dde6fd8649920192b96210a031ab7044e43653512fa4f7a95d99"
+        ".agents/skills/web-design-guidelines/SKILL.md": "60c24018201498cf683af14b2727600f4bc70345181bd2de7099cafb576f45a3"
       }
     },
     "work-on-task": {
@@ -115,7 +115,7 @@
       "sourcePath": ".agents/skills/work-on-task",
       "channel": "main",
       "files": {
-        ".agents/skills/work-on-task/SKILL.md": "b683eda610838fb1ba35edf4fd5862bc9977e6966d35e9bc96a1ae2e0e0ddb5b",
+        ".agents/skills/work-on-task/SKILL.md": "2c45d6cebcd35edd797f7025ef871bbe4f2888d1bf9b91c7c5cbf710a1aa2c92",
         ".agents/skills/work-on-task/agents/openai.yaml": "fd46b629795ad6275ad1dfcfe6ab07e897b4857727639a75d8235c2b72dfdf92"
       }
     }
@@ -123,7 +123,7 @@
   "supportFiles": {
     "CLAUDE.md": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49",
     ".claude/skills/capture-project-learnings/SKILL.md": "53569f9ce6ba678021d5ea9c6dbfd313c4051081155f3bcd0b51226909e6c2bd",
-    ".claude/skills/compile-feature-spec/SKILL.md": "27260f37d136a6b4761a3bd3b0bdcb05bc1dd65f0b4e646080cae93fec253395",
+    ".claude/skills/compile-feature-spec/SKILL.md": "e9dba7a32d13cbd2a62ee2d7f96a5fdb5b6b122c3b7a251cbb7a840478b4686d",
     ".claude/skills/maintain-docs/SKILL.md": "7b77ce50dd49219346eb04292976b16486d3b6359c1d982cac317ba369321979",
     ".claude/skills/maintain-project/SKILL.md": "f550980bf1707d58da36b01ae7afb7d1150249a636cbbb26d50f9aea6e88af53",
     ".claude/skills/manage-issues/SKILL.md": "0ac4894634e650c1cea0ce94afc39d3a4964e3bcb5468847247f6e941f031f51",

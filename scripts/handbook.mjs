@@ -90,7 +90,13 @@ export async function runHandbook(command, { root, directory, force = false, rev
   directory = resolveHandbook(root, directory);
   if (!['setup', 'check', 'doctor', 'resources'].includes(command)) throw new Error('Use setup, check, doctor or resources.');
   if (!existsSync(directory)) {
-    if (command !== 'setup') throw new Error('Handbook unavailable. Run handbook:setup; pause only Handbook-dependent decisions.');
+    if (command !== 'setup') {
+      const error = new Error(`HANDBOOK_SETUP_REQUIRED: Handbook unavailable.\nOrigin: ${origin}\nDestination: ${directory}\nAfter approval, run npm run handbook:setup with -- --path set to this destination (quote it for your shell).\nPause only Handbook-dependent decisions.`);
+      error.code = 'HANDBOOK_SETUP_REQUIRED';
+      error.path = directory;
+      error.origin = origin;
+      throw error;
+    }
     mkdirSync(path.dirname(directory), { recursive: true });
     git(path.dirname(directory), 'clone', '--branch', 'main', '--single-branch', origin, directory);
   }

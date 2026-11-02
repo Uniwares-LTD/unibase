@@ -24,6 +24,24 @@ After skill metadata or routing changes, run `npm run handbook:sync` and
 hashes after review. Normal refresh never rewrites instructions. See
 [agent tooling](docs/agent-tooling.md) for setup and troubleshooting.
 
+If the check reports `HANDBOOK_SETUP_REQUIRED`, ask once for this task whether to
+clone `Uniwares-LTD/handbook` into the reported destination. Explain that this sets
+up the device; the repository is already adopted. An explicit setup request grants
+approval. After approval, run `npm run handbook:setup -- --path` with that destination
+quoted for the shell, outside the sandbox, retain the returned path/revision and
+resume the original task. Do not repeat adoption, sync templates or change tracking.
+If declined, do not ask again during the task. If setup fails, report the actual
+failure and next action rather than repeatedly retrying. Continue under local
+guidance and pause only Handbook-dependent decisions. Client permission prompts
+may still be required. Use `npm.cmd` on Windows when PowerShell wrappers are blocked.
+
+Apply shared `docs/guidance/communication.md` to every task. Use the proportional
+workflow in `docs/guidance/engineering.md`: small work needs implementation,
+validation and a separate review; medium work needs a bounded plan; large work uses
+the shared PRD and checkpoint procedure. Preserve accepted milestone scope and
+local advisory checks. Start new artifacts from the local permissive templates in
+`.github` and `docs/templates`, falling back to the task's shared starters.
+
 New substantial work uses issues under handbook policy. Already accepted milestones
 in the implementation plan, including the accepted onboarding plan, remain authorized
 without retroactive issues. Small standalone changes may remain untracked. For assigned

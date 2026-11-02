@@ -15,6 +15,12 @@ destination or authority. Local configuration does not verify live access or wor
 Run `npm run handbook:setup` once with Node, Git and read access to the private Handbook.
 No application dependency installation is needed. It uses a sibling checkout unless
 `-- --path PATH` or UNIWARES_HANDBOOK_PATH supplies a local override. Never commit machine paths.
+On another device, `handbook:check` reports `HANDBOOK_SETUP_REQUIRED` with the origin
+and resolved destination if the checkout is missing; it never clones automatically.
+The agent asks once before setup, unless setup was explicitly requested, then resumes
+the original task with the returned baseline. Declining setup or an access/network
+failure leaves local guidance usable. Do not repeat adoption, template sync or tracking
+setup for a new device. On Windows use `npm.cmd` when PowerShell wrappers are blocked.
 At task start run `npm run handbook:check` and retain the full path/revision in conversation
 context through later skills and handoff/resume. Read shared text with git show at that
 revision, including docs/bootstrap.md, policy and relevant skills. A later refresh or
@@ -27,6 +33,16 @@ a four-hour success/failure cooldown, explicit force and no scheduler. No persis
 task records or per-consumer revision pins are added.
 
 ## Explicit integration updates
+
+The 2026-11-02 reconciliation uses Handbook main at
+`71891a9031eeebee1ff8d2a66494bdeb10ad5d3f` as source provenance, not a version pin.
+Both bootstrap scripts match that committed source. All twelve entrypoints include
+the new-device setup flow; the planning skill metadata and two missing large-work
+starters are synchronized. Existing templates and local adaptations are preserved.
+The fourteen Handbook fixtures and derived-project isolation fixture passed, as did
+offline readiness, entrypoint drift, skill integrity, docs and translation checks.
+Native-client discovery and Claude runtime acceptance remain unverified; no application
+build or live service checks were needed for this integration-only update.
 
 Review Handbook's merged onboarding instructions at the task revision before reconciling
 launcher/offline-tool copies. Preserve local scope, accepted milestones and advisory checks.
@@ -49,6 +65,10 @@ Use `npm run handbook:templates -- --source SNAPSHOT` to preview templates and a
 `--write` to copy missing files. Existing copies are project-owned; replace only named
 files with `--update PATH`. Issue/PR starters live in .github; document starters live
 in docs/templates. Existing guidance, source map and preferences are preserved.
+The PRD and checkpoint implementation-plan starters support large work; small tasks
+need no planning artifact and medium plans can remain in the conversation. The shared
+engineering guidance defines proportional review; local advisory checks and explicit
+commit/publication authority still apply.
 
 Run `npm run handbook:ready` offline after updates. Missing files, invalid references and
 incomplete source-map structure produce warnings without readiness exit-code gates.
