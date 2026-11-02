@@ -66,7 +66,8 @@ unsafe-eval. See [deployment](deployment.md) and [MCP](mcp.md) for operational s
 
 ## Domain extensions and migration
 
-Register trusted adapters in `src/lib/server/domains.ts`, with a stable ID/version,
+Register trusted adapters through `src/project/server.ts` (core adapters live in
+`src/lib/server/domains.ts`), with a stable ID/version,
 reference kind, ownership validation, target-picker metadata and transactional
 result application. Register orchestrators against allowlisted adapters. Browser
 and provider output cannot select handlers or owners. Preserve registered versions
@@ -80,7 +81,7 @@ Application failures retain an allowlisted code, phase and timestamp rather than
 raw exception text. Failed saves still require the owner's explicit retry.
 
 After reviewing the target database and taking the normal operational backup,
-`node --conditions=react-server --import tsx scripts/migrate-domain-references.ts`
+`npm run db:migrate` applies the `runs:0001-domain-references` migration, which
 adds reference metadata idempotently. It does not rename or rewrite accounting
 collections. `npm run db:indexes` adds the new collection indexes. These commands
 operate on the explicitly configured database; local tests use disposable stores.

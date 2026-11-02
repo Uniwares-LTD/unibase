@@ -52,6 +52,7 @@
     "demo:read",
     "run:read",
     "artifact:read",
-    "artifact:write"
+    "artifact:write",
+    "notes:read"
   ]
 }

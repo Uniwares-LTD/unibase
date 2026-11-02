@@ -76,6 +76,13 @@ async function main() {
   ).trim();
   const npm = process.env.npm_execpath;
   if (!npm) throw new Error("Run through npm run test:initialized-projects.");
+  // Initialization commits in the fixtures use a synthetic identity.
+  Object.assign(process.env, {
+    GIT_AUTHOR_NAME: "Initializer fixture",
+    GIT_AUTHOR_EMAIL: "fixture@example.invalid",
+    GIT_COMMITTER_NAME: "Initializer fixture",
+    GIT_COMMITTER_EMAIL: "fixture@example.invalid",
+  });
   const rows = [];
   for (const slug of ["fixture-alpha", "fixture-beta"]) {
     const destination = path.join(root, slug);

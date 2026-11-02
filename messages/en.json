@@ -418,7 +418,19 @@
     "me131648c438d": "Run",
     "ma90ed5ef7cec": "Saved artifact",
     "md79ea2fab3c7": "View all runs",
-    "mf8803bd5c05f": "File"
+    "mf8803bd5c05f": "File",
+    "m8a7525b1492f": "Notes",
+    "m7e8cd2056da7": "Title",
+    "md8da2c49df39": "Note",
+    "m63565c0485fe": "Add note",
+    "m57bde4deb215": "No notes yet.",
+    "m55576676783c": "Your notes",
+    "m76ea482f843e": "New note",
+    "mb64495b0aa67": "Couldn’t save the note. Please try again.",
+    "m8ee11db3ff88": "Add a note above to see it here.",
+    "m205655852b1b": "Private notes saved to your account. This sample shows how a project adds its own feature.",
+    "mb4c7358981b6": "Delete {title}",
+    "m393509c1225a": "You have reached the note limit."
   },
   "locale": {
     "heading": "Language and region",

@@ -1,7 +1,15 @@
 import { z } from "zod";
 import manifest from "../../project.config.json";
+import { extensions } from "../project/extensions";
+import {
+  validateExtensions,
+  type ModuleConfiguration,
+  type ModuleDescriptor,
+  type ProjectExtension,
+} from "./extensions";
+export type { ModuleConfiguration } from "./extensions";
 
-export const moduleIds = [
+export const coreModuleIds = [
   "credits",
   "payments",
   "runs",
@@ -10,7 +18,15 @@ export const moduleIds = [
   "notifications",
   "artifacts",
 ] as const;
-export type ModuleId = (typeof moduleIds)[number];
+type CoreModuleId = (typeof coreModuleIds)[number];
+export type ModuleId = CoreModuleId | (typeof extensions)[number]["id"];
+// Widened view for iteration; ModuleId keeps the literal extension IDs.
+export const projectExtensions: readonly ProjectExtension<ModuleId>[] =
+  extensions;
+export const moduleIds = [
+  ...coreModuleIds,
+  ...projectExtensions.map((extension) => extension.id),
+] as [ModuleId, ...ModuleId[]];
 export const projectSchema = z
   .strictObject({
     version: z.literal(1),
@@ -56,17 +72,9 @@ export const projectSchema = z
               message: "Missing module dependency.",
             });
   });
-export type ModuleConfiguration =
-  "credits" | "payments" | "runs" | "mcp" | "assets";
-export const moduleDescriptors: Record<
-  ModuleId,
-  {
-    requires: ModuleId[];
-    configuration: ModuleConfiguration[];
-    routes: string[];
-    workers: string[];
-    collections: string[];
-  }
+const coreModuleDescriptors: Record<
+  CoreModuleId,
+  ModuleDescriptor<ModuleId> & { configuration: ModuleConfiguration[] }
 > = {
   credits: {
     configuration: ["credits"],
@@ -124,11 +132,48 @@ export const moduleDescriptors: Record<
     collections: ["artifacts", "artifactRevisions"],
   },
 };
+// Always-on core routes that no module owns; extensions may not claim them.
+const unownedCoreRoutes = [
+  "/account",
+  "/admin",
+  "/design-system",
+  "/preferences",
+  "/api/admin",
+  "/api/auth",
+  "/api/diagnostics",
+  "/api/health",
+  "/api/profile",
+];
+validateExtensions(
+  {
+    ids: coreModuleIds,
+    collections: Object.values(coreModuleDescriptors).flatMap(
+      (module) => module.collections,
+    ),
+    routes: [
+      ...unownedCoreRoutes,
+      ...Object.values(coreModuleDescriptors).flatMap(
+        (module) => module.routes,
+      ),
+    ],
+  },
+  projectExtensions,
+);
+export const moduleDescriptors = {
+  ...coreModuleDescriptors,
+  ...Object.fromEntries(
+    projectExtensions.map((extension) => [extension.id, extension.module]),
+  ),
+} as Record<ModuleId, ModuleDescriptor<ModuleId>>;
 export const project = projectSchema.parse(manifest);
 export const namespace = (name: string) => `${project.slug}-${name}`;
 export const databasePrefix = project.slug.replaceAll("-", "_");
-export const moduleEnabled = (id: ModuleId) =>
-  project.modules.includes(id) && (id !== "artifacts" || project.examples);
+// A module is enabled only when its dependencies are, so an extension that
+// requires artifacts follows the examples selection too.
+export const moduleEnabled = (id: ModuleId): boolean =>
+  project.modules.includes(id) &&
+  (id !== "artifacts" || project.examples) &&
+  moduleDescriptors[id].requires.every(moduleEnabled);
 export function moduleForPath(path: string): ModuleId | undefined {
   return moduleIds.find((id) =>
     moduleDescriptors[id].routes.some(

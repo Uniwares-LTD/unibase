@@ -1,7 +1,8 @@
 "use client";
 import { useTranslations, useLocale } from "next-intl";
 
-import { moduleEnabled, moduleForPath } from "@/lib/project";
+import { moduleEnabled, moduleForPath, projectExtensions } from "@/lib/project";
+import { extensionLinks } from "@/lib/extensions";
 import {
   Bell,
   BookOpen,
@@ -18,7 +19,8 @@ import {
 import { UnreadProvider } from "@/components/notifications";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
+import { DynamicIcon, type IconName } from "lucide-react/dynamic";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -29,6 +31,32 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+
+// Extension links name a Lucide icon; one stable component per name keeps
+// re-renders from remounting it.
+type IconProps = Omit<ComponentProps<typeof DynamicIcon>, "name">;
+const extensionIcons = new Map<
+  IconName,
+  (props: IconProps) => React.ReactNode
+>();
+function extensionIcon(name: IconName) {
+  let Icon = extensionIcons.get(name);
+  if (!Icon) {
+    Icon = function ExtensionIcon(props: IconProps) {
+      return <DynamicIcon name={name} {...props} />;
+    };
+    extensionIcons.set(name, Icon);
+  }
+  return Icon;
+}
+function extensionRoutes(
+  placement: "main" | "account",
+  translate: Parameters<typeof extensionLinks>[2],
+) {
+  return extensionLinks(projectExtensions, placement, translate).map(
+    ({ icon, ...link }) => ({ ...link, Icon: extensionIcon(icon) }),
+  );
+}
 
 function useRoutes(signedIn: boolean) {
   const translate = useTranslations("ui");
@@ -41,6 +69,7 @@ function useRoutes(signedIn: boolean) {
     { href: "/runs", label: translate("m848f54e89660"), Icon: ListChecks },
     { href: "/files", label: translate("mabc7e9892806"), Icon: Folder },
     { href: "/artifacts", label: translate("m068c9472b061"), Icon: Bookmark },
+    ...extensionRoutes("main", translate),
   ].filter((route) => {
     const id = moduleForPath(route.href);
     return !id || moduleEnabled(id);
@@ -63,6 +92,7 @@ export function useAccountRoutes() {
       label: translate("m66962f72a088"),
       Icon: Settings2,
     },
+    ...extensionRoutes("account", translate),
   ].filter((route) => {
     const id = moduleForPath(route.href);
     return !id || moduleEnabled(id);

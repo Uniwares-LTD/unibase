@@ -34,9 +34,16 @@ and the adapter; the table does not require unrelated suites for every task.
 - [Image renewal](../src/lib/server/runs/image-renewal.ts) verifies original Unitale
   file identities and the bundled Code validator before renewing expired Dify links.
   [Media retention](../src/lib/server/runs/media.ts) stages owned bytes before settlement.
+- [Project extensions](../src/project) are project-owned registrations of features and
+  samples; core reads them through [the contract](../src/lib/extensions.ts).
+- [Samples](../src/samples/README.md) are removable reference features declared in
+  [samples.json](../samples.json); [the samples script](../scripts/samples.mjs) checks and removes them.
 - [Configuration](../project.config.json) owns project identity/modules; [pure parsers](../src/lib/config)
   separate public settings from private server configuration.
 - [Scripts](../scripts) own local checks, initialization and operator commands.
+- [Template version](../template.json) and the [changelog](../CHANGELOG.md) own template
+  release identity and upgrade notes; [the check](../scripts/template-version.mjs) validates them.
+  [The update command](../scripts/template-update.mjs) merges template releases into derived projects.
 - [Deployment](../deploy) owns application configuration/templates; [MCP](mcp.md) and
   [Dify integration](../dify) describe application transport and workflow contracts.
   The [host projection](../scripts/deploy/release_settings.py) separates image-owned

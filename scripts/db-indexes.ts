@@ -1,4 +1,10 @@
-import { collectionEnabled } from "../src/lib/project";
+import {
+  collectionEnabled,
+  moduleEnabled,
+  moduleIds,
+} from "../src/lib/project";
+import { serverExtensions } from "../src/project/server";
+import { validateServerExtensions } from "../src/lib/server/extensions";
 import { loadEnvConfig } from "@next/env";
 import { MongoClient } from "mongodb";
 import { parseConfig } from "../src/lib/config/schema";
@@ -87,6 +93,10 @@ async function main() {
       .db(config.database)
       .collection("aiJobs")
       .createIndex({ "responder.parentId": 1 });
+    validateServerExtensions([], serverExtensions, moduleIds);
+    for (const extension of serverExtensions)
+      if (moduleEnabled(extension.module))
+        await extension.indexes?.(client.db(config.database));
     console.log(
       "Profile, access, audit, credit, payment and runtime indexes are ready.",
     );
