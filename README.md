@@ -281,32 +281,38 @@ owned local Docker container. `npm start` serves the standalone build and copies
 its public/static assets. It defaults to loopback; set HOSTNAME and PORT explicitly
 when running outside Docker.
 
-| Command                    | Purpose                                                                                                                                                                                                           |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm ci`                   | Install exactly the dependencies in the lockfile.                                                                                                                                                                 |
-| `npm run dev`              | Run the development server.                                                                                                                                                                                       |
-| `npm run build`            | Create a production build; compilation/bundling failures return a nonzero exit code.                                                                                                                              |
-| `npm start`                | Serve the production build after building.                                                                                                                                                                        |
-| `npm run check:env`        | Validate configuration and report field names without printing values.                                                                                                                                            |
-| `npm run typecheck`        | Generate Next.js route types and check TypeScript.                                                                                                                                                                |
-| `npm run lint`             | Run ESLint without modifying source.                                                                                                                                                                              |
-| `npm run format:check`     | Check application and tooling formatting without modifying files.                                                                                                                                                 |
-| `npm test`                 | Run focused configuration, session-policy, and API-client tests.                                                                                                                                                  |
-| `npm run emulators:auth`   | Start the local Firebase Auth Emulator.                                                                                                                                                                           |
-| `npm run emulators:mongo`  | Start persistent local development MongoDB.                                                                                                                                                                       |
-| `npm run db:indexes`       | Install profile/access, credit/payment, AI and reporting indexes.                                                                                                                                                 |
-| `npm run test:accounts`    | Isolated access, credit, payment, AI execution and pricing tests using disposable MongoDB.                                                                                                                        |
-| `npm run test:ai`          | Production HTTP tests with fake Dify and the Auth Emulator. Build first.                                                                                                                                          |
-| `npm run test:ai-pricing`  | Production HTTP pricing-consent and partial-settlement tests. Build first.                                                                                                                                        |
-| `npm run test:payments`    | Production HTTP payment fixtures; no Stripe calls. Build first.                                                                                                                                                   |
-| `npm run worker:build`     | Build payment, AI and worker-healthcheck bundles without rebuilding Next.js.                                                                                                                                      |
-| `npm run worker`           | Start payment reconciliation and credit maintenance using configured resources.                                                                                                                                   |
-| `npm run worker:ai`        | Start AI dispatch and recovery using configured resources.                                                                                                                                                        |
-| `npm run test:integration` | Test the production build against isolated local auth/database services.                                                                                                                                          |
-| `npm run check:skills`     | Verify local skill references and retained notices against their recorded hashes.                                                                                                                                                    |
-| `npm run validate`         | Run all local quality checks and write an advisory report to `output/validation/results.json`.                                                                                                                    |
-| `npm run icons:generate`   | Render the existing Base SVG into install icons.                                                                                                                                                                  |
-| `npm run android:generate` | Regenerate Bubblewrap using `ANDROID_HOST` / `ANDROID_PACKAGE_NAME` from `.env.local` or process environment, and version fields from `android/config.json`. Add `-- --release` to reject placeholder identities. |
+| Command                             | Purpose                                                                                                                                                                                                           |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm ci`                            | Install exactly the dependencies in the lockfile.                                                                                                                                                                 |
+| `npm run dev`                       | Run the development server.                                                                                                                                                                                       |
+| `npm run build`                     | Create a production build; compilation/bundling failures return a nonzero exit code.                                                                                                                              |
+| `npm start`                         | Serve the production build after building.                                                                                                                                                                        |
+| `npm run check:env`                 | Validate configuration and report field names without printing values.                                                                                                                                            |
+| `npm run typecheck`                 | Generate Next.js route types and check TypeScript.                                                                                                                                                                |
+| `npm run lint`                      | Run ESLint without modifying source.                                                                                                                                                                              |
+| `npm run format:check`              | Check application and tooling formatting without modifying files.                                                                                                                                                 |
+| `npm test`                          | Run focused configuration, session-policy, and API-client tests.                                                                                                                                                  |
+| `npm run emulators:auth`            | Start the local Firebase Auth Emulator.                                                                                                                                                                           |
+| `npm run emulators:mongo`           | Start persistent local development MongoDB.                                                                                                                                                                       |
+| `npm run db:indexes`                | Install profile/access, credit/payment, AI and reporting indexes.                                                                                                                                                 |
+| `npm run db:migrate`                | Apply pending forward-only data migrations (after the operational backup).                                                                                                                                        |
+| `npm run samples`                   | List removable samples; `npm run samples:remove -- <name>` removes one and `npm run check:samples` verifies removability.                                                                                         |
+| `npm run project:create`            | Create a derived project from a released template commit; see [using the template](docs/template.md).                                                                                                             |
+| `npm run template:update`           | In a derived project, merge a template release and print its upgrade notes.                                                                                                                                       |
+| `npm run check:template`            | Check that `template.json` and `CHANGELOG.md` agree.                                                                                                                                                              |
+| `npm run test:initialized-projects` | Create, install and build two fixture projects from the current tree.                                                                                                                                             |
+| `npm run test:accounts`             | Isolated access, credit, payment, AI execution and pricing tests using disposable MongoDB.                                                                                                                        |
+| `npm run test:ai`                   | Production HTTP tests with fake Dify and the Auth Emulator. Build first.                                                                                                                                          |
+| `npm run test:ai-pricing`           | Production HTTP pricing-consent and partial-settlement tests. Build first.                                                                                                                                        |
+| `npm run test:payments`             | Production HTTP payment fixtures; no Stripe calls. Build first.                                                                                                                                                   |
+| `npm run worker:build`              | Build payment, AI and worker-healthcheck bundles without rebuilding Next.js.                                                                                                                                      |
+| `npm run worker`                    | Start payment reconciliation and credit maintenance using configured resources.                                                                                                                                   |
+| `npm run worker:ai`                 | Start AI dispatch and recovery using configured resources.                                                                                                                                                        |
+| `npm run test:integration`          | Test the production build against isolated local auth/database services.                                                                                                                                          |
+| `npm run check:skills`              | Verify local skill references and retained notices against their recorded hashes.                                                                                                                                 |
+| `npm run validate`                  | Run all local quality checks and write an advisory report to `output/validation/results.json`.                                                                                                                    |
+| `npm run icons:generate`            | Render `src/app/icon.svg` into install icons.                                                                                                                                                                     |
+| `npm run android:generate`          | Regenerate Bubblewrap using `ANDROID_HOST` / `ANDROID_PACKAGE_NAME` from `.env.local` or process environment, and version fields from `android/config.json`. Add `-- --release` to reject placeholder identities. |
 
 Individual checks retain their real exit codes. The aggregate `validate` command reports warnings and exits successfully even if quality checks fail; it does not certify the build or runtime. Next.js type checking is deliberately separate from the build, following the agreed advisory policy. Always inspect the report. Dependency advisories can be inspected with `npm audit`; do not force a framework downgrade just to silence an advisory.
 
@@ -317,6 +323,7 @@ Individual checks retain their real exit codes. The aggregate `validate` command
 - `/preferences`: color-mode and design-style preferences, with an independent Save preferences action for signed-in users.
 - `/credits`: owned wallet, held credits, debt, upcoming expiry, paginated ledger, local-only purchase simulation and opt-in Stripe Checkout.
 - `/runs/new`, `/runs`, `/runs/[id]`: selectable orchestrators, durable progress, generated decisions, results and linked recovery attempts. Dify is disabled by default.
+- `/notes`, `/admin/notes`: the removable notes sample (see [samples](src/samples/README.md)).
 - `/admin/settings`: revisioned branding, credit packs and execution policies.
 - `/admin/orchestrators`: create a working starter in Dify, register published workflows and check availability.
 - `/admin/ai`: AI usage and paginated, audited resolution of uncertain executions.
@@ -500,7 +507,7 @@ app key and enables the Orchestrator. Register validates the saved draft and
 publishes it automatically when new or changed; it never edits nodes or inputs.
 Create offers Document summary, Saved artifact, Unitale and Case preparation templates from
 `src/lib/server/runs/templates`: basic MCP/human input, owned draft/approval/media,
-  a real comic journey, and country-neutral case preparation samples for derived
+a real comic journey, and country-neutral case preparation samples for derived
 projects. Case preparation imports a draft: configure its country, legal knowledgebase
 and models in Dify before publishing/registering. See [setup and limits](src/lib/server/runs/templates/README.md#case-preparation). Create refreshes
 the app list automatically and disables Dify's public Web App;
@@ -634,7 +641,6 @@ before activation; Google OIDC/private-pull instructions describe that legacy pa
 Shared tunnel/Dify ownership remains with agentic-poc. The optional
 [owner integration](deploy/shared-owner/README.md) is a generic reference, not a
 first-staging prerequisite or a transfer of ownership.
-
 
 ### Deployment commands
 

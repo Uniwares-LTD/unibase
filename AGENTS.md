@@ -1,4 +1,4 @@
-# Base engineering guidance
+# Engineering guidance
 
 ## Start here
 
@@ -16,9 +16,8 @@ Without usable shared guidance, continue under local rules and pause only
 dependent decisions. See [agent tooling](docs/agent-tooling.md) for integration maintenance.
 
 Read the [current implementation plan](docs/implementation-plan.md) and relevant
-code before editing. The user's request and accepted milestone define scope;
-Accepted milestones need no
-retroactive issues. Shared guidance does not transfer ownership or expand authority.
+code before editing. The user's request and accepted milestones define scope;
+accepted milestones need no retroactive issues. Shared guidance does not transfer ownership or expand authority.
 Preserve local adaptations and resolve actual conflicts explicitly.
 
 ## Decision-point rules
