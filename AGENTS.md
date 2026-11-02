@@ -11,29 +11,16 @@ At task start run `npm run handbook:check` (or `node scripts/handbook.mjs check`
 outside the sandbox, as required for all Git/MCP/gh calls and helpers that invoke them.
 
 The helper lazily checks main every four hours; no scheduler or version pin is needed.
-Read `docs/bootstrap.md`, `docs/work-policy.md`, `docs/project.md` and relevant shared skills from its
-returned path/revision with `git show`, plus this repository's adapter. Keep that
-baseline for the task. Cached/offline guidance is usable; report limitations only
-when relevant. If unavailable, use local instructions and pause only handbook-dependent
-decisions. Read the project-owned [source map](docs/source-map.md), [repository preferences](.agents/repository.md), and `handbook.json`
-for selected technology skills. Carry the task path/revision through subsequent skills,
-resource reads and handoff/resume summaries. Recover a lost baseline from context first;
-if unavailable, establish a new one explicitly and report the discontinuity.
-After skill metadata or routing changes, run `npm run handbook:sync` and
-`npm run handbook:entrypoints`; reconcile custom content and refresh local integrity
-hashes after review. Normal refresh never rewrites instructions. See
-[agent tooling](docs/agent-tooling.md) for setup and troubleshooting.
-
-If the check reports `HANDBOOK_SETUP_REQUIRED`, ask once for this task whether to
-clone `Uniwares-LTD/handbook` into the reported destination. Explain that this sets
-up the device; the repository is already adopted. An explicit setup request grants
-approval. After approval, run `npm run handbook:setup -- --path` with that destination
-quoted for the shell, outside the sandbox, retain the returned path/revision and
-resume the original task. Do not repeat adoption, sync templates or change tracking.
-If declined, do not ask again during the task. If setup fails, report the actual
-failure and next action rather than repeatedly retrying. Continue under local
-guidance and pause only Handbook-dependent decisions. Client permission prompts
-may still be required. Use `npm.cmd` on Windows when PowerShell wrappers are blocked.
+Follow the local [Handbook bootstrap](.agents/handbook.md) for setup, missing-checkout
+recovery, retained revisions and shared resource reads. Keep the returned path/revision
+for the task and through handoffs; a refresh does not replace it. Read this repository's
+[adapter](.agents/repository-adapter.md), [source map](docs/source-map.md),
+[preferences](.agents/repository.md) and `handbook.json` for selected skills.
+Without shared guidance, continue under local rules and pause only dependent decisions.
+If the bootstrap is missing or customized, reconcile it explicitly; do not infer setup
+or overwrite authority. After routing/metadata changes, run `npm run handbook:sync`
+and `npm run handbook:entrypoints`, review custom content and refresh integrity hashes.
+Normal refresh never rewrites instructions. See [agent tooling](docs/agent-tooling.md).
 
 Apply shared `docs/guidance/communication.md` to every task. Use the proportional
 workflow in `docs/guidance/engineering.md`: small work needs implementation,

@@ -119,6 +119,7 @@ export function checkReadiness(root) {
     try { metadata(read(local(root, `.agents/skills/${name}/SKILL.md`).target), name); }
     catch (error) { warnings.push(`Skill ${name}: ${error.message}`); }
   }
+  if (config.kind === 'consumer') warnings.push(...bootstrapWarnings(root));
   return { ready: warnings.length === 0, warnings };
 }
 function metadata(text, name) {
@@ -137,9 +138,29 @@ function entry(meta, body) {
   const text = `---\nname: ${meta.name}\ndescription: ${JSON.stringify(meta.description)}\n${meta.argumentHint ? `argument-hint: ${JSON.stringify(meta.argumentHint)}\n` : ''}${meta.userInvocable ? `user-invocable: ${meta.userInvocable}\n` : ''}---\n\n${body}\n`;
   return text + `<!-- handbook-managed:${sha(text)} -->\n`;
 }
-function sharedEntry(meta) {
-  return entry(meta, `Use the task's existing Handbook path and full revision. Only if no baseline is\nrecorded, run \`npm run handbook:check\` (or \`node scripts/handbook.mjs check\`).\nIf the check reports HANDBOOK_SETUP_REQUIRED, ask once for this task:\n"This repo uses Handbook for shared agent guidance. Clone Uniwares-LTD/handbook\ninto <resolved path>? This sets up this device; the repo is already adopted."\nUse the reported destination. An explicit setup request already grants approval.\nAfter approval run npm run handbook:setup with -- --path set to that destination,\nquoted for the shell, outside the sandbox. Retain the returned path/revision and\nresume the original task. Do not rerun adoption, sync templates or change tracking.\nIf declined, do not ask again during this task. If setup fails, explain the actual\naccess, network or filesystem failure and next action; do not repeatedly retry.\nIn either case continue under local guidance and pause only dependent decisions.\nClient permission prompts may still be required.\nRead \`docs/bootstrap.md\`, \`docs/work-policy.md\` and\n\`.agents/skills/${meta.name}/SKILL.md\` with \`git -C PATH show REVISION:FILE\`.\nRead this project's guidance, source map and preferences declared in \`handbook.json\`.\nResolve all shared references at that same revision; use \`resources --revision SHA\`\nthrough the launcher for filesystem assets. Never substitute the mutable checkout.\nRetain path/revision in handoffs and resume summaries. If lost, recover from context\nfirst; otherwise establish a new baseline and report the discontinuity.\nIf unavailable, continue under local guidance and pause only dependent decisions.`);
+export const bootstrapFile = '.agents/handbook.md';
+const bootstrapSource = 'docs/consumer-bootstrap.md';
+function managed(text) {
+  return text + `<!-- handbook-managed:${sha(text)} -->\n`;
 }
+function bootstrapWarnings(root) {
+  const usesBootstrap = existsSync(path.join(root, '.agents/skills')) &&
+    readdirSync(path.join(root, '.agents/skills'), { withFileTypes: true }).some(item => {
+      if (!item.isDirectory()) return false;
+      const file = local(root, `.agents/skills/${item.name}/SKILL.md`).target;
+      return existsSync(file) && read(file).includes('[Handbook bootstrap](../../handbook.md)');
+    });
+  if (!usesBootstrap) return []; // Legacy consumers keep their self-contained wrappers.
+  const file = local(root, bootstrapFile).target;
+  if (!existsSync(file)) return [`Missing ${bootstrapFile}; restore it from a reviewed snapshot with handbook:sync -- --source SNAPSHOT before using slim entrypoints.`];
+  const match = read(file).match(/^([\s\S]*?)<!-- handbook-managed:([a-f0-9]{64}) -->\n([\s\S]*)$/);
+  if (!match || sha(match[1]) !== match[2]) return [`Customized/unmanaged ${bootstrapFile}; reconcile its bootstrap instructions manually before using slim entrypoints.`];
+  return [];
+}
+function sharedEntry(meta) {
+  return entry(meta, `Read and follow the local [Handbook bootstrap](../../handbook.md).\nUse the task's retained Handbook path and full revision; do not select a new baseline.\nThen read \`.agents/skills/${meta.name}/SKILL.md\` at that revision and follow its\nrelevant references. Shared guidance does not expand the task's authority.`);
+}
+
 function claudeEntry(meta) {
   return entry(meta, `Read and follow the canonical local entrypoint\n[${meta.name}](../../../.agents/skills/${meta.name}/SKILL.md).\nResolve its relative references from that canonical file, not this wrapper.\nFor shared guidance, retain the task's Handbook revision through continuation.\nThis reference grants no hooks, tools, permissions, or delegation authority.`);
 }
@@ -158,28 +179,36 @@ export function syncEntrypoints(root, { write = false, source } = {}) {
   const put = (relative, wanted) => {
     const { target } = local(root, relative);
     const old = existsSync(target) ? read(target) : '';
-    if (old.startsWith(wanted)) return;
+    if (old.startsWith(wanted)) return true;
     warnings.push(`Entrypoint drift: ${relative}`);
-    if (!write) return;
+    if (!write) return false;
     let suffix = '';
     if (old) {
       const match = old.match(/^([\s\S]*?)<!-- handbook-managed:([a-f0-9]{64}) -->\n([\s\S]*)$/);
-      if (!match || sha(match[1]) !== match[2]) { warnings.push(`Preserved customized/unmanaged file: ${relative}; reconcile manually.`); return; }
+      if (!match || sha(match[1]) !== match[2]) { warnings.push(`Preserved customized/unmanaged file: ${relative}; reconcile manually.`); return false; }
       suffix = match[3];
     }
     mkdirSync(path.dirname(target), { recursive: true });
     writeFileSync(target, wanted + suffix);
     changed.push(relative);
+    return true;
   };
   // Consumer upgrades explicitly select a committed resource snapshot as source.
   if (config.kind === 'consumer' && source) {
     source = realpathSync(source);
     const contract = JSON.parse(read(path.join(source, 'handbook-contract.json')));
     if (contract.protocolVersion !== 1) throw new Error('Unsupported source contract.');
+    const bootstrap = path.join(source, bootstrapSource);
+    // Never migrate wrappers unless their prerequisite exists and is intact.
+    const bootstrapText = existsSync(bootstrap) ? read(bootstrap) : '';
+    const bootstrapReady = Boolean(bootstrapText.trim()) && put(bootstrapFile, managed(bootstrapText));
+    if (existsSync(bootstrap) && !bootstrapText.trim()) warnings.push(`Empty ${bootstrapSource}; preserve existing entrypoints and repair the source.`);
+    if (!existsSync(bootstrap)) warnings.push(`Source lacks ${bootstrapSource}; preserve existing entrypoints and use a compatible reviewed snapshot.`);
+    if (!bootstrapReady) warnings.push('Consumer skill migration deferred until the managed bootstrap is synchronized.');
     for (const name of new Set([...core, ...config.technologySkills])) {
       if (!contract.skills.includes(name)) { warnings.push(`Unknown shared skill: ${name}`); continue; }
       const meta = metadata(read(local(source, `.agents/skills/${name}/SKILL.md`).target), name);
-      put(`.agents/skills/${name}/SKILL.md`, sharedEntry(meta));
+      if (bootstrapReady || !write) put(`.agents/skills/${name}/SKILL.md`, sharedEntry(meta));
     }
   }
   const directory = local(root, '.agents/skills').target;
@@ -211,6 +240,7 @@ export function syncEntrypoints(root, { write = false, source } = {}) {
     warnings.push('CLAUDE.md must import @AGENTS.md.');
     if (write) { writeFileSync(claude, '@AGENTS.md\n\n' + old); changed.push('CLAUDE.md'); }
   }
+  if (config.kind === 'consumer') warnings.push(...bootstrapWarnings(root));
   syncGates(root, { write, source: config.kind === 'consumer' ? source : undefined, warnings, changed });
   return { warnings, changed };
 }
