@@ -79,7 +79,11 @@ assert.deepEqual(
   names,
   "Installed skills must match the approved set.",
 );
-const supportFiles = ["CLAUDE.md", ...files(".claude/skills")];
+const supportFiles = [
+  "CLAUDE.md",
+  ".agents/handbook.md",
+  ...files(".claude/skills"),
+];
 
 if (process.argv.includes("--write")) {
   // Refresh only after reviewing an intentional import/update. Preserve the
@@ -129,7 +133,8 @@ if (process.argv.includes("--write")) {
       assert.equal(lock.skills[name].source, "Uniwares-LTD/handbook");
       const text = readFileSync(`.agents/skills/${name}/SKILL.md`, "utf8");
       assert.ok(
-        text.includes("handbook:check") &&
+        text.includes("[Handbook bootstrap](../../handbook.md)") &&
+          text.includes("retained Handbook path and full revision") &&
           text.includes(`.agents/skills/${name}/SKILL.md`),
         `Invalid shared entrypoint: ${name}`,
       );

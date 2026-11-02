@@ -24,6 +24,10 @@ source map and explicit Codex/Claude synchronization after Handbook PR #3 merged
 The 2026-10-28 reconciliation adds the twelfth entrypoint (maintain-docs), consumer-owned
 tracking and confirmed repository preferences, client safeguards and permissive templates.
 No backlog migration or deployment is part of this change.
+The 2026-11-02 adoption follows merged Handbook PR #16: one generated local bootstrap,
+short discovery wrappers and consumer integrity/initializer coverage. Existing local
+authority, tracking, selected skills and application contracts remain intact.
+See [agent tooling](agent-tooling.md#explicit-integration-updates) for provenance and validation.
 
 ## Proposed extension: staging diagnostics API — 2026-10-28
 

@@ -31,6 +31,7 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     "scripts/handbook.mjs":
       "throw new Error('initializer must not run handbook setup');",
     ".agents/skills/manage-issues/SKILL.md": "shared entrypoint fixture",
+    ".agents/handbook.md": "# Portable bootstrap\nRun handbook:check.\n",
     "scripts/handbook-integration.mjs": "// offline integration tooling",
     "handbook.json":
       '{"version":1,"kind":"consumer","tracking":".agents/tracking.json","preferences":".agents/repository.md"}',
@@ -138,6 +139,7 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
   );
   for (const name of [
     "scripts/handbook-integration.mjs",
+    ".agents/handbook.md",
     "CLAUDE.md",
     ".claude/skills/manage-issues/SKILL.md",
     "docs/source-map.md",

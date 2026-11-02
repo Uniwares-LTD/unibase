@@ -4,14 +4,8 @@ description: "Next.js best practices for file conventions, RSC boundaries, data 
 user-invocable: false
 ---
 
-Use the task's existing Handbook path and full revision. Only if no baseline is
-recorded, run `npm run handbook:check` (or `node scripts/handbook.mjs check`).
-Read `docs/bootstrap.md`, `docs/work-policy.md` and
-`.agents/skills/next-best-practices/SKILL.md` with `git -C PATH show REVISION:FILE`.
-Read this project's guidance, source map and preferences declared in `handbook.json`.
-Resolve all shared references at that same revision; use `resources --revision SHA`
-through the launcher for filesystem assets. Never substitute the mutable checkout.
-Retain path/revision in handoffs and resume summaries. If lost, recover from context
-first; otherwise establish a new baseline and report the discontinuity.
-If unavailable, continue under local guidance and pause only dependent decisions.
-<!-- handbook-managed:f0ab32fe13266cc21f449d54c315154532692efcd162c31d94f3c1fc5b15460a -->
+Read and follow the local [Handbook bootstrap](../../handbook.md).
+Use the task's retained Handbook path and full revision; do not select a new baseline.
+Then read `.agents/skills/next-best-practices/SKILL.md` at that revision and follow its
+relevant references. Shared guidance does not expand the task's authority.
+<!-- handbook-managed:50c8a7bc10a2621c1f4b41f683add738c5d0f2c3e250b6a2bae38cf4b9ae1208 -->
