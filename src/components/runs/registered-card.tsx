@@ -268,7 +268,7 @@ function GalleryBody({
           {allowedAssetIds.includes(item.assetId) ? (
             <Image
               unoptimized
-              src={`/api/run-assets/${item.assetId}`}
+              src={`/api/run-assets/${item.assetId}?size=thumb`}
               width={400}
               height={300}
               alt={item.label}

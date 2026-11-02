@@ -123,7 +123,7 @@ export default async function Page({
                 {r.assets.map((id, index) => (
                   <Image
                     key={id}
-                    src={`/api/run-assets/${id}`}
+                    src={`/api/run-assets/${id}?size=thumb`}
                     alt={translate("m91bff16ba87b", {
                       revision: r.revision,
                       index: index + 1,

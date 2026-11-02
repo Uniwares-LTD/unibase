@@ -395,7 +395,7 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
         );
         await assert.rejects(readRunAsset(db, "other", asset._id));
         assert.equal(
-          (await readRunAsset(db, actor.uid, asset._id)).asset.mime,
+          (await readRunAsset(db, actor.uid, asset._id)).mime,
           "image/png",
         );
         const done = await aiJobs(db).findOne({ _id: job._id });

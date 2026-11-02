@@ -709,15 +709,24 @@ export function RunDetail({ initial }: { initial: Detail }) {
                 )}
                 {attempt.result.images.map(
                   (image: { id: string; name: string }) => (
-                    <Image
+                    // The preview opens the full-resolution original.
+                    <a
                       key={image.id}
-                      unoptimized
-                      src={`/api/run-assets/${image.id}`}
-                      width={600}
-                      height={400}
-                      alt={image.name}
-                      className="max-h-96 w-full object-contain"
-                    />
+                      href={`/api/run-assets/${image.id}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="block rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                      <Image
+                        unoptimized
+                        src={`/api/run-assets/${image.id}?size=preview`}
+                        width={600}
+                        height={400}
+                        alt={image.name}
+                        className="max-h-96 w-full object-contain"
+                      />
+                      <span className="sr-only">{translate("m1d1833565142")}</span>
+                    </a>
                   ),
                 )}
                 {attempt.result.cards.map(
