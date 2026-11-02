@@ -189,7 +189,7 @@ export async function changeOrchestrator(
               reason:
                 action === "disable"
                   ? "Stop new Runs"
-                  : "Unregister from Unibase; preserve history and Dify",
+                  : "Unregister from this application; preserve history and Dify",
               timestamp: new Date(),
             },
             { session },

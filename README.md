@@ -147,7 +147,7 @@ tunnel's `/api/mcp` endpoint and restart the web process. Hosted environments us
 needs `server:read` and the workflow's tool permissions. No credentials or temporary
 tunnel addresses belong in template DSL files.
 
-Base settings → Runs → External MCP mappings accepts a list of
+Application settings → Runs → External MCP mappings accepts a list of
 `{ "source": "source_provider_id", "destination": "destination_provider_id" }`.
 These explicitly approve third-party MCP connections for the current environment;
 they contain no credentials. Unmapped nodes block copying/registration. Copied secret
@@ -390,7 +390,7 @@ management. Self-demotion/suspension and removal of the last active admin are
 rejected, including concurrent changes. User search accepts an exact email or UID.
 `GET /api/admin/users` exposes the same authorized read with safe HTTP errors.
 
-Base settings also offers **Diagnostic access** when `DIAGNOSTICS_ENABLED=true`
+Application settings also offers **Diagnostic access** when `DIAGNOSTICS_ENABLED=true`
 and Redis is configured (local or staging only). It issues expiring, read-only
 grants for `POST /api/diagnostics`; use `npm run diagnostics -- --help` for the
 operator helper. Click Create and copy the complete access string from the popup;
@@ -493,7 +493,7 @@ The worker runs the bundled `dist/ai-worker.cjs` loaded when its process starts;
 rebuilding the file alone does not update a running process. Keep its bundle in
 sync with the web server, especially when adding persona or artifact features.
 
-Administration ? Base settings initializes defaults once, then saved policies
+Administration ? Application settings initializes defaults once, then saved policies
 control web/worker behavior. Branding is explicitly allowlisted; management/encryption secrets,
 connection/origin settings and Android build identity stay in environment
 configuration. Accepted attempts and purchases retain their original billing

@@ -21,7 +21,7 @@ Responses may be raw text or UI JSON keyed by card ID.
 To add a template, add its JSON file and server import in `index.ts`, allowlist its
 ID in `src/lib/contracts/orchestrator-templates.ts`, and add its MCP requirements.
 Use supported node/output contracts and verify the embedded Code with actual tool
-outputs and the Unibase answer format. Refresh Dify tool metadata before creation.
+outputs and the application answer format. Refresh Dify tool metadata before creation.
 
 - `saved-artifact.json`: private Run context → owned draft read/save → revision-bound approval/decline → synthetic retained image. Start this from an owned artifact.
 
@@ -42,7 +42,7 @@ question/context data is sent to them. Raw workflows need a paragraph `response`
 input and a `continue` action for automatic answers. Private-MCP graphs still
 snapshot the actual hidden input name; existing `unibase_context` graphs retain
 their binding.
-Unibase still checks rendering definitions, payload bounds, ownership and approval
+The application still checks rendering definitions, payload bounds, ownership and approval
 permissions; MCP tools retain typed arguments.
 
 Unitale groups J01-J13 into four real LLM stages: original concept/manuscript,
@@ -114,9 +114,9 @@ In the destination Dify workspace:
    has no selected model: choose a model/provider with native audio input supported
    by your Dify installation. Its attachment selector is the `audio` Start input.
    A text-only model or the app's speech-to-text toggle is insufficient.
-5. Ensure the Dify Code sandbox is available and Unibase MCP has explicit
+5. Ensure the Dify Code sandbox is available and the application MCP client has explicit
    Run-context/artifact read/save/approval permissions. Configure document OCR if
-   needed. Review and test the draft in Dify; publish it, then Register it in Unibase.
+   needed. Review and test the draft in Dify; publish it, then Register it in the application.
 
 Each Run accepts required case notes plus one optional text/PDF document, one image
 and one MP3/WAV recording. Upload bounds/ownership remain the shared file service's

@@ -24,7 +24,7 @@ preserving the source draft, publications, credential and MCP connection.
 
 Published-version registration validates bindings without rewriting them. Explicit
 draft registration may bind known Unibase tools and publish the owned draft.
-Third-party MCP nodes require destination mappings in Base settings. Missing models,
+Third-party MCP nodes require destination mappings in Application settings. Missing models,
 knowledge bases, builtin-tool authorization and secret variables block registration;
 configure the destination and resume. No models or workflow tools are invoked.
 

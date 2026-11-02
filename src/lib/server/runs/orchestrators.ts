@@ -171,7 +171,7 @@ export async function orchestrators(
                 ? ["Connection and inputs need validation."]
                 : []),
               ...(!settings.settings.runs.enabled
-                ? ["Runs are disabled in Base settings."]
+                ? ["Runs are disabled in application settings."]
                 : []),
             ],
             configurationKey,

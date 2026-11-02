@@ -463,7 +463,7 @@ The staging [diagnostics API](diagnostics-api.md#staging-activation) is selected
 `runtime.DIAGNOSTICS_ENABLED` in the tracked environment JSON: `true` for staging,
 `false` for local and production. The image preload applies the selected flag on
 an ordinary release using the existing v1 controller. It needs no new secret;
-grants are later created and revoked in Base settings without restarts. Production
+grants are later created and revoked in Application settings without restarts. Production
 rejects enablement. Published configuration alone is not evidence of live activation.
 
 Operations retain the existing app lock and repository Actions concurrency group.

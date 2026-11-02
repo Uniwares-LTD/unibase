@@ -27,7 +27,7 @@ repository. The initializer:
 3. Adopt the shared Handbook (`npm run handbook:setup`, then `npm run handbook:ready`)
    and confirm `.agents/tracking.json`, `.agents/repository.md` and the
    [source map](source-map.md) during adoption.
-4. Replace product copy and branding: the home page (`src/project/home.ts`),
+4. Replace product copy and branding: the home page (set a component in `src/project/home.tsx`),
    icons (`npm run icons:generate`), theme colors in `src/app/manifest.ts` and
    `public/offline.html`.
 5. Write the project's first milestones in `docs/implementation-plan.md`.

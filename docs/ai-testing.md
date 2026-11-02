@@ -87,7 +87,7 @@ those IDs. Active/uncertain jobs and changed records are skipped. Ownership,
 financial, usage, audit and retry identities remain. Run image deletion uses
 private-storage intents and the maintenance worker. Published Run images cannot
 be treated as abandoned uploads. Provider files are not deleted automatically.
-Cleanup defaults come from Base settings; execution remains an explicit admin
+Cleanup defaults come from Application settings; execution remains an explicit admin
 operation. There is no automatic local database deletion.
 
 ## Live Dify 1.17.1 acceptance

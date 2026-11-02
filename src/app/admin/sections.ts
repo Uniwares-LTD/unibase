@@ -1,4 +1,4 @@
-import { moduleEnabled, projectExtensions } from "@/lib/project";
+import { moduleEnabled, moduleForPath, projectExtensions } from "@/lib/project";
 import { extensionAdminSections } from "@/lib/extensions";
 
 // One ordered list feeds the administrator navigation and the overview cards.
@@ -31,7 +31,7 @@ export async function adminSections() {
     },
     {
       href: "/admin/settings",
-      label: "Base settings",
+      label: "Application settings",
       description: "Application defaults, credits, and run policies.",
     },
     {
@@ -46,6 +46,11 @@ export async function adminSections() {
         "Configure who answers workflow questions and their responder pricing.",
     },
   ];
+  // Sections owned by a disabled module are hidden, like their routes.
+  const visible = sections.filter((section) => {
+    const owner = moduleForPath(section.href);
+    return !owner || moduleEnabled(owner);
+  });
   const hrefs = new Set(sections.map((section) => section.href));
   for (const section of extensionAdminSections(
     projectExtensions,
@@ -53,7 +58,7 @@ export async function adminSections() {
   )) {
     if (hrefs.has(section.href))
       throw new Error(`Admin section ${section.href} is already registered.`);
-    sections.push(section);
+    visible.push(section);
   }
-  return sections;
+  return visible;
 }

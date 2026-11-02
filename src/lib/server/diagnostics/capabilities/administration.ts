@@ -160,7 +160,7 @@ export const personaGet = define({
 
 export const settingsGet = define({
   description:
-    "Stored Base settings (models, pricing, limits) and persona completion settings, read without initializing defaults.",
+    "Stored application settings (models, pricing, limits) and persona completion settings, read without initializing defaults.",
   inputs: {},
   input: z.strictObject({}),
   async run(context) {

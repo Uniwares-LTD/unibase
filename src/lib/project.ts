@@ -99,7 +99,20 @@ const coreModuleDescriptors: Record<
   runs: {
     configuration: ["runs"],
     requires: ["credits"],
-    routes: ["/runs", "/api/runs", "/api/run-uploads", "/api/run-assets"],
+    // Administration for Runs is part of the module, so the proxy and
+    // endpoint() hide it when Runs are disabled.
+    routes: [
+      "/runs",
+      "/api/runs",
+      "/api/run-uploads",
+      "/api/run-assets",
+      "/admin/ai",
+      "/admin/orchestrators",
+      "/admin/personas",
+      "/api/admin/ai",
+      "/api/admin/orchestrators",
+      "/api/admin/personas",
+    ],
     workers: ["ai"],
     collections: ["aiJobs", "runEvents", "runDecisions"],
   },

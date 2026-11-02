@@ -118,7 +118,7 @@ export function WorkflowVersionPicker({
         </DialogHeader>
         {currentWorkflowId && (
           <p className="break-all text-sm">
-            {"Current Unibase version: " + currentWorkflowId}
+            {"Current registered version: " + currentWorkflowId}
           </p>
         )}
         <Label htmlFor={id}>Workflow version</Label>
