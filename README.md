@@ -554,12 +554,13 @@ Start Run can reuse a managed file. Provider references are cached per owned fil
 and execution binding without counting the bytes twice. Historical provider-only
 uploads do not acquire invented download links.
 
-Trusted server adapters are registered in `src/lib/server/domains.ts`. A workflow
-may select a registered `domainAdapter` ID/version; admission snapshots an owned
-`target`. Keep old versions registered while accepted work exists. Existing
-`artifactId` records remain readable. The optional additive metadata migration is:
-`node --conditions=react-server --import tsx scripts/migrate-domain-references.ts`.
-It reads the configured database; run it only against the intended environment.
+Trusted server adapters are registered in `src/lib/server/domains.ts` (core) or
+`src/project/server.ts` (project extensions). A workflow may select a registered
+`domainAdapter` ID/version; admission snapshots an owned `target`. Keep old
+versions registered while accepted work exists. Existing `artifactId` records
+remain readable. `npm run db:migrate` applies the additive
+`runs:0001-domain-references` metadata migration with any other pending ones. It
+reads the configured database; run it only against the intended environment.
 
 ### Notifications
 

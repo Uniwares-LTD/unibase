@@ -3,6 +3,7 @@ import type { Db } from "mongodb";
 import type { ModuleId } from "../project";
 import type { DomainAdapter } from "./domains";
 import type { RegisteredTool } from "./mcp/tools";
+import type { Migration } from "./migrations";
 
 // Server-only half of the extension contract; see src/lib/extensions.ts.
 // Entries run with the same permission, module and ownership checks as core.
@@ -13,6 +14,8 @@ export type ServerExtension = {
   domainAdapters?: readonly DomainAdapter[];
   // Idempotent index setup run by db:indexes.
   indexes?: (db: Db) => Promise<void>;
+  // Forward-only migrations run by db:migrate; IDs start with `<module>:`.
+  migrations?: readonly Migration[];
 };
 
 export function defineServerExtension(extension: ServerExtension) {
@@ -35,6 +38,11 @@ export function validateServerExtensions(
         throw new Error(`Duplicate MCP tool ${tool.name}.`);
       names.add(tool.name);
     }
+    for (const migration of extension.migrations ?? [])
+      if (!migration.id.startsWith(`${extension.module}:`))
+        throw new Error(
+          `Migration ${migration.id} must belong to module ${extension.module}.`,
+        );
   }
 }
 

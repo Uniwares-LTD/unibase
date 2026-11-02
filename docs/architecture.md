@@ -120,7 +120,21 @@ Persisted changes must preserve profiles, access, wallets, ledger and idempotenc
 records. Prefer additive indexes/fields and explicit, versioned migrations when
 stored data actually changes. Review existing-data compatibility and rollback
 before dropping indexes or rewriting records. `db:indexes` is idempotent index
-setup, not a migration/reset framework; never import the source project's destructive reset.
+setup; never import the source project's destructive reset.
+
+`npm run db:migrate` applies forward-only data migrations from
+`src/lib/server/core-migrations.ts` and server extensions' `migrations`, in that
+order. IDs are `<owner>:<NNNN>-<name>`; the owner is `core` or the module that owns
+the data, so records stay valid when a module moves between core, samples and
+projects. A leased `control` lock serializes runners; applied IDs are recorded in
+`migrations` with a source checksum. Migrations must be idempotent: a failure
+records nothing and the next run retries. Disabled owners are skipped until
+enabled. A changed checksum is reported but never rerun; add a new migration
+instead. Take the operational backup first; it is the rollback. Run indexes before
+migrations. The lease renews while a migration runs. Provisioning's administration
+container has a 15-minute limit, so run long migrations with `npm run db:migrate`
+directly. New environments run both during provisioning; existing ones run
+`db:migrate` (or `prepare-host.py --apply --migrate`) when upgrade notes say so.
 Dify orchestrator Runs extend the shared durable execution engine.
 The existing payment worker stays focused on payment reconciliation and credit
 maintenance. Quality warnings remain advisory; required behavior must still work.

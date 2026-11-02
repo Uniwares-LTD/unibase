@@ -81,7 +81,7 @@ Application failures retain an allowlisted code, phase and timestamp rather than
 raw exception text. Failed saves still require the owner's explicit retry.
 
 After reviewing the target database and taking the normal operational backup,
-`node --conditions=react-server --import tsx scripts/migrate-domain-references.ts`
+`npm run db:migrate` applies the `runs:0001-domain-references` migration, which
 adds reference metadata idempotently. It does not rename or rewrite accounting
 collections. `npm run db:indexes` adds the new collection indexes. These commands
 operate on the explicitly configured database; local tests use disposable stores.

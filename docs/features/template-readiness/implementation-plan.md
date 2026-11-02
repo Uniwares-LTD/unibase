@@ -76,4 +76,11 @@ integrated diff against `b32ff2b`.
   owning module as owner (the domain-reference migration is `runs:0001`);
   changed checksums are reported, not refused; provisioning runs migrations,
   later releases run them through the upgrade notes.
-- Next: checkpoint 3.
+- Checkpoint 3 complete (2026-11-02): runner with lease heartbeat, owner
+  validation, `db:migrate`, provisioning/`prepare-host.py --migrate`, docs and
+  upgrade notes. Migration and provisioning tests pass; end-to-end `db:migrate`
+  applied `runs:0001-domain-references` once and was a no-op on rerun. Reviews
+  found lease-expiry, error-mapping, owner-typo, late-heartbeat and docs gaps;
+  fixed. Notification-template and worker extension slots (R2) move to
+  checkpoint 5, where the Runs extraction first needs them.
+- Next: checkpoint 4.

@@ -32,6 +32,7 @@
     "format:check": "prettier --check src scripts tests *.json *.mjs next.config.ts",
     "emulators:auth": "node scripts/auth-emulator.mjs",
     "emulators:mongo": "node scripts/local-mongo.mjs",
+    "db:migrate": "node scripts/with-environment.mjs --conditions=react-server --import tsx scripts/db-migrate.ts",
     "db:indexes": "node scripts/with-environment.mjs --conditions=react-server --import tsx scripts/db-indexes.ts",
     "admin:bootstrap": "node scripts/with-environment.mjs --conditions=react-server --import tsx scripts/admin-bootstrap.ts",
     "test:integration": "node scripts/integration.mjs",

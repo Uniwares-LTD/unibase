@@ -36,9 +36,9 @@ never rewrites credit, ledger, payment or notification history.
   administration sections, MCP tools, domain adapters, indexes, notification
   templates/categories, workers and migrations. Contributed entries receive the
   same permission, module and ownership checks as core entries.
-- R3 Migrations: a planned `db:migrate` command applies namespaced migrations in order,
-  records them with checksums, serializes concurrent runs, refuses changed
-  applied migrations and is safe to rerun after failure.
+- R3 Migrations: `npm run db:migrate` applies namespaced migrations in order,
+  records them with checksums, serializes concurrent runs, reports (never
+  reruns) changed applied migrations and is safe to rerun after failure.
 - R4 Reference feature: a minimal owned "notes" feature uses contract, store,
   service, route, MCP tool, admin page, navigation, both locales, a migration and
   tests, and is listed as a sample.

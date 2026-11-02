@@ -44,4 +44,21 @@ test("server extensions must name a known module and unique tools", () => {
     validateServerExtensions(["list_notes_v1"], [notes], ["notes"]),
   );
   assert.throws(() => validateServerExtensions([], [notes, notes], ["notes"]));
+  assert.throws(
+    () =>
+      validateServerExtensions(
+        [],
+        [
+          {
+            ...notes,
+            mcpTools: [],
+            migrations: [
+              { id: "core:0001-x", description: "x", run: async () => {} },
+            ],
+          },
+        ],
+        ["notes"],
+      ),
+    /must belong to module notes/,
+  );
 });

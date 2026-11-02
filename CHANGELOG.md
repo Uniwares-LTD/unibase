@@ -25,10 +25,16 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 - Project extension registry: `src/project/extensions.ts` and
   `src/project/server.ts` contribute modules, links, administration sections,
   MCP tools, domain adapters and indexes without editing core files.
+- Forward-only database migrations: `npm run db:migrate`, server extension
+  `migrations`, and migrations during new-environment provisioning. Replaces
+  `scripts/migrate-domain-references.ts` with `runs:0001-domain-references`.
 
 ### Upgrade notes
 
-None.
+- After the operational backup, run `npm run db:migrate` (or
+  `prepare-host.py --apply --migrate`) once. It records
+  `runs:0001-domain-references`, which is idempotent for databases that already
+  ran the retired domain-reference script.
 
 ## 0.1.0 — 2026-11-02
 
