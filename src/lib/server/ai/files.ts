@@ -49,11 +49,8 @@ export type AiFile = {
   managedFileId?: string;
 };
 export const aiFiles = (db: Db) => db.collection<AiFile>("aiFiles");
-export function validateAiFile(file: {
-  name: string;
-  type: string;
-  size: number;
-}) {
+/** Name and type rules shared by every managed file, independent of size. */
+export function validateFileKind(file: { name: string; type: string }) {
   if (
     !file.name ||
     file.name.length > 200 ||
@@ -63,6 +60,16 @@ export function validateAiFile(file: {
       "AI_FILE_NAME",
       "Use a filename without path separators or control characters.",
     );
+  if (!Object.hasOwn(mimeTypes, file.type))
+    throw new AppError("AI_FILE_TYPE", "This file type is not supported.", 415);
+  return mimeTypes[file.type as keyof typeof mimeTypes];
+}
+export function validateAiFile(file: {
+  name: string;
+  type: string;
+  size: number;
+}) {
+  const type = validateFileKind(file);
   if (
     !Number.isSafeInteger(file.size) ||
     file.size < 1 ||
@@ -73,9 +80,7 @@ export function validateAiFile(file: {
       "Choose a file between 1 byte and 20 MiB.",
       413,
     );
-  if (!Object.hasOwn(mimeTypes, file.type))
-    throw new AppError("AI_FILE_TYPE", "This file type is not supported.", 415);
-  return mimeTypes[file.type as keyof typeof mimeTypes];
+  return type;
 }
 
 export function createDifyFiles(

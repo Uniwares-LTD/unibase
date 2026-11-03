@@ -49,6 +49,12 @@ export async function limitRequest(actor: string, policy: RatePolicy) {
 export function requestPolicy(request: Request): RatePolicy {
   const path = new URL(request.url).pathname;
   if (request.method === "GET") return "read";
+  // Resumable upload parts are numerous by design; sessions still count as uploads.
+  if (
+    request.method === "PUT" &&
+    /^\/api\/files\/uploads\/[a-f0-9]{64}\/parts\/\d{1,6}$/.test(path)
+  )
+    return "part";
   if (
     path === "/api/run-uploads" ||
     path.endsWith("/uploads") ||

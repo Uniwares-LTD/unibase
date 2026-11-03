@@ -23,7 +23,7 @@ export async function api<T>(
   path: string,
   schema: z.ZodType<T>,
   options: {
-    method?: "GET" | "POST" | "PATCH" | "DELETE";
+    method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
     body?: unknown;
     signal?: AbortSignal;
     timeoutMs?: number;
@@ -49,7 +49,10 @@ export async function api<T>(
     headers["x-csrf-token"] = csrf.token;
   }
   const multipart = options.body instanceof FormData;
-  if (options.body !== undefined && !multipart)
+  // Blobs are sent as raw bytes, for example resumable upload parts.
+  const raw = options.body instanceof Blob;
+  if (raw) headers["content-type"] = "application/octet-stream";
+  else if (options.body !== undefined && !multipart)
     headers["content-type"] = "application/json";
   const started = performance.now();
   const response = await fetch(path, {
@@ -60,9 +63,10 @@ export async function api<T>(
     signal,
     ...(options.body !== undefined
       ? {
-          body: multipart
-            ? (options.body as FormData)
-            : JSON.stringify(options.body),
+          body:
+            multipart || raw
+              ? (options.body as FormData | Blob)
+              : JSON.stringify(options.body),
         }
       : {}),
   }).catch((error: unknown) => {

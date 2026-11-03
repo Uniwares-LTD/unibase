@@ -39,6 +39,7 @@ export function bootstrapSettings(): BaseSettings {
       retryBaseSeconds: 2,
       retryMaxSeconds: 300,
       uploadBytes: 20 * 1024 * 1024,
+      fileBytes: 20 * 1024 * 1024,
       filesPerAccount: 100,
       uploadBytesPerAccount: 100 * 1024 * 1024,
       imageBytes: 8 * 1024 * 1024,

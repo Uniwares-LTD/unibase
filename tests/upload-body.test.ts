@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { readMultipart } from "../src/lib/upload-body";
+import { readBytes, readMultipart } from "../src/lib/upload-body";
 
 test("multipart limit applies to the file as well as total bytes", async () => {
   const form = new FormData();
@@ -75,5 +75,29 @@ test("chunked overflow is cancelled and malformed multipart is a caller error", 
       10,
     ),
     { code: "INVALID_INPUT", status: 400 },
+  );
+});
+
+test("raw part bodies are bounded and time out", async () => {
+  const request = (body: BodyInit) =>
+    new Request("http://localhost/part", { method: "PUT", body });
+  assert.equal((await readBytes(request("12345"), 5)).toString(), "12345");
+  await assert.rejects(readBytes(request("123456"), 5), { status: 413 });
+  const stalled = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new Uint8Array([1]));
+    },
+  });
+  await assert.rejects(
+    readBytes(
+      new Request("http://localhost/part", {
+        method: "PUT",
+        body: stalled,
+        duplex: "half",
+      } as RequestInit),
+      5,
+      20,
+    ),
+    { code: "UPLOAD_TIMEOUT", status: 408 },
   );
 });

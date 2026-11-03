@@ -45,6 +45,25 @@ repository. The initializer:
 7. The first verified sign-in for the organization's administrator mailbox becomes
    the initial administrator; see [administrator access](architecture.md#administrator-access).
 
+## Content limits
+
+`project.config.json` may set `limits` for product-shaped bounds; omitted values
+keep the defaults:
+
+```json
+"limits": { "artifactTextChars": 40000, "runImages": 24 }
+```
+
+- `artifactTextChars` (1,000–100,000, default 8,000) bounds saved artifact
+  drafts, including the MCP save and read tools.
+- `runImages` (1–50, default 10) bounds generated images per Run result and the
+  images an artifact receives from it. Inline base64 result images stay at 10.
+
+Lowering a value does not rewrite stored records. Orchestrator templates keep their
+own bounds (the samples check 8,000 characters in their Code nodes), and the
+destination Dify installation must allow the larger outputs. File size and quota
+limits are administrator settings; see [resumable uploads](services.md#resumable-uploads).
+
 ## Add a feature
 
 Extend through the registries instead of editing core lists. The

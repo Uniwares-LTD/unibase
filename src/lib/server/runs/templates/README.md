@@ -50,7 +50,7 @@ revised manuscript and final cast, visual/page planning, and visual-plan revisio
 Each LLM uses native structured output; downstream Code nodes consume its parsed
 `structured_output` object rather than re-parsing the unconstrained text channel.
 Python nodes validate generated content, bound the generic artifact package to 8,000
-characters, and build the image prompts. The generated story follows the supplied
+characters (the default artifact text limit), and build the image prompts. The generated story follows the supplied
 idea, with two characters, one main location and three story pages.
 
 Both ordinary reviews use a `feedback` text question and one native `continue`
@@ -138,7 +138,7 @@ The saved brief preserves the reviewed facts, analysis, source metadata and exac
 source excerpts (up to the first 600 characters per passage, explicitly labelled).
 Full passages remain in the Run retrieval trace subject to its normal retention.
 Factual summaries and rendered analysis each have a 2,000-character bound; the
-final brief must fit the existing 8,000-character artifact contract, otherwise the
+final brief must fit the default 8,000-character artifact contract, otherwise the
 workflow fails explicitly without silently truncating the brief. It saves a draft
 before final review. Approve binds the saved revision/hash and requires a human;
 Decline and persona Continue keep it unapproved. Approval with no retrieved law

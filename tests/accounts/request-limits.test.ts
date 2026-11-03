@@ -14,6 +14,11 @@ test("Run controls retain ordinary mutation capacity after admissions are exhaus
     "read",
   );
   assert.equal(requestPolicy(request("/api/files")), "upload");
+  const upload = "/api/files/uploads/" + "a".repeat(64);
+  assert.equal(requestPolicy(request("/api/files/uploads")), "upload");
+  assert.equal(requestPolicy(request(upload + "/parts/12", "PUT")), "part");
+  assert.equal(requestPolicy(request(upload + "/complete")), "mutation");
+  assert.equal(requestPolicy(request(upload + "/parts/x", "PUT")), "mutation");
   assert.equal(
     requestPolicy(request("/api/files/" + "a".repeat(64), "DELETE")),
     "mutation",
