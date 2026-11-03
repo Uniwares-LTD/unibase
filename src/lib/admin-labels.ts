@@ -122,6 +122,7 @@ const adminFields: Record<string, string> = {
   retryBaseSeconds: "Retry base seconds",
   retryMaxSeconds: "Retry max seconds",
   uploadBytes: "Upload bytes",
+  fileBytes: "Resumable file bytes",
   filesPerAccount: "Files per account",
   uploadBytesPerAccount: "Upload bytes per account",
   imageBytes: "Image bytes",

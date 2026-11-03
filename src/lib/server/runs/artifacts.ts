@@ -11,6 +11,7 @@ import {
 } from "@/lib/contracts/artifacts";
 import type { parseUiForm } from "@/lib/contracts/runs";
 import { aiJobs, fingerprint, type AiJob } from "../ai/jobs";
+import { limits } from "@/lib/limits";
 import { database } from "../mongo";
 async function requireSession() {
   return (await import("../session")).requireSession();
@@ -476,7 +477,7 @@ export const applyArtifactResult: ProductResultHandler = async (
       { uid: intent.uid, jobId: intent.jobId, status: "ready" },
       { session, projection: { _id: 1 } },
     )
-    .limit(10)
+    .limit(limits.runImages)
     .toArray();
   const result = await db
     .collection<Document & { _id: string }>("runResults")

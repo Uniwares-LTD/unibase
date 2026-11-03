@@ -4,6 +4,7 @@ export const ratePolicies = z.strictObject({
   read: z.number().int().min(1).max(100000).default(120),
   mutation: z.number().int().min(1).max(100000).default(30),
   upload: z.number().int().min(1).max(100000).default(10),
+  part: z.number().int().min(1).max(100000).default(240),
   admission: z.number().int().min(1).max(100000).default(10),
   mcp: z.number().int().min(1).max(100000).default(120),
 });

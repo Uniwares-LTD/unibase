@@ -8,6 +8,7 @@ import {
   type ProjectExtension,
 } from "./extensions";
 export type { ModuleConfiguration } from "./extensions";
+import { projectLimitsSchema } from "./limits";
 
 export const coreModuleIds = [
   "credits",
@@ -47,6 +48,7 @@ export const projectSchema = z
       .refine((v) => new Set(v).size === v.length),
     defaultLocale: z.enum(["en", "ar"]),
     examples: z.boolean(),
+    limits: projectLimitsSchema.optional(),
     android: z
       .strictObject({
         packageName: z

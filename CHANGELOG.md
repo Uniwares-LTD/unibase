@@ -26,6 +26,29 @@ None.
 
 None.
 
+## 0.4.0 — 2026-11-03
+
+### Changes
+
+- Resumable private file uploads (`/api/files/uploads`) in 8 MiB parts on GridFS
+  or private S3, with quota reserved up front, idempotent resumption, streamed
+  verified downloads and reclamation of idle uploads. The Files page uses them for
+  non-image files over 8 MiB and shows progress.
+- New `runs.fileBytes` setting (default 20 MiB, at most 1 GiB). The maxima of
+  `filesPerAccount` and `uploadBytesPerAccount` rise to 100,000 and 1 TiB; usage
+  is counted with an aggregation instead of a 101-row read.
+- New `part` rate-limit policy (default 240 per minute) for upload parts.
+- Optional `limits` in `project.config.json`: `artifactTextChars` (default 8,000,
+  at most 100,000) and `runImages` (default 10, at most 50).
+
+### Upgrade notes
+
+- None required: defaults keep 0.3.0 behavior. To accept large files, raise
+  `fileBytes` and the account quota in administration settings. Set `part` in
+  `RATE_LIMITS_JSON` only to change its default.
+- Projects that raise `limits` also update their orchestrator templates' own
+  bounds and the destination Dify limits.
+
 ## 0.3.0 — 2026-11-03
 
 ### Changes

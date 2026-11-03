@@ -66,25 +66,37 @@ export async function storedSettings(context: DiagnosticContext) {
 
 /** Same counting rule as private-files fileUsage, with the request deadline. */
 async function fileQuotaUsage(context: DiagnosticContext, uid: string) {
-  const managed = await context.db
-    .collection<PrivateFile>("privateFiles")
-    .find(
-      { uid, state: { $ne: "deleted" } },
-      { ...options(context), projection: { bytes: 1 } },
-    )
-    .limit(101)
-    .toArray();
-  const legacy = await context.db
-    .collection<AiFile>("aiFiles")
-    .find(
-      { uid, cleanedAt: { $exists: false }, managedFileId: { $exists: false } },
-      { ...options(context), projection: { bytes: 1 } },
-    )
-    .limit(101)
-    .toArray();
+  const totals = async (name: string, filter: Record<string, unknown>) => {
+    const [row] = await context.db
+      .collection(name)
+      .aggregate<{ count: number; bytes: number }>(
+        [
+          { $match: filter },
+          {
+            $group: {
+              _id: null,
+              count: { $sum: 1 },
+              bytes: { $sum: "$bytes" },
+            },
+          },
+        ],
+        options(context),
+      )
+      .toArray();
+    return { count: row?.count ?? 0, bytes: row?.bytes ?? 0 };
+  };
+  const managed = await totals("privateFiles", {
+    uid,
+    state: { $ne: "deleted" },
+  });
+  const legacy = await totals("aiFiles", {
+    uid,
+    cleanedAt: { $exists: false },
+    managedFileId: { $exists: false },
+  });
   return {
-    count: managed.length + legacy.length,
-    bytes: [...managed, ...legacy].reduce((n, f) => n + f.bytes, 0),
+    count: managed.count + legacy.count,
+    bytes: managed.bytes + legacy.bytes,
   };
 }
 const managedFile = (row: PrivateFile) => ({
@@ -172,6 +184,7 @@ export const fileSearch = define({
       quota: {
         files: usage.count,
         bytes: usage.bytes,
+        fileBytes: settings?.runs.fileBytes ?? null,
         filesPerAccount: settings?.runs.filesPerAccount ?? null,
         uploadBytesPerAccount: settings?.runs.uploadBytesPerAccount ?? null,
       },
