@@ -20,7 +20,7 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
-None.
+- Add opt-in v1 commerce and execution-measurement contracts for immutable catalog terms, consumption orders, entitlements, subscriptions, promotions and provider evidence. Existing runtime behavior and records remain unchanged.
 
 ### Upgrade notes
 

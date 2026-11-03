@@ -20,6 +20,11 @@ projects. The staging installation runs the current `main`; see
 
 ## Open work
 
+### Booklet product foundation
+
+- Accepted cross-repository implementation: reusable T01 commerce/measurement contracts are implemented and reviewed on task/booklet-foundation. Seven contract tests, typecheck, lint and application build evidence pass; two consecutive same-agent read-only review passes found no remaining blocking issues. Publication audit UID validation was corrected and regression-tested. Unitale owns the accepted PRD and T01-T28 graph in docs/features/booklet-generation. T02-T28 are not complete. No provider publication, paid calls or release is authorized.
+- Generic contracts are opt-in, strictly versioned and fixture-tested. They do not implement transactional billing, subscriptions, evidence retention or MCP transport. Existing records retain their prior parsers. Breaking additions need a new version; update strict consumers before emitting new fields.
+
 ### Template
 
 - [ ] Checkpoint 5: make the Runs/Dify/personas/artifacts stack a removable
