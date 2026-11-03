@@ -24,6 +24,8 @@ and the adapter; the table does not require unrelated suites for every task.
 
 ## Components
 
+- [Commerce contracts](../src/lib/contracts/commerce.ts) and [execution measurements](../src/lib/contracts/execution-measurements.ts) define opt-in v1 foundation DTOs. Runtime adoption is pending; [contract tests](../tests/commerce-contracts.test.ts) cover validation boundaries.
+
 - Runs module (planned sample): [environment binding](../src/lib/server/runs/environment-binding.ts) owns Dify app
   ownership, managed MCP setup, endpoint identity, graph binding and destination
   prerequisites. [Creation](../src/lib/server/runs/creation.ts) journals exact-version
