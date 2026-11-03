@@ -20,6 +20,16 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+None.
+
+### Upgrade notes
+
+None.
+
+## 0.3.0 — 2026-11-03
+
+### Changes
+
 - Local MongoDB data moves to `.cache/mongodb/<slug>`; the earlier
   `.cache/mongodb-data` is left untouched.
 - `MCP_CONNECTION_NONBLOCKING` is a declared tooling variable, so agent hosts
