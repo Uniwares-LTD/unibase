@@ -1,126 +1,16 @@
 # VPS deployment
 
-## Completed Run image recovery release impact
-
-**Operator intervention: none for the existing staging host.** This is an
-application/worker image change; host profiles, deployment contract, credentials,
-controller and database schema are unchanged. The installed Dify management
-credential can already run the bundled Code validator, verified against an existing
-generated file without invoking a model. Normal release replaces the AI worker,
-which resumes saved successful executions after their current leases expire.
-It renews missing image links and uses normal atomic retention/settlement; do not
-restart the Run, generate images again, or adjust credits manually. Changed or
-missing validators remain reviewable. Verify the original attempt, retained image
-count, released hold and single settlement after release. If recovery fails,
-inspect that attempt before retrying; production activation remains separate.
-
-The follow-up save investigation adds bounded read-only application/asset metadata
-to `run.get`. This is also an image-only change with no operator intervention,
-host profile change, migration or new diagnostic permission. Existing `run.get`
-grants can read the additional metadata; bytes, storage locations and leases remain
-excluded. It does not retry saves or change financial records.
-
-The attachment correction stages image copies inside MongoDB before the publish
-transaction and records safe failure codes. **Operator intervention: none.** It
-uses the existing collections and database write access; there is no profile,
-credential, controller, index installation or migration. Existing failed saves
-remain failed until their signed-in owner clicks **Retry save** after release.
-This attaches retained images without generation or another credit charge. Create
-a fresh diagnostic grant after deployment's Redis recreation to verify the same
-attempt, application status, nine artifact references and unchanged settlement.
-
-## Environment-binding release impact
-
-Local-only `MCP_PUBLIC_URL` is host-owned configuration in `deploy/contract.json`,
-not an image-owned override. Staging/production reject it and need no tracked profile
-or private runtime credential change. Existing credentials remain host-held.
-
-**Operator intervention: none for the existing staging host.** The application release
-owner uses the normal promotion/release path. Comparison with the previous staging
-revision confirms the hosted profile, projected configuration hash and required
-controller capabilities are unchanged: the new contract entry is used only locally.
-No controller installation or protected runtime update is required for this change.
-Live preflight still runs before build/publication. If it reports actual drift, inspect
-that operation and use the existing protected-change path rather than bypassing it.
-No key rotation, restore, new sudo access or production activation is included.
-
-**Application administrator, after release:** remove unmanaged registrations,
-create/copy destination apps and configure missing destination resources in Dify.
-Registration manages the environment's MCP connection using existing management and
-Run-client credentials; provider setup needs no root command. Verify environment
-tags, required tools and successful identity checks in fresh local/staging registrations.
-Local operators configure their actual tunnel URL privately. Do not repoint another
-environment's provider or retry failed Runs in bulk.
-
 ## Current staging release
 
-Verified November 1, 2026; this is dated acceptance, not continuous monitoring.
-
-| Identity or check | Verified result |
-| --- | --- |
-| Source | `e768bf58ff36e183ab251773de736a98ab37e0ec`, promoted from main through [PR #28](https://github.com/Uniwares-LTD/unibase/pull/28) |
-| Image | `ghcr.io/uniwares-ltd/unibase@sha256:9fcc10389325daa4d4c94172400ed714cd9a3ccf57f5a903da66c26828633d23` |
-| Release | [41308776771](https://github.com/Uniwares-LTD/unibase/actions/runs/41308776771): preflight, build/publication, anonymous pull, deployment and readiness passed |
-| Separate check | [41309064914](https://github.com/Uniwares-LTD/unibase/actions/runs/41309064914): web and both workers passed |
-| Public readiness | `/api/health/ready` returned `ready` and the source commit above; Home and Account returned 200 |
-| Access boundary | Unauthenticated grant management returned 401 / `UNAUTHENTICATED` |
-| Maintenance result | `maintenance=disabled`; automatic cleanup remains disabled |
-
-Diagnostic access creation/copy, durable MongoDB grants and English-only administration
-are deployed. The user-approved three additive `diagnosticGrants` indexes were
-installed and read back at 12:54:28 UTC, before activation, against an absent/empty
-collection in `unibase_staging`. Host profile/controller identity and existing data
-were unchanged. No installation remains for this release, and documentation-only
-merges must not repeat it. Old Redis grants need one replacement after this cutover.
-Fresh authenticated creation/revocation and persistence across a subsequent release
-remain functional acceptance checks; earlier local browser/replica-set evidence is
-separate from these public/operational checks. Production remains inactive.
-
-### Previous artifact-retention release (2026-11-01)
-
-| Identity or check | Verified result |
-| --- | --- |
-| Source | `069af3a3466d9f64283b9afd11a07ee04eda4fa8`, promoted from main through [PR #25](https://github.com/Uniwares-LTD/unibase/pull/25) |
-| Image | `ghcr.io/uniwares-ltd/unibase@sha256:b1ece1da6fe95e69b6a3e6ee015ca34234a433a8ca157cbb63ddb16eb8b3a965` |
-| Release | [41297220499](https://github.com/Uniwares-LTD/unibase/actions/runs/41297220499): pinned-SSH preflight, build/publication, anonymous pull, deployment and readiness passed |
-| Separate check | [41302822308](https://github.com/Uniwares-LTD/unibase/actions/runs/41302822308): web and both workers passed |
-| Public readiness | `/api/health/ready` returned `ready` and the source commit above |
-| Maintenance result | `maintenance=disabled`; automatic cleanup remains disabled |
-
-Infrastructure's [host inventory](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/inventory/srv1.md#installed-control-and-capacity--2026-10-31)
-owns installed controller/configuration identities and capacity. The original permission
-correction mismatch is resolved. Environment-owned Unitale creation/registration was
-confirmed by the operator after the preceding environment-binding correction.
-This release adds automatic recovery of expired Unitale image links; one original
-file was renewed/downloaded without generation before release. Fresh read-only
-diagnostics confirmed original attempt
-`c852707d7958b7ec7b835fa4a28c08531b08a33d37c721f94a86bf378b5a2d16`
-succeeded at 09:21:55 UTC: all nine distinct images are retained, its hold is
-committed, and the ledger contains one two-credit settlement (one workflow credit,
-one Persona credit). Its provider Run ID is unchanged; recovery did not regenerate
-images or create a successor attempt. Earlier account/provider acceptance was not
-rerun by this release. This evidence update requires no repeated installation or
-release.
-
-The subsequent artifact association retry failed while all nine Run images remained
-ready. The latest release stages image copies within MongoDB before the short
-publish transaction and records safe failure details. An owner-initiated retry after
-release was verified through fresh diagnostics: application `applied`, nine ready
-Run images, nine promoted product images, nine images on the saved artifact, no
-failure, and the original two-credit charge unchanged. The earlier failure's exact cause was not recorded; the successful
-retry does not establish a historical error code. The preceding diagnostic release's
-Compose log also confirmed Redis recreation, which clears temporary grants. The
-Run and financial records remain in MongoDB. See
-[diagnostic grant lifecycle](diagnostics-api.md#grants). This evidence-only update
-requires no repeated installation or release.
-
-## Diagnostic grant persistence update
-
-The create/copy update is deployed with MongoDB for durable grants and Redis only
-for counters. The additive indexes were installed and verified before activation;
-do not repeat installation for the existing staging release. Old Redis grants
-require one replacement. No host/controller installation is required.
-See [owner, ordering, verification and failure/resume](diagnostics-api.md#durable-grant-rollout).
+Staging runs the latest `main`, promoted through a pull request into `_staging`.
+Each promotion's Release workflow run records preflight, build/publication,
+deployment and readiness; the separate Check deployment workflow verifies web and
+both workers, and `/api/health/ready` reports the deployed source commit. This
+guide keeps procedures, not per-release evidence: each pull request's Deployment
+section states operator intervention, ordering and post-release checks.
+Infrastructure's [host inventory](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/inventory/srv1.md)
+owns installed controller and configuration identities. Production remains
+inactive.
 
 ## Choose an operation
 
@@ -136,35 +26,16 @@ configuration, recovery acceptance and activation remain pending. Shared gateway
 shared Redis and replacement of existing workers remain deferred; documentation does
 not activate them or transfer Booklet, Dify or tunnel ownership.
 
-## Staging transition status — 2026-10-24
+## Deferred compatibility and recovery work
 
-Historical transition reference. Use [current staging release](#current-staging-release)
-and the current procedures above; do not repeat bootstrap on the installed host.
-
-### First deployment and later consolidation
-
-See [first provisioning](#first-provisioning). Existing workers, Redis and ingress
-remain in place; shared-service consolidation is a separate milestone.
-
-### Target conventions and pending compatibility work
-
-Current target mapping is described above. The [historical target table](history/deployment-evidence-2026-10-25.md#target-conventions-and-pending-compatibility-work)
-preserves deferred shared-service decisions; Infrastructure owns their implementation.
-
-### Current and proposed background scheduling
-
-Existing AI/payment workers remain the runtime. The [deferred scheduling proposal](history/deployment-evidence-2026-10-25.md#current-and-proposed-background-scheduling)
-is retained as accepted scope, not implemented endpoints or an active schedule.
-
-### Minimum staging recovery target
-
-Use [manual recovery](#repeatable-release-and-protected-change-path) and Infrastructure's
-recovery guide. Encrypted off-host restore rehearsal remains pending.
+Existing workers, Redis and ingress remain in place. Shared-service consolidation,
+app-hosted scheduling, backup/restore rehearsal and production activation are open
+items in the [implementation plan](implementation-plan.md#open-work);
+Infrastructure owns the shared-service implementation. Use
+[manual recovery](#repeatable-release-and-protected-change-path) and
+Infrastructure's recovery guide meanwhile.
 
 ## Staging execution and acceptance
-
-The [dated acceptance record](history/deployment-evidence-2026-10-25.md)
-preserves earlier account/provider evidence. Current release acceptance is recorded above.
 
 ### Phase 1 — Connect and prepare
 
@@ -259,7 +130,7 @@ All public hostnames use the existing host Cloudflare connector. Staging uses di
 Production uses the restricted controller and pinned SSH path once its own bindings are configured; it is not activated. This project
 does not create, reinstall, restart or own that connector or Dify Community.
 `agentic-poc` remains their owner; its Terraform writes the complete tunnel route
-list. The first staging route is a reviewed owner-side Terraform change. Unibase reads
+list. The first staging route is a reviewed owner-side Terraform change. The application reads
 live tunnel/DNS configuration and refuses a missing, shadowed or incorrect route;
 it does not write Cloudflare configuration.
 
@@ -325,10 +196,6 @@ connections. Without it the initializer clears source SSH/provider/owner connect
 and derives fresh project names, databases/users, paths, workflow labels and suggested
 ports/subnets. Profiles allow only the documented public connection sections; they
 never carry credentials. Review host allocations even when using suggested values.
-
-The base now uses `unibase` namespaces. Old `unitale` databases and private files
-are neither migrated nor deleted. Existing `.env.local` values still override the
-new defaults; review those overrides to start with fresh local namespaces.
 
 ## Secrets and one-time access bootstrap
 
@@ -427,33 +294,6 @@ A binding change must identify the operator/control update before release, owner
 route change if needed, and checks before resuming. Where tooling is absent, say
 **implementation required** with prerequisites and acceptance, not invented commands.
 Publication alone does not prove live readiness or authorize data restoration.
-
-#### Unitale permission correction — 2026-10-29
-
-**Operator intervention required.** The authorized fix adds `run:read`,
-`artifact:read` and `artifact:write` to the existing staging `dify` MCP client.
-This is a host-profile/provider permission change, so the installed v1 controller
-correctly refuses a release whose registered configuration has not been updated.
-Do not exclude MCP bindings/permissions from the host hash or place credentials
-in the image to bypass that check.
-
-- **Owner/location:** the trusted staging operator on srv1, using Infrastructure's
-  existing root-only `update-app-config.py` and its sibling `bootstrap-deploy.py`.
-- **Order:** build a checksum-bound control bundle from the reviewed application
-  revision, projecting image-owned settings with `host_configuration`; preview
-  and select that bundle with the existing updater before the matching release.
-  Preserve current credentials, origins and encryption bytes. If the updater
-  requires private input, reuse only the current host's `MCP_TOKEN_DIFY` in a
-  temporary root-only input; never copy a local environment file or rotate a key.
-- **Verify:** release web and both workers, refresh the existing Dify MCP catalog,
-  then confirm the four private tools and empty missing-permission lists in
-  `run.diagnose` for web and the active AI worker. Restart one failed Run as a new
-  attempt under its owner's account; preserve the original zero-charge attempt.
-- **Failure/resume:** inspect the exact release and any `config-update-pending`
-  journal before retrying. The application updater retains previous runtime and
-  registration bytes and supports its documented recovery. No bootstrap replay,
-  broad sudo grant, data restore, automatic bulk retry or Dify workflow rewrite
-  is required. An uninstalled host update leaves the current release serving.
 
 ### Derived-project deployment initialization
 
@@ -619,7 +459,7 @@ The staging [diagnostics API](diagnostics-api.md#staging-activation) is selected
 `runtime.DIAGNOSTICS_ENABLED` in the tracked environment JSON: `true` for staging,
 `false` for local and production. The image preload applies the selected flag on
 an ordinary release using the existing v1 controller. It needs no new secret;
-grants are later created and revoked in Base settings without restarts. Production
+grants are later created and revoked in Application settings without restarts. Production
 rejects enablement. Published configuration alone is not evidence of live activation.
 
 Operations retain the existing app lock and repository Actions concurrency group.

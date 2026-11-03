@@ -94,7 +94,7 @@ export function inspectDifyWorkflow(graph: unknown, responseMode?: "raw-v1") {
   )
     throw new AppError(
       "DIFY_INPUT_UNSUPPORTED",
-      "The workflow has an unknown required Unibase input.",
+      "The workflow has an unknown required application input.",
       409,
     );
   let inputs;

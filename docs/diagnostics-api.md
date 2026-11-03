@@ -2,7 +2,7 @@
 
 `POST /api/diagnostics` gives an administrator temporary, read-only access to
 investigate any application module, including other accounts' records. Access is
-granted from **Administration → Base settings → Diagnostic access**. It is opt-in,
+granted from **Administration → Application settings → Diagnostic access**. It is opt-in,
 needs Redis, and is never available in production.
 
 It is separate from [MCP](mcp.md): an MCP token represents a service integration,

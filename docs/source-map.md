@@ -1,4 +1,4 @@
-# Base source map
+# Source map
 
 ## Task routing
 
@@ -13,7 +13,10 @@ revision; these links provide context, not additional authority.
 | Files, quotas, domains or accounting | [Service contracts](services.md) | [Server modules](../src/lib/server), accepted [plan](implementation-plan.md) | Affected behavior/boundary tests and adapter checks |
 | MCP or Dify workflows | [MCP guidance](mcp.md) | [Environment binding](../src/lib/server/runs/environment-binding.ts), [templates](../src/lib/server/runs/templates/README.md) | Affected accounts/MCP tests; typecheck/build for runtime changes |
 | Diagnostics | [Diagnostics API](diagnostics-api.md) | [Diagnostic server](../src/lib/server/diagnostics), service read-only boundaries | Affected diagnostics tests and inventories |
-| Deployment or provider activation | [Deployment guidance](deployment.md#current-staging-release) | Infrastructure owner guidance/inventory linked there; adapter operational boundaries | Impact classification and affected deployment checks; live actions need separate authorization |
+| Deployment or provider activation | [Deployment guidance](deployment.md#choose-an-operation) | Infrastructure owner guidance/inventory linked there; adapter operational boundaries | Impact classification and affected deployment checks; live actions need separate authorization |
+| Add a project feature | [Using the template](template.md#add-a-feature), [project extensions](architecture.md#project-extensions) | [Notes sample](../src/samples/README.md), [project registries](../src/project) | typecheck, lint, check:samples, affected tests, build |
+| Data migration | [Migrations](architecture.md#extension-conventions) | [Core migrations](../src/lib/server/core-migrations.ts), server extension `migrations` | Disposable-database tests; db:migrate locally |
+| Template updates or releases | [Using the template](template.md#receive-template-updates), [changelog](../CHANGELOG.md) | [Update command](../scripts/template-update.mjs), [initializer](../scripts/project-initializer.ts) | check:template, test:initializer, test:initialized-projects |
 | New documentation or templates | [Canonical documents](#documentation) | Selected maintain-docs skill and [local starters](templates) | check:docs; opt-in template replacement |
 
 Command definitions and proportional selection remain in [package.json](../package.json)
@@ -21,7 +24,7 @@ and the adapter; the table does not require unrelated suites for every task.
 
 ## Components
 
-- [Environment binding](../src/lib/server/runs/environment-binding.ts) owns Dify app
+- Runs module (planned sample): [environment binding](../src/lib/server/runs/environment-binding.ts) owns Dify app
   ownership, managed MCP setup, endpoint identity, graph binding and destination
   prerequisites. [Creation](../src/lib/server/runs/creation.ts) journals exact-version
   copying; [binding contracts](../src/lib/contracts/environment-binding.ts) expose
@@ -31,8 +34,8 @@ and the adapter; the table does not require unrelated suites for every task.
 - [UI](../src/components) and [design system](design-system.md) own reusable primitives and interaction.
 - [Server modules](../src/lib/server) own authorization, persistence, provider adapters and workers;
   [service contracts](services.md) define ownership, quotas and transaction boundaries.
-- [Image renewal](../src/lib/server/runs/image-renewal.ts) verifies original Unitale
-  file identities and the bundled Code validator before renewing expired Dify links.
+- Runs module, story-panel sample: [image renewal](../src/lib/server/runs/image-renewal.ts) verifies original
+  story-panel file identities and the bundled Code validator before renewing expired Dify links.
   [Media retention](../src/lib/server/runs/media.ts) stages owned bytes before settlement.
 - [Project extensions](../src/project) are project-owned registrations of features and
   samples; core reads them through [the contract](../src/lib/extensions.ts).
@@ -66,7 +69,7 @@ the admin boundary; public-page catalogs remain in `messages/`.
 owns integration procedures and provenance; the [repository adapter](../.agents/repository-adapter.md)
 owns local constraints and Handbook exceptions. Root [instructions](../AGENTS.md)
 own task-start routing and short decision-point reminders; this map owns navigation.
-Historical evidence in [history](history) is not a task queue.
+Dated evidence lives in Git history, not in a docs folder.
 Repository [preferences](../.agents/repository.md) own issue language and durable branches;
 [tracking metadata](../.agents/tracking.json) records this repo's selection when configured.
 [Document starters](templates), [issue forms](../.github/ISSUE_TEMPLATE) and the
@@ -117,4 +120,4 @@ Deployment changes require configuration ownership classification and operator-i
 
 The [host release script](../scripts/deploy/vps.sh) delegates disk protection and image maintenance to Infrastructure's installed controller. [The initializer](../scripts/project-initializer.ts) generates a project-specific retention enrollment proposal, never host authorization.
 
-Current procedures link to dated evidence rather than duplicating it. Superseded first-deployment evidence is retained in [history](history/deployment-evidence-2026-10-25.md); it is not a task queue or runnable update procedure.
+Dated evidence lives in Git history and pull requests, not in current documents.

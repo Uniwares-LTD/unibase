@@ -9,7 +9,7 @@ export function diagnosticsConfig() {
     return { enabled: false } as const;
   }
 }
-/** Page-safe summary for the Base settings card. */
+/** Page-safe summary for the application settings card. */
 export function diagnosticsAvailability() {
   const config = diagnosticsConfig();
   return {

@@ -3,7 +3,9 @@ import {
   mkdir,
   mkdtemp,
   copyFile,
+  readdir,
   readFile,
+  rm,
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
@@ -13,10 +15,14 @@ import { project } from "../src/lib/project";
 
 async function main() {
   const workspace = process.cwd();
-  await mkdir(".cache/initialized-projects", { recursive: true });
-  const root = await mkdtemp(
-    path.resolve(".cache/initialized-projects/verification-"),
-  );
+  const fixtures = path.resolve(".cache/initialized-projects");
+  await mkdir(fixtures, { recursive: true });
+  // Each run installs and builds two projects (several GB), so earlier
+  // fixtures are removed before a new run starts.
+  for (const entry of await readdir(fixtures))
+    if (entry.startsWith("verification-"))
+      await rm(path.join(fixtures, entry), removal);
+  const root = await mkdtemp(path.join(fixtures, "verification-"));
   const source = path.join(root, "source");
   await mkdir(source);
   function command(
@@ -184,13 +190,22 @@ async function main() {
   ])
     assert.notEqual(rows[0][key], rows[1][key], key);
   console.log(
-    "Both initialized projects built independently with isolated namespaces. Fixture artifacts: " +
-      root,
+    "Both initialized projects built independently with isolated namespaces.",
   );
+  // Failed runs keep their fixtures for inspection; pass --keep to retain a
+  // passing run as well.
+  if (process.argv.includes("--keep"))
+    console.log(`Fixture artifacts: ${root}`);
+  else await rm(root, removal);
 }
+
+const removal = { recursive: true, force: true, maxRetries: 5 };
 main().catch((error) => {
   console.error(
     error instanceof Error ? error.message : "Initializer verification failed.",
+  );
+  console.error(
+    "Fixture artifacts are kept under .cache/initialized-projects.",
   );
   process.exitCode = 1;
 });

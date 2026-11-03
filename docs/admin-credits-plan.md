@@ -6,7 +6,7 @@ The original milestone excluded provider activation, publication, deployment and
 iOS work; later session authorization and the current implementation plan govern new work.
 
 Current status: C1-C5 are implemented and locally verified; C6 is unimplemented.
-AI consumption and variable pricing were added separately in [AI foundation](ai-foundation.md).
+AI consumption and variable pricing are part of [orchestrator Runs](runs.md).
 Historical checkpoint evidence below does not replace a new [full regression](test-plan.md).
 
 ## Checkpoints

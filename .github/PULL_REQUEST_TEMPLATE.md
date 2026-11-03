@@ -9,6 +9,10 @@ What changed and why. Link related work with ordinary references (for example
 
 Checks run, read-only review, documentation impact and known limitations.
 
+## Template changelog
+
+In the template, the `Unreleased` entry in CHANGELOG.md, or "None". Derived projects delete this section.
+
 ## Deployment
 
 Operator intervention: None, or list owner, location, ordering, verification and

@@ -1,4 +1,4 @@
-# Base repository adapter
+# Repository adapter
 
 This file owns local constraints and accepted Handbook adaptations. Root
 [instructions](../AGENTS.md) retain decision-point reminders; the
@@ -8,7 +8,8 @@ Read the generated [bootstrap](handbook.md) for shared guidance access and
 
 ## Repository and task contract
 
-- Project: Base. Resolve repository identity from `git remote -v`; do not assume
+- Project: named by `displayName` in `project.config.json`. Resolve repository
+  identity from `git remote -v`; do not assume
   an extracted repository exists. [Preferences](repository.md) own issue language
   and durable branches; [tracking](tracking.json) owns the selected destination.
 - The user's request and [implementation plan](../docs/implementation-plan.md)
@@ -22,6 +23,20 @@ Read the generated [bootstrap](handbook.md) for shared guidance access and
   the implementation plan, as linked by the source map. Preserve dated evidence
   and anchors. Record useful lessons in the nearest canonical document rather
   than a work log or competing source of truth.
+
+## Template and project extensions
+
+- This repository is the reusable template or a project created from it
+  (`project.source.json` exists in projects). See [using the template](../docs/template.md).
+- Add project features through the `src/project` registries, `src/samples` for
+  removable samples and `<module>:<NNNN>-<name>` migrations; do not edit core lists
+  to add a feature.
+- In the template, every reusable change adds an `Unreleased` entry to
+  [CHANGELOG.md](../CHANGELOG.md), with upgrade notes when projects must act.
+  Projects never edit `CHANGELOG.md` or `template.json`; `npm run template:update`
+  owns them.
+- Tagging a template release (`template-v<version>`) is publication and needs
+  explicit authorization.
 
 ## GitHub access
 

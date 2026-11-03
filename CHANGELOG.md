@@ -20,6 +20,16 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+None.
+
+### Upgrade notes
+
+None.
+
+## 0.3.0 — 2026-11-03
+
+### Changes
+
 - Local MongoDB data moves to `.cache/mongodb/<slug>`; the earlier
   `.cache/mongodb-data` is left untouched.
 - `MCP_CONNECTION_NONBLOCKING` is a declared tooling variable, so agent hosts
@@ -28,6 +38,15 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
   serves `?size=`, verifies the session once, and caches privately for five
   minutes with digest ETags.
 - `endpoint()` passes its verified session to request actions.
+- Template readiness polish: installation history removed; derived projects get
+  an empty implementation plan and no template planning documents; generic
+  agent guidance with template rules and routing; `docs/template.md`.
+- Initializer: `--image-owner`, and the `ssh.transport`, `shared.routeMode` and
+  `google.oauthClientId` profile fields. `template:update` keeps the project's
+  version of project-owned installation files on conflict.
+- Neutral product copy; Runs administration follows the runs module;
+  `src/project/home.tsx` replaces the home page; unused catalog keys, dead
+  deployment scripts and the tracked generated Android project removed.
 
 ### Upgrade notes
 

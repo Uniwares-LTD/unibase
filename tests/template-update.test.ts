@@ -121,6 +121,7 @@ test("template updates merge releases, keep deliberate deletions and stop on con
     await release("1.1.0", {
       "CHANGELOG.md": changelog(["1.1.0", "1.0.0"]),
       "README.md": "v2\n",
+      "project.config.json": { modules: ["files", "demo", "extra"] },
       "android/project/build.gradle": "generated v2\n",
       "src/samples/demo/a.ts": "export const demo = 2;\n",
       "src/samples/demo/b.ts": "export const added = 1;\n",
@@ -141,6 +142,14 @@ test("template updates merge releases, keep deliberate deletions and stop on con
     assert.equal(existsSync(path.join(project, "src/samples/demo")), false);
     assert.equal(existsSync(path.join(project, "android")), false);
     assert.ok(result.kept.includes("android/project/build.gradle"));
+    // Project-owned installation files keep the project's version.
+    assert.ok(result.projectVersions?.includes("project.config.json"));
+    assert.deepEqual(
+      JSON.parse(
+        await readFile(path.join(project, "project.config.json"), "utf8"),
+      ).modules,
+      ["files"],
+    );
     assert.ok(existsSync(path.join(project, "src/feature.ts")));
     const registry = await readFile(
       path.join(project, "src/project/extensions.ts"),

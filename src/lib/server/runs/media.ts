@@ -60,7 +60,7 @@ export async function prepareResult(
     ...result.images.map((image) => ({ ...image, file: null })),
     ...files.map((file) => ({
       id: file.related_id,
-      name: "Generated panel",
+      name: "Generated image",
       base64: "",
       file,
     })),

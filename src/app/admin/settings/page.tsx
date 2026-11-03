@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/page-patterns";
 import { DiagnosticAccess } from "@/components/diagnostic-access";
 import { diagnosticsAvailability } from "@/lib/server/diagnostics/availability";
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: "Base settings" };
+  return { title: "Application settings" };
 }
 export default async function Page() {
   await adminPageSession();
@@ -16,7 +16,7 @@ export default async function Page() {
     <PageMessages path="/admin/settings">
       <div className="page-stack">
         <PageHeader
-          title="Base settings"
+          title="Application settings"
           description="Application defaults, credits, and run policies."
         />
         <BaseSettingsEditor initial={await settingsView()} />

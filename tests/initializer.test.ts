@@ -36,6 +36,9 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     "public/offline.html": "namespace=unibase",
     "public/offline-locale.js": "unibase-offline-locale",
     "README.md": "reviewed source",
+    "docs/features/template-plan/plan.md": "Template-owned plan",
+    "docs/implementation-plan.md":
+      "# Base plan\n\nAccepted template milestone.\n",
     // Like the template, keep LF checkouts independent of core.autocrlf.
     ".gitattributes": "* text=auto eol=lf\n",
     "scripts/handbook.mjs":
@@ -269,6 +272,16 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
   );
   assert.equal(sourceRecord.revision, revision);
   assert.equal(sourceRecord.templateVersion, "2.4.1");
+  // The template's own plans never become the project's accepted work.
+  await assert.rejects(readdir(path.join(destination, "docs/features")), {
+    code: "ENOENT",
+  });
+  const plan = await readFile(
+    path.join(destination, "docs/implementation-plan.md"),
+    "utf8",
+  );
+  assert.match(plan, /Created from template 2\.4\.1/);
+  assert.doesNotMatch(plan, /Accepted template milestone/);
   const second = path.join(root, "beta");
   await createProject({
     source,
@@ -276,9 +289,17 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     destination: second,
     manifest: { ...manifest, slug: "fixture-beta", examples: true },
     mode: "examples",
+    imageOwner: "Uniwares-LTD",
     infrastructureProfile: {
-      ssh: { host: "shared-host.example.test", user: "operator" },
-      google: { stagingProjectId: "shared-staging-fixture" },
+      ssh: {
+        host: "shared-host.example.test",
+        user: "operator",
+        transport: "direct",
+      },
+      google: {
+        stagingProjectId: "shared-staging-fixture",
+        oauthClientId: "client.apps.example.test",
+      },
       atlas: { projectId: "a".repeat(24), clusterName: "shared" },
     },
   });
@@ -295,6 +316,12 @@ test("initializer copies the reviewed tree, isolates identity, excludes private 
     ),
   );
   assert.equal(sharedStaging.ssh.host, "shared-host.example.test");
+  assert.equal(sharedStaging.ssh.transport, "direct");
+  assert.equal(sharedStaging.google.oauthClientId, "client.apps.example.test");
+  assert.equal(
+    sharedStaging.deployment.imageRepository,
+    "ghcr.io/uniwares-ltd/fixture-beta",
+  );
   assert.equal(sharedStaging.google.projectId, "shared-staging-fixture");
   assert.equal(
     sharedStaging.runtime.FIREBASE_PROJECT_ID,
