@@ -1,5 +1,5 @@
 import "server-only";
-import { moduleEnabled } from "../../project";
+import { moduleEnabled, project } from "../../project";
 import { limitRequest, RateLimitError } from "../rate-limit";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import {
@@ -90,7 +90,7 @@ export async function handleMcp(
       response.headers.set("Retry-After", String(error.retryAfter));
     return response;
   }
-  const server = new McpServer({ name: "unibase", version: catalogVersion });
+  const server = new McpServer({ name: project.slug, version: catalogVersion });
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

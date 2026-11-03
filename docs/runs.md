@@ -172,7 +172,7 @@ Raw provider prompts, credentials and other users' Runs are never shown.
 Manual JSON definitions, DSL routes and graph setup services have been removed.
 Legacy definitions/accepted attempts remain readable; old provider-side adapters
 are not removed automatically. Registration uses the current publication as-is.
-Base settings and billing/history policies remain unchanged.
+Application settings and billing/history policies remain unchanged.
 
 Managed keys use AES-256-GCM and are bound to the Dify instance, workspace and app.
 Web and AI workers read them directly from MongoDB; new registrations need no

@@ -13,12 +13,21 @@ import {
 } from "@/components/ui/card";
 import { publicSettings } from "@/lib/server/settings";
 import { moduleEnabled } from "@/lib/project";
+import { projectHome } from "@/project/home";
 
 export default async function HomePage() {
   const translate = await getTranslations("ui");
 
   const { appName } = await publicSettings();
   const { hasSession } = await viewerState();
+  // A project can replace the default home without editing this file.
+  const ProjectHome = projectHome;
+  if (ProjectHome)
+    return (
+      <PageMessages path="/">
+        <ProjectHome appName={appName} hasSession={hasSession} />
+      </PageMessages>
+    );
   return (
     <PageMessages path="/">
       {

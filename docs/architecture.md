@@ -9,7 +9,7 @@ but cannot register directly. Registration and live Run admission enforce this b
 accepted definitions include the verified binding. Administration shows environment,
 verification state and source publication. See [environment binding](mcp.md#environment-owned-dify-apps).
 
-For deployment status and remaining changes, see the [staging transition](deployment.md#staging-transition-status--2026-10-24)
+For deployment status and remaining changes, see the [staging transition](deployment.md#deferred-compatibility-and-recovery-work)
 and [shared architecture](https://github.com/Uniwares-LTD/infrastructure/blob/main/docs/architecture.md).
 Current staging retains worker containers, app Redis and private Nginx.
 Shared-service and job-endpoint consolidation remains deferred.
@@ -326,7 +326,7 @@ and live acceptance are described in [VPS deployment](deployment.md).
 
 ## Diagnostics, offline behavior and Android
 
-The opt-in [diagnostics API](diagnostics-api.md) is separate from browser diagnostics. Administrators issue expiring, capability-scoped grants from Base settings. Grants are generated server-side and copied once with their configured endpoint. MongoDB stores project/environment-scoped verifiers durably; Redis holds only rate-limit counters. Grants survive releases and Redis recreation, expire within the selected duration (up to 30 days), and are verified with scrypt, the issuer's Firebase status and the issuer's access revision. A grant permits read-only diagnostics across accounts, through dedicated projection readers that never seed, settle or create records. Each access writes a sanitized 30-day record before data is returned. The endpoint is disabled in production.
+The opt-in [diagnostics API](diagnostics-api.md) is separate from browser diagnostics. Administrators issue expiring, capability-scoped grants from Application settings. Grants are generated server-side and copied once with their configured endpoint. MongoDB stores project/environment-scoped verifiers durably; Redis holds only rate-limit counters. Grants survive releases and Redis recreation, expire within the selected duration (up to 30 days), and are verified with scrypt, the issuer's Firebase status and the issuer's access revision. A grant permits read-only diagnostics across accounts, through dedicated projection readers that never seed, settle or create records. Each access writes a sanitized 30-day record before data is returned. The endpoint is disabled in production.
 
 `src/lib/diagnostics.ts` constructs records from an explicit allowlist: fixed event type, generated timestamp, bounded HTTP status, elapsed time and UUID request ID. Unknown/free-text fields never enter records. Server-only logging emits JSON with severity for API/helper completions and profile actions. Next.js `onRequestError` emits a safe event independently; it omits timing rather than inventing a request duration. No raw error, request URL, headers, body or identity is forwarded. Framework development output remains separate.
 
@@ -334,7 +334,7 @@ Browser diagnostics default off in every document, retain at most 100 events in 
 
 The request-time manifest uses the allowlisted runtime application name. The SVG, PNG install icons and generated favicon describe the shared app. `public/sw.js` caches only the standalone public HTML fallback. Full document navigation uses the network and falls back on network failure, without writing fetched responses. API/auth-helper requests, RSC payloads, mutations and subresources are not intercepted. There is no offline account cache, mutation replay or automatic form-discarding refresh. Worker upgrades follow the browser's normal lifecycle.
 
-`ANDROID_HOST` and `ANDROID_PACKAGE_NAME` supply wrapper identity through `.env.local` or process environment; `android/config.json` owns only the version. The pinned Bubblewrap generator retains `android/project`, using local icons without a live deployment. Generated sources embed the selected identity and must be regenerated when settings change. CI supplies the same names from the tracked production environment document. Signing comes from environment variables outside the generated project. The manual Android workflow is independent of web deployment and Play publishing is explicitly opt-in. Digital Asset Links uses the server runtime package/certificate settings; the private signing key is never part of the website. See [Android delivery](android.md) and [M3 testing](m3-testing.md) for setup, boundaries and pending external verification.
+`ANDROID_HOST` and `ANDROID_PACKAGE_NAME` supply wrapper identity through `.env.local` or process environment; `android/config.json` owns only the version. The pinned Bubblewrap generator writes the untracked `android/project`, using local icons without a live deployment. Generated sources embed the selected identity and must be regenerated when settings change. CI supplies the same names from the tracked production environment document. Signing comes from environment variables outside the generated project. The manual Android workflow is independent of web deployment and Play publishing is explicitly opt-in. Digital Asset Links uses the server runtime package/certificate settings; the private signing key is never part of the website. See [Android delivery](android.md) and [M3 testing](m3-testing.md) for setup, boundaries and pending external verification.
 
 ## Orchestrator Runs
 
@@ -838,7 +838,7 @@ for exact interfaces, rollout ordering and production acceptance.
 Staging shares Firebase identities with explicit web registrations and app-specific
 MongoDB data/roles; production requires a separate Firebase project per app. Atlas
 capacity is externally owned. agentic-poc owns the existing tunnel/SSH Access/Dify
-and its Terraform writes the complete route list. Unibase verifies its owner-managed
+and its Terraform writes the complete route list. The application verifies its owner-managed
 route; it does not install a route controller or use Booklet's deployment workflow.
 The [ownership follow-ups](deployment.md#shared-ownership-follow-ups) require an
 explicit migration before authority changes.

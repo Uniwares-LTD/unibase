@@ -23,7 +23,8 @@ Commits, pushes and PRs need explicit session authorization.
 
 ### 2. Extension registry (R2)
 
-- `src/project/index.ts` exports `defineProject(...)`; core lists become core
+- `src/project/extensions.ts` and `src/project/server.ts` hold registrations
+  (`defineExtension`, `defineServerExtension`); core lists become core
   entries plus contributed entries. No persisted identifier changes.
 - Acceptance: a test definition appears in navigation, admin sections, MCP catalog
   and index setup, and module/permission filtering still applies.
@@ -117,6 +118,6 @@ integrated diff against `b32ff2b`.
   rewrites stay and are documented as expected conflict points. Reviews found
   conflict-path recording, ref order, worktrees, sample merges, URL and `.npmrc`
   checks; fixed. `test:initialized-projects` installs and builds two projects.
-- Human gate: tagging and pushing the first release (`template-v1.0.0` after
-  moving Unreleased entries) needs publication authorization.
+- Released as template 0.2.0 (tag `template-v0.2.0`, 2026-11-02). The extension
+  contract stays pre-1.0 until checkpoint 5 settles.
 - Next: checkpoint 5 (deferred) when the user resumes it.

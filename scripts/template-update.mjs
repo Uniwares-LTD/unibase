@@ -29,6 +29,14 @@ function runner(root) {
   };
 }
 const registries = ["src/project/extensions.ts", "src/project/server.ts"];
+// Files each project rewrites at creation and owns afterwards. On conflict the
+// project's version is kept; template changes to them arrive as upgrade notes.
+const projectOwned = [
+  /^project\.config\.json$/,
+  /^deploy\/environments\/[^/]+\.json$/,
+  /^\.agents\/(?:tracking\.json|repository\.md)$/,
+  /^docs\/implementation-plan\.md$/,
+];
 
 // Three-way merge of one conflicted file with lines matching `marker` removed
 // from the base, project and template versions. Returns true when clean.
@@ -119,13 +127,23 @@ export async function templateUpdate(
     git(["merge-base", "--is-ancestor", commit, "HEAD"], { allowFailure: true })
       .status === 0
   )
-    return { status: "current", from, to, kept: [], notes: [] };
+    return {
+      status: "current",
+      from,
+      to,
+      kept: /** @type {string[]} */ ([]),
+      projectVersions: /** @type {string[]} */ ([]),
+      notes: [],
+    };
   const merge = git(["merge", "--no-ff", "--no-commit", commit], {
     allowFailure: true,
   });
   // Files this project deliberately deleted (initialization exclusions and
   // removed samples) stay deleted when the template changed them.
+  /** @type {string[]} */
   const kept = [];
+  /** @type {string[]} */
+  const projectVersions = [];
   const removedNames = record.removedSamples ?? [];
   const removedMarker = removedNames.length
     ? new RegExp(`//\\s*sample:(?:${removedNames.join("|")})\\s*$`)
@@ -139,6 +157,14 @@ export async function templateUpdate(
     if (row.startsWith("DU ")) {
       git(["rm", "-q", "--", file]);
       kept.push(file);
+    } else if (
+      // Only states with a project-side version can keep it.
+      !/^(?:UA|DD) /.test(row) &&
+      projectOwned.some((pattern) => pattern.test(file))
+    ) {
+      git(["checkout", "--ours", "--", file]);
+      git(["add", "--", file]);
+      projectVersions.push(file);
     } else if (file === "samples.json") {
       // Removed samples are reapplied below from the release's declarations;
       // samples only this project declared are kept.
@@ -176,7 +202,15 @@ export async function templateUpdate(
   const remaining = conflicts().map((row) => row.slice(3));
   if (remaining.length) {
     if (!remaining.includes("project.source.json")) recordRelease();
-    return { status: "conflicts", from, to, conflicts: remaining, kept, notes };
+    return {
+      status: "conflicts",
+      from,
+      to,
+      conflicts: remaining,
+      kept,
+      projectVersions,
+      notes,
+    };
   }
 
   // Reapply removed samples using the release's declarations, so registry
@@ -207,6 +241,7 @@ export async function templateUpdate(
     from,
     to,
     kept,
+    projectVersions,
     notes,
   };
 }
@@ -227,6 +262,10 @@ async function main() {
     });
     for (const file of result.kept)
       console.log(`kept deleted: ${file} (changed by the template)`);
+    for (const file of result.projectVersions ?? [])
+      console.log(
+        `kept project version: ${file} (review the template's change in the upgrade notes)`,
+      );
     if (result.status === "current") {
       console.log(`This project already includes template ${result.to}.`);
       return;

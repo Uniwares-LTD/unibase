@@ -222,7 +222,7 @@ export function DiagnosticAccess({
         <CardTitle>Diagnostic access</CardTitle>
         <CardDescription>
           Create temporary, read-only access to the diagnostics API. Grants are
-          separate from Base settings and are never saved with them.
+          separate from application settings and are never saved with them.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">

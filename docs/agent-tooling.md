@@ -1,4 +1,4 @@
-# Base agent tooling
+# Agent tooling
 
 Handbook owns eight workflow and four selected technology/UI skills. Canonical local
 .agents/skills entrypoints read shared procedures at the task revision. Claude's thin
@@ -47,67 +47,15 @@ task records or per-consumer revision pins are added.
 
 ## Explicit integration updates
 
-The 2026-11-02 reconciliation adopts merged [Handbook PR #16](https://github.com/Uniwares-LTD/handbook/pull/16)
-at `2c6dea49690975be10a19761c5b59e67e27e1420` as provenance, not a version pin.
-Both scripts match that committed source. Twelve canonical wrappers route through
-one managed `.agents/handbook.md`; Claude wrappers still route to canonical skills.
-The planning metadata and two missing large-work starters are included. Customized
-content, selected skills, tracking, client settings and local adaptations are preserved.
-
 Shared procedure edits need no consumer rewrite. Bootstrap prose changes update one
 local guide; discovery metadata changes update matching wrappers. Launcher changes
 require explicit reconciliation. Missing/customized bootstrap content produces
 readiness diagnostics; sync preserves customized managed bodies and custom suffixes.
 Integrity covers the bootstrap as well as canonical and Claude wrappers.
 
-Verification: all 14 Handbook tests and the initializer isolation fixture passed;
-readiness, snapshot entrypoint parity, integrity, documentation and translation checks
-passed. Check/doctor reported a usable cached baseline with no warnings. The cache
-still retains the earlier task revision; migration explicitly used the merged snapshot
-above without changing that active baseline. No application build or live-service check
-was needed for this guidance/tooling-only change.
-
-The latest-main review on 2026-11-02 checked
-`6205b01d94153824f02b678957ef51af18419015` (merged Handbook PR #17).
-Its only change after PR #16 is the normal merge-commit preference, now reflected
-in the adapter. No script, bootstrap, skill metadata or routing update is needed.
-The refresh helper retained its usable earlier baseline because the Handbook
-checkout is on a work branch; main was fetched and inspected without switching it.
-Readiness, entrypoint drift, skill integrity, documentation and translation checks
-passed for this follow-up, with no blocking findings in the separate read-only review.
-
 Review Handbook's merged onboarding instructions at the task revision before reconciling
 launcher/offline-tool copies. Preserve local scope, accepted milestones and advisory checks.
-Materialize filesystem resources with `node scripts/handbook.mjs resources --path PATH --revision SHA`,
-using the actual retained path/SHA. Run `npm run handbook:sync -- --source SNAPSHOT` with its
-returned resourcePath, then `npm run handbook:entrypoints -- --source SNAPSHOT`.
-This explicitly updates managed Codex references and thin Claude wrappers. Without
---source, sync maintains Claude references from local canonical skill metadata.
-Customized/unmanaged content is preserved and reported for manual reconciliation.
-Normal refresh never rewrites entrypoints. Read assets from the same committed snapshot;
-run project commands from this consumer, not the snapshot directory.
-
-Sync also merges the shared command gate list, retires specified obsolete gates, and
-generates Claude ask/deny rules while preserving other settings. Gates do not grant
-authority: Base still requires explicit commit and publication authorization. No local
-reviewer subagent is installed. Codex gate configuration and Claude runtime enforcement
-are not verified by these offline checks.
-
-Use `npm run handbook:templates -- --source SNAPSHOT` to preview templates and add
-`--write` to copy missing files. Existing copies are project-owned; replace only named
-files with `--update PATH`. Issue/PR starters live in .github; document starters live
-in docs/templates. Existing guidance, source map and preferences are preserved.
-The PRD and checkpoint implementation-plan starters support large work; small tasks
-need no planning artifact and medium plans can remain in the conversation. The shared
-engineering guidance defines proportional review; local advisory checks and explicit
-commit/publication authority still apply.
-
-Run `npm run handbook:ready` offline after updates. Missing files, invalid references and
-incomplete source-map structure produce warnings without readiness exit-code gates.
-It needs no clone, credentials or network and does not certify prose/ownership accuracy.
-Run `npm run check:skills` and `npm run check:docs`; after reviewing intentional edits,
-`node scripts/check-skills.mjs --write` updates local integrity hashes. Update the map when
-navigation, commands, generated boundaries or ownership changes.
+Record which Handbook revision an update adopted in its pull request, not here.
 
 ## Troubleshooting
 
@@ -127,11 +75,6 @@ After an interrupted lock, inspect its PID and remove it only after confirming n
 
 Codex discovery uses .agents/skills. Claude uses CLAUDE.md imports and .claude/skills.
 Markdown references install no hooks, permissions, subagents or dependencies.
-Handbook PR #16 passed fresh Codex A/A and A/B discovery, routing, revision and resource
-probes plus local lifecycle checks in disposable consumer fixtures. Claude routing
-was reviewed statically as explicitly accepted by the user; no native Claude run is
-claimed. This consumer migration uses that accepted design with local regression
-checks; it is not a new end-to-end app/browser acceptance or native-client run.
 
 ## Local contracts and provenance
 
@@ -150,94 +93,3 @@ identities and resource hashes are preserved in provenance/handbook-migration.js
 Duplicated technology procedures/resources moved to Handbook with licenses/notices and
 provenance; Playwright LICENSE.txt and NOTICE.txt also remain locally. Shared snapshots
 retain relative resources. System-owned skills are unchanged.
-
-## Integration reconciliation — 2026-10-28
-
-Reconciled against Handbook main at
-`a780e3dab0be06b2a49f3bfb5593ab211d5be024`, fetched and verified against GitHub.
-This is provenance, not a consumer version pin. Launcher and offline tool match that
-committed source. All twelve entrypoints were synchronized; the four selected technology
-skills remain unchanged in scope. Starter copies preserve local documents; the PR
-starter adds Base's operator intervention reporting.
-
-Fourteen Handbook fixtures and the derived-project isolation fixture passed. Offline
-readiness, entrypoint drift, skill integrity, documentation/environment inventories
-and translation checks passed. Doctor reported no warnings. Git subprocess checks
-needed elevated access in this environment; this does not certify native-client runtime
-acceptance. Live project workflows/access and Claude runtime remain unverified here.
-Typechecking passed with native-cache access. The separate read-only review was a
-same-agent cold-review fallback and found no actionable defects. No application build
-or live service acceptance was run for this integration/initializer-only change.
-Handbook's own operations record still lists disabling project Auto-add as outstanding;
-this update makes no remote project or permission changes.
-
-## Shared-guidance adoption verification — 2026-10-27
-
-Adopted after [Handbook PR #3](https://github.com/Uniwares-LTD/handbook/pull/3)
-merged. The reviewed committed source is recorded in migration provenance; routine
-consumer checks continue to follow main without pinning it.
-
-Passed: all twelve launcher/integration fixture tests, the derived-project isolation
-fixture, local skill/Claude integrity, documentation links/commands, environment docs,
-translation checks, offline readiness and drift checks against the committed snapshot.
-Readiness and drift reported no warnings. Elevated check/doctor access verified
-the merged baseline and zero doctor warnings. The copied test fixture initially assumed
-a Handbook source checkout; it now uses synthetic offline source metadata and passes.
-Finalization corrected an integrity-check gap: deleted Claude references now fail
-the supporting-file inventory comparison, with a regression fixture covering removal.
-All 100 removed resources exist in the retained Handbook revision; launcher/offline
-tool copies match that revision, and historical provenance matches the previous lock.
-The final review is a separate read-only pass by the same agent, not independent review.
-
-Normal-permission check and doctor still fail with spawnSync git EPERM in this environment;
-the Node test runner also requires elevated subprocess access here. The twelve fixture
-tests passed with that access; read-only elevated doctor reported zero warnings.
-That is not a passing native-client check. Claude runtime and fresh-session Codex
-acceptance remain deferred. Application build/full service suites were not rerun for
-this guidance/bootstrap-only change. No runtime deployment or operator intervention
-is required. Changes remain local pending consumer publication.
-
-The following audits describe earlier layouts and remain dated historical evidence.
-
-## Onboarding validation — 2026-10-26
-
-Passed: five launcher fixture tests, the derived-project initializer fixture, local
-documentation links/commands, and integrity checks for six entrypoints/four local skills.
-Handbook's twelve tests cover lazy timing, offline cooldown, concurrent refresh and
-existing enrollment behavior. An end-to-end local Git fixture verified setup, cache
-reuse, zero doctor warnings, shared role/template reads and dirty-helper protection.
-No live issues, credentials, application services or deployments were used.
-Fresh-session acceptance in both Codex clients remains pending as shown above.
-
-## Handoff audit
-
-On 2026-10-04, `npm run check:skills` verified all nine imports and both supporting
-contracts against the lockfile, including the bundled reference and notice files.
-All 25 relative Markdown links under `.agents` resolved to local files. The imported
-Playwright license and notice are retained; source references remain provenance,
-not Base provider configuration. The root instructions and repository adapter
-keep milestone scope, external writes and advisory validation under Base policy.
-Re-run integrity and review changed references whenever imports are updated.
-
-Documentation naming was generalized for Base on 2026-10-06. The five affected
-skill Markdown resources changed only project terminology; source identities,
-licenses and upstream hashes remain unchanged. Local hashes were refreshed after
-review and all nine skills plus two supporting contracts passed integrity checks.
-
-
-## Reuse-contract reconciliation (2026-10-13)
-
-All nine repository-owned skill entrypoints and their bundled resource/link
-inventories were reviewed against the adapter. Eight entrypoints received focused
-runtime-contract, locale/CSP or Windows workflow guidance; learning capture and the
-bundled framework examples remained applicable. Licenses, source revisions,
-upstream records and explicit publication authority are preserved. Local hashes
-were refreshed only after reviewing the intentional edits. System-owned skills
-were not changed. The link checker covers local skill references as well as docs;
-framework examples remain examples rather than repository command requirements.
-
-The adapter links current service and JSON template contracts. Use `npm.cmd` and
-`npx.cmd` on Windows instead of changing execution policy. Next.js compilation and
-worker bundling are distinct from `npm run typecheck`; inspect both results.
-Browser state and cache directories are local ignored fixtures. Historical test
-passes are dated evidence, not instructions or acceptance of a new clone.

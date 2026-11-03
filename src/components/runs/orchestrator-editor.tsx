@@ -131,7 +131,7 @@ export function OrchestratorEditor({
       setMessage(
         action === "disable"
           ? "Disabled for new Runs. Existing Runs are preserved."
-          : "Unregistered from Unibase. Dify and Run history are preserved.",
+          : "Unregistered from this application. Dify and Run history are preserved.",
       );
     } catch (error) {
       setMessage(

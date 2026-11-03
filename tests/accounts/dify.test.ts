@@ -308,7 +308,7 @@ test("failed Dify executions retain a safe diagnosis through streaming and retri
     [null, "workflow failed in Dify"],
     [
       "ValueError: UNITALE_IMAGE_MODEL_UNAVAILABLE private-secret https://private.example",
-      "Unitale image model is unavailable",
+      "image model is unavailable",
     ],
     [
       "ValueError: UNITALE_IMAGE_AUTHENTICATION_FAILED secret-canary",

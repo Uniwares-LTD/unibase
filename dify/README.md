@@ -2,9 +2,9 @@
 
 The current Administration **Create orchestrator** catalog is the allowlisted JSON
 catalog in [the template directory](../src/lib/server/runs/templates/README.md).
-It contains Document summary, Catalog picker, Quote approval, Persona responder,
-Saved artifact and Story to panel. Application-mode projects hide sample templates;
-Persona responder remains a reusable integration. Live execution still requires
+It contains Document summary, Case preparation, Saved artifact and the Unitale
+story-panel sample. Application-mode projects hide these sample templates. Live
+execution still requires
 explicitly configured owned provider connections. See [Runs setup](../docs/runs.md#administration-and-setup).
 
 The YAML files under this directory are retained historical compatibility fixtures,
