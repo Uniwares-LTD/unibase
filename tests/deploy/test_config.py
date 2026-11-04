@@ -33,6 +33,16 @@ def fixture(root):
 
 
 class ConfigTests(unittest.TestCase):
+    def test_namespaced_extension_mcp_permissions(self):
+        catalog = {"mcpPermissions": ["server:read"]}
+        def values(permission):
+            return {"MCP_ENABLED": "true", "MCP_TOKEN_FIXTURE": "x" * 43,
+                    "MCP_CLIENTS_JSON": json.dumps([{"id": "fixture", "tokenEnv": "MCP_TOKEN_FIXTURE", "permissions": [permission]}])}
+        config_module.validate_mcp(values("extension:booklets:write"), catalog)
+        for invalid in ("extension:*:write", "extension:booklets:admin", "booklets:write"):
+            with self.assertRaises(ValueError):
+                config_module.validate_mcp(values(invalid), catalog)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="unibase-deploy-test-")
         self.addCleanup(self.temp.cleanup)
