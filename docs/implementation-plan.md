@@ -22,7 +22,23 @@ projects. The staging installation runs the current `main`; see
 
 ### Booklet product foundation
 
-- Accepted cross-repository implementation: reusable T01 commerce/measurement contracts are implemented and reviewed on task/booklet-foundation. Seven contract tests, typecheck, lint and application build evidence pass; two consecutive same-agent read-only review passes found no remaining blocking issues. Publication audit UID validation was corrected and regression-tested. Unitale owns the accepted PRD and T01-T28 graph in docs/features/booklet-generation. T02-T28 are not complete. No provider publication, paid calls or release is authorized.
+T03-T06 are implemented on `task/booklet-services` and awaiting acceptance:
+
+- T03: offline billing verification/publication/restoration fixtures and Android bridge contract.
+- T04: durable admin MCP limits and extension private-tool authorization/discovery.
+- T05: per-call measurements, private redacted evidence, idempotency and protected cleanup.
+- T06: versioned draft/published catalogs, trusted product-type validators and immutable snapshots.
+
+Use Handbook at `D:/Projects/handbook`, revision
+`6205b01d94153824f02b678957ef51af18419015`, already supplied by the user.
+Verification: 45 focused tests and 12 deployment configuration tests pass, as do
+typecheck, lint, production build, environment, documentation, i18n and skill checks.
+Final read-only review evidence is recorded at handoff. No live
+provider actions or paid calls are part of this batch. T07-T12 commerce execution
+and T13 full integration remain subsequent tasks. Unitale T02 is accepted and merged.
+
+
+- Accepted cross-repository implementation: reusable T01 commerce/measurement contracts are implemented and reviewed on task/booklet-foundation. Seven contract tests, typecheck, lint and application build evidence pass; two consecutive same-agent read-only review passes found no remaining blocking issues. Publication audit UID validation was corrected and regression-tested. Unitale owns the accepted PRD and T01-T28 graph in docs/features/booklet-generation. T02 is accepted in Unitale; T03-T06 implementation is described above. T07-T28 remain subsequent work. No provider publication, paid calls or release is authorized.
 - Generic contracts are opt-in, strictly versioned and fixture-tested. They do not implement transactional billing, subscriptions, evidence retention or MCP transport. Existing records retain their prior parsers. Breaking additions need a new version; update strict consumers before emitting new fields.
 
 ### Template
