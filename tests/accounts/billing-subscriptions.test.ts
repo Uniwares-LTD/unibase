@@ -1,3 +1,5 @@
+import { StripeBillingProvider } from "../../src/lib/server/commerce/stripe-billing";
+import { PlayBillingProvider } from "../../src/lib/server/commerce/play-billing";
 import { fingerprint } from "../../src/lib/server/foundation/canonical";
 import {
   prepareBillingAction,
@@ -119,6 +121,276 @@ test("subscription payment accounting and ownership", async (t) => {
     return { db, intent, observation, provider };
   };
   try {
+    await t.test(
+      "Play deferred plan change permits cancellation but not competing uncertain writes",
+      async () => {
+        const { db } = await fixture();
+        const customer = { uid: "play-owner", authTime: 1 };
+        const play = await beginBilling(db, customer, {
+          checkoutId: "play",
+          offerId: "purchase:google-play",
+          offerRevision: 1,
+        });
+        await db.collection("billingIntents").updateOne(
+          { _id: play._id as never },
+          {
+            $set: {
+              state: "active",
+              providerId: "token",
+              periodEnd: new Date(Date.now() + 86400000).toISOString(),
+            },
+          },
+        );
+        const plan = await prepareBillingAction(
+          db,
+          customer,
+          "play",
+          "plan",
+          "plan-change",
+          { id: "purchase:google-play", revision: 1 },
+        );
+        const cancellation = await prepareBillingAction(
+          db,
+          customer,
+          "play",
+          "cancel",
+          "cancel",
+        );
+        assert.equal(cancellation.kind, "cancel");
+        let writes = 0;
+        const adapter = new PlayBillingProvider(
+          async (_path, method = "GET") => {
+            if (method === "POST") {
+              writes++;
+              return {};
+            }
+            return {
+              externalAccountIdentifiers: {
+                obfuscatedExternalAccountId: play.accountBinding,
+              },
+              acknowledgementState: "ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED",
+              lineItems: [
+                { autoRenewingPlan: { autoRenewEnabled: writes === 0 } },
+              ],
+            };
+          },
+          "com.example.app",
+          true,
+        );
+        await executeProviderAction(
+          db,
+          cancellation._id,
+          adapter.fulfillment(play, "token"),
+        );
+        assert.equal(writes, 1);
+        assert.equal(
+          (await prepareBillingAction(db, customer, "play", "cancel", "cancel"))
+            ._id,
+          cancellation._id,
+        );
+        await db
+          .collection("billingProviderActions")
+          .updateOne(
+            { _id: plan._id as never },
+            { $set: { state: "unknown" } },
+          );
+        await assert.rejects(
+          prepareBillingAction(db, customer, "play", "second-cancel", "cancel"),
+        );
+        await assert.rejects(
+          prepareBillingAction(
+            db,
+            { uid: "foreign", authTime: 1 },
+            "play",
+            "foreign",
+            "cancel",
+          ),
+        );
+      },
+    );
+    await t.test(
+      "lost Stripe checkout response recovers the original action across pages without POST",
+      async () => {
+        const { db, intent } = await fixture();
+        const action = await prepareBillingAction(
+          db,
+          actor,
+          "checkout",
+          "checkout-action",
+          "checkout",
+        );
+        await db
+          .collection("billingProviderActions")
+          .updateOne(
+            { _id: action._id as never },
+            { $set: { state: "unknown" } },
+          );
+        let reads = 0;
+        const provider = new StripeBillingProvider(
+          async (path, method = "GET") => {
+            assert.equal(method, "GET");
+            reads++;
+            if (!path.includes("starting_after"))
+              return {
+                has_more: true,
+                data: Array.from({ length: 100 }, (_, i) => ({
+                  id: "other-" + i,
+                  livemode: false,
+                  client_reference_id: null,
+                  metadata: {},
+                })),
+              };
+            return {
+              has_more: false,
+              data: [
+                {
+                  id: "recovered",
+                  livemode: false,
+                  client_reference_id: intent.accountBinding,
+                  metadata: { billingIntent: intent._id },
+                  status: "open",
+                  payment_status: "unpaid",
+                  subscription: null,
+                  payment_intent: null,
+                  currency: null,
+                  amount_total: null,
+                  url: "https://checkout.stripe.com/existing",
+                },
+              ],
+            };
+          },
+          false,
+        );
+        const result = await executeProviderAction(
+          db,
+          action._id,
+          provider.actions("https://example.test"),
+        );
+        assert.deepEqual(result, {
+          id: "recovered",
+          url: "https://checkout.stripe.com/existing",
+        });
+        assert.deepEqual(
+          await executeProviderAction(
+            db,
+            action._id,
+            provider.actions("https://example.test"),
+          ),
+          result,
+        );
+        assert.equal(reads, 2);
+      },
+    );
+    await t.test(
+      "bounded Stripe recovery resumes its durable cursor without replaying an unknown write",
+      async () => {
+        const { db, intent } = await fixture();
+        const action = await prepareBillingAction(
+          db,
+          actor,
+          "checkout",
+          "large-recovery",
+          "checkout",
+        );
+        await db
+          .collection("billingProviderActions")
+          .updateOne(
+            { _id: action._id as never },
+            { $set: { state: "unknown" } },
+          );
+        let calls = 0;
+        const provider = new StripeBillingProvider(
+          async (path, method = "GET") => {
+            assert.equal(method, "GET");
+            calls++;
+            if (calls <= 100)
+              return {
+                has_more: true,
+                data: [
+                  {
+                    id: "cursor-" + calls,
+                    livemode: false,
+                    client_reference_id: null,
+                    metadata: {},
+                  },
+                ],
+              };
+            assert.match(path, /starting_after=cursor-100/);
+            return {
+              has_more: false,
+              data: [
+                {
+                  id: "recovered",
+                  livemode: false,
+                  client_reference_id: intent.accountBinding,
+                  metadata: { billingIntent: intent._id },
+                  status: "open",
+                  payment_status: "unpaid",
+                  subscription: null,
+                  payment_intent: null,
+                  currency: null,
+                  amount_total: null,
+                  url: "https://checkout.stripe.com/existing",
+                },
+              ],
+            };
+          },
+          false,
+        );
+        await assert.rejects(
+          executeProviderAction(
+            db,
+            action._id,
+            provider.actions("https://example.test"),
+          ),
+          /saved cursor/,
+        );
+        assert.equal(
+          (
+            await db
+              .collection("billingProviderActions")
+              .findOne({ _id: action._id as never })
+          )?.recoveryCursor,
+          "cursor-100",
+        );
+        assert.deepEqual(
+          await executeProviderAction(
+            db,
+            action._id,
+            provider.actions("https://example.test"),
+          ),
+          { id: "recovered", url: "https://checkout.stripe.com/existing" },
+        );
+        assert.equal(calls, 101);
+      },
+    );
+    await t.test(
+      "unpaid claims cannot erase prior payment or contradict a paid observation",
+      async () => {
+        const { db, intent, provider, observation } = await fixture();
+        observation.unpaidOutcome = "expired-unpaid";
+        await assert.rejects(
+          reconcileBilling(db, intent._id, "provider", provider),
+        );
+        delete observation.unpaidOutcome;
+        await reconcileBilling(db, intent._id, "provider", provider);
+        observation.state = "ended";
+        observation.payments = [];
+        observation.unpaidOutcome = "expired-unpaid";
+        await assert.rejects(
+          reconcileBilling(db, intent._id, "provider", provider),
+          /previously paid/,
+        );
+        assert.equal(
+          (
+            await db
+              .collection("billingIntents")
+              .findOne({ _id: intent._id as never })
+          )?.state,
+          "active",
+        );
+      },
+    );
     await t.test(
       "pending subscription excludes both stores and retries preserve snapshots",
       async () => {

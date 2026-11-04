@@ -40,11 +40,14 @@ refunds, plus versioned promotions, quota reservations and verified-payment bene
 The affected commerce/wallet/Run/payment suites pass 78 tests; final review and build
 evidence are recorded at handoff. [Service contracts](features/booklet-foundation/orders-promotions.md)
 cover integration and provider boundaries.
-T09-T10 are implemented on `task/stripe-play-billing` for member review. The
-[provider billing guide](features/booklet-foundation/provider-billing.md) describes
-the additive services, migration and offline/live verification boundaries. The
-82 affected financial/provider tests pass; final check and read-only review
-evidence is recorded at handoff. Live provider activation remains T28.
+T09-T10 baseline implementation is merged in Unibase PR #46. The subsequent
+completion audit found gaps in checkout redirects/recovery, cancellation during
+pending Play changes and unpaid coupon release. Corrections on
+`task/billing-completion-fixes` address those gaps with production-adapter and
+transaction regressions; the corrected implementation is in review, not yet merged.
+The [provider billing guide](features/booklet-foundation/provider-billing.md)
+describes behavior and bounded recovery. Affected verification and two read-only
+review results are recorded at handoff. Live provider activation remains T28.
 T11-T12 commerce UI/client work and T13 full integration remain subsequent tasks. Unitale T02 is accepted and merged.
 
 

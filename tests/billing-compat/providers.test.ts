@@ -456,3 +456,175 @@ test("Play fulfillment acknowledges subscriptions and verifies the returned stat
   assert.deepEqual(await adapter.readback(action), { acknowledged: true });
   assert.equal(writes, 1);
 });
+
+function checkoutSession(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "session",
+    livemode: false,
+    client_reference_id: "binding",
+    status: "open",
+    payment_status: "unpaid",
+    subscription: null,
+    payment_intent: null,
+    currency: null,
+    amount_total: null,
+    metadata: { billingIntent: intent._id },
+    url: "https://checkout.stripe.com/example",
+    ...overrides,
+  };
+}
+function checkoutAction(): import("../../src/lib/server/commerce/provider-actions").ProviderAction {
+  return {
+    _id: "action",
+    uid: intent.uid,
+    kind: "checkout",
+    subjectId: intent._id,
+    input: {
+      intentId: intent._id,
+      providerId: null,
+      accountBinding: intent.accountBinding,
+      terms: intent.terms,
+      nextTerms: null,
+      effectiveAt: null,
+      providerPromotionId: null,
+    },
+    hash: "hash",
+    state: "unknown",
+    createdAt: new Date(100000),
+    verifiedAt: null,
+    result: null,
+  };
+}
+test("Stripe checkout redirects target the existing credit page", async () => {
+  const provider = new StripeBillingProvider(async (_path, method, body) => {
+    assert.equal(method, "POST");
+    assert.ok(typeof body === "string");
+    const form = new URLSearchParams(body);
+    assert.equal(form.get("success_url"), "https://example.test/credits");
+    assert.equal(form.get("cancel_url"), "https://example.test/credits");
+    return checkoutSession();
+  }, false);
+  await provider.checkout(intent, "https://example.test");
+});
+test("Stripe recovery traverses more than 100 unrelated sessions without creating another checkout", async () => {
+  const calls: string[] = [];
+  const provider = new StripeBillingProvider(async (path, method = "GET") => {
+    assert.equal(method, "GET");
+    calls.push(path);
+    if (calls.length === 1)
+      return {
+        has_more: true,
+        data: Array.from({ length: 100 }, (_, i) => ({
+          id: "other-" + i,
+          livemode: false,
+          client_reference_id: null,
+          metadata: null,
+        })),
+      };
+    assert.match(path, /starting_after=other-99/);
+    return { has_more: false, data: [checkoutSession()] };
+  }, false);
+  assert.deepEqual(
+    await provider.actions("https://example.test").readback(checkoutAction()),
+    { id: "session", url: "https://checkout.stripe.com/example" },
+  );
+  assert.equal(calls.length, 2);
+});
+test("Stripe recovery fails explicitly on empty or repeating continuation pages", async () => {
+  for (const data of [
+    [],
+    [{ id: "same", livemode: false, client_reference_id: null, metadata: {} }],
+  ]) {
+    const provider = new StripeBillingProvider(
+      async () => ({ has_more: true, data }),
+      false,
+    );
+    await assert.rejects(
+      provider.actions("https://example.test").readback(checkoutAction()),
+    );
+  }
+});
+test("Stripe distinguishes canonical unpaid expiry from an open checkout", async () => {
+  for (const status of ["open", "expired"]) {
+    const provider = new StripeBillingProvider(
+      async () => checkoutSession({ status }),
+      false,
+    );
+    const observed = await provider.inspect(intent, "session");
+    assert.equal(
+      observed.unpaidOutcome,
+      status === "expired" ? "expired-unpaid" : undefined,
+    );
+  }
+});
+test("Play pending subscription cancellation without a service period proves unpaid termination", async () => {
+  const provider = new PlayBillingProvider(
+    async () => ({
+      subscriptionState: "SUBSCRIPTION_STATE_PENDING_PURCHASE_CANCELED",
+      externalAccountIdentifiers: { obfuscatedExternalAccountId: "binding" },
+      lineItems: [
+        { productId: "product", offerDetails: { basePlanId: "price" } },
+      ],
+    }),
+    "com.example.app",
+    true,
+  );
+  const observed = await provider.inspect(
+    { ...intent, terms: { ...intent.terms, channel: "google-play" } },
+    "token",
+  );
+  assert.equal(observed.unpaidOutcome, "cancelled-unpaid");
+  assert.deepEqual(observed.payments, []);
+});
+
+test("Play cancelled one-time orders release capacity only after canonical unpaid confirmation", async () => {
+  for (const orderState of ["CANCELED", "PENDING", "PROCESSED"]) {
+    const provider = new PlayBillingProvider(
+      async (path) =>
+        path.includes("/orders/")
+          ? {
+              orderId: "GPA-order",
+              purchaseToken: "token",
+              state: orderState,
+              total: { currencyCode: "USD", units: "5" },
+              lineItems: [
+                {
+                  productId: "product",
+                  listingPrice: { currencyCode: "USD", units: "5" },
+                  oneTimePurchaseDetails: {
+                    quantity: 1,
+                    purchaseOptionId: "price",
+                  },
+                },
+              ],
+              orderHistory:
+                orderState === "PROCESSED"
+                  ? { processedEvent: { eventTime: new Date().toISOString() } }
+                  : {},
+            }
+          : {
+              orderId: "GPA-order",
+              productLineItem: [{ productId: "product" }],
+              obfuscatedExternalAccountId: "binding",
+              purchaseStateContext: { purchaseState: "CANCELLED" },
+            },
+      "com.example.app",
+      true,
+    );
+    const observed = await provider.inspect(
+      {
+        ...intent,
+        terms: {
+          ...intent.terms,
+          channel: "google-play",
+          billing: { kind: "one-time", creditExpiryDays: null },
+        },
+      },
+      "token",
+    );
+    assert.equal(
+      observed.unpaidOutcome,
+      orderState === "CANCELED" ? "cancelled-unpaid" : undefined,
+    );
+  }
+});

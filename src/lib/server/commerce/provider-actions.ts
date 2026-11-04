@@ -38,12 +38,16 @@ export type ProviderAction = {
   createdAt: Date;
   verifiedAt: Date | null;
   result: unknown;
+  recoveryCursor?: string | null;
 };
 const actions = (db: Db) =>
   db.collection<ProviderAction>("billingProviderActions");
 export interface ProviderActionAdapter {
   // Read-only. Returns the verified intended result, or null when not established.
-  readback(action: ProviderAction): Promise<unknown | null>;
+  readback(
+    action: ProviderAction,
+    checkpoint?: (cursor: string | null) => Promise<void>,
+  ): Promise<unknown | null>;
   execute(action: ProviderAction): Promise<unknown>;
 }
 export async function prepareBillingAction(
@@ -152,7 +156,15 @@ export async function prepareBillingAction(
       )
         throw conflict();
       const unfinished = await actions(db).findOne(
-        { subjectId: intent._id, state: { $ne: "verified" } },
+        {
+          subjectId: intent._id,
+          state: { $ne: "verified" },
+          // A Play plan change is a client instruction awaiting renewal, not an
+          // in-flight backend write. It must not prevent stopping auto-renewal.
+          ...(kind === "cancel" && intent.terms.channel === "google-play"
+            ? { $nor: [{ kind: "plan-change", state: "prepared" }] }
+            : {}),
+        },
         { session },
       );
       if (unfinished || (kind === "plan-change" && intent.nextTerms))
@@ -240,7 +252,13 @@ export async function executeProviderAction(
   let action = await actions(db).findOne({ _id: actionId });
   if (!action) throw conflict();
   if (action.state === "verified") return action.result;
-  const existing = await adapter.readback(action);
+  const checkpoint = async (cursor: string | null) => {
+    await actions(db).updateOne(
+      { _id: actionId, state: { $ne: "verified" } },
+      { $set: { recoveryCursor: cursor } },
+    );
+  };
+  const existing = await adapter.readback(action, checkpoint);
   if (existing !== null) {
     await actions(db).updateOne(
       { _id: actionId },
@@ -267,7 +285,10 @@ export async function executeProviderAction(
       { _id: actionId, state: "publishing" },
       { $set: { result: receipt, state: "partial" } },
     );
-    const verified = await adapter.readback({ ...action, result: receipt });
+    const verified = await adapter.readback(
+      { ...action, result: receipt },
+      checkpoint,
+    );
     if (verified === null) throw conflict();
     await actions(db).updateOne(
       { _id: actionId },

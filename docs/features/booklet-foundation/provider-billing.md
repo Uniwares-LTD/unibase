@@ -52,6 +52,8 @@ Cancellation stops renewal at period end. Stripe changes use subscription
 schedules with a future phase and no proration. Play changes return a `DEFERRED`
 replacement instruction for T11; the backend accepts a linked replacement token
 only for an accepted next offer and applies new credits at a verified renewal.
+A pending Play replacement instruction does not block period-end cancellation.
+Unknown backend writes still require reconciliation before competing changes.
 Canonical payment evidence finalizes the pending Play change. A different store
 cannot take the account slot until the prior subscription is verified ended.
 
@@ -62,6 +64,17 @@ won/closed Stripe disputes restore entitlement. Expired unused subscription cred
 are not deducted again. Financial records and idempotency receipts remain durable;
 completed raw evidence is released to normal retention, while unresolved evidence
 stays protected.
+
+Stripe checkout success and cancellation return to `/credits`. Lost-response
+recovery follows provider pagination in batches of at most 100 pages, with up to
+100 sessions per page. It saves a durable cursor after each page; retrying a paused
+batch continues readback without replaying an unknown checkout creation.
+
+Coupon reservations are released only after canonical unpaid terminal evidence:
+Stripe expiry or Play cancellation before payment. Pending checkouts, elapsed local
+time and browser cancellation cannot release capacity. A canceled Play order must
+have no processed payment. Stable receipt identities and a reconciliation lease
+fence make duplicate notifications and lost release responses idempotent.
 
 ## Provider publication
 
@@ -107,6 +120,7 @@ for administrative reconciliation; they are not silently treated as success.
 
 ## Provider references
 
+- [Stripe checkout pagination](https://docs.stripe.com/api/checkout/sessions/list)
 - [Stripe subscription schedules](https://docs.stripe.com/billing/subscriptions/subscription-schedules)
 - [Google subscription lifecycle](https://developer.android.com/google/play/billing/lifecycle/subscriptions)
 - [Google Orders resource](https://developers.google.com/android-publisher/api-ref/rest/v3/orders)

@@ -11,7 +11,11 @@ import {
   retainEvidence,
   releaseOperationEvidence,
 } from "../execution/measurements";
-import { recordVerifiedPayment, finalizePromotion } from "./promotions";
+import {
+  recordVerifiedPayment,
+  finalizePromotion,
+  releasePromotion,
+} from "./promotions";
 
 export type PurchaseTerms = z.infer<typeof purchaseTermsSchema>;
 export type BillingChannel = PurchaseTerms["channel"];
@@ -41,37 +45,43 @@ const slots = (db: Db) => db.collection<Slot>("billingSubscriptionSlots");
 
 // Only a canonical server-side provider read may construct this observation.
 // Notification bodies and browser purchase assertions are never payment evidence.
-export const billingObservationSchema = z.strictObject({
-  providerId: z.string().min(1).max(4096),
-  accountBinding: z.string().min(1).max(128),
-  state: z.enum(["pending", "active", "past-due", "ended", "revoked"]),
-  periodEnd: z.iso.datetime().nullable(),
-  cancelAtPeriodEnd: z.boolean(),
-  payments: z
-    .array(
-      z
-        .strictObject({
-          id: z.string().min(1).max(512),
-          productId: identity,
-          priceId: identity,
-          offerId: identity.nullable(),
-          paidAt: z.iso.datetime(),
-          periodStart: z.iso.datetime().nullable(),
-          periodEnd: z.iso.datetime().nullable(),
-          listedMinor: z.number().int().nonnegative().safe(),
-          amountMinor: z.number().int().nonnegative().safe(),
-          currency: z.string().regex(/^[A-Z]{3}$/),
-          refundedMinor: z.number().int().nonnegative().safe(),
-          sequence: z.number().int().positive().safe(),
-          providerPromotionId: identity.nullable(),
-        })
-        .refine(
-          (v) => v.refundedMinor <= v.amountMinor,
-          "Refund exceeds paid amount.",
-        ),
-    )
-    .max(100),
-});
+export const billingObservationSchema = z
+  .strictObject({
+    providerId: z.string().min(1).max(4096),
+    accountBinding: z.string().min(1).max(128),
+    state: z.enum(["pending", "active", "past-due", "ended", "revoked"]),
+    periodEnd: z.iso.datetime().nullable(),
+    cancelAtPeriodEnd: z.boolean(),
+    unpaidOutcome: z.enum(["expired-unpaid", "cancelled-unpaid"]).optional(),
+    payments: z
+      .array(
+        z
+          .strictObject({
+            id: z.string().min(1).max(512),
+            productId: identity,
+            priceId: identity,
+            offerId: identity.nullable(),
+            paidAt: z.iso.datetime(),
+            periodStart: z.iso.datetime().nullable(),
+            periodEnd: z.iso.datetime().nullable(),
+            listedMinor: z.number().int().nonnegative().safe(),
+            amountMinor: z.number().int().nonnegative().safe(),
+            currency: z.string().regex(/^[A-Z]{3}$/),
+            refundedMinor: z.number().int().nonnegative().safe(),
+            sequence: z.number().int().positive().safe(),
+            providerPromotionId: identity.nullable(),
+          })
+          .refine(
+            (v) => v.refundedMinor <= v.amountMinor,
+            "Refund exceeds paid amount.",
+          ),
+      )
+      .max(100),
+  })
+  .refine(
+    (v) => !v.unpaidOutcome || (v.state === "ended" && v.payments.length === 0),
+    "Unpaid checkout evidence must be terminal and contain no payments.",
+  );
 export type BillingObservation = z.infer<typeof billingObservationSchema>;
 export interface BillingProvider {
   channel: BillingChannel;
@@ -247,6 +257,11 @@ export async function reconcileBilling(
       observed.accountBinding !== intent.accountBinding
     )
       throw conflict("Provider purchase ownership does not match.");
+    if (
+      observed.unpaidOutcome &&
+      (await db.collection("billingGrants").findOne({ intentId }))
+    )
+      throw conflict("A previously paid checkout cannot release a promotion.");
     // Validate the complete observed batch before claiming a provider identity.
     // A mismatched restore must not poison the valid checkout's token binding.
     for (const payment of observed.payments) {
@@ -683,6 +698,51 @@ export async function reconcileBilling(
           await slots(db).deleteOne({ _id: intent.uid, intentId }, { session });
       },
     });
+    if (observed.unpaidOutcome) {
+      const reservation = await db.collection("promotionReservations").findOne({
+        uid: intent.uid,
+        checkoutId: intent.checkoutId,
+      });
+      if (reservation) {
+        if (await db.collection("billingGrants").findOne({ intentId }))
+          throw conflict(
+            "A previously paid checkout cannot release a promotion.",
+          );
+        const releaseId = fingerprint([
+          "unpaid-checkout",
+          intentId,
+          providerId,
+          observed.unpaidOutcome,
+        ]);
+        // Stable evidence makes retries after a lost response return the same effect.
+        await retainEvidence(db, intent.uid, {
+          id: releaseId,
+          runId: "billing",
+          operationId: releaseId,
+          kind: "provider-receipt",
+          payload: {
+            channel: provider.channel,
+            providerId,
+            accountBinding: observed.accountBinding,
+            outcome: observed.unpaidOutcome,
+          },
+          secrets: [providerId],
+        });
+        await releasePromotion(
+          db,
+          intent.uid,
+          intent.checkoutId,
+          {
+            channel: provider.channel,
+            providerCheckoutId: providerId,
+            evidenceId: releaseId,
+            outcome: observed.unpaidOutcome,
+          },
+          { beforePersist: fence },
+        );
+        await releaseOperationEvidence(db, intent.uid, releaseId);
+      }
+    }
     await releaseOperationEvidence(db, intent.uid, evidenceId);
     return { state: observed.state, payments: observed.payments.length };
   } finally {

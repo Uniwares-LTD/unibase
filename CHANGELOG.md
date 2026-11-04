@@ -20,6 +20,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Fix provider-catalog checkout return routes, resumable Stripe checkout recovery,
+  Play cancellation during a pending deferred change, and idempotent coupon
+  capacity release after verified unpaid termination.
+
 - Add opt-in provider catalog checkout, recurring Stripe/Play verification,
   subscription exclusion, expiring renewal grants, refund/bonus reconciliation,
   authenticated notifications and journalled provider publication/readback.
