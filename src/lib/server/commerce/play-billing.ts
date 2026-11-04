@@ -128,6 +128,8 @@ export class PlayBillingProvider implements BillingProvider {
       token,
       ...(await this.knownTokens(intent._id)),
     ]);
+    let unpaidOutcome: BillingObservation["unpaidOutcome"];
+    let cancelledOneTime = false;
     let latest: string | undefined;
     let state: BillingObservation["state"] = "pending";
     let accountBinding: string;
@@ -147,7 +149,7 @@ export class PlayBillingProvider implements BillingProvider {
             .array(
               z.object({
                 productId: id,
-                expiryTime: time,
+                expiryTime: time.optional(),
                 latestSuccessfulOrderId: id.optional(),
                 offerDetails: z.object({
                   basePlanId: id,
@@ -188,6 +190,24 @@ export class PlayBillingProvider implements BillingProvider {
         )
       )
         throw fail();
+      if (
+        purchase.subscriptionState ===
+          "SUBSCRIPTION_STATE_PENDING_PURCHASE_CANCELED" &&
+        !purchase.linkedPurchaseToken &&
+        funded.length === 0
+      ) {
+        if (accountBinding !== intent.accountBinding) throw fail();
+        return {
+          providerId: token,
+          accountBinding,
+          state: "ended",
+          periodEnd: null,
+          cancelAtPeriodEnd: false,
+          payments: [],
+          unpaidOutcome: "cancelled-unpaid",
+        };
+      }
+      if (!line.expiryTime) throw fail();
       const catalog = z
         .object({
           basePlans: z.array(
@@ -258,6 +278,8 @@ export class PlayBillingProvider implements BillingProvider {
         CANCELLED: "ended",
       };
       state = states[purchase.purchaseStateContext.purchaseState];
+      cancelledOneTime =
+        purchase.purchaseStateContext.purchaseState === "CANCELLED";
       if (!state) throw fail();
     }
     if (accountBinding !== intent.accountBinding) throw fail();
@@ -286,13 +308,17 @@ export class PlayBillingProvider implements BillingProvider {
         409,
       );
     const payments: BillingObservation["payments"] = [];
+    let allOrdersCancelled = true;
     for (const orderId of orderIds) {
       const order = orderSchema.parse(
         await this.request(this.root + "/orders/" + pathPart(orderId)),
       );
       if (!acceptedTokens.has(order.purchaseToken) || order.orderId !== orderId)
         throw fail();
-      if (["PENDING", "CANCELED"].includes(order.state)) continue;
+      if (order.state === "CANCELED" && !order.orderHistory.processedEvent)
+        continue;
+      allOrdersCancelled = false;
+      if (order.state === "PENDING") continue;
       if (
         ![
           "PROCESSED",
@@ -347,6 +373,8 @@ export class PlayBillingProvider implements BillingProvider {
         providerPromotionId: null,
       });
     }
+    if (cancelledOneTime && allOrdersCancelled && payments.length === 0)
+      unpaidOutcome = "cancelled-unpaid";
     return {
       providerId: token,
       accountBinding,
@@ -354,6 +382,7 @@ export class PlayBillingProvider implements BillingProvider {
       periodEnd,
       cancelAtPeriodEnd,
       payments,
+      ...(unpaidOutcome ? { unpaidOutcome } : {}),
     };
   }
   fulfillment(intent: BillingIntent, token: string): ProviderActionAdapter {

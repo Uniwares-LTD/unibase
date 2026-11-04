@@ -167,8 +167,8 @@ export class StripeBillingProvider implements BillingProvider {
             }
           : {}),
         line_items: [{ price: intent.terms.provider.priceId, quantity: 1 }],
-        success_url: url.origin + "/account/credits",
-        cancel_url: url.origin + "/account/credits",
+        success_url: url.origin + "/credits",
+        cancel_url: url.origin + "/credits",
         ...(promotionCode
           ? { discounts: [{ promotion_code: promotionCode }] }
           : {}),
@@ -201,6 +201,10 @@ export class StripeBillingProvider implements BillingProvider {
           providerId,
           accountBinding: checkout.client_reference_id,
           state: checkout.status === "expired" ? "ended" : "pending",
+          ...(checkout.status === "expired" &&
+          checkout.payment_status === "unpaid"
+            ? { unpaidOutcome: "expired-unpaid" as const }
+            : {}),
           periodEnd: null,
           cancelAtPeriodEnd: false,
           payments: [],
@@ -455,29 +459,64 @@ export class StripeBillingProvider implements BillingProvider {
           );
         throw fail();
       },
-      readback: async (action) => {
+      readback: async (action, checkpoint) => {
         const input = inputSchema.parse(action.input);
         if (action.kind === "checkout") {
-          const sessions = z
-            .object({
-              has_more: z.literal(false),
-              data: z.array(
-                sessionSchema.extend({ url: z.string().nullable() }),
-              ),
-            })
-            .parse(
-              await this.request(
-                "/v1/checkout/sessions?limit=100&created[gte]=" +
-                  Math.floor((action.createdAt.getTime() - 60000) / 1000),
-              ),
+          const base =
+            "/v1/checkout/sessions?limit=100&created[gte]=" +
+            Math.floor((action.createdAt.getTime() - 60000) / 1000);
+          const seen = new Set<string>();
+          let cursor = action.recoveryCursor ?? undefined;
+          // Page bounded provider responses; unrelated checkouts may have no binding.
+          for (let page = 0; page < 100; page++) {
+            const sessions = z
+              .object({
+                has_more: z.boolean(),
+                data: z
+                  .array(
+                    z
+                      .object({
+                        id,
+                        livemode: z.boolean(),
+                        client_reference_id: id.nullable(),
+                        metadata: z.record(z.string(), z.string()).nullable(),
+                      })
+                      .passthrough(),
+                  )
+                  .max(100),
+              })
+              .parse(
+                await this.request(
+                  base + (cursor ? "&starting_after=" + pathPart(cursor) : ""),
+                ),
+              );
+            const candidate = sessions.data.find(
+              (v) =>
+                v.metadata?.billingIntent === input.intentId &&
+                v.client_reference_id === input.accountBinding &&
+                v.livemode === this.live,
             );
-          const found = sessions.data.find(
-            (v) =>
-              v.metadata.billingIntent === input.intentId &&
-              v.client_reference_id === input.accountBinding &&
-              v.livemode === this.live,
+            if (candidate) {
+              const found = sessionSchema
+                .extend({ url: z.string().nullable() })
+                .parse(candidate);
+              return { id: found.id, url: found.url };
+            }
+            if (!sessions.has_more) {
+              await checkpoint?.(null);
+              return null;
+            }
+            const last = sessions.data.at(-1)?.id;
+            if (!last || seen.has(last)) throw fail();
+            seen.add(last);
+            cursor = last;
+            await checkpoint?.(cursor);
+          }
+          throw new AppError(
+            "STRIPE_RECOVERY_LIMIT",
+            "Checkout recovery paused at its saved cursor; retry reconciliation to continue.",
+            409,
           );
-          return found ? { id: found.id, url: found.url } : null;
         }
         const subscriptionId = await subscription(input.providerId);
         const sub = subscriptionSchema
