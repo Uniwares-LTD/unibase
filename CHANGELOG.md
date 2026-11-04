@@ -20,6 +20,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Add opt-in provider catalog checkout, recurring Stripe/Play verification,
+  subscription exclusion, expiring renewal grants, refund/bonus reconciliation,
+  authenticated notifications and journalled provider publication/readback.
+
 - Add upfront consumption orders, revision entitlements, prepaid Run binding and
   audited refunds; add versioned promotions, fenced redemption reservations and
   idempotent verified-payment bonuses. Existing billing remains opt-in and unchanged.
@@ -30,6 +34,11 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 - Add opt-in v1 commerce and execution-measurement contracts for immutable catalog terms, consumption orders, entitlements, subscriptions, promotions and provider evidence. Existing runtime behavior and records remain unchanged.
 
 ### Upgrade notes
+
+- Apply `core:0003-provider-billing`. Optional Play credentials and host-owned push
+  audience/email settings are documented in
+  [provider billing](docs/features/booklet-foundation/provider-billing.md).
+  No live provider or catalog is enabled by the migration.
 
 Apply `core:0002-consumption-promotions` through `npm run db:migrate`. Promotion
 definitions extend the catalog union; consumers must narrow its kind before reading
