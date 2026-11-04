@@ -838,6 +838,18 @@ test("consumption and promotion transactions", async (t) => {
             finalizePromotion(db, actor.uid, "checkout", "missing"),
           );
           const key = await payment(db, { channel });
+          await assert.rejects(
+            finalizePromotion(db, actor.uid, "checkout", key, {
+              beforePersist: async () => {
+                throw new Error("Provider lease expired");
+              },
+            }),
+            /lease expired/,
+          );
+          assert.equal(
+            await db.collection("promotionPaymentClaims").countDocuments(),
+            0,
+          );
           await Promise.all([
             finalizePromotion(db, actor.uid, "checkout", key),
             finalizePromotion(db, actor.uid, "checkout", key),

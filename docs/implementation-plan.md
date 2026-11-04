@@ -34,16 +34,21 @@ Use Handbook at `D:/Projects/handbook`, revision
 Verification: 45 focused tests and 12 deployment configuration tests pass, as do
 typecheck, lint, production build, environment, documentation, i18n and skill checks.
 Final read-only review evidence is recorded at handoff. No live
-provider actions or paid calls are part of this batch. T07-T08 are accepted for publication from `task/commerce-orders-promotions`.
+provider actions or paid calls are part of this batch. T07-T08 are accepted and merged in Unibase PR #45 and imported in Unitale PR #4.
 They add atomic upfront orders, revision entitlements, prepaid Run binding and audited
 refunds, plus versioned promotions, quota reservations and verified-payment benefits.
 The affected commerce/wallet/Run/payment suites pass 78 tests; final review and build
 evidence are recorded at handoff. [Service contracts](features/booklet-foundation/orders-promotions.md)
 cover integration and provider boundaries.
-T09-T12 commerce execution and T13 full integration remain subsequent tasks. Unitale T02 is accepted and merged.
+T09-T10 are implemented on `task/stripe-play-billing` for member review. The
+[provider billing guide](features/booklet-foundation/provider-billing.md) describes
+the additive services, migration and offline/live verification boundaries. The
+82 affected financial/provider tests pass; final check and read-only review
+evidence is recorded at handoff. Live provider activation remains T28.
+T11-T12 commerce UI/client work and T13 full integration remain subsequent tasks. Unitale T02 is accepted and merged.
 
 
-- Accepted cross-repository implementation: reusable T01 commerce/measurement contracts are implemented and reviewed on task/booklet-foundation. Seven contract tests, typecheck, lint and application build evidence pass; two consecutive same-agent read-only review passes found no remaining blocking issues. Publication audit UID validation was corrected and regression-tested. Unitale owns the accepted PRD and T01-T28 graph in docs/features/booklet-generation. T02 is accepted in Unitale; T03-T06 implementation is described above. T09-T28 remain subsequent work. No provider publication, paid calls or release is authorized.
+- Accepted cross-repository implementation: reusable T01 commerce/measurement contracts are implemented and reviewed on task/booklet-foundation. Seven contract tests, typecheck, lint and application build evidence pass; two consecutive same-agent read-only review passes found no remaining blocking issues. Publication audit UID validation was corrected and regression-tested. Unitale owns the accepted PRD and T01-T28 graph in docs/features/booklet-generation. T02 is accepted in Unitale; T03-T06 implementation is described above. T11-T28 remain subsequent work. No provider publication, paid calls or release is authorized.
 - Generic contracts are opt-in, strictly versioned and fixture-tested. They do not implement transactional billing, subscriptions, evidence retention or MCP transport. Existing records retain their prior parsers. Breaking additions need a new version; update strict consumers before emitting new fields.
 
 ### Template
