@@ -20,6 +20,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Add optional private, bounded domain node observations under the existing AI
+  worker fence, including Dify retry/exception output readback. Existing domains
+  without the hook retain metadata-only behavior; public Run events stay unchanged.
+
 - Add optional ordered native MCP image results for project tools, preserving JSON/
   text behavior, permission checks and encoded-response limits.
 
@@ -50,6 +54,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 - Add opt-in v1 commerce and execution-measurement contracts for immutable catalog terms, consumption orders, entitlements, subscriptions, promotions and provider evidence. Existing runtime behavior and records remain unchanged.
 
 ### Upgrade notes
+
+- Domains needing private execution evidence may opt into `observeNode`; see
+  [domain extensions](docs/services.md#domain-extensions-and-migration). Callbacks
+  must be idempotent transactional retention only. No migration is required.
 
 - Existing MCP tools need no changes. Image-producing tools can opt into `images`
   as documented in [MCP guidance](docs/mcp.md#native-image-results). Administrators

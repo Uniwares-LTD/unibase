@@ -35,6 +35,11 @@ export type AiWorkerDependencies = {
     result: ProviderExecution,
     session: ClientSession,
   ) => Promise<void>;
+  observeNode?: (
+    job: AiJob,
+    node: import("./types").ProviderNodeObservation,
+    session: ClientSession,
+  ) => Promise<void>;
   now?: () => Date;
   trace?: (job: AiJob) => Promise<import("./types").ProviderEvent[]>;
   terminalOutput?: (
@@ -50,6 +55,8 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
   const now = deps.now ?? (() => new Date());
   let job = await claimAiJob(db, now());
   if (!job) return false;
+  const observe = (event: import("./types").ProviderEvent) =>
+    persistAiEvent(db, job!, event, now(), deps.observeNode);
   async function defer(failure: string, review = false, delay?: number) {
     const current = now();
     const needsReview = review || current >= job!.reviewAfter;
@@ -106,7 +113,7 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
     if (job!.run && deps.terminalOutput) {
       // Trace transport failure cannot invalidate already verified termination.
       const trace = (await deps.trace?.(job!).catch(() => [])) ?? [];
-      for (const event of trace) await persistAiEvent(db, job!, event, now());
+      for (const event of trace) await observe(event);
       if (
         execution.status !== "stopped" &&
         (await db.collection("runDecisions").findOne({
@@ -206,9 +213,7 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       ) {
         const provider = await deps.provider(job);
         if (provider.stream)
-          await provider.stream(job.runId, providerUser(job.uid), (event) =>
-            persistAiEvent(db, job!, event, now()),
-          );
+          await provider.stream(job.runId, providerUser(job.uid), observe);
       }
       await finish(job.execution);
       return true;
@@ -338,9 +343,7 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       });
       outcome = await provider.start(
         { user: providerUser(job.uid), inputs },
-        async (event) => {
-          await persistAiEvent(db, job!, event, now());
-        },
+        observe,
       );
     } else if (job.runId) {
       if (job.cancelRequested && job.taskId)
@@ -365,13 +368,7 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
         state.kind === "ok" &&
         !job.cancelRequested &&
         needsReplay
-          ? await provider.stream(
-              job.runId,
-              providerUser(job.uid),
-              async (event) => {
-                await persistAiEvent(db, job!, event, now());
-              },
-            )
+          ? await provider.stream(job.runId, providerUser(job.uid), observe)
           : state;
       // Historical replay snapshots cannot replace confirmed termination.
       if (terminal) outcome = state;

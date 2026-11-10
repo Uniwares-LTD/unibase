@@ -113,6 +113,32 @@ images within MongoDB; unreferenced copies stay inaccessible through product rea
 Application failures retain an allowlisted code, phase and timestamp rather than
 raw exception text. Failed saves still require the owner's explicit retry.
 
+An optional `observeNode(db, job, node, session)` adapter hook receives bounded,
+private provider observations through the existing AI worker. Registering the hook
+opts that domain's accepted jobs into node-output/retry observations from live streams,
+reconnect and terminal tracing. Other domains retain metadata-only behavior. Node
+identity, retry index, parent iteration/loop identity, outputs, provider error and
+execution metadata are supplied only when reported; missing values stay null and
+`outputsTruncated` must be checked before treating output as complete. Inputs and
+process data are excluded. Each normalized observation is capped at 1 MiB; console
+readback retains its existing 1 MiB response and 1,000-row bounds.
+
+The hook runs in the same transaction as the worker lease fence and receives the
+fresh server-owned job identity. It must be idempotent, use the supplied session,
+perform no external I/O and retain/reconcile only accepted work. It grants no new
+dispatch or account-ownership authority. This allows restricted retention while
+cancellation is pending; ordinary publication/dispatch checks still apply. Hook
+failures roll back and propagate rather than becoming a successful observation.
+Private node observations are never written to public `runEvents` or usage summaries.
+Keep raw outputs/errors out of logs and user DTOs; use the existing redacted private
+evidence writer for diagnostic retention, passing the supplied session as the optional
+fourth `retainEvidence` argument so evidence and the hook transaction commit/roll back
+together. Existing callers retain their own transaction behavior. Derive immutable
+evidence identities from the accepted Run, native execution, status/retry identity
+and payload hash; Dify can reuse a native execution ID across retry observations.
+Node retry indexes are Dify's reported values, not a count of hidden provider SDK attempts. This seam does not itself
+implement action retry policy, scheduling or recovery.
+
 After reviewing the target database and taking the normal operational backup,
 `npm run db:migrate` applies the `runs:0001-domain-references` migration, which
 adds reference metadata idempotently. It does not rename or rewrite accounting

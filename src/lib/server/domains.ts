@@ -31,6 +31,14 @@ export interface DomainAdapter {
     session: ClientSession,
   ): Promise<void>;
   approval?(db: Db, job: AiJob, value: unknown): Promise<void>;
+  // Private, idempotent retention/reconciliation only, under the worker fence.
+  // No dispatch, ownership bypass, public events or external I/O in this transaction.
+  observeNode?(
+    db: Db,
+    job: AiJob,
+    node: import("./ai/types").ProviderNodeObservation,
+    session: ClientSession,
+  ): Promise<void>;
 }
 // Only trusted server code constructs registries. No persisted or browser-supplied executable names.
 export function domainRegistry(adapters: readonly DomainAdapter[]) {

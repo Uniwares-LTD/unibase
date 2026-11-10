@@ -1,3 +1,4 @@
+import { domains, jobTarget } from "../src/lib/server/domains";
 import { loadEnvConfig } from "@next/env";
 import { MongoClient } from "mongodb";
 import { setTimeout as delay } from "node:timers/promises";
@@ -73,6 +74,13 @@ async function main() {
           const executed = await processOneAiJob(db, {
             provider: (job) => providerForRun(job, db),
             trace: tracingForRun,
+            observeNode: async (job, node, session) => {
+              const target = jobTarget(job);
+              if (target)
+                await domains
+                  .get(target.adapter, target.version)
+                  .observeNode?.(db, job, node, session);
+            },
             prepareInput: (job) =>
               job.responder
                 ? Promise.resolve(job.inputs)

@@ -27,6 +27,7 @@ import type {
   Json,
   ProviderEvent,
   ProviderExecution,
+  ProviderNodeObservation,
   UsageObservation,
 } from "./types";
 
@@ -413,6 +414,11 @@ export async function persistAiEvent(
   job: AiJob,
   event: ProviderEvent,
   now = new Date(),
+  observeNode?: (
+    job: AiJob,
+    node: ProviderNodeObservation,
+    session: ClientSession,
+  ) => Promise<void>,
 ) {
   const session = db.client.startSession();
   try {
@@ -453,6 +459,11 @@ export async function persistAiEvent(
           );
         }
         if (!current.runId) throw conflict();
+        if (event.type === "node-observation") {
+          if (event.node.runId !== current.runId) throw conflict();
+          await observeNode?.(current, event.node, session);
+          return; // Never persist raw outputs/errors in public runEvents or usage.
+        }
         if (
           event.type === "stage" ||
           event.type === "decision" ||
