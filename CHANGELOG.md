@@ -20,6 +20,11 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Add opt-in application wait nodes and paused-Run resume hooks on versioned domains,
+  reusing worker scheduling and the existing uncertain-decision journal. Internal
+  waits suppress creator prompts/notifications and persona responses; application
+  provenance cannot approve human or quality decisions.
+
 - Add optional private, bounded domain node observations under the existing AI
   worker fence, including Dify retry/exception output readback. Existing domains
   without the hook retain metadata-only behavior; public Run events stay unchanged.
@@ -54,6 +59,11 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 - Add opt-in v1 commerce and execution-measurement contracts for immutable catalog terms, consumption orders, entitlements, subscriptions, promotions and provider evidence. Existing runtime behavior and records remain unchanged.
 
 ### Upgrade notes
+
+- Domains may opt into fixed native `applicationWaitNodes` with `resumePaused`;
+  see [domain extensions](docs/services.md#domain-extensions-and-migration). Existing
+  workflows are unchanged. Retain accepted adapter versions when changing wait IDs.
+  No migration, provider change or new scheduler is required.
 
 - Domains needing private execution evidence may opt into `observeNode`; see
   [domain extensions](docs/services.md#domain-extensions-and-migration). Callbacks

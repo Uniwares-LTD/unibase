@@ -40,6 +40,7 @@ export type AiWorkerDependencies = {
     node: import("./types").ProviderNodeObservation,
     session: ClientSession,
   ) => Promise<void>;
+  resumePaused?: (job: AiJob) => Promise<Date | void>;
   now?: () => Date;
   trace?: (job: AiJob) => Promise<import("./types").ProviderEvent[]>;
   terminalOutput?: (
@@ -93,9 +94,25 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
       job = await patchAiJob(
         db,
         job!,
-        { status: execution.status as "running" | "paused", execution },
+        {
+          status: execution.status as "running" | "paused",
+          execution,
+          ...(execution.status === "running" ? { applicationWait: false } : {}),
+        },
         now(),
       );
+      let eligibleAt: Date | void = undefined;
+      if (
+        execution.status === "paused" &&
+        job.run &&
+        job.applicationWait &&
+        !job.cancelRequested &&
+        now() < job.reviewAfter &&
+        (await deps.authorize(job.uid, job.authTime))
+      )
+        eligibleAt = await deps.resumePaused?.(job);
+      if (eligibleAt && !Number.isFinite(eligibleAt.getTime()))
+        throw new Error("Invalid application wait eligibility");
       await patchAiJob(
         db,
         job,
@@ -103,7 +120,13 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
           lease: null,
           leaseUntil: new Date(0),
           nextAttemptAt: new Date(
-            now().getTime() + (job.run?.pollSeconds ?? 5) * 1000,
+            Math.min(
+              job.applicationWait ? job.reviewAfter.getTime() : Infinity,
+              Math.max(
+                now().getTime() + (job.run?.pollSeconds ?? 5) * 1000,
+                eligibleAt?.getTime() ?? 0,
+              ),
+            ),
           ),
         },
         now(),

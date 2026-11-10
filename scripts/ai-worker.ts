@@ -74,6 +74,13 @@ async function main() {
           const executed = await processOneAiJob(db, {
             provider: (job) => providerForRun(job, db),
             trace: tracingForRun,
+            resumePaused: async (job) => {
+              const target = jobTarget(job);
+              if (target)
+                return domains
+                  .get(target.adapter, target.version)
+                  .resumePaused?.(db, job);
+            },
             observeNode: async (job, node, session) => {
               const target = jobTarget(job);
               if (target)

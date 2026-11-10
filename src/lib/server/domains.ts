@@ -31,6 +31,10 @@ export interface DomainAdapter {
     session: ClientSession,
   ): Promise<void>;
   approval?(db: Db, job: AiJob, value: unknown): Promise<void>;
+  // Fixed native Human Input node IDs, owned by this adapter version.
+  applicationWaitNodes?: readonly string[];
+  // Non-paid, journaled resume of an authorized internal wait, or its next due time.
+  resumePaused?(db: Db, job: AiJob): Promise<Date | void>;
   // Private, idempotent retention/reconciliation only, under the worker fence.
   // No dispatch, ownership bypass, public events or external I/O in this transaction.
   observeNode?(
@@ -44,6 +48,16 @@ export interface DomainAdapter {
 export function domainRegistry(adapters: readonly DomainAdapter[]) {
   const entries = new Map<string, DomainAdapter>();
   for (const adapter of adapters) {
+    const waits = adapter.applicationWaitNodes ?? [];
+    if (
+      waits.length &&
+      (!adapter.resumePaused ||
+        new Set(waits).size !== waits.length ||
+        waits.some((id) => !/^[A-Za-z0-9_-]{1,128}$/.test(id)))
+    )
+      throw new Error(
+        "Application wait nodes require a resume hook and unique native IDs",
+      );
     const key = `${adapter.id}@${adapter.version}`;
     if (entries.has(key)) throw new Error("Duplicate domain adapter version");
     entries.set(key, adapter);

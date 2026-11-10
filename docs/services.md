@@ -139,6 +139,30 @@ and payload hash; Dify can reuse a native execution ID across retry observations
 Node retry indexes are Dify's reported values, not a count of hidden provider SDK attempts. This seam does not itself
 implement action retry policy, scheduling or recovery.
 
+For non-paid internal waits, a domain may declare fixed `applicationWaitNodes`
+(native Human Input node IDs) and `resumePaused(db, job)`. These declarations belong
+to that adapter version, not model output or browser configuration; retain accepted
+versions when changing node identities. The registry rejects duplicate/invalid IDs
+or declarations without a resume hook. The existing worker invokes the hook only for
+an application wait on a paused Run with a live lease, current account authorization,
+no cancellation and time remaining in the existing reconciliation window. Returning
+a future Date sets eligibility using the same worker queue; normal poll/reconciliation
+bounds remain in force. Do not sleep, dispatch paid work, create a successor or add a
+scheduler in this hook. Revalidate the actual owned action and its due time/counters
+before responding; declaration of a node alone is not business authorization.
+
+Internal waits retain the existing `runDecisions` submission journal but do not send
+creator notifications or appear in public decision pages/events or persona answering.
+The Run displays reconciliation progress instead of requesting user input. Genuine
+human decisions retain their normal behavior, including when another branch has an
+internal wait. Use `submitAuthorizedDecision` with application provenance, the matching
+adapter ID/version and current worker job. It checks the owned stored wait, active
+worker fence and existing account/admission guards; user/persona answers cannot resume
+an internal wait, and application answers cannot approve any approval form. A lost
+submission response stays unknown in the same journal and is reconciled by existing
+native event/readback; repeating the intent does not submit again. No provider-attempt
+count, automatic successor or creative policy is added by this generic seam.
+
 After reviewing the target database and taking the normal operational backup,
 `npm run db:migrate` applies the `runs:0001-domain-references` migration, which
 adds reference metadata idempotently. It does not rename or rewrite accounting
