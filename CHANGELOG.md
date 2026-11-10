@@ -20,6 +20,9 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Add optional ordered native MCP image results for project tools, preserving JSON/
+  text behavior, permission checks and encoded-response limits.
+
 - Add an opt-in official Google Maven hostname fallback for Android builds,
   preserving dependency versions and normal repository defaults.
 
@@ -47,6 +50,11 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 - Add opt-in v1 commerce and execution-measurement contracts for immutable catalog terms, consumption orders, entitlements, subscriptions, promotions and provider evidence. Existing runtime behavior and records remain unchanged.
 
 ### Upgrade notes
+
+- Existing MCP tools need no changes. Image-producing tools can opt into `images`
+  as documented in [MCP guidance](docs/mcp.md#native-image-results). Administrators
+  must size existing MCP result/response limits for base64 overhead before using
+  large originals; defaults are unchanged. No migration or live activation is needed.
 
 - Android consumers must regenerate and rebuild the wrapper to receive the custom
   billing activity and Digital Goods service. Minimum Android API is now 24;
