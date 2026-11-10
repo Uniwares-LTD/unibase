@@ -20,6 +20,9 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Add project-owned Run start composition and a detail control slot using the existing
+  Run DTO/poller. Prepaid Runs omit generic restart controls and use product admission.
+
 - Add opt-in application wait nodes and paused-Run resume hooks on versioned domains,
   reusing worker scheduling and the existing uncertain-decision journal. Internal
   waits suppress creator prompts/notifications and persona responses; application
@@ -59,6 +62,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 - Add opt-in v1 commerce and execution-measurement contracts for immutable catalog terms, consumption orders, entitlements, subscriptions, promotions and provider evidence. Existing runtime behavior and records remain unchanged.
 
 ### Upgrade notes
+
+- `src/project/run-start.tsx` and `src/project/run-detail.tsx` contain optional
+  client-safe Run UI composition points. Defaults preserve existing rendering;
+  projects can add controls without editing shared Run pages. See [adding a feature](docs/template.md#add-a-feature).
 
 - Domains may opt into fixed native `applicationWaitNodes` with `resumePaused`;
   see [domain extensions](docs/services.md#domain-extensions-and-migration). Existing

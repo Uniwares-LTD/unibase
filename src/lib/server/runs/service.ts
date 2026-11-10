@@ -723,6 +723,7 @@ export async function runDetail(id: string, pages: RunPages = {}) {
   return {
     id,
     name: current.run!.orchestrator.name,
+    target: jobTarget(current) ?? null,
     status: status(current, results.find((r) => r._id === current._id)?.result),
     pollSeconds: current.run!.pollSeconds,
     isAdmin: (await accountAccess(database(), actor.uid)).role === "admin",
@@ -780,7 +781,11 @@ export async function runDetail(id: string, pages: RunPages = {}) {
         (d) => !actionable.rows.some((a) => a.id === d.id),
       ),
     ],
-    canRestart: canStartNewAttempt(current) && !current.runSuccessorId,
+    // Prepaid work must continue through its product admission, which preserves funding.
+    canRestart:
+      canStartNewAttempt(current) &&
+      !current.runSuccessorId &&
+      !current.consumption,
     configuration: choice ?? null,
     personas: await personaChoices(),
     responders: responderExecutions.map((j) => ({
