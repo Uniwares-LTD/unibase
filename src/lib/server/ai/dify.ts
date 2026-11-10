@@ -359,7 +359,7 @@ export function createDifyWorkflow(
                 status:
                   envelope.event === "node_started"
                     ? "running"
-                    : node.data.status === "failed"
+                    : ["failed", "exception"].includes(node.data.status ?? "")
                       ? "failed"
                       : "succeeded",
                 elapsedMs:

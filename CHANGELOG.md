@@ -20,6 +20,9 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Map Dify handled node exceptions to failed activity stages, preserving private
+  error bodies in opt-in observations instead of labelling the stage successful.
+
 - Add an optional bounded reconciliation callback to the existing AI worker for
   accepted unresolved work after its parent terminates; no new scheduler or dispatch.
 

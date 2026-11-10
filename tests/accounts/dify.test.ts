@@ -469,7 +469,10 @@ test("opt-in private node observations retain retry identity and outputs without
     retry_index: 2,
     iteration_id: "iteration-1",
     loop_id: "loop-1",
-    outputs: { result: "private exact output  \u{1f44b}\n", requestId: "call-1" },
+    outputs: {
+      result: "private exact output  \u{1f44b}\n",
+      requestId: "call-1",
+    },
     outputs_truncated: false,
     error: "private provider error",
     execution_metadata: { total_tokens: 7 },
@@ -482,7 +485,7 @@ test("opt-in private node observations retain retry identity and outputs without
       {
         event: "node_finished",
         workflow_run_id: runId,
-        data: { ...node, status: "succeeded", retry_index: undefined },
+        data: { ...node, status: "exception", retry_index: undefined },
       },
       { event: "workflow_finished", workflow_run_id: runId, data: detail },
     );
@@ -503,6 +506,12 @@ test("opt-in private node observations retain retry identity and outputs without
       (event) => event.type === "node-observation",
     );
     assert.equal(observations.length, enabled ? 2 : 0);
+    assert.equal(
+      events
+        .filter((event) => event.type === "stage")
+        .find((event) => event.nodeId === "specialist")?.status,
+      "failed",
+    );
     if (enabled) {
       assert.equal(observations[0].node.runId, runId);
       assert.equal(observations[0].node.id, "child-execution");

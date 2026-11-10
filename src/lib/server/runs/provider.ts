@@ -68,13 +68,16 @@ export async function tracingForRun(
   return [
     ...observations,
     ...rows.data
-      .filter((n) => ["succeeded", "failed", "running"].includes(n.status))
+      .filter((n) =>
+        ["succeeded", "failed", "running", "exception"].includes(n.status),
+      )
       .map((n) => ({
         type: "stage" as const,
         id: n.id,
         nodeId: n.node_id,
         title: n.title,
-        status: n.status as "succeeded" | "failed" | "running",
+        status: (n.status === "exception" ? "failed" : n.status) as
+          "succeeded" | "failed" | "running",
         elapsedMs:
           n.elapsed_time == null ? null : Math.round(n.elapsed_time * 1000),
       })),

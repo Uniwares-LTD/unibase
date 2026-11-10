@@ -88,8 +88,15 @@ test("private terminal observations retain retry/exception rows and reject overs
       error: "private failure",
     }));
     const events = await tracingForRun(job, async () => ({ data: rows }), true);
-    assert.equal(events.length, 2);
-    assert(events.every((event) => event.type === "node-observation"));
+    assert.equal(events.length, 3);
+    assert.equal(
+      events.filter((event) => event.type === "node-observation").length,
+      2,
+    );
+    assert.equal(
+      events.find((event) => event.type === "stage")?.status,
+      "failed",
+    );
     const second = events[1];
     assert.equal(second.type, "node-observation");
     if (second.type !== "node-observation")
