@@ -1,3 +1,5 @@
+import { reconcileExtensions } from "../src/lib/server/extensions";
+import { serverExtensions } from "../src/project/server";
 import { domains, jobTarget } from "../src/lib/server/domains";
 import { loadEnvConfig } from "@next/env";
 import { MongoClient } from "mongodb";
@@ -120,6 +122,9 @@ async function main() {
           worked = executed;
           worked = (await processOneAutomaticDecision(db)) || worked;
           worked = (await processOneResultApplication(db)) || worked;
+          worked =
+            (await reconcileExtensions(serverExtensions, db, new Date())) ||
+            worked;
         } catch {
           status = 503;
           cycleState = "error";

@@ -97,7 +97,6 @@ export async function processOneAiJob(db: Db, deps: AiWorkerDependencies) {
         {
           status: execution.status as "running" | "paused",
           execution,
-          ...(execution.status === "running" ? { applicationWait: false } : {}),
         },
         now(),
       );

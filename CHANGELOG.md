@@ -20,6 +20,9 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Add an optional bounded reconciliation callback to the existing AI worker for
+  accepted unresolved work after its parent terminates; no new scheduler or dispatch.
+
 - Add project-owned Run start composition and a detail control slot using the existing
   Run DTO/poller. Prepaid Runs omit generic restart controls and use product admission.
 
@@ -62,6 +65,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 - Add opt-in v1 commerce and execution-measurement contracts for immutable catalog terms, consumption orders, entitlements, subscriptions, promotions and provider evidence. Existing runtime behavior and records remain unchanged.
 
 ### Upgrade notes
+
+- Server extensions needing late-result readback may opt into `reconcile(db, now)`.
+  The callback must fence its own accepted work and cannot dispatch paid actions.
+  Existing worker mode controls remain in force; no migration is required.
 
 - `src/project/run-start.tsx` and `src/project/run-detail.tsx` contain optional
   client-safe Run UI composition points. Defaults preserve existing rendering;

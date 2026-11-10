@@ -155,12 +155,10 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
             false,
           );
           assert.equal(
-            await db
-              .collection("runEvents")
-              .countDocuments({
-                jobId: saved._id,
-                "event.nodeId": "internal-wait",
-              }),
+            await db.collection("runEvents").countDocuments({
+              jobId: saved._id,
+              "event.nodeId": "internal-wait",
+            }),
             0,
           );
           assert.equal(
@@ -226,7 +224,10 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
                 runId: nativeId,
                 taskId: randomUUID(),
               });
-              return { kind: "ok" as const, value };
+              return {
+                kind: "ok" as const,
+                value: { ...value, status: "running" as const },
+              };
             },
             async retrieve() {
               retrieves++;
@@ -254,6 +255,15 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
           },
         };
         await processOneAiJob(db, deps);
+        assert.equal(resumes, 0);
+        assert.equal(
+          (await aiJobs(db).findOne({ _id: saved._id }))?.applicationWait,
+          true,
+        );
+        clock = new Date(
+          startedAt.getTime() + settings.runs.pollSeconds * 1000,
+        );
+        await processOneAiJob(db, deps); // Running -> paused without a replayed decision event.
         const waiting = (await aiJobs(db).findOne({ _id: saved._id }))!;
         assert.equal(waiting.status, "paused");
         assert.equal(waiting.nextAttemptAt.getTime(), due.getTime());
@@ -267,7 +277,7 @@ test("Runs: frozen policies, normalized decisions, media ownership and linked re
         assert.equal(completed.status, "succeeded");
         assert.equal(completed.runId, nativeId);
         assert.equal(starts, 1);
-        assert.equal(retrieves, 2);
+        assert.equal(retrieves, 3);
         assert.equal(completed.run?.attempt, 1);
       },
     );

@@ -720,10 +720,18 @@ export async function runDetail(id: string, pages: RunPages = {}) {
     .limit(100)
     .toArray();
   const choice = configs.find((d) => d.id === current.run!.orchestrator.id);
+  const target = jobTarget(current);
   return {
     id,
     name: current.run!.orchestrator.name,
-    target: jobTarget(current) ?? null,
+    target: target
+      ? {
+          adapter: target.adapter,
+          version: target.version,
+          kind: target.kind,
+          id: target.id,
+        }
+      : null,
     status: status(current, results.find((r) => r._id === current._id)?.result),
     pollSeconds: current.run!.pollSeconds,
     isAdmin: (await accountAccess(database(), actor.uid)).role === "admin",

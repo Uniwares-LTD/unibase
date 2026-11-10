@@ -163,6 +163,17 @@ submission response stays unknown in the same journal and is reconciled by exist
 native event/readback; repeating the intent does not submit again. No provider-attempt
 count, automatic successor or creative policy is added by this generic seam.
 
+A server extension may supply `reconcile(db, now)` for one bounded pass over
+already accepted unresolved work, such as late child results after a parent Run
+terminates. The existing AI worker calls it after normal Run/decision/result work;
+its existing mode switch, heartbeat and cycle timing remain authoritative. Unlike
+new admission, this callback is not filtered by module visibility/enabled state.
+It must claim/fence its own existing work records, perform only bounded non-paid
+readback/retention, preserve current ownership for publication, and return whether
+it did work. Do not dispatch paid actions, create a successor, add a queue/scheduler,
+or keep a verified stopped Run active just to poll its unresolved children. Errors
+use the existing worker error path; raw evidence stays private and redacted.
+
 After reviewing the target database and taking the normal operational backup,
 `npm run db:migrate` applies the `runs:0001-domain-references` migration, which
 adds reference metadata idempotently. It does not rename or rewrite accounting
