@@ -36,19 +36,19 @@ names its own approval.
   - D-09: Button keeps its `cva` API.
   - D-10: leave-guard scope.
   - D-11: Field from the shadcn registry `field` item.
-  - D-12: Lucide stays separate and optional.
+  - D-12: Lucide stays a separate change; P-28 makes it its own U6 commit.
   - D-13: DTCG tokens are the source.
 - **D-07 still holds.** No project's brand is adopted into Unibase (DEF-01). This plan adds U6, which gives any derived project a generic **seam** for its own theme and fonts; the seam names no project.
 - **Decided in this plan.**
   1. Copy the two generated stylesheets into `src/styles/design-system/`, unedited, with the revision recorded in each.
   2. Delete `classic.css` and `soft-blue.css` at U4.
-  3. Every checkpoint is its own PR, merged with a merge commit, and can be reverted on its own.
+  3. One PR per checkpoint, except U3 (one per slice) and U6 (seam and guide, then release), merged with merge commits and revertible on their own (P-03).
   4. **Deviation:** AGT-01 and SKL-01 move from U1 to U5. Their text describes `Field`, `SubmitButton`, the toast and the leave guard, which only exist after U2, U2-S and U4. Recorded in the U5 deviation table.
-  5. **Type roles must be overridable by a derived project.** As generated today, `tailwind-theme.css` writes literal values into an `@theme inline` block, so a project theme can't change them. The package's own generated project themes already express role values as `-size`, `-leading`, `-weight` and `-tracking` variables, so that is the convention to support. Recommended default, a package change made before work starts and included in the revision accepted at the start gate:
+  5. **Type roles must be overridable by a derived project.** As generated today, `tailwind-theme.css` writes literal values into an `@theme inline` block, so a project theme can't change them. The package's own generated project themes already express role values as `-size`, `-leading`, `-weight` and `-tracking` variables, so that is the convention to support. Decision (a package change made before work starts and included in the revision accepted at the start gate:
      - The package generator emits each role key as a variable with the current value as fallback, for example `--text-hero: var(--text-hero-size, 2.5rem)` and `--text-hero--font-weight: var(--text-hero-weight, 600)`.
      - Unibase renders identically without a project theme; a project overrides the `-size`, `-leading`, `-weight` and `-tracking` variables in its theme.
      - U4 vendors that revision.
-     - **Letter-spacing unit** (open package decision), decided here: recommended default `em`, which matches the CSS renderer and scales with each role's size. The generator emits `0rem` today while the spec and ledger say `0em`; the same package change switches it. Every value is 0, so nothing renders differently.
+     - **Letter-spacing unit** (open package decision), decided here: `em`, which matches the CSS renderer and scales with each role's size. The generator emits `0rem` today while the spec and ledger say `0em`; the same package change switches it. Every value is 0, so nothing renders differently.
   6. **Test method.** Unibase's `npm test` runs `node:test` with no DOM, and this plan adds no test dependency. Pure logic is extracted and tested with `node:test` and fake timers: the toast timer and replacement, the leave-guard outcome table, Field ID derivation and the Notice action states. DOM behaviour (focus, `aria-describedby`, hover pause, focus return) is asserted in the scripted Playwright browser checks and recorded as evidence. Adding jsdom or Testing Library would be a separate dependency decision.
   7. `lg` field size (FLD-02) and the leave guard (LVG-01) are applied to existing screens only where allowed: `lg` needs explicit `visible` approval per screen, and LVG-01 applies only where a feature has real saving or offers Discard alone (spec §6).
 - **Not in this issue.** These belong to derived projects or to the features that consume the helpers, and are handled outside Unibase:
@@ -62,7 +62,7 @@ names its own approval.
 | --- | --- |
 | UG-001 font hooks | TOK-01 at U4; the font path at U6; consumer mapping by each derived project |
 | UG-002 retained values and geometry | KEEP-02, checked at U4 and U5 |
-| UG-003 Lucide candidate | DEF-04, optional at U6 |
+| UG-003 Lucide candidate | DEF-04, bumped at U6 (P-28) |
 | UG-004 per-feature submission and limits | consuming feature (not this issue) |
 | UG-005 simulated recovery | DEF-05, consuming feature (not this issue) |
 | UG-006 confirmation duration | TOK-02 at U4; TST-01/02 at U2-S |
@@ -77,8 +77,45 @@ names its own approval.
 | UG-015 touch sizes | TCH-02 at U1; TCH-01 and TCH-03 at U2 |
 | UG-016 toast CSP | U2-S, with security approval on its PR |
 | UG-017 missing media | MED-01 at U2 and U3 |
-| UG-018 project style seam | U6 theme seam (default approved with the plan) |
+| UG-018 project style seam | U6 theme seam (P-19 to P-22) |
 | UG-019 regression tooling | U0 decision: scripted captures, no new dependency |
+
+## Decision register
+
+Every decision this plan relies on. They are approved together at the start gate. Changing one is recorded under "Verified progress" before the checkpoint it affects. Package decisions D-01 to D-13 are listed under "Package decisions carried in" above.
+
+| ID | Decision | Where |
+| --- | --- | --- |
+| P-01 | Copy the two generated stylesheets into `src/styles/design-system/` unedited, with the source revision in a header | U4 |
+| P-02 | Delete `classic.css` and `soft-blue.css` | U4 |
+| P-03 | One PR per checkpoint, except U3 (one PR per slice, four in total) and U6 (two: seam and guide, then the release); each merged with a merge commit and revertible on its own | all |
+| P-04 | AGT-01 and SKL-01 move from U1 to U5 (deviation) | U5 |
+| P-05 | Variable-backed type roles and `em` letter-spacing, through a package change before work starts | start gate, U4 |
+| P-06 | Tests: `node:test` for extracted logic, scripted Playwright for DOM behaviour; no test dependency | all |
+| P-07 | `lg` only with per-screen approval; the leave guard only where there's real saving or Discard | U3 |
+| P-08 | Baseline and comparison captures are scripted Playwright-CLI runs, not repository tooling (UG-019) | U0, U4, U5 |
+| P-09 | If U2-S lands before U4, the toast falls back to `var(--type-body, var(--font-sans))` and a literal 6000 ms; U4 swaps in the tokens | U2-S, U4 |
+| P-10 | The SKL-01 install order follows `handbook:sync`, which generates the `.claude` wrapper (deviation from proposal §4) | U5 |
+| P-11 | No Tailwind theme keys for the touch sizes | U1 |
+| P-12 | TCH-01: add `textarea` to the coarse-pointer height rule, plus the spec's horizontal-Field label rule | U2 |
+| P-13 | TCH-03 selectors: icon buttons via `[data-size^="icon"]`; select and menu items via their `data-slot`; checkbox and radio labels both as wrapping labels (`label:has(> …)`) and as sibling labels (`[data-slot="checkbox"] + [data-slot="label"]`) | U2 |
+| P-14 | `StatusBadge` is a composition in `src/components/status-badge.tsx`; `ui/badge.tsx` is unchanged | U2 |
+| P-15 | Measure the neutral and error badge pairs; fall back to the error Notice styling below 4.5:1 | U2 |
+| P-16 | `Notice` gains an optional `action` prop whose state is owned by the feature | U2 |
+| P-17 | Notice action labels name each state | U2 |
+| P-18 | The Notice action uses `aria-disabled` while pending and on success, so focus isn't lost (deviation) | U2 |
+| P-19 | A `theme` flag in `project.config.json`; `layout.tsx` and `global-error.tsx` read `project.theme` and `project.slug` from `src/lib/project.ts` and pass them to `StyleProvider` as props; `data-project` is the slug. Public settings are not changed | U6 |
+| P-20 | A project theme replaces the preset choice; light, dark and system stay | U6 |
+| P-21 | A project theme isn't a new style ID | U6 |
+| P-22 | `src/project/theme.css`, imported after the foundation, project-owned | U6 |
+| P-23 | Fonts through `@font-face` in `theme.css` and `public/fonts/`; no `next/font` hook | U6 |
+| P-24 | Move `designStyleSchema` into a new dependency-free `src/lib/design-styles.ts`; `appearance.ts`, `project.ts` and `runs/admin-editors.tsx` import it; disable the admin default-style editor under a project theme | U6 |
+| P-25 | Project tokens stay under `x-<id>`; new shared tokens go through the design package | U6 |
+| P-26 | Replace the old Classic primary `#98492f` with the adopted Classic primary `#c2410c` (COL-classic-light-primary) in `layout.tsx`, `manifest.ts`, `scripts/i18n-assets.mjs` (which generates `public/offline.html`), `android-generate.ts`, `generate-icons.mjs` and `icon.svg`; background `#fff9f3` and foreground `#30221d` stay, because no colour row changes them | U6 |
+| P-27 | Template release is a minor version bump before 1.0, with upgrade notes; existing `## Unreleased` entries ship in it | U6 |
+| P-28 | Lucide bumped to exactly 1.75.0 in its own commit | U6 |
+| P-29 | The derived-project guide is `docs/design-system-extension.md`, Unibase-owned and naming no project | U6 |
+| P-30 | Fixed checkpoint order U0, U1, U2, U2-S, U3, U4, U5, U6; a rejected toast review closes U2-S without code | all |
 
 ## Execution prerequisites
 
@@ -86,7 +123,7 @@ names its own approval.
 
 | Gate | When | Who | Met when |
 | --- | --- | --- | --- |
-| **Start gate** | before U0 | team (a named reviewer) and the issue owner | The package acceptance record names the accepted revision, accepting reviewer, maintenance owner and date, and that revision includes the decision 5 package change (variable-backed type roles, `em` letter-spacing). The engineering handoff review (unitale-mockup#7) is held. This plan is approved, which approves its checkpoint order and every recommended default in it; any changed default is recorded under "Verified progress". |
+| **Start gate** | before U0 | team (a named reviewer) and the issue owner | The package acceptance record names the accepted revision, accepting reviewer, maintenance owner and date, and that revision includes the decision 5 package change (variable-backed type roles, `em` letter-spacing). The engineering handoff review is held and recorded as a comment on unitale-mockup#7 (the issue need not be closed). This plan is approved, which approves its checkpoint order and every decision in the decision register; a changed decision is recorded under "Verified progress" before the checkpoint it affects. |
 | **Release gate** | end of U6 | repository owner | Authorization to tag `template-v<version>`. |
 
 **PR approval rule.** Low-risk PRs merge with normal review. A PR containing `visible`, `security` or `configuration` rows merges only with explicit approval from a Unibase maintainer on that PR. This covers:
@@ -122,7 +159,7 @@ names its own approval.
 | U2-S Toast and CSP | security | 1 | ~10 | yes; skipped if its security review rejects |
 | U3 Rollout by area | low (`visible` where `lg` is applied) | 4, one per slice | ~6 to 12 each | yes, after any slice |
 | U4 Visible foundation | visible | 1 | ~11 | yes |
-| U5 Verification, guidance and close | none / configuration | 1 or 2 | ~12 | yes |
+| U5 Verification, guidance and close | none / configuration | 1 | ~12 | yes |
 | U6 Derived-project readiness and template release | none to configuration | 2 (seam and guide; release), plus a tag | ~32 | end state |
 
 **Stop rules.**
@@ -135,8 +172,7 @@ names its own approval.
 
 ## Checkpoints
 
-Apply them in order. U2-S may run in parallel with U2 or U3. U4 may move ahead
-of U3 if reviewers prefer the visible change first; the two touch different files.
+Apply them in this fixed order (P-30): U0, U1, U2, U2-S, U3, U4, U5, U6. Each checkpoint starts only when the one before it is merged. If the U2-S security review rejects the toast, U2-S closes without code and U3 follows.
 
 ### U0. Gate and baseline capture
 
@@ -158,10 +194,11 @@ of U3 if reviewers prefer the visible change first; the two touch different file
 
 ### U1. Seams, no visual change
 
+- **Requirements.** U0 complete.
 - **Rows.**
   - TCH-02: `--control-touch-sm` 2.75rem, `--control-touch-md` 3.25rem and `--control-touch-lg` 3.75rem in `src/styles/tokens.css`. Nothing uses them until TCH-03.
   - DOC-01 §1: the "Where to change things" rows for files that exist at this point.
-- **Decision (spec §7, TCH-02).** Whether to also add Tailwind theme keys for the touch sizes. The default is no, because the CSS variables are enough for TCH-03.
+- **Decision P-11 (spec §7, TCH-02).** No Tailwind theme keys for the touch sizes; the CSS variables are consumed only by the TCH-03 rules.
 - **Boundaries.** No component, preset or visible change.
 - **Acceptance.**
   - Every colour and every computed body and heading style is identical to U0.
@@ -169,6 +206,8 @@ of U3 if reviewers prefer the visible change first; the two touch different file
 - **Continuation.** Automatic.
 
 ### U2. Shared helpers in the showcase
+
+- **Requirements.** U1 merged.
 
 Each item is built once, shown in every state in `/design-system`, and used by no feature
 until U3. Spec numbers refer to the package's implementation specifications.
@@ -181,10 +220,22 @@ until U3. Spec numbers refer to the package's implementation specifications.
 | LVG-01 | §6 Leave guard | new `src/components/leave-guard.tsx`; provider in `src/app/layout.tsx`; guarded links in `app-shell.tsx` and `account-menu-controls.tsx` | Each table row's outcome matches for a fixture whose save succeeds, fails or is unknown. A clean form never prompts. Closing the tab while dirty shows the native prompt. Back is documented as unguarded. Initial focus is on Keep editing. Closing the dialog returns focus to the link or menu trigger that started the navigation. |
 | MED-01 | §8 Missing media and downloads | new `src/components/media-fallback.tsx` | A missing source shows the fallback with text. A blocked URL shows the failed variant. A forced download error shows the Notice and leaves the result untouched. |
 | RTL-01 to RTL-04 | §7 | `ui/dialog.tsx` (and remove the patches in `diagnostic-access.tsx` and `runs/workflow-version-picker.tsx`), `ui/alert-dialog.tsx`, `ui/sheet.tsx`, `app/page.tsx`, `app/not-found.tsx` | In Arabic, dialogs and alert dialogs are centred at 390px and 1440px, the sheet's close button is at the inline end, and the arrows mirror. In English nothing moves. `components.json` keeps `rtl: false`, recorded as not assessed (spec §7); this checkpoint doesn't change it. |
-| TCH-01, TCH-03 | §7 | `src/app/globals.css` coarse-pointer rules | **Decision:** the exact TCH-03 selectors. The row is still marked "not yet reviewed", so review it here. **Acceptance on touch:** the label beside a checkbox or radio in a `Field` is at least 44px and toggles the control; every icon button is at least 44px wide; every choice is at least 44px tall. A fine pointer keeps the compact sizes. |
-| BDG-01 | §10 | `ui/badge.tsx` or a composition beside it | **Decisions:** variant or composition; the prop names; the contrast of the error and neutral tones (measure them). **Acceptance:** each tone reads correctly with icons hidden and in greyscale; long labels wrap; the badge isn't focusable; light and dark in every preset. |
-| NTC-01 | §11 | `Notice` in `page-patterns.tsx` | **Decisions:** the prop shape; whether the label changes while pending; focus handling when the action is disabled. **Acceptance:** each state shows its label and receipt; pending and success can't be activated; failed can be retried by the user only; keyboard and screen-reader announcement in every preset. |
+| TCH-01, TCH-03 | §7 | `src/app/globals.css`, inside the existing `@media (pointer: coarse)` block | **Decision P-12, TCH-01:** add `[data-slot="textarea"]` to the existing `min-height: 2.75rem` selector, and add the spec's horizontal-Field label rule verbatim. **Decision P-13, TCH-03:** add `[data-slot="button"][data-size^="icon"] { min-width: var(--control-touch-sm); }`, which matches `icon`, `icon-xs`, `icon-sm` and `icon-lg` through the `data-size` attribute that `ui/button.tsx` sets. Add `[data-slot="select-item"], [data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], label:has(> [data-slot="checkbox"]), label:has(> [data-slot="radio-group-item"]), [data-slot="checkbox"] + [data-slot="label"], [data-slot="radio-group-item"] + [data-slot="label"] { min-height: var(--control-touch-sm); }`. Unibase mostly puts `<Label htmlFor>` beside the control rather than around it (for example `admin-credit-controls.tsx`, `notification-settings.tsx`), so the sibling forms are required. That covers the selectable options and the checkbox or radio labels outside a `Field` (radio groups are used in `appearance-form.tsx`, `admin-credit-controls.tsx`, `admin-user-controls.tsx`, `purchase-simulator.tsx` and `runs/run-start.tsx`). The TCH-03 row's "not yet reviewed" status is settled by the U2 PR approval. **Acceptance on touch:** the label beside a checkbox or radio is at least 44px and toggles the control; every icon button is at least 44px wide; every choice is at least 44px tall. A fine pointer keeps the compact sizes. |
+| BDG-01 | §10 | new `src/components/status-badge.tsx` (a composition outside `ui/`, so the shadcn CLI never overwrites it; `ui/badge.tsx` stays unchanged, like KEEP-01) | Decisions P-14 and P-15, below the table. **Acceptance:** each tone reads correctly with icons hidden and in greyscale; long labels wrap; the badge isn't focusable; light and dark in every preset. |
+| NTC-01 | §11 | `Notice` in `page-patterns.tsx` | Decisions P-16 to P-18, below the table. **Acceptance:** each state shows its label and receipt; pending and success can't be activated by click or keyboard; failed can be retried by the user only; focus never drops to `<body>`; keyboard and screen-reader announcement in every preset. |
 | (copy) | §9 Copy | `ui` catalog keys (`m` plus a 12-hex SHA-256 prefix) in English and Arabic; regenerate `messages/client-sections.json` | Run `node scripts/i18n-client-sections.mjs`, then `npm.cmd run check:i18n`. The Arabic text is a draft until its native review on the U2 PR. The toast's `Dismiss` key ships with U2-S, not here, so it is never unused. |
+
+**Status badge (BDG-01).**
+- **Decision P-14, API:** `StatusBadge({ tone, icon?, children, className? })`, where `tone` is `"neutral"`, `"info"`, `"warning"`, `"success"` or `"error"`.
+  - Each tone has its default Lucide icon from §10: BookOpen, LoaderCircle (not animated), TriangleAlert, CircleCheck, CircleX. `icon` overrides it.
+  - It renders `Badge` with `variant="secondary"` (neutral), `variant="destructive"` (error), or a tone class using the info, warning and success semantic pairs.
+  - It adds `h-auto whitespace-normal [&>svg]:size-3.5!`, so long labels wrap and the icon is 0.875rem despite Badge's `[&>svg]:size-3!`; confirm in the browser check that `cn` lets these override `h-5 whitespace-nowrap`. The icon gets `aria-hidden`.
+- **Decision P-15, contrast:** measure the neutral pair and the error pair (destructive on a 10% or 20% destructive background) in all six preset and theme combinations, with the package contrast method. If the error pair is below 4.5:1, use the error Notice styling instead: `bg-card text-destructive` with a destructive border.
+
+**Notice with an action (NTC-01).**
+- **Decision P-16, props:** `Notice` gains an optional `action?: { state: "available" | "pending" | "success" | "failed"; labels: { available: string; pending: string; success: string }; receipt?: string; onAction: () => void }`. The feature owns the state; the notice never changes it itself, never starts work by appearing, and never retries.
+- **Decision P-17, label:** keep §11's state-specific labels (for example "Checking result"). Unlike `SubmitButton`, a notice action isn't a form submit, and the label plus the receipt tell the user what is happening.
+- **Decision P-18, focus:** in the pending and success states the button uses `aria-disabled="true"` (plus `aria-busy="true"` while pending, as §11 requires) with its activation ignored, instead of the `disabled` attribute. Focus then stays on the button rather than dropping to `<body>`, and the receipt (`role="status"`) announces the change. This deviates from §11's `disabled`; it is recorded in the U5 deviation table.
 
 - **Docs.**
   - DOC-01 §1 rows for the new files, and DOC-01 §3 "Interaction rules".
@@ -204,7 +255,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
 
 ### U2-S. Toast and CSP (security route)
 
-- **Requirements.** Security approval on the PR (PR approval rule).
+- **Requirements.** U2 merged. Security approval on the PR (PR approval rule).
 - **Rows.**
   - TST-01: `sonner` through the shadcn CLI, as `src/components/ui/sonner.tsx`, then **pinned exactly** as `"sonner": "2.0.8"` in `package.json`, because the CLI installs an unpinned range. Add a `src/components/toast.tsx` wrapper with `confirm`, `info`, `error` and `action` helpers, mounted in `src/app/layout.tsx`.
   - TST-02: two `sha256` sources in production `style-src` in `src/proxy.ts`, with the hash constant exported.
@@ -239,7 +290,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
 
 ### U3. Rollout by area
 
-- **Requirements.** U2 merged.
+- **Requirements.** U2-S merged or closed.
 - **Slices,** one PR each, in this order:
   1. Account, Preferences, Profile and Files.
   2. Credits and commerce.
@@ -262,7 +313,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
 
 ### U4. Visible foundation
 
-- **Requirements.** Explicit approval on the PR (PR approval rule), including the dark warning surface. U0 captures exist.
+- **Requirements.** U3 merged. Explicit approval on the PR (PR approval rule), including the dark warning surface. U0 captures exist.
 - **Rows.** All 99 colour rows, TOK-01, TOK-02 and TYPE-01 to TYPE-12, following the package's
   [foundation migration](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/adoption/implementation-specs.md#foundation-migration).
   Re-read each Unibase file before editing it.
@@ -275,7 +326,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
   4. `src/styles/presets/glass.css`: remove each root property the generated Glass selectors also declare. Use the package fixture `scripts/design-system/lib/adoption-fixture.mjs` as the exact list. Keep every descendant rule, the `@supports` fallback and the reduced-transparency rule.
   5. Delete `src/styles/presets/classic.css` and `soft-blue.css`.
   6. In `src/components/page-patterns.tsx`, change the EmptyState `CardTitle` to `text-card-title! leading-(--text-card-title--line-height)! font-(number:--text-card-title--font-weight)!`. That's 20px/26px, weight 600.
-  7. If U2-S landed first, replace its literal 6000 ms and font fallback with the tokens.
+  7. Replace U2-S's literal 6000 ms and font fallback with the tokens, and update `tests/toast.test.ts` to assert the tokens instead of the fallbacks.
 - **Docs made wrong by this change, fixed in the same PR.**
   - `docs/design-system.md:10-13` describe the old preset palettes; update them to the adopted ones.
   - `docs/design-system.md:39` says "Keep brand values in preset files". Brand values now come from the vendored foundation.
@@ -294,7 +345,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - every non-Classic ID in `designStyleSchema` has an `html[data-style="…"]` block, and `:root` is the Classic fallback;
   - `--toast-confirmation-duration` is `6000ms`;
   - each type-role key in the vendored `tailwind-theme.css` is variable-backed with its package value as fallback, and letter-spacing values use `em`.
-- **Optional cross-check before merge.** Run the package's `scripts/design-system/verify-unibase-browser.mjs` with `UNIBASE_ADOPTION_SOURCE` pointing at this branch. That adds the 9 compiled-Tailwind fixture checks; see the verification record.
+- **Required cross-check before merge.** Run the package's `scripts/design-system/verify-unibase-browser.mjs` with `UNIBASE_ADOPTION_SOURCE` pointing at this branch. That adds the 9 compiled-Tailwind fixture checks; see the verification record.
 - **Browser checks.**
   - The U0 matrix again. Differences must be exactly the approved colour rows.
   - Preset and light/dark/system persistence across navigation and reload.
@@ -310,7 +361,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
 
 ### U5. Verification, agent guidance and close of the package adoption
 
-- **Requirements.** U1 to U4 merged, and U2-S merged or explicitly declined.
+- **Requirements.** U4 merged, and U2-S merged or closed after a rejected security review.
 - **AGT-01** (explicit approval on the PR), from the agent-guidance proposal:
   - one bullet under "Decision-point rules" in `AGENTS.md`;
   - two additions to "UI and browser verification" in `.agents/repository-adapter.md`;
@@ -342,39 +393,44 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - screen-reader live updates;
   - a 200% zoom review;
   - visual parity sign-off.
+- **Continuation.** Explicit approval on the PR for AGT-01 and SKL-01; then automatic to U6.
 
 ### U6. Derived-project readiness and template release
 
-This checkpoint makes Unibase ready for any derived project to build its UI on. Its decisions use the recommended defaults approved with the plan.
+This checkpoint makes Unibase ready for any derived project to build its UI on. Its decisions (P-19 to P-29) are approved with the plan.
 
-- **Theme seam (DEF-03, UG-018).** Today a derived project can only pick one of the three presets (`defaultStyle` in `src/lib/project.ts`, `designStyleSchema` in `src/lib/appearance.ts`). Package themes target `html[data-project="<id>"]`, and the package reference removes `data-style` while a project theme is shown (Extending Unibase; foundation migration). Decide:
-  1. **Who sets `data-project` on `<html>`.** Recommended default: the server, in `src/app/layout.tsx`, from a new optional `theme: true` flag in `project.config.json` (validated in `src/lib/project.ts`). With the flag off, which is Unibase's default, the attribute is absent and nothing changes.
-  2. **Whether the presets stay selectable under a project theme.** Recommended default: the project theme **replaces** the preset choice, matching the package reference, which removes `data-style` while a project theme is shown.
+- **Requirements.** U5 merged.
+- **Continuation.** The seam-and-guide PR merges with explicit approval for its agent guidance. The release PR and the tag follow only after the release gate.
+
+- **Theme seam (DEF-03, UG-018).** Today a derived project can only pick one of the three presets (`defaultStyle` in `src/lib/project.ts`, `designStyleSchema` in `src/lib/appearance.ts`). Package themes target `html[data-project="<id>"]`, and the package reference removes `data-style` while a project theme is shown (Extending Unibase; foundation migration). Decisions:
+  1. **Decision P-19: who sets `data-project` on `<html>`:** The server, in `src/app/layout.tsx`, from a new optional `theme: true` flag in `project.config.json` (validated in `src/lib/project.ts`). With the flag off, which is Unibase's default, the attribute is absent and nothing changes.
+  2. **Decision P-20: presets under a project theme:** The project theme **replaces** the preset choice, matching the package reference, which removes `data-style` while a project theme is shown.
      - The style selector is hidden when `theme: true`.
      - The light/dark/system preference stays.
      - The style cookie and saved profile style are kept but ignored, so turning the flag off restores them.
-  3. **Whether it's a new style ID.** Recommended default: no. A project theme is a project scope, not a `designStyleSchema` value, so the `build-ui` rule on new style IDs doesn't apply. Record this in `docs/design-system.md`.
-  4. **The file.** Recommended default: `src/project/theme.css`, empty in Unibase and imported after the foundation and Glass CSS in `globals.css`. The project's selectors are `html[data-project="<slug>"]` and its `.dark` form, as in Extending Unibase.
+  3. **Decision P-21: not a new style ID.** A project theme is a project scope, not a `designStyleSchema` value, so the `build-ui` rule on new style IDs doesn't apply. Record this in `docs/design-system.md`.
+  4. **Decision P-22: the file.** `src/project/theme.css`, comments only in Unibase (it renders nothing) and imported after the foundation and Glass CSS in `globals.css`. The project's selectors are `html[data-project="<slug>"]` and its `.dark` form, as in Extending Unibase.
 
   Then build it:
   - Add the `theme` flag to `projectSchema` in `src/lib/project.ts` and to `project.config.json` (`false`).
   - Set `data-project` in `src/app/layout.tsx` when the flag is on. Import `src/project/theme.css` in `src/app/globals.css` after the foundation.
-  - Expose the flag and slug to client components through the allowlisted public configuration: add `projectTheme` and `projectSlug` to `publicConfigSchema` in `src/lib/config/public.ts`, filled in `src/lib/config/schema.ts`, and pass them through the `StyleProvider` context. `data-project` takes the value of the project slug.
+  - Pass the flag and slug to client components as props, not through settings. `src/app/layout.tsx` and `src/app/global-error.tsx` read `project.theme` and `project.slug` from `src/lib/project.ts`, which is already client-safe because `appearance.ts` imports it, and pass them to `StyleProvider`. `data-project` takes the value of the slug. `src/lib/config/public.ts`, `src/lib/config/schema.ts` and the persisted base settings are not changed, so no stored settings row can override the project file.
   - Set `data-project` on the `<html>` in `src/app/global-error.tsx` as well, so the error page uses the project theme.
   - **With the flag on, omit `data-style`**, in `src/app/layout.tsx` (server) and `src/components/style-provider.tsx` (client). That way no Glass descendant rule or page-cover watcher applies under a project theme. With the flag off, nothing changes.
-  - **Style ID lists (UG-018).** Recommended default: derive the lists in `src/lib/project.ts` and `src/components/runs/admin-editors.tsx` from `designStyleSchema`. Keep the copies in `scripts/deploy/config.py` and `deploy/contract.json`, with a comment naming the source, because they are deployment contracts outside the TypeScript build. While a project theme is on, the admin "Default style" editor is disabled with an explanation.
+  - **Style ID lists (UG-018). Decision P-24:** move `designStyleSchema` into a new dependency-free `src/lib/design-styles.ts` (a direct import from `appearance.ts` into `project.ts` would create an import cycle, because `appearance.ts` already imports `project.ts`). `src/lib/appearance.ts`, `src/lib/project.ts` and `src/components/runs/admin-editors.tsx` then import the list from there. Keep the copies in `scripts/deploy/config.py` and `deploy/contract.json`, with a comment naming the source, because they are deployment contracts outside the TypeScript build. While a project theme is on, the admin "Default style" editor is disabled with an explanation.
   - Hide the style selector in `src/components/style-preference.tsx`, the preferences page and `appearance-form.tsx` when a project theme is active.
   - Add `src/project/theme.css` and `public/fonts/` to `projectOwned` in `scripts/template-update.mjs`, so template updates keep the project's versions. The project initializer (`scripts/project-initializer.ts`) writes `theme.css` with the commented starter skeleton from the derived-project design guide (see below), and leaves `public/fonts/` empty.
   - Tests:
     - `tests/template-update.test.ts` and `tests/initializer.test.ts` for project ownership;
     - `tests/config.test.ts` for the flag;
+    - `tests/design-system-extension.test.ts` for the guide, the skeleton and the fixture staying consistent;
     - `tests/integration/auth.test.mjs` for `data-project` rendered by the server, no `data-style` with the flag on, and the selector hidden.
   - Document it in `docs/architecture.md#project-extensions`, `docs/template.md`, and the "Switching and persistence" and "Extension point" sections of `docs/design-system.md`.
   - Document what a project's `theme.css` may contain, following Extending Unibase: type-role values through the `-size`, `-leading`, `-weight` and `-tracking` variables (decision 5), rules that target Unibase slots such as `[data-slot=card]` rather than generic element selectors, and project-prefixed variables for anything Unibase doesn't consume.
 - **Type-role overrides.** Verify the decision 5 package change end to end: with the fixture project theme setting `--text-hero-size` and `--text-card-title-weight`, the computed styles change; without it, U4's values hold.
-- **Fonts (DEF-02).** Unibase keeps system fonts. Recommended default for a derived project: `@font-face` rules in the project-owned `src/project/theme.css`, with the font files under the project-owned `public/fonts/`. They are served from `'self'`, so the CSP doesn't change, and template-owned files such as `layout.tsx` are never edited. The theme sets `--type-heading` and `--type-body` to the new families. (The alternative, a `src/project/fonts.ts` seam using `next/font/local`, is recorded as rejected: it would need a hook in the template-owned layout.)
+- **Fonts (DEF-02). Decision P-23.** Unibase keeps system fonts. For a derived project: `@font-face` rules in the project-owned `src/project/theme.css`, with the font files under the project-owned `public/fonts/`. They are served from `'self'`, so the CSP doesn't change, and template-owned files such as `layout.tsx` are never edited. The theme sets `--type-heading` and `--type-body` to the new families. (The alternative, a `src/project/fonts.ts` seam using `next/font/local`, is recorded as rejected: it would need a hook in the template-owned layout.)
   - Fonts from third-party hosts are blocked by `font-src 'self'`. The upgrade notes tell projects to self-host.
-  - Add a fixture theme with an `@font-face` and both hooks, and assert in the browser checks that the computed font families change and no CSP violation occurs. Fixture themes (fonts and type roles) live under `tests/fixtures/project-theme/` and are applied only by the checks; the shipped `src/project/theme.css` stays empty.
+  - Add a fixture theme with an `@font-face` and both hooks, and assert in the browser checks that the computed font families change and no CSP violation occurs. Fixture themes (fonts and type roles) live under `tests/fixtures/project-theme/` and are applied only by the checks; the shipped `src/project/theme.css` keeps only its commented skeleton.
 - **Project-specific tokens.** Following Extending Unibase, a project theme overrides only existing Unibase tokens, and puts any new token under its own `x-<id>` group, which its own code consumes. Unibase adds no consumers for project-specific tokens in this issue. If a derived project later needs a new **shared** token (for example a separate card or dialog radius), it is proposed to the design package as a new delta row and adopted through the normal route. Record this rule in `docs/design-system.md` ("Extension point") and in the upgrade notes.
 - **Derived-project design guide** (new `docs/design-system-extension.md`). This is the one place a derived project's developers and agents learn how to define their own theme and extend Unibase's design. It is Unibase-owned and generic: it names no project, and template updates refresh it. Required contents:
   1. **Model.** Unibase owns the foundation, the shared components and the patterns; a project owns its theme, its additions and its product copy. Link the design package's [Extending Unibase](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/extending.md) as the design-side contract.
@@ -415,11 +471,11 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
   - Add one pointer to the guide in the adapter's "UI and browser verification" section.
   - Both are `configuration` changes and need explicit approval on the U6 PR. If SKL-01 was rejected, the same text goes into the guide's agent section.
 - **Starter skeleton.** The initializer's `src/project/theme.css` contains the guide's minimal example as comments only, so it renders nothing until edited. It names the slug, the selectors, the overridable tokens and a link to the guide.
-- **DEF-04, Lucide 1.75.0 (optional).** A separate commit if reviewers want it, with icon rendering checked in the showcase.
-- **Hard-coded colours.** Align these with the adopted Classic values, and document them as per-project values (see `docs/template.md`, "First steps"):
+- **DEF-04, Lucide 1.75.0. Decision P-28:** bump `lucide-react` from 1.51.0 to exactly `1.75.0` (the package-verified candidate) in its own U6 commit, so it can be reverted alone. Check icon rendering in the showcase and on the U0 pages; any icon that changes shape is listed in the upgrade notes.
+- **Hard-coded colours (P-26).** Replace the old Classic primary `#98492f` with the adopted `#c2410c` (COL-classic-light-primary). Keep `#fff9f3` and `#30221d`, because no colour row changes the Classic background or foreground. Document them as per-project values (see `docs/template.md`, "First steps"). The files:
   - `themeColor` in `src/app/layout.tsx`;
   - `src/app/manifest.ts`;
-  - `public/offline.html`;
+  - `scripts/i18n-assets.mjs`, which generates `public/offline.html` (regenerate it; never edit the HTML by hand);
   - `scripts/android-generate.ts` (TWA theme, navigation and background);
   - `scripts/generate-icons.mjs` (icon background);
   - `src/app/icon.svg` (fill and background);
@@ -434,7 +490,7 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
     - self-hosted fonts and the CSP;
     - the toast CSP, if adopted;
     - the new `AGENTS.md` bullet, `build-ui` skill, `skills-lock.json` and `check-skills` changes merging into project guidance;
-    - `manifest.ts` and `offline.html` being project-edited files.
+    - `manifest.ts` and the offline-page colours in `scripts/i18n-assets.mjs` being values projects set themselves.
   - Run `npm.cmd run check:template` and `test:initialized-projects`.
   - Merge, then tag `template-v<version>`.
 - **Upgrade rehearsal.** `test:initialized-projects` builds new projects from the current source and never runs an upgrade, so rehearse the real one. In a disposable directory, create a project from `template-v0.4.0`, then run `npm run template:update -- <version>`. Record the conflicts and confirm the upgrade notes resolve them.
@@ -482,7 +538,7 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 | Integration | `test:integration`: server `data-style` per cookie, `/design-system` 404 in production, `data-project` with the selector hidden | U3, U4, U5, U6 |
 | Template | `test:initialized-projects`, plus the upgrade rehearsal from a `template-v0.4.0` project | U6 |
 | Browser (headless, scripted) | the U0 matrix; per-spec acceptance; RTL; keyboard; CSP; hydration | U0, U2, U2-S, U3, U4, U5 |
-| Browser (optional) | the package's adoption fixture against this branch | U4 |
+| Browser | the package's adoption fixture (9 compiled-Tailwind checks) against this branch | U4 |
 | Contrast | recompute changed values; BDG-01 error and neutral tones | U2, U4 |
 | Human | Arabic native review (U2 PR); physical devices, microphone, screen reader, 200% zoom, visual parity | U2, U5 |
 
@@ -492,3 +548,4 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 - 2026-11-21: scope narrowed to Unibase only; Unitale's own adoption and UI work is the next, separate issue. Third and fourth audits closed: project-theme `data-style`, public config, fonts, test method, SKL-01 order, style-list deduplication, gate timing (type roles and letter-spacing at G12), and project tokens kept under `x-<id>`. The fourth audit's remaining fixes are applied in this revision. Gates G1 to G12 open; no checkpoint started.
 - 2026-11-21: added the derived-project design guide (`docs/design-system-extension.md`), its agent guidance, the starter skeleton and a docs-consistency test to U6.
 - 2026-11-21: human gates simplified to a start gate, a release gate and one PR approval rule. Earlier entries name the former gates G1 to G12.
+- 2026-11-21: decisions made for every open item (decision register P-01 to P-30); readiness review fixes applied (sibling label selectors, project flag via props, `design-styles.ts` against an import cycle, the offline-page generator and colour mapping, fixed order, PR counts, requirements and continuation rules).
