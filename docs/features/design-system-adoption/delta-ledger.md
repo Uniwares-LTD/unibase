@@ -12,7 +12,8 @@ here, assign any new row a checkpoint, and review the difference on #53 before c
 
 | Checkpoint | Rows |
 | --- | --- |
-| Consuming feature (Unitale UI issue) | 2 |
+| Consuming feature (not this issue) | 2 |
+| Derived project (not this issue) | 1 |
 | U1 + with each row | 1 |
 | U1 | 1 |
 | U2, rolled out at U3 | 2 |
@@ -26,7 +27,6 @@ here, assign any new row a checkpoint, and review the difference on #53 before c
 | U5 (configuration approval; moved from U1) | 2 |
 | U6 (decision gate) | 2 |
 | U6 (optional, decision gate) | 1 |
-| Unitale UI issue | 1 |
 
 ## Foundations, compositions, fixes, documentation and deferrals
 
@@ -70,12 +70,12 @@ here, assign any new row a checkpoint, and review the difference on #53 before c
 | KEEP-03 | Notice, EmptyState, PageHeader | `src/components/page-patterns.tsx` | unchanged, except the EmptyState title, which takes the `card-title` role in the U4 [consumer mapping](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/adoption/implementation-specs.md#foundation-migration) | retain | none | with normal review | PLAN §4 | [surfaces](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/components/surfaces-navigation.md) | U4 check, U5 confirm |
 | KEEP-04 | Appearance persistence | `src/lib/appearance.ts`, providers | unchanged | retain | none | with normal review | PLAN §4 | [colors](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/foundations/colors.md) | U4 check, U5 confirm |
 | KEEP-05 | Existing text consumers | feature components | unchanged by the package; the named consumer migration is reviewed at U4 | retain | none | with normal review | D-05 | [type roles](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/adoption/implementation-specs.md#1-type-roles) | U4 check, U5 confirm |
-| DEF-01 | Unitale reference preset | — | not proposed for Unibase | deferred | none | with normal review | D-07 | [appearance](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/components/appearance.md) | Unitale UI issue |
+| DEF-01 | Unitale reference preset | — | not proposed for Unibase | deferred | none | with normal review | D-07 | [appearance](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/components/appearance.md) | Derived project (not this issue) |
 | DEF-02 | Brand fonts | — | not proposed; `font-src 'self'` would need self-hosting | deferred | none | with normal review | D-07 | [typography](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/foundations/typography.md) | U6 (decision gate) |
 | DEF-03 | Downstream style seam | `src/lib/appearance.ts`, `src/lib/project.ts` | not designed | deferred | none | with normal review | D-07 | [UG-018](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/adoption/known-gaps.md#ug-018) | U6 (decision gate) |
 | DEF-04 | Lucide 1.75.0 | `package.json` | optional separate bump | deferred | none | with normal review | D-12 | [icons](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/foundations/icons.md) | U6 (optional, decision gate) |
-| DEF-05 | Service-dependent recovery | feature code | stays with the consuming feature | deferred | none | with normal review | PLAN §4 | [loading](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/patterns/loading.md) | Consuming feature (Unitale UI issue) |
-| DEF-06 | Owned history | feature code | stays with the consuming feature | deferred | none | with normal review | PLAN §4 | [results](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/patterns/results-access.md) | Consuming feature (Unitale UI issue) |
+| DEF-05 | Service-dependent recovery | feature code | stays with the consuming feature | deferred | none | with normal review | PLAN §4 | [loading](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/patterns/loading.md) | Consuming feature (not this issue) |
+| DEF-06 | Owned history | feature code | stays with the consuming feature | deferred | none | with normal review | PLAN §4 | [results](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/patterns/results-access.md) | Consuming feature (not this issue) |
 
 ## Colour rows
 

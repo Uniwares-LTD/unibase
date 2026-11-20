@@ -4,8 +4,9 @@ Issue: [unibase#53](https://github.com/Uniwares-LTD/unibase/issues/53). This pla
 **whole** Unibase adoption of the design handoff package, not only the visible foundation.
 Every delta row is assigned to a checkpoint in the [delta ledger](delta-ledger.md) (143 rows,
 none unassigned), and every open question the package leaves "to confirm at adoption" is
-assigned to a checkpoint below. When this plan is done, Unibase is ready for the next issue,
-the Unitale UI implementation, which receives these changes through a template release.
+assigned to a checkpoint below. When this plan is done, Unibase has adopted the package and is released as a template that
+derived projects can build on. Derived-project adoption and UI work (the next step, the Unitale
+UI implementation) is a separate issue and is not part of this plan.
 
 Plan state: **proposed**. Accepting the plan authorizes nothing by itself. Each checkpoint
 names its own approval.
@@ -24,7 +25,7 @@ names its own approval.
 - **Accepted revision.** Implementation uses the revision a human records in the package's
   acceptance record. If it differs from P, regenerate the ledger and review the difference before U1.
 - **Unibase base.** `main` at `37aac48` (the handoff targets `a7eda79`; `37aac48` adds only the
-  merge-commit guidance). Handbook baseline `c1b6166`. Template `0.4.0`; Unitale tracks `0.4.0`.
+  merge-commit guidance). Handbook baseline `c1b6166`. Template `0.4.0`.
 - **Package decisions carried in.**
   - D-01: vivid preset colours, the status-colour revision, 12 type roles and field density.
   - D-02 and D-08: Sonner as the toast, with a hash-based CSP change.
@@ -37,41 +38,41 @@ names its own approval.
   - D-11: Field from the shadcn registry `field` item.
   - D-12: Lucide stays separate and optional.
   - D-13: DTCG tokens are the source.
-- **D-07, partly superseded.** D-07 keeps Unitale brand adoption out of Unibase, and that still holds: the Unitale theme is DEF-01, in the Unitale repository. This plan adds U6, which gives derived projects a **seam** for their own theme and fonts. Without it, the Unitale UI issue can't start. The seam is generic and names no project.
+- **D-07 still holds.** No project's brand is adopted into Unibase (DEF-01). This plan adds U6, which gives any derived project a generic **seam** for its own theme and fonts; the seam names no project.
 - **Decided in this plan.**
   1. Copy the two generated stylesheets into `src/styles/design-system/`, unedited, with the revision recorded in each.
   2. Delete `classic.css` and `soft-blue.css` at U4.
   3. Every checkpoint is its own PR, merged with a merge commit, and can be reverted on its own.
   4. **Deviation:** AGT-01 and SKL-01 move from U1 to U5. Their text describes `Field`, `SubmitButton`, the toast and the leave guard, which only exist after U2, U2-S and U4. Recorded in the U5 deviation table.
-  5. **Type roles must be overridable by a derived project.** As generated today, `tailwind-theme.css` writes literal values into an `@theme inline` block, so a project theme can't change them. The Unitale theme changes several of them, under the names `--text-<role>-size`, `-leading`, `-weight` and `-tracking`, and calls Unibase's `field` role `input`. Recommended default, a package change before U4 (gate G12):
+  5. **Type roles must be overridable by a derived project.** As generated today, `tailwind-theme.css` writes literal values into an `@theme inline` block, so a project theme can't change them, and Extending Unibase lets a project theme set role sizes and weights. Recommended default, a package change before U4 (gate G12):
      - The package generator emits each role key as a variable with the current value as fallback, for example `--text-hero: var(--text-hero-size, 2.5rem)` and `--text-hero--font-weight: var(--text-hero-weight, 600)`.
-     - The Unitale generator maps its `input` role to Unibase's `field` key.
      - Unibase renders identically without a project theme; a project overrides the `-size`, `-leading`, `-weight` and `-tracking` variables in its theme.
      - U4 vendors that revision.
-  6. `lg` field size (FLD-02) and the leave guard (LVG-01) are applied to existing screens only where allowed: `lg` needs explicit `visible` approval per screen, and LVG-01 applies only where a feature has real saving or offers Discard alone (spec §6).
-- **Out of Unibase entirely**, with the owner named:
-  - DEF-01 (Unitale theme): the Unitale UI issue.
-  - DEF-05 (service-dependent recovery) and DEF-06 (owned history), UG-004 (per-feature submission and limits) and UG-008 (revisions, locks, stale approvals): the consuming feature in the Unitale UI issue.
-  - UG-009 (commercial policy), UG-010 (prototype scope) and UG-013 (original brief provenance): Unitale product owners.
-  - UG-001's remaining application font-consumer mapping: the U6 font path, then the Unitale UI issue.
+     - The letter-spacing unit changes in the same package change (U6 decision): the generator emits `0rem` today, and the spec and ledger say `0em`.
+  6. **Test method.** Unibase's `npm test` runs `node:test` with no DOM, and this plan adds no test dependency. Pure logic is extracted and tested with `node:test` and fake timers: the toast timer and replacement, the leave-guard outcome table, Field ID derivation and the Notice action states. DOM behaviour (focus, `aria-describedby`, hover pause, focus return) is asserted in the scripted Playwright browser checks and recorded as evidence. Adding jsdom or Testing Library would be a separate dependency decision.
+  7. `lg` field size (FLD-02) and the leave guard (LVG-01) are applied to existing screens only where allowed: `lg` needs explicit `visible` approval per screen, and LVG-01 applies only where a feature has real saving or offers Discard alone (spec §6).
+- **Not in this issue.** These belong to derived projects or to the features that consume the helpers, and are handled outside Unibase:
+  - DEF-01 (a project's own theme), and the remaining application font-consumer mapping from UG-001: each derived project.
+  - DEF-05 (service-dependent recovery), DEF-06 (owned history), UG-004 (per-feature submission and limits) and UG-008 (revisions, locks, stale approvals): the consuming feature.
+  - UG-009 (commercial policy), UG-010 (prototype scope) and UG-013 (original brief provenance): product owners.
 
 **Known-gap mapping.** Every package gap, UG-001 to UG-019, has a place:
 
 | Gap | Where it's handled |
 | --- | --- |
-| UG-001 font hooks | TOK-01 at U4; the font path at U6; consumer mapping in the Unitale UI issue |
+| UG-001 font hooks | TOK-01 at U4; the font path at U6; consumer mapping by each derived project |
 | UG-002 retained values and geometry | KEEP-02, checked at U4 and U5 |
 | UG-003 Lucide candidate | DEF-04, optional at U6 |
-| UG-004 per-feature submission and limits | consuming feature (Unitale UI issue) |
-| UG-005 simulated recovery | DEF-05, consuming feature |
+| UG-004 per-feature submission and limits | consuming feature (not this issue) |
+| UG-005 simulated recovery | DEF-05, consuming feature (not this issue) |
 | UG-006 confirmation duration | TOK-02 at U4; TST-01/02 at U2-S |
 | UG-007 leave guard | LVG-01 at U2 and U3 |
-| UG-008 revisions and approvals | consuming feature (Unitale UI issue) |
-| UG-009 commercial policy | Unitale product owners |
-| UG-010 prototype scope | Unitale product owners |
-| UG-011 creator UI and history | DEF-06, consuming feature |
+| UG-008 revisions and approvals | consuming feature (not this issue) |
+| UG-009 commercial policy | product owners (not this issue) |
+| UG-010 prototype scope | product owners (not this issue) |
+| UG-011 creator UI and history | DEF-06, consuming feature (not this issue) |
 | UG-012 evidence limits | U5 evidence classification and human checks |
-| UG-013 brief provenance | Unitale product owners |
+| UG-013 brief provenance | product owners (not this issue) |
 | UG-014 RTL fixes | RTL-01 to RTL-04 at U2 |
 | UG-015 touch sizes | TCH-02 at U1; TCH-01 and TCH-03 at U2 |
 | UG-016 toast CSP | G5 and U2-S |
@@ -93,7 +94,7 @@ names its own approval.
 | G6. Dark warning surface `#431407` decided | U4 | Unibase reviewers |
 | G7. Explicit approval of the U4 foundation (99 `visible` colour rows plus type roles) | U4 | Unibase reviewers |
 | G8. Native review of the Arabic strings in spec §9 | merge of U2 | native speaker |
-| G9. The U6 decisions: theme seam shape and `data-project`, type-role overrides, fonts, unconsumed project tokens, letter-spacing unit | U6 | Unibase maintainers with the Unitale owner |
+| G9. The U6 decisions: theme seam shape and `data-project`, type-role overrides, fonts, unconsumed project tokens, letter-spacing unit | U6 | Unibase maintainers |
 | G10. Template release and tag authorization | U6 release | repository owner |
 | G11. Per-screen approval for applying `lg` to existing forms, if wanted | that part of U3 | Unibase reviewers |
 | G12. The package change that makes type roles overridable (decision 5) is merged in `unitale-design` and becomes the accepted revision | U4 | package owner, then G1 reviewer |
@@ -191,14 +192,16 @@ until U3. Spec numbers refer to the package's implementation specifications.
 - **Docs.**
   - DOC-01 §1 rows for the new files, and DOC-01 §3 "Interaction rules".
   - DOC-01 has no text for BDG-01, NTC-01, TCH-02 and TCH-03. Write local `docs/design-system.md` sections for them: purpose, props, states and touch sizes, with a link to the showcase.
-- **Tests.**
-  - Behaviour tests for:
-    - Field ID wiring and the `invalid` handler;
+- **Tests** (method: decision 6).
+  - Logic tests with `node:test` for:
+    - Field ID derivation and the `invalid` handler's state;
     - pending single-submit;
     - leave-guard outcomes;
     - media fallback states;
     - the Notice action state machine.
+  - DOM behaviour (focus moves, `aria-describedby`, keyboard) in the browser checks below.
   - `check:i18n`.
+- **Merge order.** U2 and U2-S both regenerate `messages/client-sections.json`; merge U2 first and regenerate the file in U2-S after rebasing on it.
 - **Browser checks.** Every state in the showcase at 390px and 1440px, English and Arabic, light and dark, keyboard only. No hydration or CSP errors.
 - **Continuation.** Automatic. G8 before merge.
 
@@ -220,7 +223,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
 - **Docs.** DOC-01 §4 local test loop, the toast steps.
 - **Copy.** The `Dismiss` key from spec §9, in English and Arabic.
 - **Acceptance (§4).**
-  - In a production build (`npm.cmd run build`, then `npm start`), a toast causes no CSP violation and is styled.
+  - In a production build (`npm.cmd run build`, then `npm.cmd start`), a toast causes no CSP violation and is styled.
   - A confirmation stays while hovered or focused, and goes 6000 ms after both end.
   - An error toast stays until dismissed and is mirrored in a `Notice`.
   - In Arabic, toasts appear bottom-left.
@@ -230,7 +233,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - asserts `package.json` pins `"sonner": "2.0.8"` without a range;
   - asserts the sources appear in production `style-src` only.
 
-  And `tests/toast.test.ts`, a behaviour test of the wrapper:
+  And `tests/toast.test.ts`, a logic test of the wrapper's timer and replacement (decision 6); focus return and hover are asserted in the browser checks:
   - a confirmation pauses while hovered or focused, and restarts the full duration after both end;
   - a new confirmation replaces the previous one through the shared `confirmation` id;
   - an error toast persists until dismissed;
@@ -256,14 +259,14 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - FLD-02 `lg` only with G11 approval for that screen.
 - **Acceptance per slice.**
   - Invalid submit, retained values, pending state and failure behave as in U2.
-  - Screens without an approved change are unchanged against U0.
+  - Screens without an approved change are unchanged against the latest captures: U0, or U4's if U4 ran first.
   - `npm.cmd run test:integration` passes.
 - **Boundaries.** No new helpers. A missing helper state is a U2 fix, not a local workaround.
 - **Continuation.** Automatic slice by slice.
 
 ### U4. Visible foundation
 
-- **Requirements.** G6 and G7. U0 captures exist.
+- **Requirements.** G6, G7 and G12. U0 captures exist.
 - **Rows.** All 99 colour rows, TOK-01, TOK-02 and TYPE-01 to TYPE-12, following the package's
   [foundation migration](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/adoption/implementation-specs.md#foundation-migration).
   Re-read each Unibase file before editing it.
@@ -280,7 +283,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
 - **Docs made wrong by this change, fixed in the same PR.**
   - `docs/design-system.md:10-13` describe the old preset palettes; update them to the adopted ones.
   - `docs/design-system.md:39` says "Keep brand values in preset files". Brand values now come from the vendored foundation.
-  - `docs/design-system.md:88-90`, "To add a future preset… import it after Classic": rewrite it for the vendored foundation, and point to the U6 seam for derived projects.
+  - `docs/design-system.md:88-90`, "To add a future preset… import it after Classic": rewrite it for the vendored foundation. The derived-project part is added at U6, when the seam exists.
   - `docs/architecture.md:31-32` names the three preset files and says `tokens.css` owns typography.
   - DOC-01 §1 table rows for the vendored files, and DOC-01 §2 "Typography roles".
   - Document that the shadcn CLI writes into `globals.css`, and that foundation values belong to the vendored files.
@@ -307,7 +310,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - A temporary `text-body` probe computes 14px / 22.4px / 400. Remove it afterwards.
 - **Contrast.** Recompute it for any adopted value that differs from the package.
 - **Rollback.** Revert the single U4 commit.
-- **Continuation.** G6 and G7.
+- **Continuation.** G6, G7 and G12.
 
 ### U5. Verification, agent guidance and close of the package adoption
 
@@ -318,12 +321,14 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - one change to the "UI, locale or navigation" row in `docs/source-map.md`.
   - If U2-S was declined, drop the toast references.
 - **SKL-01** (after G4):
-  - Add `.agents/skills/build-ui/SKILL.md` from the package, and `.claude/skills/build-ui/SKILL.md` as the thin wrapper template in proposal §4.
-  - Add `"build-ui"` to the `names` array in `scripts/check-skills.mjs` (proposal §4 step 3); without it, the check fails.
-  - Run `node scripts/check-skills.mjs --write`, keeping `build-ui` out of `sharedSkills`.
-  - Run `npm.cmd run handbook:sync` and `handbook:entrypoints`.
+  - In this order (a deviation from proposal §4, because `handbook:sync` generates the `.claude` wrapper itself and would overwrite a hand-written one):
+    1. Add the canonical `.agents/skills/build-ui/SKILL.md` from the package.
+    2. Add `"build-ui"` to the `names` array in `scripts/check-skills.mjs`; without it, the check fails.
+    3. Run `npm.cmd run handbook:sync`, which generates `.claude/skills/build-ui/SKILL.md`.
+    4. Run `node scripts/check-skills.mjs --write`, keeping `build-ui` out of `sharedSkills`.
+    5. Run `npm.cmd run check:skills` and `handbook:entrypoints`.
   - Refresh `skills-lock.json` and the integrity hashes after review, recording `build-ui` as a local skill, not under the shared Handbook source.
-  - The skill's component table lists every helper adopted here: Field, field size, SubmitButton, leave guard, media fallback, status badge, actionable Notice, toast (if adopted), touch tokens and the U6 theme seam.
+  - The skill's component table lists every helper adopted here: Field, field size, SubmitButton, leave guard, media fallback, status badge, actionable Notice, toast (if adopted) and touch tokens. The theme seam is added to the skill at U6.
   - If SKL-01 is rejected and AGT-01 approved, keep the same text as a document (proposal §4 fallback).
 - **Work.**
   - The complete local test loop from `docs/design-system.md`, including the steps DOC-01 §4 adds.
@@ -344,7 +349,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
 
 ### U6. Derived-project readiness and template release
 
-This checkpoint makes Unibase "ready and done" for the Unitale UI issue. Decisions (G9) come first.
+This checkpoint makes Unibase ready for any derived project to build its UI on. Decisions (G9) come first.
 
 - **Theme seam (DEF-03, UG-018).** Today a derived project can only pick one of the three presets (`defaultStyle` in `src/lib/project.ts`, `designStyleSchema` in `src/lib/appearance.ts`). Package themes target `html[data-project="<id>"]`, and the package reference removes `data-style` while a project theme is shown (Extending Unibase; foundation migration). Decide:
   1. **Who sets `data-project` on `<html>`.** Recommended default: the server, in `src/app/layout.tsx`, from a new optional `theme: true` flag in `project.config.json` (validated in `src/lib/project.ts`). With the flag off, which is Unibase's default, the attribute is absent and nothing changes.
@@ -358,30 +363,29 @@ This checkpoint makes Unibase "ready and done" for the Unitale UI issue. Decisio
   Then build it:
   - Add the `theme` flag to `projectSchema` in `src/lib/project.ts` and to `project.config.json` (`false`).
   - Set `data-project` in `src/app/layout.tsx` when the flag is on. Import `src/project/theme.css` in `src/app/globals.css` after the foundation.
+  - Expose the flag and slug to client components through the allowlisted public configuration: add `projectTheme` and `projectSlug` to `publicConfigSchema` in `src/lib/config/public.ts`, filled in `src/lib/config/schema.ts`, and pass them through the `StyleProvider` context. `data-project` takes the value of the project slug.
   - Set `data-project` on the `<html>` in `src/app/global-error.tsx` as well, so the error page uses the project theme.
+  - **With the flag on, omit `data-style`**, in `src/app/layout.tsx` (server) and `src/components/style-provider.tsx` (client). That way no Glass descendant rule or page-cover watcher applies under a project theme. With the flag off, nothing changes.
+  - **Style ID lists (UG-018).** Recommended default: derive the lists in `src/lib/project.ts` and `src/components/runs/admin-editors.tsx` from `designStyleSchema`. Keep the copies in `scripts/deploy/config.py` and `deploy/contract.json`, with a comment naming the source, because they are deployment contracts outside the TypeScript build. While a project theme is on, the admin "Default style" editor is disabled with an explanation.
   - Hide the style selector in `src/components/style-preference.tsx`, the preferences page and `appearance-form.tsx` when a project theme is active.
-  - Add `src/project/theme.css` to `projectOwned` in `scripts/template-update.mjs`, and to the project initializer (`scripts/project-initializer.ts`), so template updates keep the project's version.
+  - Add `src/project/theme.css` and `public/fonts/` to `projectOwned` in `scripts/template-update.mjs`, so template updates keep the project's versions. The project initializer (`scripts/project-initializer.ts`) writes `theme.css` with only a comment pointing to Extending Unibase, and leaves `public/fonts/` empty.
   - Tests:
     - `tests/template-update.test.ts` and `tests/initializer.test.ts` for project ownership;
     - `tests/config.test.ts` for the flag;
-    - `tests/integration/auth.test.mjs` for `data-project` rendered by the server and the selector hidden.
+    - `tests/integration/auth.test.mjs` for `data-project` rendered by the server, no `data-style` with the flag on, and the selector hidden.
   - Document it in `docs/architecture.md#project-extensions`, `docs/template.md`, and the "Switching and persistence" and "Extension point" sections of `docs/design-system.md`.
-  - **`theme.css` isn't the package's generated theme copied unchanged.** The Unitale UI issue adapts it:
-    - type-role values go through the `-size`, `-leading`, `-weight` and `-tracking` variables (decision 5);
-    - its element rules (`body`, `.card`, `.notice`, `.chip`, `dialog`) are ported to Unibase's slots, such as `[data-slot=card]`;
-    - `--unitale-*` variables stay project-scoped.
+  - Document what a project's `theme.css` may contain, following Extending Unibase: type-role values through the `-size`, `-leading`, `-weight` and `-tracking` variables (decision 5), rules that target Unibase slots such as `[data-slot=card]` rather than generic element selectors, and project-prefixed variables for anything Unibase doesn't consume.
 - **Type-role overrides.** Verify the G12 package change end to end: with a fixture project theme setting `--text-hero-size` and `--text-card-title-weight`, the computed styles change; without it, U4's values hold.
-- **Fonts (DEF-02).** Unibase keeps system fonts. The supported path for a derived project: self-host fonts with `next/font/local` under `'self'`, so the CSP doesn't change, and set `--type-heading` and `--type-body` in the project theme.
-  - The Unitale package manifest points at Google Fonts, which `font-src 'self'` blocks. State that in the upgrade notes.
-  - Add a test or fixture showing a project theme overriding both hooks.
-- **Unconsumed project tokens.** The Unitale theme sets these, and nothing in Unibase reads them:
+- **Fonts (DEF-02).** Unibase keeps system fonts. Recommended default for a derived project: `@font-face` rules in the project-owned `src/project/theme.css`, with the font files under the project-owned `public/fonts/`. They are served from `'self'`, so the CSP doesn't change, and template-owned files such as `layout.tsx` are never edited. The theme sets `--type-heading` and `--type-body` to the new families. (The alternative, a `src/project/fonts.ts` seam using `next/font/local`, is recorded as rejected: it would need a hook in the template-owned layout.)
+  - Fonts from third-party hosts are blocked by `font-src 'self'`. The upgrade notes tell projects to self-host.
+  - Add a fixture theme with an `@font-face` and both hooks, and assert in the browser checks that the computed font families change and no CSP violation occurs.
+- **Theme tokens Unibase doesn't read yet.** The derived-project theme convention in Extending Unibase uses these, and nothing in Unibase reads them:
   - radius: `--radius-card`, `--radius-dialog`, `--radius-media`, `--radius-pill`;
   - borders and focus: `--border-selected`, `--focus-width`, `--focus-offset`;
   - shadows: `--shadow-raised`, `--shadow-floating`;
   - motion: `--duration-feedback`, `--duration-reveal`, `--ease-standard`;
   - selection: `--selected`, `--selected-foreground`;
-  - `--destructive-foreground` (kept undefined by the package decisions);
-  - six `--unitale-control-*` and `--unitale-icon-*` variables.
+  - `--destructive-foreground` (kept undefined by the package decisions).
 
   Recommended default: Unibase exposes **generic consumers that default to today's values**, so Unibase looks identical and a project theme can tune them:
   - `ui/card.tsx`: `--radius-card` and `--shadow-raised`;
@@ -391,10 +395,11 @@ This checkpoint makes Unibase "ready and done" for the Unitale UI issue. Decisio
   - selected choices and radio items: `--border-selected`, `--selected` and `--selected-foreground`;
   - component transitions: `--duration-feedback`, `--duration-reveal` and `--ease-standard`.
 
-  `--destructive-foreground` stays undefined in Unibase, as the package decides, and `--unitale-*` variables stay project-owned.
+  `--destructive-foreground` stays undefined in Unibase, as the package decides. Project-prefixed variables stay project-owned.
 
-  Acceptance: U0 screenshots unchanged with no project theme, and a test fixture theme visibly changes each consumer. If this is declined, the Unitale UI issue owns these tokens; record that in the upgrade notes.
-- **Letter-spacing unit** (open package decision). Recommended default: `em`, which matches the CSS renderer and scales with each role's size. Every value is 0, so nothing renders differently. Record the decision in the "Adopted package version" deviations if the package's DTCG source keeps `rem`.
+  Acceptance: screenshots unchanged against the latest accepted captures (U4 and U5) with no project theme, and a test fixture theme visibly changes each consumer. If this is declined, derived projects own these tokens; record that in the upgrade notes.
+- **Letter-spacing unit** (open package decision). Recommended default: `em`, which matches the CSS renderer and scales with each role's size. It is applied in the G12 package change; every value is 0, so nothing renders differently.
+- **Skill and docs for the seam.** Add the theme seam, fonts path and token consumers to the `build-ui` skill and to `docs/design-system.md` ("Switching and persistence", "Extension point", and a `src/project/theme.css` row in "Where to change things").
 - **DEF-04, Lucide 1.75.0 (optional).** A separate commit if reviewers want it, with icon rendering checked in the showcase.
 - **Hard-coded colours.** Align these with the adopted Classic values, and document them as per-project values (see `docs/template.md`, "First steps"):
   - `themeColor` in `src/app/layout.tsx`;
@@ -417,12 +422,12 @@ This checkpoint makes Unibase "ready and done" for the Unitale UI issue. Decisio
     - `manifest.ts` and `offline.html` being project-edited files.
   - Run `npm.cmd run check:template` and `test:initialized-projects`.
   - Merge, then tag `template-v<version>`.
-- **Upgrade rehearsal.** `test:initialized-projects` builds new projects from the current source and never runs an upgrade, so rehearse the real one. In a disposable directory, create a project from `template-v0.4.0`, then run `npm run template:update -- <version>`. Do the same on a disposable clone of Unitale. Record the conflicts and confirm the upgrade notes resolve them.
+- **Upgrade rehearsal.** `test:initialized-projects` builds new projects from the current source and never runs an upgrade, so rehearse the real one. In a disposable directory, create a project from `template-v0.4.0`, then run `npm run template:update -- <version>`. Record the conflicts and confirm the upgrade notes resolve them.
 - **Acceptance.**
   - The rehearsals succeed, or their conflicts are documented with instructions.
   - The seam, font and project-ownership tests pass.
   - #53 links the tag.
-- **Hand-off.** The Unitale UI issue starts from this tag: Unitale runs `template:update`, then adds its theme through the seam.
+- **Next step (separate issue).** Derived projects update with `npm run template:update -- <version>` and add their theme through the seam; the Unitale UI implementation starts from this tag.
 
 ## Documentation and guidance
 
@@ -454,7 +459,7 @@ This checkpoint makes Unibase "ready and done" for the Unitale UI issue. Decisio
 | Repository checks | `typecheck`, `lint`, `test`, `build`, `check:docs`, `check:i18n` | every checkpoint |
 | Repository checks | `check:skills`, `test:handbook`, `check:template` | U5, U6 |
 | Integration | `test:integration`: server `data-style` per cookie, `/design-system` 404 in production, `data-project` with the selector hidden | U3, U4, U5, U6 |
-| Template | `test:initialized-projects`, plus the upgrade rehearsals from `template-v0.4.0` and on a Unitale clone | U6 |
+| Template | `test:initialized-projects`, plus the upgrade rehearsal from a `template-v0.4.0` project | U6 |
 | Browser (headless, scripted) | the U0 matrix; per-spec acceptance; RTL; keyboard; CSP; hydration | U0, U2, U2-S, U3, U4, U5 |
 | Browser (optional) | the package's adoption fixture against this branch | U4 |
 | Contrast | recompute changed values; BDG-01 error and neutral tones | U2, U4 |
@@ -462,4 +467,4 @@ This checkpoint makes Unibase "ready and done" for the Unitale UI issue. Decisio
 
 ## Verified progress and resume
 
-- 2026-11-21: plan proposed on branch `task/53-adopt-design-system` from `main` `37aac48`. A separate read-only completeness audit against package `493e13b` found missing decisions, files, tests and readiness items; all of them are addressed above. A second audit of commit `43b6422` found six further gaps (type-role overrides, the full unconsumed-token list, the SKL-01 `names` edit, `icon.svg`, docs for the new helpers, and a toast behaviour test) plus smaller items; all are addressed in the next commit. No checkpoint started. Gates G1 to G11 open.
+- 2026-11-21: plan proposed on branch `task/53-adopt-design-system` from `main` `37aac48`. A separate read-only completeness audit against package `493e13b` found missing decisions, files, tests and readiness items; all of them are addressed above. A second audit of commit `43b6422` found six further gaps (type-role overrides, the full unconsumed-token list, the SKL-01 `names` edit, `icon.svg`, docs for the new helpers, and a toast behaviour test) plus smaller items; all are addressed in the next commit. No checkpoint started. Gates G1 to G12 open.
