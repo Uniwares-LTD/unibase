@@ -94,7 +94,7 @@ Every decision this plan relies on. They are approved together at the start gate
 | P-06 | Tests: `node:test` for extracted logic, scripted Playwright for DOM behaviour; no test dependency | all |
 | P-07 | `lg` only with per-screen approval; the leave guard only where there's real saving or Discard | U3 |
 | P-08 | Baseline and comparison captures are scripted Playwright-CLI runs, not repository tooling (UG-019) | U0, U4, U5 |
-| P-09 | If U2-S lands before U4, the toast falls back to `var(--type-body, var(--font-sans))` and a literal 6000 ms; U4 swaps in the tokens | U2-S, U4 |
+| P-09 | U2-S lands before U4 (P-30), so the toast falls back to `var(--type-body, var(--font-sans))` and a literal 6000 ms; U4 swaps in the tokens | U2-S, U4 |
 | P-10 | The SKL-01 install order follows `handbook:sync`, which generates the `.claude` wrapper (deviation from proposal §4) | U5 |
 | P-11 | No Tailwind theme keys for the touch sizes | U1 |
 | P-12 | TCH-01: add `textarea` to the coarse-pointer height rule, plus the spec's horizontal-Field label rule | U2 |
@@ -104,12 +104,12 @@ Every decision this plan relies on. They are approved together at the start gate
 | P-16 | `Notice` gains an optional `action` prop whose state is owned by the feature | U2 |
 | P-17 | Notice action labels name each state | U2 |
 | P-18 | The Notice action uses `aria-disabled` while pending and on success, so focus isn't lost (deviation) | U2 |
-| P-19 | A `theme` flag in `project.config.json`; `layout.tsx` and `global-error.tsx` read `project.theme` and `project.slug` from `src/lib/project.ts` and pass them to `StyleProvider` as props; `data-project` is the slug. Public settings are not changed | U6 |
+| P-19 | A `theme` flag in `project.config.json`; `layout.tsx` reads `project.theme` and `project.slug` from `src/lib/project.ts` and passes them to `StyleProvider` as props; `global-error.tsx`, a client component with its own `<html>` and no `StyleProvider`, imports `project.ts` itself and sets `data-project` directly; `data-project` is the slug. Public settings are not changed | U6 |
 | P-20 | A project theme replaces the preset choice; light, dark and system stay | U6 |
 | P-21 | A project theme isn't a new style ID | U6 |
 | P-22 | `src/project/theme.css`, imported after the foundation, project-owned | U6 |
 | P-23 | Fonts through `@font-face` in `theme.css` and `public/fonts/`; no `next/font` hook | U6 |
-| P-24 | Move `designStyleSchema` into a new dependency-free `src/lib/design-styles.ts`; `appearance.ts`, `project.ts` and `runs/admin-editors.tsx` import it; disable the admin default-style editor under a project theme | U6 |
+| P-24 | Move `designStyleSchema` into a new dependency-free `src/lib/design-styles.ts`; `appearance.ts` re-exports it so existing importers such as `src/lib/config/public.ts` stay unchanged; `appearance.ts`, `project.ts` and `runs/admin-editors.tsx` import it; disable the admin default-style editor under a project theme | U6 |
 | P-25 | Project tokens stay under `x-<id>`; new shared tokens go through the design package | U6 |
 | P-26 | Replace the old Classic primary `#98492f` with the adopted Classic primary `#c2410c` (COL-classic-light-primary) in `layout.tsx`, `manifest.ts`, `scripts/i18n-assets.mjs` (which generates `public/offline.html`), `android-generate.ts`, `generate-icons.mjs` and `icon.svg`; background `#fff9f3` and foreground `#30221d` stay, because no colour row changes them | U6 |
 | P-27 | Template release is a minor version bump before 1.0, with upgrade notes; existing `## Unreleased` entries ship in it | U6 |
@@ -266,7 +266,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - a translated `containerAriaLabel`;
   - inline `fontFamily: var(--type-body)`;
   - mounted inside `ThemeProvider`, next to `LocalizedValidation`.
-- **Order dependency on U4.** If U2-S lands before U4, neither `--type-body` nor `--toast-confirmation-duration` exists yet. Fall back with `var(--type-body, var(--font-sans))` and a literal 6000 ms, which U4 replaces with the token. `tests/toast.test.ts` covers both cases.
+- **Order dependency on U4.** U2-S lands before U4 (P-30), so neither `--type-body` nor `--toast-confirmation-duration` exists yet. Fall back with `var(--type-body, var(--font-sans))` and a literal 6000 ms, which U4 replaces with the token. `tests/toast.test.ts` covers both cases.
 - **Showcase.** Add a toast demo in `src/components/design-showcase.tsx`, needed by DOC-01 §4 step 10.
 - **Docs.** DOC-01 §4 local test loop, the toast steps.
 - **Copy.** The `Dismiss` key from spec §9, in English and Arabic.
@@ -306,7 +306,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - FLD-02 `lg` only with explicit approval on that slice's PR.
 - **Acceptance per slice.**
   - Invalid submit, retained values, pending state and failure behave as in U2.
-  - Screens without an approved change are unchanged against the latest captures: U0, or U4's if U4 ran first.
+  - Screens without an approved change are unchanged against U0 (U4 runs after U3, so U0 is always the baseline here).
   - `npm.cmd run test:integration` passes.
 - **Boundaries.** No new helpers. A missing helper state is a U2 fix, not a local workaround.
 - **Continuation.** Automatic slice by slice.
@@ -414,10 +414,10 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
   Then build it:
   - Add the `theme` flag to `projectSchema` in `src/lib/project.ts` and to `project.config.json` (`false`).
   - Set `data-project` in `src/app/layout.tsx` when the flag is on. Import `src/project/theme.css` in `src/app/globals.css` after the foundation.
-  - Pass the flag and slug to client components as props, not through settings. `src/app/layout.tsx` and `src/app/global-error.tsx` read `project.theme` and `project.slug` from `src/lib/project.ts`, which is already client-safe because `appearance.ts` imports it, and pass them to `StyleProvider`. `data-project` takes the value of the slug. `src/lib/config/public.ts`, `src/lib/config/schema.ts` and the persisted base settings are not changed, so no stored settings row can override the project file.
+  - Pass the flag and slug to client components as props, not through settings. `src/app/layout.tsx` reads `project.theme` and `project.slug` from `src/lib/project.ts`, which is already client-safe because `appearance.ts` imports it, and passes them to `StyleProvider`. `src/app/global-error.tsx` is a client component with its own `<html>` and no `StyleProvider`: it imports `project.ts` itself and sets `data-project` (and omits `data-style`) on that `<html>` directly. `data-project` takes the value of the slug. `src/lib/config/public.ts`, `src/lib/config/schema.ts` and the persisted base settings are not changed, so no stored settings row can override the project file.
   - Set `data-project` on the `<html>` in `src/app/global-error.tsx` as well, so the error page uses the project theme.
   - **With the flag on, omit `data-style`**, in `src/app/layout.tsx` (server) and `src/components/style-provider.tsx` (client). That way no Glass descendant rule or page-cover watcher applies under a project theme. With the flag off, nothing changes.
-  - **Style ID lists (UG-018). Decision P-24:** move `designStyleSchema` into a new dependency-free `src/lib/design-styles.ts` (a direct import from `appearance.ts` into `project.ts` would create an import cycle, because `appearance.ts` already imports `project.ts`). `src/lib/appearance.ts`, `src/lib/project.ts` and `src/components/runs/admin-editors.tsx` then import the list from there. Keep the copies in `scripts/deploy/config.py` and `deploy/contract.json`, with a comment naming the source, because they are deployment contracts outside the TypeScript build. While a project theme is on, the admin "Default style" editor is disabled with an explanation.
+  - **Style ID lists (UG-018). Decision P-24:** move `designStyleSchema` into a new dependency-free `src/lib/design-styles.ts` (a direct import from `appearance.ts` into `project.ts` would create an import cycle, because `appearance.ts` already imports `project.ts`). `src/lib/appearance.ts`, `src/lib/project.ts` and `src/components/runs/admin-editors.tsx` then import the list from there, and `appearance.ts` re-exports `designStyleSchema`, so existing importers such as `src/lib/config/public.ts` keep working unchanged. Keep the copies in `scripts/deploy/config.py` and `deploy/contract.json`, with a comment naming the source, because they are deployment contracts outside the TypeScript build. While a project theme is on, the admin "Default style" editor is disabled with an explanation.
   - Hide the style selector in `src/components/style-preference.tsx`, the preferences page and `appearance-form.tsx` when a project theme is active.
   - Add `src/project/theme.css` and `public/fonts/` to `projectOwned` in `scripts/template-update.mjs`, so template updates keep the project's versions. The project initializer (`scripts/project-initializer.ts`) writes `theme.css` with the commented starter skeleton from the derived-project design guide (see below), and leaves `public/fonts/` empty.
   - Tests:
@@ -549,3 +549,4 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 - 2026-11-21: added the derived-project design guide (`docs/design-system-extension.md`), its agent guidance, the starter skeleton and a docs-consistency test to U6.
 - 2026-11-21: human gates simplified to a start gate, a release gate and one PR approval rule. Earlier entries name the former gates G1 to G12.
 - 2026-11-21: decisions made for every open item (decision register P-01 to P-30); readiness review fixes applied (sibling label selectors, project flag via props, `design-styles.ts` against an import cycle, the offline-page generator and colour mapping, fixed order, PR counts, requirements and continuation rules).
+- 2026-11-21: final readiness check passed after fixes: `global-error.tsx` sets `data-project` itself, `appearance.ts` re-exports `designStyleSchema`, the U2-S fallback is unconditional under the fixed order, and U3 compares against U0. The plan is ready for implementation; work starts when the start gate is met.
