@@ -94,7 +94,7 @@ names its own approval.
 | G6. Dark warning surface `#431407` decided | U4 | Unibase reviewers |
 | G7. Explicit approval of the U4 foundation (99 `visible` colour rows plus type roles) | U4 | Unibase reviewers |
 | G8. Native review of the Arabic strings in spec §9 | merge of U2 | native speaker |
-| G9. The U6 decisions: theme seam shape and `data-project`, fonts, and style-list deduplication | U6 | Unibase maintainers |
+| G9. The U6 decisions: theme seam shape and `data-project`, fonts, style-list deduplication, and explicit approval of the derived-project agent guidance (`build-ui` section and adapter pointer) | U6 | Unibase maintainers |
 | G10. Template release and tag authorization | U6 release | repository owner |
 | G11. Per-screen approval for applying `lg` to existing forms, if wanted | that part of U3 | Unibase reviewers |
 | G12. Decision 5 (variable-backed type roles and the `em` letter-spacing unit) approved, and the package change merged in `unitale-design` as the accepted revision | U4 | Unibase maintainers, package owner, then G1 reviewer |
@@ -126,7 +126,7 @@ names its own approval.
 | U3 Rollout by area | low (`visible` where `lg` is applied) | 4, one per slice | ~6 to 12 each | yes, after any slice |
 | U4 Visible foundation | visible | 1 | ~11 | yes |
 | U5 Verification, guidance and close | none / configuration | 1 or 2 | ~12 | yes |
-| U6 Derived-project readiness and template release | none to configuration | 1 or 2, plus a tag | ~25 | end state |
+| U6 Derived-project readiness and template release | none to configuration | 2 (seam and guide; release), plus a tag | ~32 | end state |
 
 **Stop rules.**
 - Stop and report when any of these happens:
@@ -367,7 +367,7 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
   - **With the flag on, omit `data-style`**, in `src/app/layout.tsx` (server) and `src/components/style-provider.tsx` (client). That way no Glass descendant rule or page-cover watcher applies under a project theme. With the flag off, nothing changes.
   - **Style ID lists (UG-018).** Recommended default: derive the lists in `src/lib/project.ts` and `src/components/runs/admin-editors.tsx` from `designStyleSchema`. Keep the copies in `scripts/deploy/config.py` and `deploy/contract.json`, with a comment naming the source, because they are deployment contracts outside the TypeScript build. While a project theme is on, the admin "Default style" editor is disabled with an explanation.
   - Hide the style selector in `src/components/style-preference.tsx`, the preferences page and `appearance-form.tsx` when a project theme is active.
-  - Add `src/project/theme.css` and `public/fonts/` to `projectOwned` in `scripts/template-update.mjs`, so template updates keep the project's versions. The project initializer (`scripts/project-initializer.ts`) writes `theme.css` with only a comment pointing to Extending Unibase, and leaves `public/fonts/` empty.
+  - Add `src/project/theme.css` and `public/fonts/` to `projectOwned` in `scripts/template-update.mjs`, so template updates keep the project's versions. The project initializer (`scripts/project-initializer.ts`) writes `theme.css` with the commented starter skeleton from the derived-project design guide (see below), and leaves `public/fonts/` empty.
   - Tests:
     - `tests/template-update.test.ts` and `tests/initializer.test.ts` for project ownership;
     - `tests/config.test.ts` for the flag;
@@ -379,7 +379,45 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
   - Fonts from third-party hosts are blocked by `font-src 'self'`. The upgrade notes tell projects to self-host.
   - Add a fixture theme with an `@font-face` and both hooks, and assert in the browser checks that the computed font families change and no CSP violation occurs. Fixture themes (fonts and type roles) live under `tests/fixtures/project-theme/` and are applied only by the checks; the shipped `src/project/theme.css` stays empty.
 - **Project-specific tokens.** Following Extending Unibase, a project theme overrides only existing Unibase tokens, and puts any new token under its own `x-<id>` group, which its own code consumes. Unibase adds no consumers for project-specific tokens in this issue. If a derived project later needs a new **shared** token (for example a separate card or dialog radius), it is proposed to the design package as a new delta row and adopted through the normal route. Record this rule in `docs/design-system.md` ("Extension point") and in the upgrade notes.
-- **Skill and docs for the seam.** Add the theme seam, fonts path and the project-token rule to the `build-ui` skill and to `docs/design-system.md` ("Switching and persistence", "Extension point", and a `src/project/theme.css` row in "Where to change things").
+- **Derived-project design guide** (new `docs/design-system-extension.md`). This is the one place a derived project's developers and agents learn how to define their own theme and extend Unibase's design. It is Unibase-owned and generic: it names no project, and template updates refresh it. Required contents:
+  1. **Model.** Unibase owns the foundation, the shared components and the patterns; a project owns its theme, its additions and its product copy. Link the design package's [Extending Unibase](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/extending.md) as the design-side contract.
+  2. **Turning on a project theme.**
+     - Set `theme: true` in `project.config.json`.
+     - What changes: `data-project="<slug>"` on `<html>`, `data-style` omitted, the style selector and admin default style disabled.
+     - What stays: light, dark and system; the cookies.
+     - How to turn it off.
+  3. **Writing `src/project/theme.css`.**
+     - Selectors `html[data-project="<slug>"]` and `html[data-project="<slug>"].dark`, loaded after the foundation.
+     - Which existing Unibase tokens a project may override: the semantic colour pairs in both themes (always change a pair together), `--radius`, `--page-gap`, `--surface-blur`, `--type-heading` and `--type-body`, and the type-role `-size`, `-leading`, `-weight` and `-tracking` variables (decision 5).
+     - A complete minimal example, kept identical to the initializer's skeleton and to the test fixture.
+  4. **Fonts.** `@font-face` in `theme.css`, files in `public/fonts/`, served from `'self'`. Third-party font hosts are blocked by the CSP. Check licences before shipping.
+  5. **Project-specific tokens.** A project keeps new tokens under its own `x-<id>` group, emitted as project-prefixed variables, and consumes them only in project-owned code. Unprefixed new tokens are not allowed.
+  6. **Extending components and patterns.**
+     - Compose Unibase primitives (`src/components/ui`, `page-patterns.tsx`, Field, `SubmitButton`, Notice, status badge, toast, leave guard, media fallback) in project-owned code registered through `src/project/extensions.ts`.
+     - Never edit template-owned components or the vendored foundation: changes there are lost or conflict on template updates.
+     - Use type roles and semantic tokens, not literal sizes or colours. Use logical RTL classes, typed catalogs and page-scoped dictionaries.
+  7. **When the project needs something shared.** A new shared token, variant or component is proposed to the design package as a new delta row. It is adopted into Unibase through the normal route and released, and only then used by the project. Project-only needs stay in the project.
+  8. **Verification for a project theme.**
+     - Contrast of every overridden pair in both themes (the design package's contrast check, or an equivalent recorded measurement).
+     - The browser checks from the local test loop, run under the project theme.
+     - Keyboard, RTL and reduced motion.
+     - No CSP violations.
+  9. **Template updates.**
+     - Which files the project owns: `theme.css`, `public/fonts/`, `project.config.json` and the others in `projectOwned`.
+     - Run `npm run template:update -- <version>` and read the upgrade notes.
+     - Re-check contrast after a foundation change.
+  10. **Do and don't summary.** A short checklist for reviews.
+
+  The guide is linked from:
+  - `docs/design-system.md` ("Extension point", and a `src/project/theme.css` row in "Where to change things");
+  - `docs/template.md` ("First steps in a new project", "Add a feature");
+  - `docs/architecture.md#project-extensions`;
+  - `docs/source-map.md` (the UI row).
+- **Agent guidance for derived projects.**
+  - Add a "Derived projects" section to the `build-ui` skill (SKL-01, regenerated through `handbook:sync`): read `docs/design-system-extension.md` first; theme only through `theme.css`; tokens under `x-<id>`; compose rather than edit shared components; propose shared needs to the design package.
+  - Add one pointer to the guide in the adapter's "UI and browser verification" section.
+  - Both are `configuration` changes and need G4-style explicit approval at U6. If SKL-01 was rejected, the same text goes into the guide's agent section.
+- **Starter skeleton.** The initializer's `src/project/theme.css` contains the guide's minimal example as comments only, so it renders nothing until edited. It names the slug, the selectors, the overridable tokens and a link to the guide.
 - **DEF-04, Lucide 1.75.0 (optional).** A separate commit if reviewers want it, with icon rendering checked in the showcase.
 - **Hard-coded colours.** Align these with the adopted Classic values, and document them as per-project values (see `docs/template.md`, "First steps"):
   - `themeColor` in `src/app/layout.tsx`;
@@ -406,6 +444,9 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 - **Acceptance.**
   - The rehearsals succeed, or their conflicts are documented with instructions.
   - The seam, font and project-ownership tests pass.
+  - `docs/design-system-extension.md` exists with all ten required parts, linked from the four documents above, and `check:docs` passes.
+  - Following the guide exactly, a fresh initialized project gets a working theme. A rehearsal applies the guide's example theme, with colours, fonts and one type role changed, to a disposable project; the browser checks pass, with contrast measured and no CSP violation.
+  - The `build-ui` skill's "Derived projects" section and the adapter pointer are approved and merged, or their rejection is recorded with the fallback.
   - #53 links the tag.
 - **Next step (separate issue).** Derived projects update with `npm run template:update -- <version>` and add their theme through the seam; the Unitale UI implementation starts from this tag.
 
@@ -420,9 +461,11 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 | `docs/design-system.md` | DOC-01 §5, adopted package version and deviations | U5 |
 | `docs/design-system.md:10-13`, `:39` and `:88-90` | the palette descriptions, brand-values and add-a-preset rules | U4, U6 |
 | `docs/design-system.md` local sections | status badge, actionable Notice, touch tokens and rule (not in DOC-01) | U2 |
-| `docs/design-system.md` "Switching and persistence", "Extension point" | the project theme seam | U6 |
-| `docs/architecture.md:31-32` and `#project-extensions` | the preset files, typography owner and theme seam | U4, U6 |
-| `docs/template.md` | the theme seam, fonts and per-project colours | U6 |
+| `docs/design-system.md` "Switching and persistence", "Extension point" | the project theme seam, and a link to the extension guide | U6 |
+| `docs/design-system-extension.md` (new) | the derived-project design guide: theme, fonts, tokens, extending components, shared needs, verification, template updates | U6 |
+| `build-ui` skill "Derived projects" section; adapter pointer | agent guidance for derived projects | U6 |
+| `docs/architecture.md:31-32` and `#project-extensions` | the preset files, typography owner and theme seam, with a link to the extension guide | U4, U6 |
+| `docs/template.md` | the theme seam, fonts and per-project colours, with links to the extension guide | U6 |
 | `AGENTS.md`, `.agents/repository-adapter.md`, `docs/source-map.md` | AGT-01 | U5 |
 | `.agents/skills/build-ui/`, `.claude/skills/build-ui/`, `skills-lock.json` | SKL-01 | U5 |
 | `CHANGELOG.md` | an `## Unreleased` entry per checkpoint, then the release | every checkpoint, U6 |
@@ -436,6 +479,7 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 | Unit and behaviour | `tests/sonner-csp.test.ts`, `tests/toast.test.ts` | U2-S |
 | Unit and behaviour | `tests/design-foundation.test.ts` | U4 |
 | Unit and behaviour | `tests/template-update.test.ts`, `tests/initializer.test.ts`, `tests/config.test.ts` (theme seam); type-role and font fixture themes | U6 |
+| Docs consistency | `tests/design-system-extension.test.ts`: the guide's minimal example, the initializer's `theme.css` skeleton and `tests/fixtures/project-theme/` use the same selectors and token names, and every token the guide lists as overridable exists in the vendored foundation | U6 |
 | Repository checks | `typecheck`, `lint`, `test`, `build`, `check:docs`, `check:i18n` | every checkpoint |
 | Repository checks | `check:skills`, `test:handbook`, `check:template` | U5, U6 |
 | Integration | `test:integration`: server `data-style` per cookie, `/design-system` 404 in production, `data-project` with the selector hidden | U3, U4, U5, U6 |
@@ -449,3 +493,4 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 
 - 2026-11-21: plan proposed on branch `task/53-adopt-design-system` from `main` `37aac48`. A separate read-only completeness audit against package `493e13b` found missing decisions, files, tests and readiness items; all of them are addressed above. A second audit of commit `43b6422` found six further gaps (type-role overrides, the full unconsumed-token list, the SKL-01 `names` edit, `icon.svg`, docs for the new helpers, and a toast behaviour test) plus smaller items; all are addressed in the next commit. No checkpoint started. Gates G1 to G12 open.
 - 2026-11-21: scope narrowed to Unibase only; Unitale's own adoption and UI work is the next, separate issue. Third and fourth audits closed: project-theme `data-style`, public config, fonts, test method, SKL-01 order, style-list deduplication, gate timing (type roles and letter-spacing at G12), and project tokens kept under `x-<id>`. The fourth audit's remaining fixes are applied in this revision. Gates G1 to G12 open; no checkpoint started.
+- 2026-11-21: added the derived-project design guide (`docs/design-system-extension.md`), its agent guidance, the starter skeleton and a docs-consistency test to U6.
