@@ -90,7 +90,7 @@ Every decision this plan relies on. They are approved together at the start gate
 | P-02 | Delete `classic.css` and `soft-blue.css` | U4 |
 | P-03 | One PR per checkpoint, except U3 (one PR per slice, four in total) and U6 (two: seam and guide, then the release); each merged with a merge commit and revertible on its own | all |
 | P-04 | AGT-01 and SKL-01 move from U1 to U5 (deviation) | U5 |
-| P-05 | Variable-backed type roles and `em` letter-spacing, through a package change before work starts | start gate, U4 |
+| P-05 | Variable-backed type roles and `em` letter-spacing, made in the design package by checkpoint P0 before the start gate | P0, U4 |
 | P-06 | Tests: `node:test` for extracted logic, scripted Playwright for DOM behaviour; no test dependency | all |
 | P-07 | `lg` only with per-screen approval; the leave guard only where there's real saving or Discard | U3 |
 | P-08 | Baseline and comparison captures are scripted Playwright-CLI runs, not repository tooling (UG-019) | U0, U4, U5 |
@@ -115,7 +115,10 @@ Every decision this plan relies on. They are approved together at the start gate
 | P-27 | Template release is a minor version bump before 1.0, with upgrade notes; existing `## Unreleased` entries ship in it | U6 |
 | P-28 | Lucide bumped to exactly 1.75.0 in its own commit | U6 |
 | P-29 | The derived-project guide is `docs/design-system-extension.md`, Unibase-owned and naming no project | U6 |
-| P-30 | Fixed checkpoint order U0, U1, U2, U2-S, U3, U4, U5, U6; a rejected toast review closes U2-S without code | all |
+| P-30 | Fixed checkpoint order P0, U0, U1, U2, U2-S, U3, U4, U5, U6; a rejected toast review closes U2-S without code | all |
+| P-31 | Leave-guard eligibility follows the U3 form inventory: only forms that edit an existing saved record with an explicit save | U3 |
+| P-32 | Badge contrast is measured from computed colours in the browser check, at U2 and again at U4 | U2, U4 |
+| P-33 | The upgrade rehearsal uses a local, unpushed tag and a disposable project created from `template-v0.4.0` | U6 |
 
 ## Execution prerequisites
 
@@ -123,7 +126,7 @@ Every decision this plan relies on. They are approved together at the start gate
 
 | Gate | When | Who | Met when |
 | --- | --- | --- | --- |
-| **Start gate** | before U0 | team (a named reviewer) and the issue owner | The package acceptance record names the accepted revision, accepting reviewer, maintenance owner and date, and that revision includes the decision 5 package change (variable-backed type roles, `em` letter-spacing). The engineering handoff review is held and recorded as a comment on unitale-mockup#7 (the issue need not be closed). This plan is approved, which approves its checkpoint order and every decision in the decision register; a changed decision is recorded under "Verified progress" before the checkpoint it affects. |
+| **Start gate** | before U0 | team (a named reviewer) and the issue owner | P0 is merged. The package acceptance record names the accepted revision (P0's merge or later), accepting reviewer, maintenance owner and date. The engineering handoff review is held and recorded as a comment on unitale-mockup#7 (the issue need not be closed). This plan is approved, which approves its checkpoint order and every decision in the decision register; a changed decision is recorded under "Verified progress" before the checkpoint it affects. |
 | **Release gate** | end of U6 | repository owner | Authorization to tag `template-v<version>`. |
 
 **PR approval rule.** Low-risk PRs merge with normal review. A PR containing `visible`, `security` or `configuration` rows merges only with explicit approval from a Unibase maintainer on that PR. This covers:
@@ -139,6 +142,13 @@ Every decision this plan relies on. They are approved together at the start gate
 - Headless browser sessions through the Playwright skill, with captures under `output/playwright/`, which is not committed.
 - `/design-system` works in development only. Stop the dev server before `npm.cmd run build`, because they share `.next`.
 
+**Local run and sign-in** (used by every browser check from U0 on; see `docs/local-testing.md`):
+1. Use the local defaults. If `.env.local` exists, it must select the local and demo resources shown in `.env.example`.
+2. Start three long-running processes and wait for each to be ready: `npm.cmd run emulators:auth` ("All emulators ready"), `npm.cmd run emulators:mongo` ("Local MongoDB ready") and `npm.cmd run dev` ("Ready"). Use `http://localhost:3000` for the app.
+3. **Member account.** On `/account`, register `qa-member-01@example.test` with a 12-character disposable password. Open the verification link from the Auth Emulator's email actions (`docs/local-testing.md`), then choose "I've verified my email".
+4. **Admin account.** On a fresh local database, register and verify `admin@uniwares.co.uk` the same way. While no administrator exists, that verified email becomes the first administrator (`docs/architecture.md`, first-administrator rule). If the local database already holds the bootstrap marker, either run `npm.cmd run admin:bootstrap -- <UID>`, with the UID taken from `http://127.0.0.1:4000/auth`, or stop the Mongo runner, rename the data directory it printed at start, and restart. All of this is local data only.
+5. Drive the browser with named headless Playwright sessions, one per account, and save captures under `output/playwright/<checkpoint>/`. Emulator accounts are ephemeral, so repeat steps 3 and 4 after restarting the emulators.
+
 **Standing rules** (from Unibase's agent guidance):
 - typed catalogs, page-scoped dictionaries and logical RTL;
 - admin stays English/LTR;
@@ -153,6 +163,7 @@ Every decision this plan relies on. They are approved together at the start gate
 
 | Checkpoint | Risk | PRs | Approx. files | Can stop after it? |
 | --- | --- | --- | --- | --- |
+| P0 Design-package type-role change (in `unitale-design`) | none | 1 (in `unitale-design`) | ~6 | yes |
 | U0 Gate and baseline | none | 0 (evidence only) | 0 | yes |
 | U1 Seams, no visual change | none | 1 | ~3 | yes |
 | U2 Shared helpers in the showcase | low | 1 | ~22 | yes |
@@ -172,7 +183,29 @@ Every decision this plan relies on. They are approved together at the start gate
 
 ## Checkpoints
 
-Apply them in this fixed order (P-30): U0, U1, U2, U2-S, U3, U4, U5, U6. Each checkpoint starts only when the one before it is merged. If the U2-S security review rejects the toast, U2-S closes without code and U3 follows.
+Apply them in this fixed order (P-30): P0, U0, U1, U2, U2-S, U3, U4, U5, U6. Each checkpoint starts only when the one before it is merged. If the U2-S security review rejects the toast, U2-S closes without code and U3 follows.
+
+### P0. Design-package type-role change (in `unitale-design`)
+
+The only checkpoint outside Unibase. It makes decision 5 real, so the start gate can accept a revision that contains it.
+
+- **Requirements.** This plan approved by the issue owner (the rest of the start gate comes after P0).
+- **Owner.** The design-package owner. An agent may implement it with session authorization for that repository.
+- **Work,** on a `task/` branch of `Uniwares-LTD/unitale-design` from `main`:
+  1. In `scripts/design-system/build-tokens.mjs`, where `tailwind-theme.css` is written (the `@theme inline` block, about lines 218-223 at `493e13b`), emit each role key as a variable with the current value as fallback:
+     - `--text-<role>: var(--text-<role>-size, <rem>)`;
+     - `--text-<role>--line-height: var(--text-<role>-leading, <value>)`;
+     - `--text-<role>--font-weight: var(--text-<role>-weight, <value>)`;
+     - `--text-<role>--letter-spacing: var(--text-<role>-tracking, <value>em)`.
+     These names match the `-size`, `-leading`, `-weight` and `-tracking` variables that generated project themes already emit (`roleDecls`, about line 256).
+  2. Letter-spacing is written in `em` in the generated CSS. The DTCG source keeps `rem`, which is all DTCG allows (see the comment at about line 97), and the generator converts it.
+  3. Update the TYPE rows' description and spec §1 "Anatomy" to say the keys are variable-backed, and add a changelog entry.
+  4. Regenerate with `node scripts/design-system/build-tokens.mjs`, then run the five package checks. Run the browser check with `UNIBASE_ADOPTION_SOURCE` pointing at a Unibase checkout with dependencies installed, so the compiled-Tailwind fixture runs.
+- **Acceptance.**
+  - Without a project theme, every role computes exactly as before: the browser and adoption checks pass unchanged.
+  - With a fixture rule setting `--text-hero-size`, the `text-hero` utility changes size.
+  - The PR merges in `unitale-design` with a merge commit.
+- **Continuation.** The start gate then records that merged revision as the accepted one.
 
 ### U0. Gate and baseline capture
 
@@ -187,7 +220,7 @@ Apply them in this fixed order (P-30): U0, U1, U2, U2-S, U3, U4, U5, U6. Each ch
     - one public page in Arabic;
     - Glass with reduced transparency;
     - the error page (no preset attribute).
-  - Use named headless Playwright sessions, and record the commands so U4 and U5 repeat them exactly.
+  - Follow "Local run and sign-in". The member account captures Account, Preferences and Credits; the admin account captures Admin, Users and Reports. Record the exact capture commands and URLs on #53, so U4 and U5 repeat them unchanged.
 - **Decision recorded here (UG-019).** Use scripted Playwright-CLI captures, which add no dependency. Regression tooling inside the repository needs its own dependency decision and stays out of scope.
 - **Acceptance.** A capture set exists for every combination, with its commands written down. The capture list and location are posted on #53.
 - **Continuation.** Automatic once the start gate is met.
@@ -230,7 +263,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - Each tone has its default Lucide icon from §10: BookOpen, LoaderCircle (not animated), TriangleAlert, CircleCheck, CircleX. `icon` overrides it.
   - It renders `Badge` with `variant="secondary"` (neutral), `variant="destructive"` (error), or a tone class using the info, warning and success semantic pairs.
   - It adds `h-auto whitespace-normal [&>svg]:size-3.5!`, so long labels wrap and the icon is 0.875rem despite Badge's `[&>svg]:size-3!`; confirm in the browser check that `cn` lets these override `h-5 whitespace-nowrap`. The icon gets `aria-hidden`.
-- **Decision P-15, contrast:** measure the neutral pair and the error pair (destructive on a 10% or 20% destructive background) in all six preset and theme combinations, with the package contrast method. If the error pair is below 4.5:1, use the error Notice styling instead: `bg-card text-destructive` with a destructive border.
+- **Decision P-15, contrast (method P-32):** measure the neutral and error badges in the showcase in all six preset and theme combinations. In the browser check, read the badge's computed `color` and its effective background (the badge background composited over the card's computed background), compute the WCAG 2 contrast ratio, and record each ratio on the U2 PR. Re-run the same measurement at U4, because U4 changes the colours. If the error pair is below 4.5:1, use the error Notice styling instead: `bg-card text-destructive` with a destructive border.
 
 **Notice with an action (NTC-01).**
 - **Decision P-16, props:** `Notice` gains an optional `action?: { state: "available" | "pending" | "success" | "failed"; labels: { available: string; pending: string; success: string }; receipt?: string; onAction: () => void }`. The feature owns the state; the notice never changes it itself, never starts work by appearing, and never retries.
@@ -296,9 +329,38 @@ until U3. Spec numbers refer to the package's implementation specifications.
   2. Credits and commerce.
   3. Admin, which stays English/LTR.
   4. Runs.
+- **Form inventory and leave-guard eligibility (P-31).** The leave guard applies only to forms that edit an existing saved record and save it explicitly. One-shot actions (sign-in, search, upload, checkout, grants, starting a run, adding a note) and controls that save immediately are not guarded. Every slice applies Field and `SubmitButton` to the forms that have labelled inputs or a submit action.
+
+  | Slice | Form (file) | Field | Pending | Leave guard |
+  | --- | --- | --- | --- | --- |
+  | 1 | sign-in and registration (`auth-form.tsx`) | yes | yes | no |
+  | 1 | profile (`profile-form.tsx`) | yes | yes | **yes** |
+  | 1 | appearance (`appearance-form.tsx`) | yes | yes | **yes** |
+  | 1 | style, theme and language selectors (`style-preference.tsx`, `theme-preference.tsx`, `localization-preference.tsx`) | labels only | no (immediate) | no |
+  | 1 | notification settings (`notification-settings.tsx`, saves on toggle) | labels only | no | no |
+  | 1 | file upload (`files.tsx`) | yes | yes | no |
+  | 1 | notes sample (`samples/notes/notes-panel.tsx`) | yes | yes | no |
+  | 2 | credit checkout (`credit-checkout.tsx`) | yes | yes | no |
+  | 2 | purchase simulator, two forms (`purchase-simulator.tsx`) | yes | yes | no |
+  | 2 | commerce admin search (`commerce/admin-commerce.tsx`) | yes | yes | no |
+  | 2 | commerce admin draft editors, "Save draft" (`commerce/admin-commerce.tsx`, `commerce/schema-fields.tsx`) | yes | yes | **yes** |
+  | 3 | user search (`app/admin/users/page.tsx`, GET) | yes | no | no |
+  | 3 | user role and access controls (`admin-user-controls.tsx`) | yes | yes | no |
+  | 3 | credit grants (`admin-credit-controls.tsx`) | yes | yes | no |
+  | 3 | report filters (`report-filters.tsx`, GET) | yes | no | no |
+  | 3 | diagnostic access grants (`diagnostic-access.tsx`) | yes | yes | no |
+  | 3 | AI and domain settings (`ai-resolution.tsx`, `domain-target-picker.tsx`) | yes | yes | no |
+  | 4 | run start (`runs/run-start.tsx`, with `dynamic-field.tsx`, `answerer-select.tsx`, `workflow-version-picker.tsx`) | yes | yes | no |
+  | 4 | registered run card (`runs/registered-card.tsx`) | yes | yes | no |
+  | 4 | persona editor, "Save persona" (`runs/persona-editor.tsx`) | yes | yes | **yes** |
+  | 4 | completion settings (`runs/persona-completion-editor.tsx`) | yes | yes | **yes** |
+  | 4 | run admin editors with "Save" (`runs/admin-editors.tsx`) | yes | yes | **yes** |
+
+  A form found during a slice that isn't in this table is classified by the same rule and added here before it is changed.
+
 - **What each slice applies.**
   - FLD-01 and PND-01 to the slice's forms.
-  - LVG-01 **only** where the feature has real saving or offers Discard alone (spec §6).
+  - LVG-01 **only** for the forms marked "yes" in the inventory (spec §6, P-31).
   - MED-01 at the slice's call sites:
     - Files: `src/components/files.tsx`;
     - Admin: `src/components/admin-operations.tsx`, `src/components/diagnostics-panel.tsx`;
@@ -493,7 +555,14 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
     - `manifest.ts` and the offline-page colours in `scripts/i18n-assets.mjs` being values projects set themselves.
   - Run `npm.cmd run check:template` and `test:initialized-projects`.
   - Merge, then tag `template-v<version>`.
-- **Upgrade rehearsal.** `test:initialized-projects` builds new projects from the current source and never runs an upgrade, so rehearse the real one. In a disposable directory, create a project from `template-v0.4.0`, then run `npm run template:update -- <version>`. Record the conflicts and confirm the upgrade notes resolve them.
+- **Upgrade rehearsal (P-33).** `test:initialized-projects` builds new projects from the current source and never runs an upgrade, so rehearse the real one before the release gate. Nothing is published.
+  1. In the Unibase clone, create a **local, unpushed** tag `template-v<version>` on the release-candidate commit.
+  2. Write `rehearsal.manifest.json`: a copy of Unibase's `project.config.json` with `slug` `rehearsal-app` and `displayName` `Rehearsal`.
+  3. Create the old project: `npm.cmd run project:create -- --revision <full commit of template-v0.4.0> --destination <temp>/rehearsal-app --manifest <temp>/rehearsal.manifest.json --mode application --image-owner Uniwares-LTD --upstream <path to this Unibase clone>`. Get the commit with `git rev-parse template-v0.4.0^{commit}`.
+  4. In `<temp>/rehearsal-app`, run `npm.cmd ci`, then `npm.cmd run template:update -- <version>`.
+  5. Then follow `docs/design-system-extension.md` to add a theme: colours, `@font-face` and one type role. Run `typecheck`, `build` and the browser checks under the project theme.
+  6. Record conflicts and fix the upgrade notes until a fresh run of steps 3 to 5 passes. Then delete the local tag; the real tag is created only after the release gate.
+
 - **Acceptance.**
   - The rehearsals succeed, or their conflicts are documented with instructions.
   - The seam, font and project-ownership tests pass.
@@ -548,5 +617,6 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 - 2026-11-21: scope narrowed to Unibase only; Unitale's own adoption and UI work is the next, separate issue. Third and fourth audits closed: project-theme `data-style`, public config, fonts, test method, SKL-01 order, style-list deduplication, gate timing (type roles and letter-spacing at G12), and project tokens kept under `x-<id>`. The fourth audit's remaining fixes are applied in this revision. Gates G1 to G12 open; no checkpoint started.
 - 2026-11-21: added the derived-project design guide (`docs/design-system-extension.md`), its agent guidance, the starter skeleton and a docs-consistency test to U6.
 - 2026-11-21: human gates simplified to a start gate, a release gate and one PR approval rule. Earlier entries name the former gates G1 to G12.
-- 2026-11-21: decisions made for every open item (decision register P-01 to P-30); readiness review fixes applied (sibling label selectors, project flag via props, `design-styles.ts` against an import cycle, the offline-page generator and colour mapping, fixed order, PR counts, requirements and continuation rules).
+- 2026-11-21: decisions made for every open item (decision register P-01 to P-33); readiness review fixes applied (sibling label selectors, project flag via props, `design-styles.ts` against an import cycle, the offline-page generator and colour mapping, fixed order, PR counts, requirements and continuation rules).
 - 2026-11-21: final readiness check passed after fixes: `global-error.tsx` sets `data-project` itself, `appearance.ts` re-exports `designStyleSchema`, the U2-S fallback is unconditional under the fixed order, and U3 compares against U0. The plan is ready for implementation; work starts when the start gate is met.
+- 2026-11-21: unattended-readiness gaps closed: P0 checkpoint for the design-package change, local run and sign-in procedure, U3 form inventory (P-31), badge contrast method (P-32) and exact upgrade-rehearsal commands (P-33).
