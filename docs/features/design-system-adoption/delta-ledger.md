@@ -2,9 +2,11 @@
 
 Every Unibase delta from the design package, assigned to a checkpoint of the
 [implementation plan](implementation-plan.md). Generated from the
-[adoption baseline](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/adoption/baseline.md) at package revision `493e13b`;
-do not edit by hand. Regenerate if the accepted package revision differs, and
-review the difference before continuing.
+[adoption baseline](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/adoption/baseline.md) at package revision `493e13b`
+by parsing every row of its delta and colour tables (decision rows D-01 to D-13 excluded).
+Keep it identical to the baseline: if the accepted package revision differs, compare that
+revision's baseline row by row (ID, files, change, status, risk and approval), update the rows
+here, assign any new row a checkpoint, and review the difference on #53 before continuing.
 
 143 rows: 99 colour rows and 44 others. Nothing is left unassigned.
 
