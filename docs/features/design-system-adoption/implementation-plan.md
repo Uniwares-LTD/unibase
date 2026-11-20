@@ -44,7 +44,7 @@ names its own approval.
   2. Delete `classic.css` and `soft-blue.css` at U4.
   3. Every checkpoint is its own PR, merged with a merge commit, and can be reverted on its own.
   4. **Deviation:** AGT-01 and SKL-01 move from U1 to U5. Their text describes `Field`, `SubmitButton`, the toast and the leave guard, which only exist after U2, U2-S and U4. Recorded in the U5 deviation table.
-  5. **Type roles must be overridable by a derived project.** As generated today, `tailwind-theme.css` writes literal values into an `@theme inline` block, so a project theme can't change them. The package's own generated project themes already express role values as `-size`, `-leading`, `-weight` and `-tracking` variables, so that is the convention to support. Recommended default, a package change before U4 (gate G12):
+  5. **Type roles must be overridable by a derived project.** As generated today, `tailwind-theme.css` writes literal values into an `@theme inline` block, so a project theme can't change them. The package's own generated project themes already express role values as `-size`, `-leading`, `-weight` and `-tracking` variables, so that is the convention to support. Recommended default, a package change made before work starts and included in the revision accepted at the start gate:
      - The package generator emits each role key as a variable with the current value as fallback, for example `--text-hero: var(--text-hero-size, 2.5rem)` and `--text-hero--font-weight: var(--text-hero-weight, 600)`.
      - Unibase renders identically without a project theme; a project overrides the `-size`, `-leading`, `-weight` and `-tracking` variables in its theme.
      - U4 vendors that revision.
@@ -75,29 +75,26 @@ names its own approval.
 | UG-013 brief provenance | product owners (not this issue) |
 | UG-014 RTL fixes | RTL-01 to RTL-04 at U2 |
 | UG-015 touch sizes | TCH-02 at U1; TCH-01 and TCH-03 at U2 |
-| UG-016 toast CSP | G5 and U2-S |
+| UG-016 toast CSP | U2-S, with security approval on its PR |
 | UG-017 missing media | MED-01 at U2 and U3 |
-| UG-018 project style seam | U6 theme seam (G9) |
+| UG-018 project style seam | U6 theme seam (default approved with the plan) |
 | UG-019 regression tooling | U0 decision: scripted captures, no new dependency |
 
 ## Execution prerequisites
 
-**Human gates.** None are met yet.
+**Human gates.** There are two, each passed once. Neither is met yet.
 
-| Gate | Blocks | Who |
-| --- | --- | --- |
-| G1. Package acceptance record filled: accepted revision, accepting reviewer, maintenance owner, date | everything from U0 | team (named reviewer) |
-| G2. Engineering handoff review held and recorded (unitale-mockup#7) | U1 onward | team |
-| G3. Approval of this plan and its checkpoint order | U0 | issue owner |
-| G4. Explicit approval of AGT-01 and SKL-01 (`configuration`) | U5 guidance | Unibase maintainers |
-| G5. Security review of TST-01 and TST-02: approve the CSP hashes, or choose another toast approach (UG-016) | U2-S | Unibase security reviewer |
-| G6. Dark warning surface `#431407` decided | U4 | Unibase reviewers |
-| G7. Explicit approval of the U4 foundation (99 `visible` colour rows plus type roles) | U4 | Unibase reviewers |
-| G8. Native review of the Arabic strings in spec §9 | merge of U2 | native speaker |
-| G9. The U6 decisions: theme seam shape and `data-project`, fonts, style-list deduplication, and explicit approval of the derived-project agent guidance (`build-ui` section and adapter pointer) | U6 | Unibase maintainers |
-| G10. Template release and tag authorization | U6 release | repository owner |
-| G11. Per-screen approval for applying `lg` to existing forms, if wanted | that part of U3 | Unibase reviewers |
-| G12. Decision 5 (variable-backed type roles and the `em` letter-spacing unit) approved, and the package change merged in `unitale-design` as the accepted revision | U4 | Unibase maintainers, package owner, then G1 reviewer |
+| Gate | When | Who | Met when |
+| --- | --- | --- | --- |
+| **Start gate** | before U0 | team (a named reviewer) and the issue owner | The package acceptance record names the accepted revision, accepting reviewer, maintenance owner and date, and that revision includes the decision 5 package change (variable-backed type roles, `em` letter-spacing). The engineering handoff review (unitale-mockup#7) is held. This plan is approved, which approves its checkpoint order and every recommended default in it; any changed default is recorded under "Verified progress". |
+| **Release gate** | end of U6 | repository owner | Authorization to tag `template-v<version>`. |
+
+**PR approval rule.** Low-risk PRs merge with normal review. A PR containing `visible`, `security` or `configuration` rows merges only with explicit approval from a Unibase maintainer on that PR. This covers:
+- U2: the Arabic strings, reviewed by a native speaker before merge;
+- U2-S: the security review of the CSP hashes (if rejected, follow U2-S's continuation);
+- U3: applying `lg` to an existing screen;
+- U4: the foundation, including the dark warning surface `#431407` (approve, or adjust within the contrast rule);
+- U5 and U6: agent guidance (AGT-01, SKL-01, and the derived-project section).
 
 **Environment.**
 - Node 24 with `npm.cmd ci`.
@@ -122,7 +119,7 @@ names its own approval.
 | U0 Gate and baseline | none | 0 (evidence only) | 0 | yes |
 | U1 Seams, no visual change | none | 1 | ~3 | yes |
 | U2 Shared helpers in the showcase | low | 1 | ~22 | yes |
-| U2-S Toast and CSP | security | 1 | ~10 | yes; skipped if G5 rejects |
+| U2-S Toast and CSP | security | 1 | ~10 | yes; skipped if its security review rejects |
 | U3 Rollout by area | low (`visible` where `lg` is applied) | 4, one per slice | ~6 to 12 each | yes, after any slice |
 | U4 Visible foundation | visible | 1 | ~11 | yes |
 | U5 Verification, guidance and close | none / configuration | 1 or 2 | ~12 | yes |
@@ -138,12 +135,12 @@ names its own approval.
 
 ## Checkpoints
 
-Apply them in order. U2-S may run in parallel with U2 or U3 once G5 is met. U4 may move ahead
+Apply them in order. U2-S may run in parallel with U2 or U3. U4 may move ahead
 of U3 if reviewers prefer the visible change first; the two touch different files.
 
 ### U0. Gate and baseline capture
 
-- **Requirements.** G1 to G3 met. The accepted revision is recorded under "Verified progress".
+- **Requirements.** The start gate is met. The accepted revision is recorded under "Verified progress".
 - **Work.**
   - Capture the baseline:
     - pages: `/design-system`, Account, Preferences, Credits, Admin, Users, Reports;
@@ -157,7 +154,7 @@ of U3 if reviewers prefer the visible change first; the two touch different file
   - Use named headless Playwright sessions, and record the commands so U4 and U5 repeat them exactly.
 - **Decision recorded here (UG-019).** Use scripted Playwright-CLI captures, which add no dependency. Regression tooling inside the repository needs its own dependency decision and stays out of scope.
 - **Acceptance.** A capture set exists for every combination, with its commands written down. The capture list and location are posted on #53.
-- **Continuation.** Automatic once G1 to G3 are met.
+- **Continuation.** Automatic once the start gate is met.
 
 ### U1. Seams, no visual change
 
@@ -187,7 +184,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
 | TCH-01, TCH-03 | §7 | `src/app/globals.css` coarse-pointer rules | **Decision:** the exact TCH-03 selectors. The row is still marked "not yet reviewed", so review it here. **Acceptance on touch:** the label beside a checkbox or radio in a `Field` is at least 44px and toggles the control; every icon button is at least 44px wide; every choice is at least 44px tall. A fine pointer keeps the compact sizes. |
 | BDG-01 | §10 | `ui/badge.tsx` or a composition beside it | **Decisions:** variant or composition; the prop names; the contrast of the error and neutral tones (measure them). **Acceptance:** each tone reads correctly with icons hidden and in greyscale; long labels wrap; the badge isn't focusable; light and dark in every preset. |
 | NTC-01 | §11 | `Notice` in `page-patterns.tsx` | **Decisions:** the prop shape; whether the label changes while pending; focus handling when the action is disabled. **Acceptance:** each state shows its label and receipt; pending and success can't be activated; failed can be retried by the user only; keyboard and screen-reader announcement in every preset. |
-| (copy) | §9 Copy | `ui` catalog keys (`m` plus a 12-hex SHA-256 prefix) in English and Arabic; regenerate `messages/client-sections.json` | Run `node scripts/i18n-client-sections.mjs`, then `npm.cmd run check:i18n`. The Arabic text is a draft until G8. The toast's `Dismiss` key ships with U2-S, not here, so it is never unused. |
+| (copy) | §9 Copy | `ui` catalog keys (`m` plus a 12-hex SHA-256 prefix) in English and Arabic; regenerate `messages/client-sections.json` | Run `node scripts/i18n-client-sections.mjs`, then `npm.cmd run check:i18n`. The Arabic text is a draft until its native review on the U2 PR. The toast's `Dismiss` key ships with U2-S, not here, so it is never unused. |
 
 - **Docs.**
   - DOC-01 §1 rows for the new files, and DOC-01 §3 "Interaction rules".
@@ -203,11 +200,11 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - `check:i18n`.
 - **Merge order.** U2 and U2-S both regenerate `messages/client-sections.json`; merge U2 first and regenerate the file in U2-S after rebasing on it.
 - **Browser checks.** Every state in the showcase at 390px and 1440px, English and Arabic, light and dark, keyboard only. No hydration or CSP errors.
-- **Continuation.** Automatic. G8 before merge.
+- **Continuation.** Automatic. Native Arabic review before merge (PR approval rule).
 
 ### U2-S. Toast and CSP (security route)
 
-- **Requirements.** G5.
+- **Requirements.** Security approval on the PR (PR approval rule).
 - **Rows.**
   - TST-01: `sonner` through the shadcn CLI, as `src/components/ui/sonner.tsx`, then **pinned exactly** as `"sonner": "2.0.8"` in `package.json`, because the CLI installs an unpinned range. Add a `src/components/toast.tsx` wrapper with `confirm`, `info`, `error` and `action` helpers, mounted in `src/app/layout.tsx`.
   - TST-02: two `sha256` sources in production `style-src` in `src/proxy.ts`, with the hash constant exported.
@@ -238,7 +235,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - a new confirmation replaces the previous one through the shared `confirmation` id;
   - an error toast persists until dismissed;
   - the 6000 ms and font fallbacks apply when the tokens are absent.
-- **Continuation.** Stop if G5 rejects. Record the alternative (UG-016), remove the toast references from DOC-01, AGT-01 and SKL-01, and continue without a toast.
+- **Continuation.** Stop if the security review rejects. Record the alternative (UG-016), remove the toast references from DOC-01, AGT-01 and SKL-01, and continue without a toast.
 
 ### U3. Rollout by area
 
@@ -255,7 +252,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
     - Files: `src/components/files.tsx`;
     - Admin: `src/components/admin-operations.tsx`, `src/components/diagnostics-panel.tsx`;
     - Runs: `src/app/artifacts/[id]/page.tsx`, `src/components/runs/registered-card.tsx`, `src/components/runs/run-ui.tsx`.
-  - FLD-02 `lg` only with G11 approval for that screen.
+  - FLD-02 `lg` only with explicit approval on that slice's PR.
 - **Acceptance per slice.**
   - Invalid submit, retained values, pending state and failure behave as in U2.
   - Screens without an approved change are unchanged against the latest captures: U0, or U4's if U4 ran first.
@@ -265,12 +262,12 @@ until U3. Spec numbers refer to the package's implementation specifications.
 
 ### U4. Visible foundation
 
-- **Requirements.** G6, G7 and G12. U0 captures exist.
+- **Requirements.** Explicit approval on the PR (PR approval rule), including the dark warning surface. U0 captures exist.
 - **Rows.** All 99 colour rows, TOK-01, TOK-02 and TYPE-01 to TYPE-12, following the package's
   [foundation migration](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/adoption/implementation-specs.md#foundation-migration).
   Re-read each Unibase file before editing it.
 - **Work.**
-  1. Copy `unibase.css` and `tailwind-theme.css` (with variable-backed type roles, G12) from the accepted revision into `src/styles/design-system/`, with a header comment naming the source repository, path and revision.
+  1. Copy `unibase.css` and `tailwind-theme.css` (with variable-backed type roles, decision 5) from the accepted revision into `src/styles/design-system/`, with a header comment naming the source repository, path and revision.
   2. `src/app/globals.css`: set the import order to tailwindcss, tw-animate-css, shadcn/tailwind.css, `../styles/design-system/unibase.css`, `../styles/tokens.css`, `../styles/presets/glass.css`, then `../styles/design-system/tailwind-theme.css`.
      - Remove `--font-heading` and the literal `--font-sans` from `@theme inline`.
      - Keep the semantic colour and radius mappings, `@custom-variant dark`, `.page-title`, `.reading-copy`, `.page-stack`, and the focus and touch rules.
@@ -309,17 +306,17 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - A temporary `text-body` probe computes 14px / 22.4px / 400. Remove it afterwards.
 - **Contrast.** Recompute it for any adopted value that differs from the package.
 - **Rollback.** Revert the single U4 commit.
-- **Continuation.** G6, G7 and G12.
+- **Continuation.** Explicit approval on the PR.
 
 ### U5. Verification, agent guidance and close of the package adoption
 
 - **Requirements.** U1 to U4 merged, and U2-S merged or explicitly declined.
-- **AGT-01** (after G4), from the agent-guidance proposal:
+- **AGT-01** (explicit approval on the PR), from the agent-guidance proposal:
   - one bullet under "Decision-point rules" in `AGENTS.md`;
   - two additions to "UI and browser verification" in `.agents/repository-adapter.md`;
   - one change to the "UI, locale or navigation" row in `docs/source-map.md`.
   - If U2-S was declined, drop the toast references.
-- **SKL-01** (after G4):
+- **SKL-01** (explicit approval on the PR):
   - In this order (a deviation from proposal §4, because `handbook:sync` generates the `.claude` wrapper itself and would overwrite a hand-written one):
     1. Add the canonical `.agents/skills/build-ui/SKILL.md` from the package.
     2. Add `"build-ui"` to the `names` array in `scripts/check-skills.mjs`; without it, the check fails.
@@ -348,7 +345,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
 
 ### U6. Derived-project readiness and template release
 
-This checkpoint makes Unibase ready for any derived project to build its UI on. Decisions (G9) come first.
+This checkpoint makes Unibase ready for any derived project to build its UI on. Its decisions use the recommended defaults approved with the plan.
 
 - **Theme seam (DEF-03, UG-018).** Today a derived project can only pick one of the three presets (`defaultStyle` in `src/lib/project.ts`, `designStyleSchema` in `src/lib/appearance.ts`). Package themes target `html[data-project="<id>"]`, and the package reference removes `data-style` while a project theme is shown (Extending Unibase; foundation migration). Decide:
   1. **Who sets `data-project` on `<html>`.** Recommended default: the server, in `src/app/layout.tsx`, from a new optional `theme: true` flag in `project.config.json` (validated in `src/lib/project.ts`). With the flag off, which is Unibase's default, the attribute is absent and nothing changes.
@@ -374,7 +371,7 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
     - `tests/integration/auth.test.mjs` for `data-project` rendered by the server, no `data-style` with the flag on, and the selector hidden.
   - Document it in `docs/architecture.md#project-extensions`, `docs/template.md`, and the "Switching and persistence" and "Extension point" sections of `docs/design-system.md`.
   - Document what a project's `theme.css` may contain, following Extending Unibase: type-role values through the `-size`, `-leading`, `-weight` and `-tracking` variables (decision 5), rules that target Unibase slots such as `[data-slot=card]` rather than generic element selectors, and project-prefixed variables for anything Unibase doesn't consume.
-- **Type-role overrides.** Verify the G12 package change end to end: with the fixture project theme setting `--text-hero-size` and `--text-card-title-weight`, the computed styles change; without it, U4's values hold.
+- **Type-role overrides.** Verify the decision 5 package change end to end: with the fixture project theme setting `--text-hero-size` and `--text-card-title-weight`, the computed styles change; without it, U4's values hold.
 - **Fonts (DEF-02).** Unibase keeps system fonts. Recommended default for a derived project: `@font-face` rules in the project-owned `src/project/theme.css`, with the font files under the project-owned `public/fonts/`. They are served from `'self'`, so the CSP doesn't change, and template-owned files such as `layout.tsx` are never edited. The theme sets `--type-heading` and `--type-body` to the new families. (The alternative, a `src/project/fonts.ts` seam using `next/font/local`, is recorded as rejected: it would need a hook in the template-owned layout.)
   - Fonts from third-party hosts are blocked by `font-src 'self'`. The upgrade notes tell projects to self-host.
   - Add a fixture theme with an `@font-face` and both hooks, and assert in the browser checks that the computed font families change and no CSP violation occurs. Fixture themes (fonts and type roles) live under `tests/fixtures/project-theme/` and are applied only by the checks; the shipped `src/project/theme.css` stays empty.
@@ -416,7 +413,7 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 - **Agent guidance for derived projects.**
   - Add a "Derived projects" section to the `build-ui` skill (SKL-01, regenerated through `handbook:sync`): read `docs/design-system-extension.md` first; theme only through `theme.css`; tokens under `x-<id>`; compose rather than edit shared components; propose shared needs to the design package.
   - Add one pointer to the guide in the adapter's "UI and browser verification" section.
-  - Both are `configuration` changes and need G4-style explicit approval at U6. If SKL-01 was rejected, the same text goes into the guide's agent section.
+  - Both are `configuration` changes and need explicit approval on the U6 PR. If SKL-01 was rejected, the same text goes into the guide's agent section.
 - **Starter skeleton.** The initializer's `src/project/theme.css` contains the guide's minimal example as comments only, so it renders nothing until edited. It names the slug, the selectors, the overridable tokens and a link to the guide.
 - **DEF-04, Lucide 1.75.0 (optional).** A separate commit if reviewers want it, with icon rendering checked in the showcase.
 - **Hard-coded colours.** Align these with the adopted Classic values, and document them as per-project values (see `docs/template.md`, "First steps"):
@@ -427,7 +424,7 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
   - `scripts/generate-icons.mjs` (icon background);
   - `src/app/icon.svg` (fill and background);
   - the generated `public/icons/*.png`, regenerated with `npm.cmd run icons:generate`.
-- **Template release (G10).** `## Unreleased` already contains unrelated reusable changes, which ship in the same release. List them in the release notes too.
+- **Template release (release gate).** `## Unreleased` already contains unrelated reusable changes, which ship in the same release. List them in the release notes too.
   - Make a minor bump (allowed before 1.0), and set `template.json`.
   - Upgrade notes for derived projects:
     - the deleted preset files;
@@ -487,10 +484,11 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 | Browser (headless, scripted) | the U0 matrix; per-spec acceptance; RTL; keyboard; CSP; hydration | U0, U2, U2-S, U3, U4, U5 |
 | Browser (optional) | the package's adoption fixture against this branch | U4 |
 | Contrast | recompute changed values; BDG-01 error and neutral tones | U2, U4 |
-| Human | Arabic native review (G8); physical devices, microphone, screen reader, 200% zoom, visual parity | U2, U5 |
+| Human | Arabic native review (U2 PR); physical devices, microphone, screen reader, 200% zoom, visual parity | U2, U5 |
 
 ## Verified progress and resume
 
 - 2026-11-21: plan proposed on branch `task/53-adopt-design-system` from `main` `37aac48`. A separate read-only completeness audit against package `493e13b` found missing decisions, files, tests and readiness items; all of them are addressed above. A second audit of commit `43b6422` found six further gaps (type-role overrides, the full unconsumed-token list, the SKL-01 `names` edit, `icon.svg`, docs for the new helpers, and a toast behaviour test) plus smaller items; all are addressed in the next commit. No checkpoint started. Gates G1 to G12 open.
 - 2026-11-21: scope narrowed to Unibase only; Unitale's own adoption and UI work is the next, separate issue. Third and fourth audits closed: project-theme `data-style`, public config, fonts, test method, SKL-01 order, style-list deduplication, gate timing (type roles and letter-spacing at G12), and project tokens kept under `x-<id>`. The fourth audit's remaining fixes are applied in this revision. Gates G1 to G12 open; no checkpoint started.
 - 2026-11-21: added the derived-project design guide (`docs/design-system-extension.md`), its agent guidance, the starter skeleton and a docs-consistency test to U6.
+- 2026-11-21: human gates simplified to a start gate, a release gate and one PR approval rule. Earlier entries name the former gates G1 to G12.

@@ -25,8 +25,8 @@ here, assign any new row a checkpoint, and review the difference on #53 before c
 | U4 check, U5 confirm | 5 |
 | U4 | 113 |
 | U5 (configuration approval; moved from U1) | 2 |
-| U6 (decision gate) | 2 |
-| U6 (optional, decision gate) | 1 |
+| U6 (optional) | 1 |
+| U6 (recommended default) | 2 |
 
 ## Foundations, compositions, fixes, documentation and deferrals
 
@@ -71,9 +71,9 @@ here, assign any new row a checkpoint, and review the difference on #53 before c
 | KEEP-04 | Appearance persistence | `src/lib/appearance.ts`, providers | unchanged | retain | none | with normal review | PLAN §4 | [colors](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/foundations/colors.md) | U4 check, U5 confirm |
 | KEEP-05 | Existing text consumers | feature components | unchanged by the package; the named consumer migration is reviewed at U4 | retain | none | with normal review | D-05 | [type roles](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/adoption/implementation-specs.md#1-type-roles) | U4 check, U5 confirm |
 | DEF-01 | Unitale reference preset | — | not proposed for Unibase | deferred | none | with normal review | D-07 | [appearance](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/components/appearance.md) | Derived project (not this issue) |
-| DEF-02 | Brand fonts | — | not proposed; `font-src 'self'` would need self-hosting | deferred | none | with normal review | D-07 | [typography](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/foundations/typography.md) | U6 (decision gate) |
-| DEF-03 | Downstream style seam | `src/lib/appearance.ts`, `src/lib/project.ts` | not designed | deferred | none | with normal review | D-07 | [UG-018](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/adoption/known-gaps.md#ug-018) | U6 (decision gate) |
-| DEF-04 | Lucide 1.75.0 | `package.json` | optional separate bump | deferred | none | with normal review | D-12 | [icons](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/foundations/icons.md) | U6 (optional, decision gate) |
+| DEF-02 | Brand fonts | — | not proposed; `font-src 'self'` would need self-hosting | deferred | none | with normal review | D-07 | [typography](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/foundations/typography.md) | U6 (recommended default) |
+| DEF-03 | Downstream style seam | `src/lib/appearance.ts`, `src/lib/project.ts` | not designed | deferred | none | with normal review | D-07 | [UG-018](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/adoption/known-gaps.md#ug-018) | U6 (recommended default) |
+| DEF-04 | Lucide 1.75.0 | `package.json` | optional separate bump | deferred | none | with normal review | D-12 | [icons](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/foundations/icons.md) | U6 (optional) |
 | DEF-05 | Service-dependent recovery | feature code | stays with the consuming feature | deferred | none | with normal review | PLAN §4 | [loading](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/patterns/loading.md) | Consuming feature (not this issue) |
 | DEF-06 | Owned history | feature code | stays with the consuming feature | deferred | none | with normal review | PLAN §4 | [results](https://github.com/Uniwares-LTD/unitale-design/blob/493e13b83635280f74ce97784c25a64d6259ea36/docs/design-system/unibase/guides/patterns/results-access.md) | Consuming feature (not this issue) |
 
