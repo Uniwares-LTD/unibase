@@ -44,11 +44,11 @@ names its own approval.
   2. Delete `classic.css` and `soft-blue.css` at U4.
   3. Every checkpoint is its own PR, merged with a merge commit, and can be reverted on its own.
   4. **Deviation:** AGT-01 and SKL-01 move from U1 to U5. Their text describes `Field`, `SubmitButton`, the toast and the leave guard, which only exist after U2, U2-S and U4. Recorded in the U5 deviation table.
-  5. **Type roles must be overridable by a derived project.** As generated today, `tailwind-theme.css` writes literal values into an `@theme inline` block, so a project theme can't change them, and Extending Unibase lets a project theme set role sizes and weights. Recommended default, a package change before U4 (gate G12):
+  5. **Type roles must be overridable by a derived project.** As generated today, `tailwind-theme.css` writes literal values into an `@theme inline` block, so a project theme can't change them. The package's own generated project themes already express role values as `-size`, `-leading`, `-weight` and `-tracking` variables, so that is the convention to support. Recommended default, a package change before U4 (gate G12):
      - The package generator emits each role key as a variable with the current value as fallback, for example `--text-hero: var(--text-hero-size, 2.5rem)` and `--text-hero--font-weight: var(--text-hero-weight, 600)`.
      - Unibase renders identically without a project theme; a project overrides the `-size`, `-leading`, `-weight` and `-tracking` variables in its theme.
      - U4 vendors that revision.
-     - The letter-spacing unit changes in the same package change (U6 decision): the generator emits `0rem` today, and the spec and ledger say `0em`.
+     - **Letter-spacing unit** (open package decision), decided here: recommended default `em`, which matches the CSS renderer and scales with each role's size. The generator emits `0rem` today while the spec and ledger say `0em`; the same package change switches it. Every value is 0, so nothing renders differently.
   6. **Test method.** Unibase's `npm test` runs `node:test` with no DOM, and this plan adds no test dependency. Pure logic is extracted and tested with `node:test` and fake timers: the toast timer and replacement, the leave-guard outcome table, Field ID derivation and the Notice action states. DOM behaviour (focus, `aria-describedby`, hover pause, focus return) is asserted in the scripted Playwright browser checks and recorded as evidence. Adding jsdom or Testing Library would be a separate dependency decision.
   7. `lg` field size (FLD-02) and the leave guard (LVG-01) are applied to existing screens only where allowed: `lg` needs explicit `visible` approval per screen, and LVG-01 applies only where a feature has real saving or offers Discard alone (spec §6).
 - **Not in this issue.** These belong to derived projects or to the features that consume the helpers, and are handled outside Unibase:
@@ -94,10 +94,10 @@ names its own approval.
 | G6. Dark warning surface `#431407` decided | U4 | Unibase reviewers |
 | G7. Explicit approval of the U4 foundation (99 `visible` colour rows plus type roles) | U4 | Unibase reviewers |
 | G8. Native review of the Arabic strings in spec §9 | merge of U2 | native speaker |
-| G9. The U6 decisions: theme seam shape and `data-project`, type-role overrides, fonts, unconsumed project tokens, letter-spacing unit | U6 | Unibase maintainers |
+| G9. The U6 decisions: theme seam shape and `data-project`, fonts, and style-list deduplication | U6 | Unibase maintainers |
 | G10. Template release and tag authorization | U6 release | repository owner |
 | G11. Per-screen approval for applying `lg` to existing forms, if wanted | that part of U3 | Unibase reviewers |
-| G12. The package change that makes type roles overridable (decision 5) is merged in `unitale-design` and becomes the accepted revision | U4 | package owner, then G1 reviewer |
+| G12. Decision 5 (variable-backed type roles and the `em` letter-spacing unit) approved, and the package change merged in `unitale-design` as the accepted revision | U4 | Unibase maintainers, package owner, then G1 reviewer |
 
 **Environment.**
 - Node 24 with `npm.cmd ci`.
@@ -237,7 +237,6 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - a confirmation pauses while hovered or focused, and restarts the full duration after both end;
   - a new confirmation replaces the previous one through the shared `confirmation` id;
   - an error toast persists until dismissed;
-  - closing returns focus to the opener;
   - the 6000 ms and font fallbacks apply when the tokens are absent.
 - **Continuation.** Stop if G5 rejects. Record the alternative (UG-016), remove the toast references from DOC-01, AGT-01 and SKL-01, and continue without a toast.
 
@@ -297,7 +296,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - the revision headers on the vendored files;
   - every non-Classic ID in `designStyleSchema` has an `html[data-style="…"]` block, and `:root` is the Classic fallback;
   - `--toast-confirmation-duration` is `6000ms`;
-  - each type-role key in the vendored `tailwind-theme.css` is variable-backed with its package value as fallback.
+  - each type-role key in the vendored `tailwind-theme.css` is variable-backed with its package value as fallback, and letter-spacing values use `em`.
 - **Optional cross-check before merge.** Run the package's `scripts/design-system/verify-unibase-browser.mjs` with `UNIBASE_ADOPTION_SOURCE` pointing at this branch. That adds the 9 compiled-Tailwind fixture checks; see the verification record.
 - **Browser checks.**
   - The U0 matrix again. Differences must be exactly the approved colour rows.
@@ -375,31 +374,12 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
     - `tests/integration/auth.test.mjs` for `data-project` rendered by the server, no `data-style` with the flag on, and the selector hidden.
   - Document it in `docs/architecture.md#project-extensions`, `docs/template.md`, and the "Switching and persistence" and "Extension point" sections of `docs/design-system.md`.
   - Document what a project's `theme.css` may contain, following Extending Unibase: type-role values through the `-size`, `-leading`, `-weight` and `-tracking` variables (decision 5), rules that target Unibase slots such as `[data-slot=card]` rather than generic element selectors, and project-prefixed variables for anything Unibase doesn't consume.
-- **Type-role overrides.** Verify the G12 package change end to end: with a fixture project theme setting `--text-hero-size` and `--text-card-title-weight`, the computed styles change; without it, U4's values hold.
+- **Type-role overrides.** Verify the G12 package change end to end: with the fixture project theme setting `--text-hero-size` and `--text-card-title-weight`, the computed styles change; without it, U4's values hold.
 - **Fonts (DEF-02).** Unibase keeps system fonts. Recommended default for a derived project: `@font-face` rules in the project-owned `src/project/theme.css`, with the font files under the project-owned `public/fonts/`. They are served from `'self'`, so the CSP doesn't change, and template-owned files such as `layout.tsx` are never edited. The theme sets `--type-heading` and `--type-body` to the new families. (The alternative, a `src/project/fonts.ts` seam using `next/font/local`, is recorded as rejected: it would need a hook in the template-owned layout.)
   - Fonts from third-party hosts are blocked by `font-src 'self'`. The upgrade notes tell projects to self-host.
-  - Add a fixture theme with an `@font-face` and both hooks, and assert in the browser checks that the computed font families change and no CSP violation occurs.
-- **Theme tokens Unibase doesn't read yet.** The derived-project theme convention in Extending Unibase uses these, and nothing in Unibase reads them:
-  - radius: `--radius-card`, `--radius-dialog`, `--radius-media`, `--radius-pill`;
-  - borders and focus: `--border-selected`, `--focus-width`, `--focus-offset`;
-  - shadows: `--shadow-raised`, `--shadow-floating`;
-  - motion: `--duration-feedback`, `--duration-reveal`, `--ease-standard`;
-  - selection: `--selected`, `--selected-foreground`;
-  - `--destructive-foreground` (kept undefined by the package decisions).
-
-  Recommended default: Unibase exposes **generic consumers that default to today's values**, so Unibase looks identical and a project theme can tune them:
-  - `ui/card.tsx`: `--radius-card` and `--shadow-raised`;
-  - `ui/dialog.tsx`, `ui/alert-dialog.tsx` and `ui/sheet.tsx`: `--radius-dialog` and `--shadow-floating`;
-  - `media-fallback.tsx` and images: `--radius-media`; badges and chips: `--radius-pill`;
-  - the global focus rule in `globals.css`: `--focus-width` and `--focus-offset`;
-  - selected choices and radio items: `--border-selected`, `--selected` and `--selected-foreground`;
-  - component transitions: `--duration-feedback`, `--duration-reveal` and `--ease-standard`.
-
-  `--destructive-foreground` stays undefined in Unibase, as the package decides. Project-prefixed variables stay project-owned.
-
-  Acceptance: screenshots unchanged against the latest accepted captures (U4 and U5) with no project theme, and a test fixture theme visibly changes each consumer. If this is declined, derived projects own these tokens; record that in the upgrade notes.
-- **Letter-spacing unit** (open package decision). Recommended default: `em`, which matches the CSS renderer and scales with each role's size. It is applied in the G12 package change; every value is 0, so nothing renders differently.
-- **Skill and docs for the seam.** Add the theme seam, fonts path and token consumers to the `build-ui` skill and to `docs/design-system.md` ("Switching and persistence", "Extension point", and a `src/project/theme.css` row in "Where to change things").
+  - Add a fixture theme with an `@font-face` and both hooks, and assert in the browser checks that the computed font families change and no CSP violation occurs. Fixture themes (fonts and type roles) live under `tests/fixtures/project-theme/` and are applied only by the checks; the shipped `src/project/theme.css` stays empty.
+- **Project-specific tokens.** Following Extending Unibase, a project theme overrides only existing Unibase tokens, and puts any new token under its own `x-<id>` group, which its own code consumes. Unibase adds no consumers for project-specific tokens in this issue. If a derived project later needs a new **shared** token (for example a separate card or dialog radius), it is proposed to the design package as a new delta row and adopted through the normal route. Record this rule in `docs/design-system.md` ("Extension point") and in the upgrade notes.
+- **Skill and docs for the seam.** Add the theme seam, fonts path and the project-token rule to the `build-ui` skill and to `docs/design-system.md` ("Switching and persistence", "Extension point", and a `src/project/theme.css` row in "Where to change things").
 - **DEF-04, Lucide 1.75.0 (optional).** A separate commit if reviewers want it, with icon rendering checked in the showcase.
 - **Hard-coded colours.** Align these with the adopted Classic values, and document them as per-project values (see `docs/template.md`, "First steps"):
   - `themeColor` in `src/app/layout.tsx`;
@@ -455,7 +435,7 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 | Unit and behaviour | Field wiring; pending; leave guard; media fallback; Notice actions | U2 |
 | Unit and behaviour | `tests/sonner-csp.test.ts`, `tests/toast.test.ts` | U2-S |
 | Unit and behaviour | `tests/design-foundation.test.ts` | U4 |
-| Unit and behaviour | `tests/template-update.test.ts`, `tests/initializer.test.ts`, `tests/config.test.ts` (theme seam); type-role and token override fixtures | U6 |
+| Unit and behaviour | `tests/template-update.test.ts`, `tests/initializer.test.ts`, `tests/config.test.ts` (theme seam); type-role and font fixture themes | U6 |
 | Repository checks | `typecheck`, `lint`, `test`, `build`, `check:docs`, `check:i18n` | every checkpoint |
 | Repository checks | `check:skills`, `test:handbook`, `check:template` | U5, U6 |
 | Integration | `test:integration`: server `data-style` per cookie, `/design-system` 404 in production, `data-project` with the selector hidden | U3, U4, U5, U6 |
@@ -468,3 +448,4 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 ## Verified progress and resume
 
 - 2026-11-21: plan proposed on branch `task/53-adopt-design-system` from `main` `37aac48`. A separate read-only completeness audit against package `493e13b` found missing decisions, files, tests and readiness items; all of them are addressed above. A second audit of commit `43b6422` found six further gaps (type-role overrides, the full unconsumed-token list, the SKL-01 `names` edit, `icon.svg`, docs for the new helpers, and a toast behaviour test) plus smaller items; all are addressed in the next commit. No checkpoint started. Gates G1 to G12 open.
+- 2026-11-21: scope narrowed to Unibase only; Unitale's own adoption and UI work is the next, separate issue. Third and fourth audits closed: project-theme `data-style`, public config, fonts, test method, SKL-01 order, style-list deduplication, gate timing (type roles and letter-spacing at G12), and project tokens kept under `x-<id>`. The fourth audit's remaining fixes are applied in this revision. Gates G1 to G12 open; no checkpoint started.
