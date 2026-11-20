@@ -126,7 +126,7 @@ Every decision this plan relies on. They are approved together at the start gate
 
 | Gate | When | Who | Met when |
 | --- | --- | --- | --- |
-| **Start gate** | before U0 | team (a named reviewer) and the issue owner | P0 is merged. The package acceptance record names the accepted revision (P0's merge or later), accepting reviewer, maintenance owner and date. The engineering handoff review is held and recorded as a comment on unitale-mockup#7 (the issue need not be closed). This plan is approved, which approves its checkpoint order and every decision in the decision register; a changed decision is recorded under "Verified progress" before the checkpoint it affects. |
+| **Start gate** | after P0, before U0 | team (a named reviewer) and the issue owner | P0 is merged. The package acceptance record names the accepted revision (P0's merge or later), accepting reviewer, maintenance owner and date. The engineering handoff review is held and recorded as a comment on unitale-mockup#7 (the issue need not be closed). This plan is approved, which approves its checkpoint order and every decision in the decision register; a changed decision is recorded under "Verified progress" before the checkpoint it affects. |
 | **Release gate** | end of U6 | repository owner | Authorization to tag `template-v<version>`. |
 
 **PR approval rule.** Low-risk PRs merge with normal review. A PR containing `visible`, `security` or `configuration` rows merges only with explicit approval from a Unibase maintainer on that PR. This covers:
@@ -576,6 +576,7 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 
 | Document | Change | Checkpoint |
 | --- | --- | --- |
+| `unitale-design`: TYPE rows, spec §1 "Anatomy", package `CHANGELOG.md` | variable-backed type roles and `em` letter-spacing | P0 |
 | `docs/design-system.md` | DOC-01 §1, the "Where to change things" table, row by row as files change | U1, U2, U4 |
 | `docs/design-system.md` | DOC-01 §2, typography roles | U4 |
 | `docs/design-system.md` | DOC-01 §3, interaction rules | U2 |
@@ -597,6 +598,7 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 
 | Kind | Where | Checkpoint |
 | --- | --- | --- |
+| Package checks (in `unitale-design`) | the five package checks, with the compiled-Tailwind fixture via `UNIBASE_ADOPTION_SOURCE` | P0 |
 | Unit and behaviour | Field wiring; pending; leave guard; media fallback; Notice actions | U2 |
 | Unit and behaviour | `tests/sonner-csp.test.ts`, `tests/toast.test.ts` | U2-S |
 | Unit and behaviour | `tests/design-foundation.test.ts` | U4 |
@@ -620,3 +622,4 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 - 2026-11-21: decisions made for every open item (decision register P-01 to P-33); readiness review fixes applied (sibling label selectors, project flag via props, `design-styles.ts` against an import cycle, the offline-page generator and colour mapping, fixed order, PR counts, requirements and continuation rules).
 - 2026-11-21: final readiness check passed after fixes: `global-error.tsx` sets `data-project` itself, `appearance.ts` re-exports `designStyleSchema`, the U2-S fallback is unconditional under the fixed order, and U3 compares against U0. The plan is ready for implementation; work starts when the start gate is met.
 - 2026-11-21: unattended-readiness gaps closed: P0 checkpoint for the design-package change, local run and sign-in procedure, U3 form inventory (P-31), badge contrast method (P-32) and exact upgrade-rehearsal commands (P-33).
+- 2026-11-21: final revision before implementation: P0 added to the test and docs tables; the start gate is placed after P0. Plan state: ready for implementation once the start gate is met.
