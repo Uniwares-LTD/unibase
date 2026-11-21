@@ -7,10 +7,11 @@ accounts, credits and execution. Its reusable UI covers forms, Runs, results,
 tables and reports. A downstream product defines its own audience and content
 experience; each application defines its own audience and content requirements.
 
-Classic uses warm ivory, terracotta actions and book-like serif headings. Glass
-uses pearlescent gradients, green accents, frosted panels and sans headings.
-Soft Blue uses cobalt actions, pale lavender surfaces and rounded opaque panels,
-inspired by the supplied learning-app reference. Long-form content retains reading typography. No downloaded fonts are required.
+Classic pairs a warm canvas with burnt orange in light mode, apricot in dark
+mode and serif headings. Glass pairs frosted gradients with forest green or
+mint actions and sans-serif headings. Soft Blue pairs opaque lavender or navy
+surfaces with blue actions and sans-serif headings. The foundation uses system
+fonts.
 Classic, Glass and Soft Blue are independent of light, dark and system mode. All presets
 share semantic tokens and the same application behavior.
 
@@ -18,11 +19,11 @@ share semantic tokens and the same application behavior.
 
 | File                                  | Change here                                                                            |
 | ------------------------------------- | -------------------------------------------------------------------------------------- |
-| `src/styles/tokens.css`               | Shared typography/effect defaults, page gap, reading width and touch target sizes      |
-| `src/styles/presets/classic.css`      | Complete Classic fallback palette in light/dark                                        |
-| `src/styles/presets/soft-blue.css`    | Cobalt/lavender light and dark palettes                                                |
-| `src/lib/page-cover.ts`               | Metadata observation, image URL validation and loading cleanup                         |
-| `src/styles/presets/glass.css`        | Glass palette, gradients, translucent panels, blur and opaque fallbacks                |
+| `src/styles/design-system/unibase.css` | Vendored preset palettes, font roles, page gap and toast duration |
+| `src/styles/design-system/tailwind-theme.css` | Vendored Tailwind typography roles |
+| `src/styles/tokens.css` | Local effect defaults, reading width and touch targets |
+| `src/lib/page-cover.ts` | Metadata observation, image URL validation and loading cleanup |
+| `src/styles/presets/glass.css` | Glass gradients, panel effects and opaque fallbacks |
 | `src/lib/appearance.ts`               | Supported style/preference values and cookie resolution                                |
 | `src/components/style-provider.tsx`   | Browser selection and public appearance cookie                                         |
 | `src/components/style-preference.tsx` | Shared shadcn radio selector                                                           |
@@ -41,7 +42,7 @@ share semantic tokens and the same application behavior.
 
 Change a semantic pair together, for example `--warning` and
 `--warning-foreground`, in both themes. Prefer `bg-warning`/`text-warning-foreground`
-over a literal palette in a feature component. Keep brand values in preset files.
+over a literal palette in a feature component. Update shared palette values in the design package and vendor the generated foundation. The shadcn CLI writes to `globals.css`, where Unibase keeps its local mappings and rules.
 Spacing inside components uses Tailwind's existing scale; page separation and
 reading width use the shared tokens. Avoid a second spacing or control library.
 
@@ -51,6 +52,14 @@ do next. These are application compositions, not replacements for shadcn control
 Use existing Button, Input, Label, Card, Badge, Table, Sheet and AlertDialog
 primitives. Keep page reads on the server and interactive state in small client
 components. Do not move a page into a client component merely to style it.
+
+## Typography roles
+
+The foundation supplies 12 Tailwind roles: display, hero, page title, dialog
+title, section title, card title, reading, field, body, supporting, label and
+caption. Apply the approved role as a `text-*` utility. For example,
+`text-card-title` pairs 20px text with a 26px line height at weight 600.
+`font-heading` and `font-sans` use the preset's heading and body font hooks.
 
 ## Switching and persistence
 
@@ -90,11 +99,9 @@ backdrop filtering and requested reduced transparency use opaque panel colors in
 both modes. Reduced motion remains independent. Use Classic whenever an opaque,
 quiet canvas is preferred.
 
-To add a future preset: add its approved ID to the schemas in
-`src/lib/appearance.ts`, create a CSS file overriding the same variables under
-`html[data-style="your-id"]` and its `.dark` selector, import it after Classic
-in globals.css, and add its option to StylePreference. Test it through the same
-showcase; do not fork page implementations or shadcn controls. Illustrated presets and artwork-led reading layouts are still future work.
+To add a preset, approve its palette and font roles in the design package.
+Vendor the updated foundation, add the approved ID to `src/lib/appearance.ts`,
+and add an option to StylePreference. Verify it in the same showcase.
 
 ## Glass page-cover convention
 
@@ -165,7 +172,7 @@ public/design-system/cover.svg; the showcase remains development-only.
   offers status checking where it exists, and never repeats paid work automatically.
 - **Feedback versus approval.** Sending feedback or requesting a change does not approve the displayed
   output. An approval names the exact output and version. Approval is not purchase consent.
-- **Toast versus Notice** (the toast arrives with the security-reviewed toast change). A toast is a brief
+- **Toast versus Notice.** A toast is a brief
   confirmation of something the user just did; it lasts `--toast-confirmation-duration` (6 seconds),
   pauses while hovered or focused and restarts in full when both end. Errors and required actions never
   expire and always also appear in a `Notice` in the page.
