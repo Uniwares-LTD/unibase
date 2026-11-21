@@ -27,7 +27,12 @@ share semantic tokens and the same application behavior.
 | `src/components/style-provider.tsx`   | Browser selection and public appearance cookie                                         |
 | `src/components/style-preference.tsx` | Shared shadcn radio selector                                                           |
 | `src/app/globals.css`                 | Tailwind token mappings, fonts, page typography, focus, reduced motion and touch rules |
-| `src/components/page-patterns.tsx`    | Page headers, notices and empty states composed from shadcn                            |
+| `src/components/page-patterns.tsx`    | Page headers, notices (with optional action), empty states and `SubmitButton`         |
+| `src/components/status-badge.tsx`     | Status badge with icon and tone                                                        |
+| `src/components/leave-guard.tsx`      | Unsaved-changes guard for in-app navigation                                            |
+| `src/components/media-fallback.tsx`   | Fallback for absent or broken images                                                   |
+| `src/lib/design-helpers.ts`           | Pure, unit-tested logic behind the shared helpers                                      |
+| `src/components/helper-showcase.tsx`  | Synthetic examples of the shared helpers in the showcase                               |
 | `src/components/ui`                   | Installed shadcn primitives; use the shadcn CLI for additional primitives              |
 | `src/components/app-shell.tsx`        | Desktop/mobile navigation, account menu and skip link                                  |
 | `src/components/design-showcase.tsx`  | Synthetic interactive examples and static feature preview                              |
@@ -148,6 +153,30 @@ public/design-system/cover.svg; the showcase remains development-only.
 - Give inputs visible labels and connect help/errors with `aria-describedby`.
   Preserve typed values when an operation fails. Show pending and disabled states
   without removing the action's name.
+- **Validation.** Build fields with `Field`, `FieldLabel`, `FieldDescription` and `FieldError`. Show a
+  field's error under the field after a submit attempt, set `aria-invalid` on the control and focus the
+  first invalid control. Typing clears that field's error. Task-level failures go in a `Notice` near the
+  task, not in a field. Fields holding mixed-direction values (emails, URLs, codes) use `dir="ltr"`.
+- **Pending.** Use `SubmitButton`: it keeps its label, is disabled and `aria-busy` while pending, and
+  ignores a second activation. Hold submitted text fields read-only until the outcome is known. This is
+  not server idempotency; keep existing idempotency keys.
+- **Known failure versus unknown outcome.** A known failure keeps inputs and successful work and offers
+  retry only where the operation supports it. An unknown outcome says so plainly, keeps everything,
+  offers status checking where it exists, and never repeats paid work automatically.
+- **Feedback versus approval.** Sending feedback or requesting a change does not approve the displayed
+  output. An approval names the exact output and version. Approval is not purchase consent.
+- **Toast versus Notice** (the toast arrives with the security-reviewed toast change). A toast is a brief
+  confirmation of something the user just did; it lasts `--toast-confirmation-duration` (6 seconds),
+  pauses while hovered or focused and restarts in full when both end. Errors and required actions never
+  expire and always also appear in a `Notice` in the page.
+- **Leaving.** Forms with unsaved changes use the leave guard (`useLeaveGuard` from
+  `src/components/leave-guard.tsx`): Keep editing (initial focus), Save & exit only where saving exists,
+  and Discard & exit. Discard drops only local edits. Browser Back is not intercepted; tab close shows the
+  browser's own warning. Use it only where the feature has real saving or offers Discard.
+- **Selection.** A simple reversible choice may apply on tap. Multi-select, optional-detail, consequential
+  or paid choices need an explicit submit. At a selection limit, unselected options are disabled and
+  selected ones stay deselectable. Submitting selected options without typed text is valid when the
+  options are a complete answer. Selecting a paid or destructive option does not authorise it.
 - Pair status colors with text and, for notices, an icon. Errors use an alert;
   ordinary feedback uses a status region. Do not rely on color alone.
 - Keep credit balances, reservations and debt distinct. Label local simulation
@@ -159,7 +188,38 @@ public/design-system/cover.svg; the showcase remains development-only.
 - Use one main next action per task. Administration can be denser, with readable
   tables that scroll inside their container rather than widening the page.
 - Keep visible keyboard focus and the shell's skip link. Respect reduced motion.
-  Coarse-pointer buttons, inputs and selects have a minimum height of 44px.
+  Coarse-pointer buttons, inputs, selects and textareas have a minimum height of 44px; the label
+  beside a checkbox or radio in a horizontal `Field` is 44px tall and toggles the control.
+- **Missing media.** Replace an absent or broken image with `MediaFallback` or `ResultImage`
+  (`src/components/media-fallback.tsx`). A failed download never offers to regenerate content.
+
+### Status badge
+
+`StatusBadge` (`src/components/status-badge.tsx`) is a non-interactive status label built on Badge.
+Props: `tone` (`neutral`, `info`, `warning`, `success` or `error`), optional `icon` (a Lucide icon
+that replaces the tone's default), `children` (the status text) and `className`. The text alone carries
+the meaning; the icon is decorative and hidden from assistive technology. Long labels wrap. The error
+tone uses the error Notice styling (card surface, destructive text and border), because destructive text
+on its 10% tint measured 4.01:1 in Classic light; every tone measures at least 4.5:1 in all presets. Status changes
+are announced by the containing workflow, not by the badge. Examples: the showcase's "Status badges".
+
+### Notice with an action
+
+`Notice` accepts an optional `action`: `{ state, labels, receipt?, onAction }`, where `state` is
+`available`, `pending`, `success` or `failed` and `labels` names the available, pending and success
+states. The feature owns the state; the notice never starts work by appearing and never retries. While
+pending or after success the button is `aria-disabled` (it keeps focus) and ignores activation; pending
+also sets `aria-busy`. The receipt is a polite `role="status"` line under the action. Examples: the
+showcase's "Notice with an action".
+
+### Touch targets
+
+`src/styles/tokens.css` defines `--control-touch-sm` (2.75rem), `--control-touch-md` (3.25rem) and
+`--control-touch-lg` (3.75rem). Under `@media (pointer: coarse)`, `globals.css` gives icon buttons at
+least `--control-touch-sm` width and gives selectable options (select and menu items) and the label
+beside a checkbox or radio at least `--control-touch-sm` height. A fine pointer keeps the compact sizes.
+Fields have an opt-in `size="lg"` (48px minimum height, 16px text) on `Input`, `Textarea` and
+`SelectTrigger`; the default size is unchanged.
 
 ## Page frame conventions
 

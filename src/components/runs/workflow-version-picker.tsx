@@ -108,7 +108,7 @@ export function WorkflowVersionPicker({
       <DialogTrigger asChild>
         <Button disabled={disabled}>{label}</Button>
       </DialogTrigger>
-      <DialogContent className="rtl:translate-x-1/2">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Choose workflow version</DialogTitle>
           <DialogDescription>

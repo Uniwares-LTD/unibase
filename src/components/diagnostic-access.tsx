@@ -333,7 +333,7 @@ export function DiagnosticAccess({
             }}
           >
             <DialogContent
-              className="sm:max-w-lg rtl:translate-x-1/2"
+              className="sm:max-w-lg"
               onCloseAutoFocus={(event) => {
                 event.preventDefault();
                 createButton.current?.focus();

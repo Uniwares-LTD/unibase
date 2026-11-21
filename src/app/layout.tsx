@@ -18,6 +18,7 @@ import {
 import { viewerState } from "@/components/account-menu";
 import { AccountMenuControls } from "@/components/account-menu-controls";
 import { AppShell } from "@/components/app-shell";
+import { LeaveGuardProvider } from "@/components/leave-guard";
 import { ThemeProvider } from "@/components/theme-provider";
 import { publicSettings } from "@/lib/server/settings";
 import "./globals.css";
@@ -84,13 +85,15 @@ export default async function RootLayout({
               <BrowserRuntime preferredLocale={preferenceLocale} />
               <LocalizedValidation />
               <SessionBoundary>
-                <AppShell
-                  appName={publicConfig.appName}
-                  signedIn={viewer.hasSession}
-                  accountMenu={<AccountMenuControls {...viewer} />}
-                >
-                  {children}
-                </AppShell>
+                <LeaveGuardProvider>
+                  <AppShell
+                    appName={publicConfig.appName}
+                    signedIn={viewer.hasSession}
+                    accountMenu={<AccountMenuControls {...viewer} />}
+                  >
+                    {children}
+                  </AppShell>
+                </LeaveGuardProvider>
               </SessionBoundary>
             </StyleProvider>
           </ThemeProvider>
