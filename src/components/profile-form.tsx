@@ -34,13 +34,11 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   });
 
   return (
-    <form
-      ref={formRef}
-      action={action}
-      className="space-y-6"
-    >
+    <form ref={formRef} action={action} className="space-y-6">
       <Field>
-        <FieldLabel htmlFor="displayName">{translate("m2b7f6a84de91")}</FieldLabel>
+        <FieldLabel htmlFor="displayName">
+          {translate("m2b7f6a84de91")}
+        </FieldLabel>
         <Input
           id="displayName"
           name="displayName"

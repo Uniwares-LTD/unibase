@@ -11,7 +11,12 @@ import {
   privateFileSchema,
   uploadStatusSchema,
 } from "@/lib/contracts/files";
-import { EmptyState, Notice, PageHeader, SubmitButton } from "@/components/page-patterns";
+import {
+  EmptyState,
+  Notice,
+  PageHeader,
+  SubmitButton,
+} from "@/components/page-patterns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -185,7 +190,9 @@ export function Files({
         className="space-y-3"
       >
         <Field>
-          <FieldLabel htmlFor="private-file">{translate("m6d684ec42aa9")}</FieldLabel>
+          <FieldLabel htmlFor="private-file">
+            {translate("m6d684ec42aa9")}
+          </FieldLabel>
           <div className="flex flex-wrap gap-3">
             <Input
               id="private-file"
@@ -242,7 +249,11 @@ export function Files({
                   <div className="flex justify-end gap-2">
                     {file.state === "ready" &&
                       (file.bytes <= RESUMABLE_BYTES ? (
-                        <Button size="sm" variant="outline" onClick={() => void download(file)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void download(file)}
+                        >
                           {translate("md6eafe823591")}
                         </Button>
                       ) : (

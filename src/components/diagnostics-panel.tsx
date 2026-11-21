@@ -72,7 +72,9 @@ export function DiagnosticsPanel() {
             {translate("mb4205182f0eb")}
           </Button>
         </div>
-        {downloadFailed && <Notice tone="error" title={translate("m5fc277959f9a")} />}
+        {downloadFailed && (
+          <Notice tone="error" title={translate("m5fc277959f9a")} />
+        )}
       </CardContent>
     </Card>
   );

@@ -49,7 +49,9 @@ export default async function UsersPage({
         />
         <form method="get" className="flex max-w-xl flex-wrap items-end gap-3">
           <Field className="min-w-0 flex-1 space-y-2">
-            <FieldLabel htmlFor="user-search">Exact email or Firebase UID</FieldLabel>
+            <FieldLabel htmlFor="user-search">
+              Exact email or Firebase UID
+            </FieldLabel>
             <Input
               id="user-search"
               name="q"

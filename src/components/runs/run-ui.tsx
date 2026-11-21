@@ -728,7 +728,9 @@ export function RunDetail({ initial }: { initial: Detail }) {
                         alt={image.name}
                         className="max-h-96 w-full object-contain"
                       />
-                      <span className="sr-only">{translate("m1d1833565142")}</span>
+                      <span className="sr-only">
+                        {translate("m1d1833565142")}
+                      </span>
                     </a>
                   ),
                 )}

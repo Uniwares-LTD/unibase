@@ -115,7 +115,9 @@ export function PurchaseSimulator({
                 {packs.map((pack) => (
                   <div key={pack.id} className="flex items-center gap-2">
                     <RadioGroupItem value={pack.id} id={`${id}-${pack.id}`} />
-                    <FieldLabel htmlFor={`${id}-${pack.id}`}>{pack.label}</FieldLabel>
+                    <FieldLabel htmlFor={`${id}-${pack.id}`}>
+                      {pack.label}
+                    </FieldLabel>
                   </div>
                 ))}
               </RadioGroup>
