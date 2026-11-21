@@ -9,6 +9,10 @@
   --sidebar-solid: #f6f3ef;
   --page-gap: 2rem;
   --reading-width: 65ch;
+  /* Touch target sizes (TCH-02), to be consumed by the coarse-pointer rules in globals.css. */
+  --control-touch-sm: 2.75rem;
+  --control-touch-md: 3.25rem;
+  --control-touch-lg: 3.75rem;
 }
 .dark {
   --card-solid: #1b1917;
