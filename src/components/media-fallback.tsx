@@ -49,7 +49,8 @@ export function ResultImage({
   src: ImageProps["src"] | null | undefined;
   aspectRatio?: string;
 }) {
-  const [failed, setFailed] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<ImageProps["src"] | null>(null);
+  const failed = failedSrc !== null && failedSrc === src;
   const state = mediaState(
     typeof src === "string" ? src : src ? "static" : null,
     failed,
@@ -68,7 +69,7 @@ export function ResultImage({
       src={src}
       alt={alt}
       className={className}
-      onError={() => setFailed(true)}
+      onError={() => setFailedSrc(src)}
     />
   );
 }

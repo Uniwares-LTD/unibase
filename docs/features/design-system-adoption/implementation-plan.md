@@ -8,8 +8,12 @@ assigned to a checkpoint below. When this plan is done, Unibase has adopted the 
 derived projects can build on. Derived-project adoption and UI work (the next step, the Unitale
 UI implementation) is a separate issue and is not part of this plan.
 
-Plan state: **proposed**. Accepting the plan authorizes nothing by itself. Each checkpoint
-names its own approval.
+Plan state: **approved and in progress** (P0 to U2 done). **Simplified on 2026-11-21** at the issue
+owner's request: the remaining work is three steps with smoke tests only and no manual approval stops
+except the release tag. Where the detailed checkpoint sections below ask for more (capture matrices,
+pixel comparisons, contrast recomputation, per-PR approvals, physical-device checks), the
+[simplified remaining work](#simplified-remaining-work) section governs; the detailed sections remain
+the reference for *what* to build.
 
 ## Contract and decisions
 
@@ -88,12 +92,12 @@ Every decision this plan relies on. They are approved together at the start gate
 | --- | --- | --- |
 | P-01 | Copy the two generated stylesheets into `src/styles/design-system/` unedited, with the source revision in a header | U4 |
 | P-02 | Delete `classic.css` and `soft-blue.css` | U4 |
-| P-03 | One PR per checkpoint, except U3 (one PR per slice, four in total) and U6 (two: seam and guide, then the release); each merged with a merge commit and revertible on its own | all |
+| P-03 | One PR per remaining step (R1, R2, R3), merged with a merge commit and revertible on its own; work inside a step in small commits | all |
 | P-04 | AGT-01 and SKL-01 move from U1 to U5 (deviation) | U5 |
 | P-05 | Variable-backed type roles and `em` letter-spacing, made in the design package by checkpoint P0 before the start gate | P0, U4 |
 | P-06 | Tests: `node:test` for extracted logic, scripted Playwright for DOM behaviour; no test dependency | all |
 | P-07 | `lg` only with per-screen approval; the leave guard only where there's real saving or Discard | U3 |
-| P-08 | Baseline and comparison captures are scripted Playwright-CLI runs, not repository tooling (UG-019) | U0, U4, U5 |
+| P-08 | Browser verification is the committed smoke script `docs/features/design-system-adoption/smoke.mjs`; the U0 captures stay as reference only, with no pixel comparison gate | all |
 | P-09 | U2-S lands before U4 (P-30), so the toast falls back to `var(--type-body, var(--font-sans))` and a literal 6000 ms; U4 swaps in the tokens | U2-S, U4 |
 | P-10 | The SKL-01 install order follows `handbook:sync`, which generates the `.claude` wrapper (deviation from proposal §4) | U5 |
 | P-11 | No Tailwind theme keys for the touch sizes | U1 |
@@ -113,34 +117,33 @@ Every decision this plan relies on. They are approved together at the start gate
 | P-25 | Project tokens stay under `x-<id>`; new shared tokens go through the design package | U6 |
 | P-26 | Replace the old Classic primary `#98492f` with the adopted Classic primary `#c2410c` (COL-classic-light-primary) in `layout.tsx`, `manifest.ts`, `scripts/i18n-assets.mjs` (which generates `public/offline.html`), `android-generate.ts`, `generate-icons.mjs` and `icon.svg`; background `#fff9f3` and foreground `#30221d` stay, because no colour row changes them | U6 |
 | P-27 | Template release is a minor version bump before 1.0, with upgrade notes; existing `## Unreleased` entries ship in it | U6 |
-| P-28 | Lucide bumped to exactly 1.75.0 in its own commit | U6 |
+| P-28 | Lucide 1.75.0 bump deferred (optional under D-12); a later small PR | later |
 | P-29 | The derived-project guide is `docs/design-system-extension.md`, Unibase-owned and naming no project | U6 |
-| P-30 | Fixed checkpoint order P0, U0, U1, U2, U2-S, U3, U4, U5, U6; a rejected toast review closes U2-S without code | all |
+| P-30 | Order: P0, U0, U1, U2 (done), then R1 (U2-S with U3), R2 (U4), R3 (U5 with U6). If the toast cannot pass its CSP smoke check, R1 ships the rollout without it and records the toast as deferred | all |
 | P-31 | Leave-guard eligibility follows the U3 form inventory: only forms that edit an existing saved record with an explicit save | U3 |
-| P-32 | Badge contrast is measured from computed colours in the browser check, at U2 and again at U4 | U2, U4 |
+| P-32 | Badge contrast was measured at U2 (all tones at least 4.77:1); after R2 it is re-checked once by the smoke run, not as a separate gate | U2, R2 |
 | P-33 | The upgrade rehearsal uses a local, unpushed tag and a disposable project created from `template-v0.4.0` | U6 |
 
 ## Execution prerequisites
 
-**Human gates.** There are two, each passed once. Neither is met yet.
-
-| Gate | When | Who | Met when |
-| --- | --- | --- | --- |
-| **Start gate** | after P0, before U0 | issue owner | The issue owner approves this plan (with its decision register) and the accepted package revision, in a comment on #53. **Met 2026-11-21:** approved by the issue owner; accepted package revision `6d86be7` (P0 merge). The package's own acceptance record and the engineering handoff review are no longer required to start; the package acceptance record may be filled later by its owner. |
-| **Release gate** | end of U6 | repository owner | Authorization to tag `template-v<version>`. |
-
-**PR approval rule.** Low-risk PRs merge with normal review. A PR containing `visible`, `security` or `configuration` rows merges only with explicit approval from a Unibase maintainer on that PR. This covers:
-- U2: the Arabic strings, reviewed by a native speaker before merge;
-- U2-S: the security review of the CSP hashes (if rejected, follow U2-S's continuation);
-- U3: applying `lg` to an existing screen;
-- U4: the foundation, including the dark warning surface `#431407` (approve, or adjust within the contrast rule);
-- U5 and U6: agent guidance (AGT-01, SKL-01, and the derived-project section).
+**Human gates.** The start gate is met (2026-11-21, issue owner). The only remaining human step is the
+**release gate**: authorization to push the `template-v<version>` tag at the end of step R3. PRs merge
+with merge commits once their smoke checks pass and one review has looked at the diff (a separate agent
+when available; otherwise a recorded self-review). There are no per-PR approval stops.
 
 **Environment.**
 - Node 24 with `npm.cmd ci`.
 - A local run that works without cloud credentials.
 - Headless browser sessions through the Playwright skill, with captures under `output/playwright/`, which is not committed.
 - `/design-system` works in development only. Stop the dev server before `npm.cmd run build`, because they share `.next`.
+
+**Network notes (found 2026-11-21).** From the current location, MongoDB's binary download and the
+Firebase emulator UI bundle return HTTP 403 (region). With a VPN, `npm.cmd run emulators:mongo` works
+(first run downloads about 780 MB). The emulator UI stays blocked, so start the Auth Emulator without its UI:
+create a local file (for example `output/firebase.emulator-no-ui.json`, git-ignored) containing
+`{"emulators":{"auth":{"host":"127.0.0.1","port":9099},"ui":{"enabled":false},"singleProjectMode":true}}`
+and run `node node_modules/firebase-tools/lib/bin/firebase.js emulators:start --only auth --project demo-unibase --config output/firebase.emulator-no-ui.json`.
+Note: with a VPN on, Claude subagents may be refused by the API (HTTP 403); do the work in the main session.
 
 **Local run and sign-in** (used by every browser check from U0 on; see `docs/local-testing.md`):
 1. Use the local defaults. If `.env.local` exists, it must select the local and demo resources shown in `.env.example`.
@@ -157,29 +160,104 @@ Every decision this plan relies on. They are approved together at the start gate
 - semantic theme variables only;
 - a `CHANGELOG.md` `## Unreleased` entry for every reusable change, with upgrade notes when derived projects must act;
 - behaviour tests, not source-mirroring tests;
-- a separate read-only review at each checkpoint.
+- one review of each PR diff before merge (a separate agent when available, otherwise a recorded self-review).
 
 ## Budget and risk control
 
-| Checkpoint | Risk | PRs | Approx. files | Can stop after it? |
+| Step | Contains | PRs | Approx. files | Status |
 | --- | --- | --- | --- | --- |
-| P0 Design-package type-role change (in `unitale-design`) | none | 1 (in `unitale-design`) | ~6 | yes |
-| U0 Gate and baseline | none | 0 (evidence only) | 0 | yes |
-| U1 Seams, no visual change | none | 1 | ~3 | yes |
-| U2 Shared helpers in the showcase | low | 1 | ~22 | yes |
-| U2-S Toast and CSP | security | 1 | ~10 | yes; skipped if its security review rejects |
-| U3 Rollout by area | low (`visible` where `lg` is applied) | 4, one per slice | ~6 to 12 each | yes, after any slice |
-| U4 Visible foundation | visible | 1 | ~11 | yes |
-| U5 Verification, guidance and close | none / configuration | 1 | ~12 | yes |
-| U6 Derived-project readiness and template release | none to configuration | 2 (seam and guide; release), plus a tag | ~32 | end state |
+| P0 | Design-package type-role change (in `unitale-design`) | 1 | ~6 | done (PR #13) |
+| U0 | Baseline capture | 0 | 0 | done |
+| U1 | Touch tokens | 1 | ~3 | done (#56) |
+| U2 | Shared helpers in the showcase | 1 | ~29 | done (see progress) |
+| **R1** | Toast and CSP (U2-S) **and** rollout of the helpers into feature screens (U3) | 1 | ~25 | next |
+| **R2** | Visible foundation (U4) | 1 | ~11 | |
+| **R3** | Guidance and skill (U5), derived-project readiness, guide and template release (U6) | 1, plus the tag | ~35 | ends with the release gate |
 
 **Stop rules.**
 - Stop and report when any of these happens:
-  - a gate is unmet;
+  - the release gate is reached;
   - a check fails twice for the same reason;
   - a checkpoint needs a file outside its listed boundary;
   - the accepted package revision changes mid-way.
-- Each checkpoint ends with its PR merged and its evidence posted on #53, so work can pause between checkpoints at no cost.
+- Each step ends with its PR merged and a short evidence comment on #53, so work can pause between steps at no cost.
+
+## Simplified remaining work
+
+**Coding rules** (follow them while writing, so lint, format and type checks are not rerun per step):
+- TypeScript without `any` or non-null assertions where a check is possible; client components start
+  with `"use client"`; server-only code stays in `src/lib/server`.
+- Prettier style as in the surrounding code (two spaces, double quotes, trailing commas, about 80 columns).
+- No React refs read during render; no unused imports or variables; `alt` passed explicitly to images.
+- User-visible text goes through `useTranslations("ui")` keys (`m` plus the first 12 hex characters
+  of the SHA-256 of the English text) in `messages/en.json` and `messages/ar.json`, then
+  `node scripts/i18n-client-sections.mjs`. Logical RTL classes (`ms-`, `me-`, `start-`, `end-`,
+  `text-start`). Semantic theme variables only; no literal colours in components.
+- New CSS for coarse pointers or helpers goes inside `@layer components`, so Tailwind utilities still win.
+
+**Per-step checks (light).** Before each step's PR:
+1. `npm.cmd test` passes.
+2. With the app running (`npm.cmd run dev` and the local services), run
+   `node docs/features/design-system-adoption/smoke.mjs` with `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH`
+   set: every check passes. Open the pages the step touched once.
+3. Only R1's toast also needs a production build (`npm.cmd run build`, then `npm.cmd start`) to confirm
+   one toast shows with no CSP error.
+
+No per-step lint, format or type check; no capture matrices, pixel comparisons, contrast recomputation,
+per-PR approvals or physical-device checks. Add a unit test only when a step adds pure logic.
+
+**Final gate (once, at the end of R3, before the release).**
+1. `npx.cmd eslint --fix` and `npx.cmd prettier --write` on the files changed since `main` at U2's
+   merge; commit as "chore: apply lint and format".
+2. Then, once: `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd test`, `npm.cmd run check:docs`,
+   `npm.cmd run check:i18n`, `npm.cmd run check:skills`, `npm.cmd run test:handbook`,
+   `npm.cmd run check:template` and `npm.cmd run build`. `npm.cmd run format:check` may only report
+   the 11 files already failing on `main` before this work. Fix anything else.
+3. The smoke script passes. If `typecheck` reports errors in `.next/dev/types/validator.ts` after a
+   stopped dev server, delete `.next/dev` and rerun; it is a truncated generated file.
+
+**Careful implementation, for every step.**
+- Branch from an up-to-date `main` as `task/53-<step>-<slug>`.
+- Re-read each file before editing it; change only the files the step names.
+- Commit in small, self-contained commits (one concern each).
+- Update this plan's "Verified progress" and `CHANGELOG.md` `## Unreleased` in the same PR.
+- Merge with a merge commit; post a short evidence comment on #53.
+- If a step needs a decision the plan doesn't make, choose the option closest to the spec, record it
+  under "Verified progress", and continue.
+
+**R1. Toast and rollout** (U2-S and U3 below). One PR.
+1. Toast: follow the U2-S section (Sonner pinned to exactly 2.0.8 through the shadcn CLI, the
+   `toast.tsx` wrapper, mounted in the layout, CSP hashes in `src/proxy.ts`, the `Dismiss` key, the
+   showcase demo). Keep `tests/sonner-csp.test.ts` (hash and pin). If the production toast check fails,
+   revert the toast commits, keep the rollout, and record the toast as deferred.
+2. Rollout: follow the U3 form inventory (one commit per area: account and files, credits and commerce,
+   admin, runs). Field and `SubmitButton` on the listed forms; the leave guard only on the six editors
+   marked "yes"; `ResultImage` and the download-failure Notice at the six named media call sites. Do not
+   apply `size="lg"` to existing screens.
+
+**R2. Visible foundation** (U4 below). One PR. The accepted package revision is `unitale-design`
+`6d86be7` (P0), which has the variable-backed type roles. Follow the U4 work list (copy the two
+stylesheets with a revision header, the `globals.css` import order, trim `tokens.css` and `glass.css`,
+delete `classic.css` and `soft-blue.css`, the EmptyState title, the docs that become wrong). Add
+`tests/design-foundation.test.ts` (import order, revision headers, one block per preset ID, the 6000ms
+token, variable-backed roles). The dark warning surface keeps the package value.
+
+**R3. Guidance, readiness and release** (U5 and U6 below). One PR, then the release gate.
+1. Agent guidance and the `build-ui` skill (U5): AGT-01 and SKL-01 in the order recorded under U5
+   (`names` entry, `handbook:sync`, `check-skills --write`).
+2. Derived-project readiness (U6): the theme seam (P-19 to P-24), fonts (P-23), the project-token rule
+   (P-25), the colour mapping (P-26, `#98492f` to `#c2410c`), and the derived-project guide
+   `docs/design-system-extension.md` with its starter skeleton (P-29). Tests: the seam cases in
+   `tests/config.test.ts` and `tests/template-update.test.ts` only.
+3. Record the adopted package version (DOC-01 §5).
+4. Run the final gate.
+5. Template release: changelog version, `template.json`, `npm.cmd run test:initialized-projects`, and
+   one upgrade rehearsal from `template-v0.4.0` (P-33). Stop at the release gate: the tag is pushed only
+   after the issue owner authorizes it.
+
+**Deferred as safe simplifications (2026-11-21):** the optional Lucide 1.75.0 bump (P-28; optional
+under package decision D-12), the separate docs-consistency test for the guide, and the
+`initializer` and integration tests for the seam. Each can be a later small PR.
 
 ## Checkpoints
 
@@ -596,22 +674,16 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 
 ## Test plan summary
 
-| Kind | Where | Checkpoint |
+Simplified on 2026-11-21: the smoke checks under [simplified remaining work](#simplified-remaining-work)
+are the verification gate for every remaining step.
+
+| Kind | What | When |
 | --- | --- | --- |
-| Package checks (in `unitale-design`) | the five package checks, with the compiled-Tailwind fixture via `UNIBASE_ADOPTION_SOURCE` | P0 |
-| Unit and behaviour | Field wiring; pending; leave guard; media fallback; Notice actions | U2 |
-| Unit and behaviour | `tests/sonner-csp.test.ts`, `tests/toast.test.ts` | U2-S |
-| Unit and behaviour | `tests/design-foundation.test.ts` | U4 |
-| Unit and behaviour | `tests/template-update.test.ts`, `tests/initializer.test.ts`, `tests/config.test.ts` (theme seam); type-role and font fixture themes | U6 |
-| Docs consistency | `tests/design-system-extension.test.ts`: the guide's minimal example, the initializer's `theme.css` skeleton and `tests/fixtures/project-theme/` use the same selectors and token names, and every token the guide lists as overridable exists in the vendored foundation | U6 |
-| Repository checks | `typecheck`, `lint`, `test`, `build`, `check:docs`, `check:i18n` | every checkpoint |
-| Repository checks | `check:skills`, `test:handbook`, `check:template` | U5, U6 |
-| Integration | `test:integration`: server `data-style` per cookie, `/design-system` 404 in production, `data-project` with the selector hidden | U3, U4, U5, U6 |
-| Template | `test:initialized-projects`, plus the upgrade rehearsal from a `template-v0.4.0` project | U6 |
-| Browser (headless, scripted) | the U0 matrix; per-spec acceptance; RTL; keyboard; CSP; hydration | U0, U2, U2-S, U3, U4, U5 |
-| Browser | the package's adoption fixture (9 compiled-Tailwind checks) against this branch | U4 |
-| Contrast | recompute changed values; BDG-01 error and neutral tones | U2, U4 |
-| Human | Arabic native review (U2 PR); physical devices, microphone, screen reader, 200% zoom, visual parity | U2, U5 |
+| Unit tests | `npm test` | every step |
+| Lint, format, types, docs, i18n, skills, template, build | the final gate, once | end of R3 |
+| Browser smoke | `docs/features/design-system-adoption/smoke.mjs` (public pages, every preset and theme, 1440 and 390, Arabic, no console errors) | every step |
+| Unit tests kept or added | `tests/design-helpers.test.ts` (U2), `tests/sonner-csp.test.ts` (R1), `tests/design-foundation.test.ts` (R2), seam tests in `template-update`, `initializer` and `config` (R3) | the step that adds them |
+| Template release | `test:initialized-projects`, one upgrade rehearsal | R3 |
 
 ## Verified progress and resume
 
@@ -628,3 +700,6 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 - 2026-11-21: **U0 done.** 88 captures in `output/playwright/u0/` (local): 7 pages × 3 presets × 2 themes × 2 widths, plus Arabic home (rtl), Glass with reduced transparency and the not-found page. All 86 matrix pages returned 200 with the expected `data-style` and `dark`, and there were no console errors; admin pages were reached through the first-admin bootstrap. Deviation: `global-error` can't be captured without forcing a fault, so U0 records the not-found page's Classic fallback, and U4 verifies `global-error` separately. Environment: MongoDB under a VPN; the Auth Emulator with its UI disabled through `output/playwright/firebase.emulator-no-ui.json`. Script: `output/playwright/capture.mjs` (also on #53).
 - 2026-11-21: **U1 done.** Touch target tokens (TCH-02, P-11) in `src/styles/tokens.css`, the design-guide file-table row and a changelog entry. Checks: typecheck, lint, test (98/98), `check:docs`, `check:i18n`, build. Visual: the U1 captures match U0 in 72 of 88; the 16 differences are capture noise (live Reports request log, the Next.js dev indicator, fade-in timing, a 2-pixel anti-alias row), and no code reads the new tokens. One separate review: merge-ready.
 - 2026-11-21: **U2 implemented** on `task/53-u2-shared-helpers`: Field (`ui/field.tsx` from the shadcn registry; its description and error list already use `text-start` and `ms-4`, so no RTL correction was needed), `size="lg"` on Input, Textarea and SelectTrigger, `SubmitButton`, `LeaveGuardProvider`/`useLeaveGuard`/`useGuardedNavigation` wired into the layout, shell and account menu, `MediaFallback`/`ResultImage`, `StatusBadge`, the `Notice` action, RTL-01 to RTL-04, TCH-01 and TCH-03, ten English and Arabic strings (Arabic is the spec's draft, pending native review), the showcase section `helper-showcase.tsx`, the design-guide interaction rules and local sections, and a changelog entry. Pure logic lives in `src/lib/design-helpers.ts` with 14 tests (P-06). **P-15 applied:** the error badge measured 4.01:1 in Classic light, so the error tone uses the error Notice styling; all tones now measure at least 4.77:1 (`output/playwright/u2/badge-contrast.json`). Checks: typecheck, lint, test 112/112, `check:docs`, `check:i18n`, build; `format:check` shows only the 11 failures already on `main`. Browser: `output/playwright/u2-checks.mjs` 27/27 (Field, sizes, pending, media, badges, Notice action, every leave-guard outcome, Arabic centring and arrows at 1440 and 390, sheet close at the inline end, touch sizes, no unexpected 404s or console errors). Matrix against U0: only the showcase (new section) and the Arabic home (mirrored arrows) changed by design; the other differences are live Reports data, the dev indicator and one U0 capture taken before the Credits page finished loading.
+- 2026-11-21: **plan simplified** at the issue owner's request: smoke tests only, no per-PR approval stops, remaining work in three steps (R1 toast and rollout, R2 foundation, R3 guidance, readiness and release), with the committed smoke script `smoke.mjs`. The release tag stays the one human step.
+- 2026-11-21: **plan made lightweight**: per step only `npm test` and the browser smoke script; coding rules written down instead of rerunning lint, format and type checks; one final gate at the end of R3 runs and applies them. Deferred: Lucide bump, the guide's docs-consistency test, and the seam's initializer and integration tests.
+- 2026-11-21: **U2 review applied.** A separate review found one blocker, now fixed: the coarse-pointer rules were unlayered and overrode larger Tailwind minimums on touch devices (lg fields fell to 44px). They now sit in `@layer components`, and a touch check asserts lg input at least 48px, lg textarea at least 96px and default textarea at least 64px. Also fixed: the leave guard handles each navigation once and ignores a save result after Keep editing; Save & exit uses `SubmitButton`; `beforeunload` sets `returnValue`; the Notice receipt region stays mounted; `ResultImage` resets when `src` changes. Checks: typecheck, lint, test 112/112; U2 browser checks 28/28; committed smoke script 38/38.

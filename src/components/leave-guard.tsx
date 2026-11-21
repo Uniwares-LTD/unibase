@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/page-patterns";
 import {
   leaveActions,
   leaveGuard,
@@ -73,9 +74,16 @@ export function LeaveGuardProvider({ children }: { children: ReactNode }) {
     seq: 0,
   });
 
+  // Each navigation effect is handled once, even if the router identity changes.
+  const handled = useRef(0);
   useEffect(() => {
-    if (go) router.push(go);
+    if (go && handled.current !== seq) {
+      handled.current = seq;
+      router.push(go);
+    }
   }, [go, seq, router]);
+  // A save result only applies to the dialog that started it; Keep editing invalidates it.
+  const saveToken = useRef(0);
 
   const register = useCallback((next: Guard | null) => {
     guard.current = next;
@@ -93,6 +101,7 @@ export function LeaveGuardProvider({ children }: { children: ReactNode }) {
   const save = async () => {
     const run = guard.current?.save;
     if (!run) return;
+    const token = ++saveToken.current;
     dispatch({ type: "save" });
     let result: SaveResult;
     try {
@@ -100,6 +109,7 @@ export function LeaveGuardProvider({ children }: { children: ReactNode }) {
     } catch {
       result = "unknown";
     }
+    if (token !== saveToken.current) return;
     dispatch({ type: "saveResult", result });
   };
 
@@ -114,7 +124,10 @@ export function LeaveGuardProvider({ children }: { children: ReactNode }) {
         open={open}
         onOpenChange={(next) => {
           // Escape acts as Keep editing.
-          if (!next) dispatch({ type: "keep" });
+          if (!next) {
+            saveToken.current++;
+            dispatch({ type: "keep" });
+          }
         }}
       >
         <AlertDialogContent
@@ -151,21 +164,9 @@ export function LeaveGuardProvider({ children }: { children: ReactNode }) {
             {/* Cancel receives Radix's initial focus: Keep editing is the least destructive action. */}
             <AlertDialogCancel>{translate("me76fd2add010")}</AlertDialogCancel>
             {actions.save && (
-              <Button
-                type="button"
-                disabled={saving}
-                aria-busy={saving || undefined}
-                onClick={() => void save()}
-              >
-                {saving && (
-                  <LoaderCircle
-                    aria-hidden="true"
-                    data-icon="inline-start"
-                    className="animate-spin motion-reduce:animate-none"
-                  />
-                )}
+              <SubmitButton pending={saving} onClick={() => void save()}>
                 {translate("m0bd63bf3d32e")}
-              </Button>
+              </SubmitButton>
             )}
             {actions.discard && (
               <Button
@@ -200,7 +201,10 @@ export function useLeaveGuard({
   }, [context, dirty, save]);
   useEffect(() => {
     if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);

@@ -101,35 +101,38 @@
     line-height: 1.75;
   }
 }
-@media (pointer: coarse) {
-  [data-slot="button"],
-  [data-slot="input"],
-  [data-slot="select-trigger"],
-  [data-slot="textarea"] {
-    min-height: 2.75rem;
-  }
-  /* TCH-01: the label beside a checkbox or radio in a horizontal Field. */
-  [data-slot="field"][data-orientation="horizontal"]
-    > [data-slot="field-label"],
-  [data-slot="field"][data-orientation="horizontal"]
-    > [data-slot="field-content"]
-    > [data-slot="field-label"] {
-    min-height: 2.75rem;
-    align-items: center;
-  }
-  /* TCH-03: icon buttons get a touch-sized width; choices get a touch-sized height. */
-  [data-slot="button"][data-size^="icon"] {
-    min-width: var(--control-touch-sm);
-  }
-  [data-slot="select-item"],
-  [data-slot="dropdown-menu-item"],
-  [data-slot="dropdown-menu-checkbox-item"],
-  [data-slot="dropdown-menu-radio-item"],
-  label:has(> [data-slot="checkbox"]),
-  label:has(> [data-slot="radio-group-item"]),
-  [data-slot="checkbox"] + [data-slot="label"],
-  [data-slot="radio-group-item"] + [data-slot="label"] {
-    min-height: var(--control-touch-sm);
+/* Layered below Tailwind utilities: larger min-h-* utilities (size="lg", textareas) still win. */
+@layer components {
+  @media (pointer: coarse) {
+    [data-slot="button"],
+    [data-slot="input"],
+    [data-slot="select-trigger"],
+    [data-slot="textarea"] {
+      min-height: 2.75rem;
+    }
+    /* TCH-01: the label beside a checkbox or radio in a horizontal Field. */
+    [data-slot="field"][data-orientation="horizontal"]
+      > [data-slot="field-label"],
+    [data-slot="field"][data-orientation="horizontal"]
+      > [data-slot="field-content"]
+      > [data-slot="field-label"] {
+      min-height: 2.75rem;
+      align-items: center;
+    }
+    /* TCH-03: icon buttons get a touch-sized width; choices get a touch-sized height. */
+    [data-slot="button"][data-size^="icon"] {
+      min-width: var(--control-touch-sm);
+    }
+    [data-slot="select-item"],
+    [data-slot="dropdown-menu-item"],
+    [data-slot="dropdown-menu-checkbox-item"],
+    [data-slot="dropdown-menu-radio-item"],
+    label:has(> [data-slot="checkbox"]),
+    label:has(> [data-slot="radio-group-item"]),
+    [data-slot="checkbox"] + [data-slot="label"],
+    [data-slot="radio-group-item"] + [data-slot="label"] {
+      min-height: var(--control-touch-sm);
+    }
   }
 }
 

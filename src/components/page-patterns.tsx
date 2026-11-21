@@ -109,11 +109,10 @@ export function Notice({
             )}
             {control.label}
           </Button>
-          {action.receipt && (
-            <p role="status" className="text-sm">
-              {action.receipt}
-            </p>
-          )}
+          {/* Kept mounted so screen readers announce the first receipt. */}
+          <p role="status" className="text-sm empty:hidden">
+            {action.receipt}
+          </p>
         </div>
       )}
     </Alert>
