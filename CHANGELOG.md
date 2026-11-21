@@ -124,6 +124,11 @@ None.
   the shared toast, and serve project fonts from the app origin.
 - Set the product's own theme color in the manifest and offline source and
   regenerate the offline and icon assets. See [first steps](docs/template.md#first-steps-in-a-new-project).
+  If an upgrade from 0.4.0 stops on `public/offline.html`, first resolve any
+  edits to its source in `scripts/i18n-assets.mjs`. Run
+  `node scripts/i18n-assets.mjs` to regenerate the HTML for the project's slug
+  and locale, then `git add -- public/offline.html`. Finish the merge with
+  `git commit` after resolving any other conflicts.
 
 - Newly observed container usage has unknown node-level cost/tokens; parent totals
   remain authoritative. Existing accepted usage records are not rewritten.
