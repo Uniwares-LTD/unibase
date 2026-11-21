@@ -10,7 +10,12 @@ import { Notice, SubmitButton } from "./page-patterns";
 import { useLeaveGuard } from "./leave-guard";
 import { useStyle } from "./style-provider";
 import { StylePreference } from "./style-preference";
-import { FieldDescription, FieldLabel, FieldLegend, FieldSet } from "./ui/field";
+import {
+  FieldDescription,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "./ui/field";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const subscribe = () => () => {};
@@ -26,15 +31,18 @@ export function AppearanceForm({ profile }: { profile: Profile }) {
     () => true,
     () => false,
   );
-  const { preference } = useStyle();
+  const { preference, projectTheme } = useStyle();
   const currentTheme = theme ?? profile.theme;
   const formRef = useRef<HTMLFormElement>(null);
   const [baseline, setBaseline] = useState<{ theme: string; style: string }>();
   const dirty = Boolean(
-    baseline && (baseline.theme !== currentTheme || baseline.style !== preference),
+    baseline &&
+    (baseline.theme !== currentTheme || baseline.style !== preference),
   );
   function markEdit() {
-    setBaseline((previous) => previous ?? { theme: currentTheme, style: preference });
+    setBaseline(
+      (previous) => previous ?? { theme: currentTheme, style: preference },
+    );
   }
 
   const [state, action, pending] = useActionState(
@@ -49,8 +57,13 @@ export function AppearanceForm({ profile }: { profile: Profile }) {
     dirty,
     save: async () => {
       const form = formRef.current;
-      if (!form || pending || !hydrated || !form.checkValidity()) return "failed";
-      const result = await saveAppearance(profile.uid, state, new FormData(form));
+      if (!form || pending || !hydrated || !form.checkValidity())
+        return "failed";
+      const result = await saveAppearance(
+        profile.uid,
+        state,
+        new FormData(form),
+      );
       if (result.saved) setBaseline(undefined);
       return result.saved ? "saved" : "failed";
     },
@@ -94,7 +107,13 @@ export function AppearanceForm({ profile }: { profile: Profile }) {
           {translate("m64c7a3da6a24")}
         </FieldDescription>
       </FieldSet>
-      <StylePreference account disabled={pending} onPreferenceChange={markEdit} />
+      {!projectTheme && (
+        <StylePreference
+          account
+          disabled={pending}
+          onPreferenceChange={markEdit}
+        />
+      )}
       <SubmitButton pending={pending} disabled={!hydrated}>
         {pending ? translate("m23e39291d613") : translate("m089e57e38f93")}
       </SubmitButton>

@@ -3,6 +3,7 @@
   "slug": "unibase",
   "displayName": "Base",
   "defaultStyle": "classic",
+  "theme": false,
   "modules": [
     "credits",
     "payments",

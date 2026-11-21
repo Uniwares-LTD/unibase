@@ -17,28 +17,29 @@ share semantic tokens and the same application behavior.
 
 ## Where to change things
 
-| File                                  | Change here                                                                            |
-| ------------------------------------- | -------------------------------------------------------------------------------------- |
-| `src/styles/design-system/unibase.css` | Vendored preset palettes, font roles, page gap and toast duration |
-| `src/styles/design-system/tailwind-theme.css` | Vendored Tailwind typography roles |
-| `src/styles/tokens.css` | Local effect defaults, reading width and touch targets |
-| `src/lib/page-cover.ts` | Metadata observation, image URL validation and loading cleanup |
-| `src/styles/presets/glass.css` | Glass gradients, panel effects and opaque fallbacks |
-| `src/lib/appearance.ts`               | Supported style/preference values and cookie resolution                                |
-| `src/components/style-provider.tsx`   | Browser selection and public appearance cookie                                         |
-| `src/components/style-preference.tsx` | Shared shadcn radio selector                                                           |
-| `src/app/globals.css`                 | Tailwind token mappings, fonts, page typography, focus, reduced motion and touch rules |
-| `src/components/page-patterns.tsx`    | Page headers, notices (with optional action), empty states and `SubmitButton`         |
-| `src/components/status-badge.tsx`     | Status badge with icon and tone                                                        |
-| `src/components/leave-guard.tsx`      | Unsaved-changes guard for in-app navigation                                            |
-| `src/components/media-fallback.tsx`   | Fallback for absent or broken images                                                   |
-| `src/lib/design-helpers.ts`           | Pure, unit-tested logic behind the shared helpers                                      |
-| `src/components/helper-showcase.tsx`  | Synthetic examples of the shared helpers in the showcase                               |
-| `src/components/ui`                   | Installed shadcn primitives; use the shadcn CLI for additional primitives              |
-| `src/components/app-shell.tsx`        | Desktop/mobile navigation, account menu and skip link                                  |
-| `src/components/design-showcase.tsx`  | Synthetic interactive examples and static feature preview                              |
-| `src/app/design-system/page.tsx`      | Development-only route guard                                                           |
-| `src/proxy.ts`                        | Showcase-only production 404 before page streaming starts                              |
+| File                                          | Change here                                                                            |
+| --------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `src/styles/design-system/unibase.css`        | Vendored preset palettes, font roles, page gap and toast duration                      |
+| `src/styles/design-system/tailwind-theme.css` | Vendored Tailwind typography roles                                                     |
+| `src/project/theme.css`                       | Optional project-owned palette, type roles and font faces                              |
+| `src/styles/tokens.css`                       | Local effect defaults, reading width and touch targets                                 |
+| `src/lib/page-cover.ts`                       | Metadata observation, image URL validation and loading cleanup                         |
+| `src/styles/presets/glass.css`                | Glass gradients, panel effects and opaque fallbacks                                    |
+| `src/lib/appearance.ts`                       | Supported style/preference values and cookie resolution                                |
+| `src/components/style-provider.tsx`           | Browser selection and public appearance cookie                                         |
+| `src/components/style-preference.tsx`         | Shared shadcn radio selector                                                           |
+| `src/app/globals.css`                         | Tailwind token mappings, fonts, page typography, focus, reduced motion and touch rules |
+| `src/components/page-patterns.tsx`            | Page headers, notices (with optional action), empty states and `SubmitButton`          |
+| `src/components/status-badge.tsx`             | Status badge with icon and tone                                                        |
+| `src/components/leave-guard.tsx`              | Unsaved-changes guard for in-app navigation                                            |
+| `src/components/media-fallback.tsx`           | Fallback for absent or broken images                                                   |
+| `src/lib/design-helpers.ts`                   | Pure, unit-tested logic behind the shared helpers                                      |
+| `src/components/helper-showcase.tsx`          | Synthetic examples of the shared helpers in the showcase                               |
+| `src/components/ui`                           | Installed shadcn primitives; use the shadcn CLI for additional primitives              |
+| `src/components/app-shell.tsx`                | Desktop/mobile navigation, account menu and skip link                                  |
+| `src/components/design-showcase.tsx`          | Synthetic interactive examples and static feature preview                              |
+| `src/app/design-system/page.tsx`              | Development-only route guard                                                           |
+| `src/proxy.ts`                                | Showcase-only production 404 before page streaming starts                              |
 
 Change a semantic pair together, for example `--warning` and
 `--warning-foreground`, in both themes. Prefer `bg-warning`/`text-warning-foreground`
@@ -62,6 +63,11 @@ caption. Apply the approved role as a `text-*` utility. For example,
 `font-heading` and `font-sans` use the preset's heading and body font hooks.
 
 ## Switching and persistence
+
+With `theme: true` in the project manifest, the document uses
+`data-project="<slug>"` and omits `data-style`. Preferences retains
+light, dark and system. The saved preset and cookie resume when the flag is
+turned off. A project theme is a separate scope from preset IDs.
 
 Open Preferences and choose Classic, Glass or Soft Blue under Design style. Appearance changes
 immediately. Light/dark/system mode is a separate choice; it does not replace the
@@ -291,7 +297,6 @@ After changing a token or pattern:
    console for runtime/hydration errors. Automated checks supplement this manual
    accessibility pass; they do not establish complete accessibility conformance.
 
-
 9. In the showcase, open a confirmation. Check that a second confirmation replaces
    it, and that the full six seconds restart after hover and keyboard focus leave.
    Press Alt+T to focus the toast region. Check that Dismiss returns focus and that
@@ -320,7 +325,21 @@ does not expose the showcase. The route is available only with `next dev`, not
 `next start`, regardless of `APP_ENV`. Restart `npm run dev` after those checks.
 Quality checks remain advisory; compilation/bundling errors still fail the build.
 
+## Adopted package version
+
+Unibase vendors the generated foundation at
+[unitale-design 6d86be7](https://github.com/Uniwares-LTD/unitale-design/tree/6d86be7bffc2c8aa0e506489bfc05f8cea05f623).
+
+| Deviation                                | Reason                                             | Date       |
+| ---------------------------------------- | -------------------------------------------------- | ---------- |
+| Land agent guidance and `build-ui` in R3 | The skill depends on the already available helpers | 2026-11-21 |
+| Keep the existing Lucide version         | The package permits a separate icon update         | 2026-11-21 |
+
 ## Extension point
+
+Follow the [derived-project design guide](design-system-extension.md) to add a
+project theme. Scope overrides to the project slug, and reserve new variables
+under `--x-<slug>-` for the project components that use them.
 
 Use this showcase to review new UI states before connecting a downstream feature. Add a real feature's examples
 only when its behavior is agreed. Keep previews labelled and static until the

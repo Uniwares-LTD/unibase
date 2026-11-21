@@ -5,7 +5,12 @@ import { useId } from "react";
 import { useStyle } from "./style-provider";
 import { parseStylePreference } from "@/lib/appearance";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
-import { FieldDescription, FieldLabel, FieldLegend, FieldSet } from "./ui/field";
+import {
+  FieldDescription,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "./ui/field";
 
 export function StylePreference({
   account = false,
@@ -20,7 +25,7 @@ export function StylePreference({
   const common = useTranslations("common");
 
   const id = useId();
-  const { preference, defaultStyle, setPreference } = useStyle();
+  const { preference, defaultStyle, projectTheme, setPreference } = useStyle();
   const choices = [
     {
       value: "default",
@@ -43,6 +48,7 @@ export function StylePreference({
       description: translate("m021086bacd4b"),
     },
   ];
+  if (projectTheme) return null;
   return (
     <FieldSet className="space-y-4">
       <FieldLegend className="text-sm font-medium">
@@ -81,7 +87,10 @@ export function StylePreference({
           </FieldLabel>
         ))}
       </RadioGroup>
-      <FieldDescription id={`${id}-help`} className="text-sm text-muted-foreground">
+      <FieldDescription
+        id={`${id}-help`}
+        className="text-sm text-muted-foreground"
+      >
         {translate("mcda29bef33e3")}{" "}
         {account ? translate("m432aa8c5e499") : translate("mb1fc543247a5")}
       </FieldDescription>

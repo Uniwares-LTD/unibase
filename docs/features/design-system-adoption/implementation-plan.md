@@ -13,7 +13,7 @@ owner's request: the remaining work is three steps with smoke tests only and no 
 except the release tag. Where the detailed checkpoint sections below ask for more (capture matrices,
 pixel comparisons, contrast recomputation, per-PR approvals, physical-device checks), the
 [simplified remaining work](#simplified-remaining-work) section governs; the detailed sections remain
-the reference for *what* to build.
+the reference for _what_ to build.
 
 ## Contract and decisions
 
@@ -62,67 +62,67 @@ the reference for *what* to build.
 
 **Known-gap mapping.** Every package gap, UG-001 to UG-019, has a place:
 
-| Gap | Where it's handled |
-| --- | --- |
-| UG-001 font hooks | TOK-01 at U4; the font path at U6; consumer mapping by each derived project |
-| UG-002 retained values and geometry | KEEP-02, checked at U4 and U5 |
-| UG-003 Lucide candidate | DEF-04, bumped at U6 (P-28) |
-| UG-004 per-feature submission and limits | consuming feature (not this issue) |
-| UG-005 simulated recovery | DEF-05, consuming feature (not this issue) |
-| UG-006 confirmation duration | TOK-02 at U4; TST-01/02 at U2-S |
-| UG-007 leave guard | LVG-01 at U2 and U3 |
-| UG-008 revisions and approvals | consuming feature (not this issue) |
-| UG-009 commercial policy | product owners (not this issue) |
-| UG-010 prototype scope | product owners (not this issue) |
-| UG-011 creator UI and history | DEF-06, consuming feature (not this issue) |
-| UG-012 evidence limits | U5 evidence classification and human checks |
-| UG-013 brief provenance | product owners (not this issue) |
-| UG-014 RTL fixes | RTL-01 to RTL-04 at U2 |
-| UG-015 touch sizes | TCH-02 at U1; TCH-01 and TCH-03 at U2 |
-| UG-016 toast CSP | U2-S, with security approval on its PR |
-| UG-017 missing media | MED-01 at U2 and U3 |
-| UG-018 project style seam | U6 theme seam (P-19 to P-22) |
-| UG-019 regression tooling | U0 decision: scripted captures, no new dependency |
+| Gap                                      | Where it's handled                                                          |
+| ---------------------------------------- | --------------------------------------------------------------------------- |
+| UG-001 font hooks                        | TOK-01 at U4; the font path at U6; consumer mapping by each derived project |
+| UG-002 retained values and geometry      | KEEP-02, checked at U4 and U5                                               |
+| UG-003 Lucide candidate                  | DEF-04, bumped at U6 (P-28)                                                 |
+| UG-004 per-feature submission and limits | consuming feature (not this issue)                                          |
+| UG-005 simulated recovery                | DEF-05, consuming feature (not this issue)                                  |
+| UG-006 confirmation duration             | TOK-02 at U4; TST-01/02 at U2-S                                             |
+| UG-007 leave guard                       | LVG-01 at U2 and U3                                                         |
+| UG-008 revisions and approvals           | consuming feature (not this issue)                                          |
+| UG-009 commercial policy                 | product owners (not this issue)                                             |
+| UG-010 prototype scope                   | product owners (not this issue)                                             |
+| UG-011 creator UI and history            | DEF-06, consuming feature (not this issue)                                  |
+| UG-012 evidence limits                   | U5 evidence classification and human checks                                 |
+| UG-013 brief provenance                  | product owners (not this issue)                                             |
+| UG-014 RTL fixes                         | RTL-01 to RTL-04 at U2                                                      |
+| UG-015 touch sizes                       | TCH-02 at U1; TCH-01 and TCH-03 at U2                                       |
+| UG-016 toast CSP                         | U2-S, with security approval on its PR                                      |
+| UG-017 missing media                     | MED-01 at U2 and U3                                                         |
+| UG-018 project style seam                | U6 theme seam (P-19 to P-22)                                                |
+| UG-019 regression tooling                | U0 decision: scripted captures, no new dependency                           |
 
 ## Decision register
 
 Every decision this plan relies on. They are approved together at the start gate. Changing one is recorded under "Verified progress" before the checkpoint it affects. Package decisions D-01 to D-13 are listed under "Package decisions carried in" above.
 
-| ID | Decision | Where |
-| --- | --- | --- |
-| P-01 | Copy the two generated stylesheets into `src/styles/design-system/` unedited, with the source revision in a header | U4 |
-| P-02 | Delete `classic.css` and `soft-blue.css` | U4 |
-| P-03 | One PR per remaining step (R1, R2, R3), merged with a merge commit and revertible on its own; work inside a step in small commits | all |
-| P-04 | AGT-01 and SKL-01 move from U1 to U5 (deviation) | U5 |
-| P-05 | Variable-backed type roles and `em` letter-spacing, made in the design package by checkpoint P0 before the start gate | P0, U4 |
-| P-06 | Tests: `node:test` for extracted logic, scripted Playwright for DOM behaviour; no test dependency | all |
-| P-07 | `lg` only with per-screen approval; the leave guard only where there's real saving or Discard | U3 |
-| P-08 | Browser verification is the committed smoke script `docs/features/design-system-adoption/smoke.mjs`; the U0 captures stay as reference only, with no pixel comparison gate | all |
-| P-09 | U2-S lands before U4 (P-30), so the toast falls back to `var(--type-body, var(--font-sans))` and a literal 6000 ms; U4 swaps in the tokens | U2-S, U4 |
-| P-10 | The SKL-01 install order follows `handbook:sync`, which generates the `.claude` wrapper (deviation from proposal §4) | U5 |
-| P-11 | No Tailwind theme keys for the touch sizes | U1 |
-| P-12 | TCH-01: add `textarea` to the coarse-pointer height rule, plus the spec's horizontal-Field label rule | U2 |
-| P-13 | TCH-03 selectors: icon buttons via `[data-size^="icon"]`; select and menu items via their `data-slot`; checkbox and radio labels both as wrapping labels (`label:has(> …)`) and as sibling labels (`[data-slot="checkbox"] + [data-slot="label"]`) | U2 |
-| P-14 | `StatusBadge` is a composition in `src/components/status-badge.tsx`; `ui/badge.tsx` is unchanged | U2 |
-| P-15 | Measure the neutral and error badge pairs; fall back to the error Notice styling below 4.5:1 | U2 |
-| P-16 | `Notice` gains an optional `action` prop whose state is owned by the feature | U2 |
-| P-17 | Notice action labels name each state | U2 |
-| P-18 | The Notice action uses `aria-disabled` while pending and on success, so focus isn't lost (deviation) | U2 |
-| P-19 | A `theme` flag in `project.config.json`; `layout.tsx` reads `project.theme` and `project.slug` from `src/lib/project.ts` and passes them to `StyleProvider` as props; `global-error.tsx`, a client component with its own `<html>` and no `StyleProvider`, imports `project.ts` itself and sets `data-project` directly; `data-project` is the slug. Public settings are not changed | U6 |
-| P-20 | A project theme replaces the preset choice; light, dark and system stay | U6 |
-| P-21 | A project theme isn't a new style ID | U6 |
-| P-22 | `src/project/theme.css`, imported after the foundation, project-owned | U6 |
-| P-23 | Fonts through `@font-face` in `theme.css` and `public/fonts/`; no `next/font` hook | U6 |
-| P-24 | Move `designStyleSchema` into a new dependency-free `src/lib/design-styles.ts`; `appearance.ts` re-exports it so existing importers such as `src/lib/config/public.ts` stay unchanged; `appearance.ts`, `project.ts` and `runs/admin-editors.tsx` import it; disable the admin default-style editor under a project theme | U6 |
-| P-25 | Project tokens stay under `x-<id>`; new shared tokens go through the design package | U6 |
-| P-26 | Replace the old Classic primary `#98492f` with the adopted Classic primary `#c2410c` (COL-classic-light-primary) in `layout.tsx`, `manifest.ts`, `scripts/i18n-assets.mjs` (which generates `public/offline.html`), `android-generate.ts`, `generate-icons.mjs` and `icon.svg`; background `#fff9f3` and foreground `#30221d` stay, because no colour row changes them | U6 |
-| P-27 | Template release is a minor version bump before 1.0, with upgrade notes; existing `## Unreleased` entries ship in it | U6 |
-| P-28 | Lucide 1.75.0 bump deferred (optional under D-12); a later small PR | later |
-| P-29 | The derived-project guide is `docs/design-system-extension.md`, Unibase-owned and naming no project | U6 |
-| P-30 | Order: P0, U0, U1, U2 (done), then R1 (U2-S with U3), R2 (U4), R3 (U5 with U6). If the toast cannot pass its CSP smoke check, R1 ships the rollout without it and records the toast as deferred | all |
-| P-31 | Leave-guard eligibility follows the U3 form inventory: only forms that edit an existing saved record with an explicit save | U3 |
-| P-32 | Badge contrast was measured at U2 (all tones at least 4.77:1); after R2 it is re-checked once by the smoke run, not as a separate gate | U2, R2 |
-| P-33 | The upgrade rehearsal uses a local, unpushed tag and a disposable project created from `template-v0.4.0` | U6 |
+| ID   | Decision                                                                                                                                                                                                                                                                                                                                                                             | Where    |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| P-01 | Copy the two generated stylesheets into `src/styles/design-system/` unedited, with the source revision in a header                                                                                                                                                                                                                                                                   | U4       |
+| P-02 | Delete `classic.css` and `soft-blue.css`                                                                                                                                                                                                                                                                                                                                             | U4       |
+| P-03 | One PR per remaining step (R1, R2, R3), merged with a merge commit and revertible on its own; work inside a step in small commits                                                                                                                                                                                                                                                    | all      |
+| P-04 | AGT-01 and SKL-01 move from U1 to U5 (deviation)                                                                                                                                                                                                                                                                                                                                     | U5       |
+| P-05 | Variable-backed type roles and `em` letter-spacing, made in the design package by checkpoint P0 before the start gate                                                                                                                                                                                                                                                                | P0, U4   |
+| P-06 | Tests: `node:test` for extracted logic, scripted Playwright for DOM behaviour; no test dependency                                                                                                                                                                                                                                                                                    | all      |
+| P-07 | `lg` only with per-screen approval; the leave guard only where there's real saving or Discard                                                                                                                                                                                                                                                                                        | U3       |
+| P-08 | Browser verification is the committed smoke script `docs/features/design-system-adoption/smoke.mjs`; the U0 captures stay as reference only, with no pixel comparison gate                                                                                                                                                                                                           | all      |
+| P-09 | U2-S lands before U4 (P-30), so the toast falls back to `var(--type-body, var(--font-sans))` and a literal 6000 ms; U4 swaps in the tokens                                                                                                                                                                                                                                           | U2-S, U4 |
+| P-10 | The SKL-01 install order follows `handbook:sync`, which generates the `.claude` wrapper (deviation from proposal §4)                                                                                                                                                                                                                                                                 | U5       |
+| P-11 | No Tailwind theme keys for the touch sizes                                                                                                                                                                                                                                                                                                                                           | U1       |
+| P-12 | TCH-01: add `textarea` to the coarse-pointer height rule, plus the spec's horizontal-Field label rule                                                                                                                                                                                                                                                                                | U2       |
+| P-13 | TCH-03 selectors: icon buttons via `[data-size^="icon"]`; select and menu items via their `data-slot`; checkbox and radio labels both as wrapping labels (`label:has(> …)`) and as sibling labels (`[data-slot="checkbox"] + [data-slot="label"]`)                                                                                                                                   | U2       |
+| P-14 | `StatusBadge` is a composition in `src/components/status-badge.tsx`; `ui/badge.tsx` is unchanged                                                                                                                                                                                                                                                                                     | U2       |
+| P-15 | Measure the neutral and error badge pairs; fall back to the error Notice styling below 4.5:1                                                                                                                                                                                                                                                                                         | U2       |
+| P-16 | `Notice` gains an optional `action` prop whose state is owned by the feature                                                                                                                                                                                                                                                                                                         | U2       |
+| P-17 | Notice action labels name each state                                                                                                                                                                                                                                                                                                                                                 | U2       |
+| P-18 | The Notice action uses `aria-disabled` while pending and on success, so focus isn't lost (deviation)                                                                                                                                                                                                                                                                                 | U2       |
+| P-19 | A `theme` flag in `project.config.json`; `layout.tsx` reads `project.theme` and `project.slug` from `src/lib/project.ts` and passes them to `StyleProvider` as props; `global-error.tsx`, a client component with its own `<html>` and no `StyleProvider`, imports `project.ts` itself and sets `data-project` directly; `data-project` is the slug. Public settings are not changed | U6       |
+| P-20 | A project theme replaces the preset choice; light, dark and system stay                                                                                                                                                                                                                                                                                                              | U6       |
+| P-21 | A project theme isn't a new style ID                                                                                                                                                                                                                                                                                                                                                 | U6       |
+| P-22 | `src/project/theme.css`, imported after the foundation, project-owned                                                                                                                                                                                                                                                                                                                | U6       |
+| P-23 | Fonts through `@font-face` in `theme.css` and `public/fonts/`; no `next/font` hook                                                                                                                                                                                                                                                                                                   | U6       |
+| P-24 | Move `designStyleSchema` into a new dependency-free `src/lib/design-styles.ts`; `appearance.ts` re-exports it so existing importers such as `src/lib/config/public.ts` stay unchanged; `appearance.ts`, `project.ts` and `runs/admin-editors.tsx` import it; disable the admin default-style editor under a project theme                                                            | U6       |
+| P-25 | Project tokens stay under `x-<id>`; new shared tokens go through the design package                                                                                                                                                                                                                                                                                                  | U6       |
+| P-26 | Replace the old Classic primary `#98492f` with the adopted Classic primary `#c2410c` (COL-classic-light-primary) in `layout.tsx`, `manifest.ts`, `scripts/i18n-assets.mjs` (which generates `public/offline.html`), `android-generate.ts`, `generate-icons.mjs` and `icon.svg`; background `#fff9f3` and foreground `#30221d` stay, because no colour row changes them               | U6       |
+| P-27 | Template release is a minor version bump before 1.0, with upgrade notes; existing `## Unreleased` entries ship in it                                                                                                                                                                                                                                                                 | U6       |
+| P-28 | Lucide 1.75.0 bump deferred (optional under D-12); a later small PR                                                                                                                                                                                                                                                                                                                  | later    |
+| P-29 | The derived-project guide is `docs/design-system-extension.md`, Unibase-owned and naming no project                                                                                                                                                                                                                                                                                  | U6       |
+| P-30 | Order: P0, U0, U1, U2 (done), then R1 (U2-S with U3), R2 (U4), R3 (U5 with U6). If the toast cannot pass its CSP smoke check, R1 ships the rollout without it and records the toast as deferred                                                                                                                                                                                      | all      |
+| P-31 | Leave-guard eligibility follows the U3 form inventory: only forms that edit an existing saved record with an explicit save                                                                                                                                                                                                                                                           | U3       |
+| P-32 | Badge contrast was measured at U2 (all tones at least 4.77:1); after R2 it is re-checked once by the smoke run, not as a separate gate                                                                                                                                                                                                                                               | U2, R2   |
+| P-33 | The upgrade rehearsal uses a local, unpushed tag and a disposable project created from `template-v0.4.0`                                                                                                                                                                                                                                                                             | U6       |
 
 ## Execution prerequisites
 
@@ -132,6 +132,7 @@ with merge commits once their smoke checks pass and one review has looked at the
 when available; otherwise a recorded self-review). There are no per-PR approval stops.
 
 **Environment.**
+
 - Node 24 with `npm.cmd ci`.
 - A local run that works without cloud credentials.
 - Headless browser sessions through the Playwright skill, with captures under `output/playwright/`, which is not committed.
@@ -146,6 +147,7 @@ and run `node node_modules/firebase-tools/lib/bin/firebase.js emulators:start --
 Note: with a VPN on, Claude subagents may be refused by the API (HTTP 403); do the work in the main session.
 
 **Local run and sign-in** (used by every browser check from U0 on; see `docs/local-testing.md`):
+
 1. Use the local defaults. If `.env.local` exists, it must select the local and demo resources shown in `.env.example`.
 2. Start three long-running processes and wait for each to be ready: `npm.cmd run emulators:auth` ("All emulators ready"), `npm.cmd run emulators:mongo` ("Local MongoDB ready") and `npm.cmd run dev` ("Ready"). Use `http://localhost:3000` for the app.
 3. **Member account.** On `/account`, register `qa-member-01@example.test` with a 12-character disposable password. Open the verification link from the Auth Emulator's email actions (`docs/local-testing.md`), then choose "I've verified my email".
@@ -153,6 +155,7 @@ Note: with a VPN on, Claude subagents may be refused by the API (HTTP 403); do t
 5. Drive the browser with named headless Playwright sessions, one per account, and save captures under `output/playwright/<checkpoint>/`. Emulator accounts are ephemeral, so repeat steps 3 and 4 after restarting the emulators.
 
 **Standing rules** (from Unibase's agent guidance):
+
 - typed catalogs, page-scoped dictionaries and logical RTL;
 - admin stays English/LTR;
 - CSP nonces are preserved;
@@ -164,17 +167,18 @@ Note: with a VPN on, Claude subagents may be refused by the API (HTTP 403); do t
 
 ## Budget and risk control
 
-| Step | Contains | PRs | Approx. files | Status |
-| --- | --- | --- | --- | --- |
-| P0 | Design-package type-role change (in `unitale-design`) | 1 | ~6 | done (PR #13) |
-| U0 | Baseline capture | 0 | 0 | done |
-| U1 | Touch tokens | 1 | ~3 | done (#56) |
-| U2 | Shared helpers in the showcase | 1 | ~29 | done (see progress) |
-| **R1** | Toast and CSP (U2-S) **and** rollout of the helpers into feature screens (U3) | 1 | ~25 | next |
-| **R2** | Visible foundation (U4) | 1 | ~11 | |
-| **R3** | Guidance and skill (U5), derived-project readiness, guide and template release (U6) | 1, plus the tag | ~35 | ends with the release gate |
+| Step   | Contains                                                                            | PRs             | Approx. files | Status                     |
+| ------ | ----------------------------------------------------------------------------------- | --------------- | ------------- | -------------------------- |
+| P0     | Design-package type-role change (in `unitale-design`)                               | 1               | ~6            | done (PR #13)              |
+| U0     | Baseline capture                                                                    | 0               | 0             | done                       |
+| U1     | Touch tokens                                                                        | 1               | ~3            | done (#56)                 |
+| U2     | Shared helpers in the showcase                                                      | 1               | ~29           | done (see progress)        |
+| **R1** | Toast and CSP (U2-S) **and** rollout of the helpers into feature screens (U3)       | 1               | ~25           | next                       |
+| **R2** | Visible foundation (U4)                                                             | 1               | ~11           |                            |
+| **R3** | Guidance and skill (U5), derived-project readiness, guide and template release (U6) | 1, plus the tag | ~35           | ends with the release gate |
 
 **Stop rules.**
+
 - Stop and report when any of these happens:
   - the release gate is reached;
   - a check fails twice for the same reason;
@@ -185,6 +189,7 @@ Note: with a VPN on, Claude subagents may be refused by the API (HTTP 403); do t
 ## Simplified remaining work
 
 **Coding rules** (follow them while writing, so lint, format and type checks are not rerun per step):
+
 - TypeScript without `any` or non-null assertions where a check is possible; client components start
   with `"use client"`; server-only code stays in `src/lib/server`.
 - Prettier style as in the surrounding code (two spaces, double quotes, trailing commas, about 80 columns).
@@ -196,6 +201,7 @@ Note: with a VPN on, Claude subagents may be refused by the API (HTTP 403); do t
 - New CSS for coarse pointers or helpers goes inside `@layer components`, so Tailwind utilities still win.
 
 **Per-step checks (light).** Before each step's PR:
+
 1. `npm.cmd test` passes.
 2. With the app running (`npm.cmd run dev` and the local services), run
    `node docs/features/design-system-adoption/smoke.mjs` with `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH`
@@ -212,6 +218,7 @@ No per-step lint, format or type check; no capture matrices, pixel comparisons, 
 per-PR approvals or physical-device checks. Add a unit test only when a step adds pure logic.
 
 **Final gate (once, at the end of R3, before the release).**
+
 1. `npx.cmd eslint --fix` and `npx.cmd prettier --write` on the files changed since `main` at U2's
    merge; commit as "chore: apply lint and format".
 2. Then, once: `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd test`, `npm.cmd run check:docs`,
@@ -222,6 +229,7 @@ per-PR approvals or physical-device checks. Add a unit test only when a step add
    stopped dev server, delete `.next/dev` and rerun; it is a truncated generated file.
 
 **Careful implementation, for every step.**
+
 - Branch from an up-to-date `main` as `task/53-<step>-<slug>`.
 - Re-read each file before editing it; change only the files the step names.
 - Commit in small, self-contained commits (one concern each).
@@ -231,6 +239,7 @@ per-PR approvals or physical-device checks. Add a unit test only when a step add
   under "Verified progress", and continue.
 
 **R1. Toast and rollout** (U2-S and U3 below). One PR.
+
 1. Toast: follow the U2-S section (Sonner pinned to exactly 2.0.8 through the shadcn CLI, the
    `toast.tsx` wrapper, mounted in the layout, CSP hashes in `src/proxy.ts`, the `Dismiss` key, the
    showcase demo). Keep `tests/sonner-csp.test.ts` (hash and pin). If the production toast check fails,
@@ -248,6 +257,7 @@ delete `classic.css` and `soft-blue.css`, the EmptyState title, the docs that be
 token, variable-backed roles). The dark warning surface keeps the package value.
 
 **R3. Guidance, readiness and release** (U5 and U6 below). One PR, then the release gate.
+
 1. Agent guidance and the `build-ui` skill (U5): AGT-01 and SKL-01 in the order recorded under U5
    (`names` entry, `handbook:sync`, `check-skills --write`).
 2. Derived-project readiness (U6): the theme seam (P-19 to P-24), fonts (P-23), the project-token rule
@@ -280,7 +290,7 @@ The only checkpoint outside Unibase. It makes decision 5 real, so the start gate
      - `--text-<role>--line-height: var(--text-<role>-leading, <value>)`;
      - `--text-<role>--font-weight: var(--text-<role>-weight, <value>)`;
      - `--text-<role>--letter-spacing: var(--text-<role>-tracking, <value>em)`.
-     These names match the `-size`, `-leading`, `-weight` and `-tracking` variables that generated project themes already emit (`roleDecls`, about line 256).
+       These names match the `-size`, `-leading`, `-weight` and `-tracking` variables that generated project themes already emit (`roleDecls`, about line 256).
   2. Letter-spacing is written in `em` in the generated CSS. The DTCG source keeps `rem`, which is all DTCG allows (see the comment at about line 97), and the generator converts it.
   3. Update the TYPE rows' description and spec §1 "Anatomy" to say the keys are variable-backed, and add a changelog entry.
   4. Regenerate with `node scripts/design-system/build-tokens.mjs`, then run the five package checks. Run the browser check with `UNIBASE_ADOPTION_SOURCE` pointing at a Unibase checkout with dependencies installed, so the compiled-Tailwind fixture runs.
@@ -328,20 +338,21 @@ The only checkpoint outside Unibase. It makes decision 5 real, so the start gate
 Each item is built once, shown in every state in `/design-system`, and used by no feature
 until U3. Spec numbers refer to the package's implementation specifications.
 
-| Rows | Spec | Files | Acceptance and decisions |
-| --- | --- | --- | --- |
-| FLD-01 | §2 Field composition | new `src/components/ui/field.tsx` via `npx shadcn add field` (style `radix-nova`) | **Decline** the CLI's offer to overwrite `label.tsx` and `separator.tsx`. Add the ID wiring and the two RTL corrections. Wire the form's capture-phase `invalid` handler next to `LocalizedValidation`. Give fields holding mixed-direction values (emails, URLs, codes) `dir="ltr"`, as spec §2 requires. **Acceptance:** submitting a required field empty focuses it and shows the translated message; `aria-describedby` lists the help and error IDs; typing clears the error; values survive a server error; in Arabic the help and error text start at the right. |
-| FLD-02 | §3 Field size | `input.tsx`, `textarea.tsx`, `select.tsx`: opt-in `size="lg"` | Default fields render pixel-identical to U0. `lg` computes a 48px minimum height and 16px text at 390px and 1440px. Nothing uses `lg` in this checkpoint. |
-| PND-01 | §5 Pending submit | `page-patterns.tsx` (`SubmitButton`) | A double-click sends one request. The label stays unchanged. The spinner is static with reduced motion. A failure re-enables the fields with their values. |
-| LVG-01 | §6 Leave guard | new `src/components/leave-guard.tsx`; provider in `src/app/layout.tsx`; guarded links in `app-shell.tsx` and `account-menu-controls.tsx` | Each table row's outcome matches for a fixture whose save succeeds, fails or is unknown. A clean form never prompts. Closing the tab while dirty shows the native prompt. Back is documented as unguarded. Initial focus is on Keep editing. Closing the dialog returns focus to the link or menu trigger that started the navigation. |
-| MED-01 | §8 Missing media and downloads | new `src/components/media-fallback.tsx` | A missing source shows the fallback with text. A blocked URL shows the failed variant. A forced download error shows the Notice and leaves the result untouched. |
-| RTL-01 to RTL-04 | §7 | `ui/dialog.tsx` (and remove the patches in `diagnostic-access.tsx` and `runs/workflow-version-picker.tsx`), `ui/alert-dialog.tsx`, `ui/sheet.tsx`, `app/page.tsx`, `app/not-found.tsx` | In Arabic, dialogs and alert dialogs are centred at 390px and 1440px, the sheet's close button is at the inline end, and the arrows mirror. In English nothing moves. `components.json` keeps `rtl: false`, recorded as not assessed (spec §7); this checkpoint doesn't change it. |
-| TCH-01, TCH-03 | §7 | `src/app/globals.css`, inside the existing `@media (pointer: coarse)` block | **Decision P-12, TCH-01:** add `[data-slot="textarea"]` to the existing `min-height: 2.75rem` selector, and add the spec's horizontal-Field label rule verbatim. **Decision P-13, TCH-03:** add `[data-slot="button"][data-size^="icon"] { min-width: var(--control-touch-sm); }`, which matches `icon`, `icon-xs`, `icon-sm` and `icon-lg` through the `data-size` attribute that `ui/button.tsx` sets. Add `[data-slot="select-item"], [data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], label:has(> [data-slot="checkbox"]), label:has(> [data-slot="radio-group-item"]), [data-slot="checkbox"] + [data-slot="label"], [data-slot="radio-group-item"] + [data-slot="label"] { min-height: var(--control-touch-sm); }`. Unibase mostly puts `<Label htmlFor>` beside the control rather than around it (for example `admin-credit-controls.tsx`, `notification-settings.tsx`), so the sibling forms are required. That covers the selectable options and the checkbox or radio labels outside a `Field` (radio groups are used in `appearance-form.tsx`, `admin-credit-controls.tsx`, `admin-user-controls.tsx`, `purchase-simulator.tsx` and `runs/run-start.tsx`). The TCH-03 row's "not yet reviewed" status is settled by the U2 PR approval. **Acceptance on touch:** the label beside a checkbox or radio is at least 44px and toggles the control; every icon button is at least 44px wide; every choice is at least 44px tall. A fine pointer keeps the compact sizes. |
-| BDG-01 | §10 | new `src/components/status-badge.tsx` (a composition outside `ui/`, so the shadcn CLI never overwrites it; `ui/badge.tsx` stays unchanged, like KEEP-01) | Decisions P-14 and P-15, below the table. **Acceptance:** each tone reads correctly with icons hidden and in greyscale; long labels wrap; the badge isn't focusable; light and dark in every preset. |
-| NTC-01 | §11 | `Notice` in `page-patterns.tsx` | Decisions P-16 to P-18, below the table. **Acceptance:** each state shows its label and receipt; pending and success can't be activated by click or keyboard; failed can be retried by the user only; focus never drops to `<body>`; keyboard and screen-reader announcement in every preset. |
-| (copy) | §9 Copy | `ui` catalog keys (`m` plus a 12-hex SHA-256 prefix) in English and Arabic; regenerate `messages/client-sections.json` | Run `node scripts/i18n-client-sections.mjs`, then `npm.cmd run check:i18n`. The Arabic text is a draft until its native review on the U2 PR. The toast's `Dismiss` key ships with U2-S, not here, so it is never unused. |
+| Rows             | Spec                           | Files                                                                                                                                                                                  | Acceptance and decisions                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FLD-01           | §2 Field composition           | new `src/components/ui/field.tsx` via `npx shadcn add field` (style `radix-nova`)                                                                                                      | **Decline** the CLI's offer to overwrite `label.tsx` and `separator.tsx`. Add the ID wiring and the two RTL corrections. Wire the form's capture-phase `invalid` handler next to `LocalizedValidation`. Give fields holding mixed-direction values (emails, URLs, codes) `dir="ltr"`, as spec §2 requires. **Acceptance:** submitting a required field empty focuses it and shows the translated message; `aria-describedby` lists the help and error IDs; typing clears the error; values survive a server error; in Arabic the help and error text start at the right.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| FLD-02           | §3 Field size                  | `input.tsx`, `textarea.tsx`, `select.tsx`: opt-in `size="lg"`                                                                                                                          | Default fields render pixel-identical to U0. `lg` computes a 48px minimum height and 16px text at 390px and 1440px. Nothing uses `lg` in this checkpoint.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| PND-01           | §5 Pending submit              | `page-patterns.tsx` (`SubmitButton`)                                                                                                                                                   | A double-click sends one request. The label stays unchanged. The spinner is static with reduced motion. A failure re-enables the fields with their values.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| LVG-01           | §6 Leave guard                 | new `src/components/leave-guard.tsx`; provider in `src/app/layout.tsx`; guarded links in `app-shell.tsx` and `account-menu-controls.tsx`                                               | Each table row's outcome matches for a fixture whose save succeeds, fails or is unknown. A clean form never prompts. Closing the tab while dirty shows the native prompt. Back is documented as unguarded. Initial focus is on Keep editing. Closing the dialog returns focus to the link or menu trigger that started the navigation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| MED-01           | §8 Missing media and downloads | new `src/components/media-fallback.tsx`                                                                                                                                                | A missing source shows the fallback with text. A blocked URL shows the failed variant. A forced download error shows the Notice and leaves the result untouched.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| RTL-01 to RTL-04 | §7                             | `ui/dialog.tsx` (and remove the patches in `diagnostic-access.tsx` and `runs/workflow-version-picker.tsx`), `ui/alert-dialog.tsx`, `ui/sheet.tsx`, `app/page.tsx`, `app/not-found.tsx` | In Arabic, dialogs and alert dialogs are centred at 390px and 1440px, the sheet's close button is at the inline end, and the arrows mirror. In English nothing moves. `components.json` keeps `rtl: false`, recorded as not assessed (spec §7); this checkpoint doesn't change it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| TCH-01, TCH-03   | §7                             | `src/app/globals.css`, inside the existing `@media (pointer: coarse)` block                                                                                                            | **Decision P-12, TCH-01:** add `[data-slot="textarea"]` to the existing `min-height: 2.75rem` selector, and add the spec's horizontal-Field label rule verbatim. **Decision P-13, TCH-03:** add `[data-slot="button"][data-size^="icon"] { min-width: var(--control-touch-sm); }`, which matches `icon`, `icon-xs`, `icon-sm` and `icon-lg` through the `data-size` attribute that `ui/button.tsx` sets. Add `[data-slot="select-item"], [data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], label:has(> [data-slot="checkbox"]), label:has(> [data-slot="radio-group-item"]), [data-slot="checkbox"] + [data-slot="label"], [data-slot="radio-group-item"] + [data-slot="label"] { min-height: var(--control-touch-sm); }`. Unibase mostly puts `<Label htmlFor>` beside the control rather than around it (for example `admin-credit-controls.tsx`, `notification-settings.tsx`), so the sibling forms are required. That covers the selectable options and the checkbox or radio labels outside a `Field` (radio groups are used in `appearance-form.tsx`, `admin-credit-controls.tsx`, `admin-user-controls.tsx`, `purchase-simulator.tsx` and `runs/run-start.tsx`). The TCH-03 row's "not yet reviewed" status is settled by the U2 PR approval. **Acceptance on touch:** the label beside a checkbox or radio is at least 44px and toggles the control; every icon button is at least 44px wide; every choice is at least 44px tall. A fine pointer keeps the compact sizes. |
+| BDG-01           | §10                            | new `src/components/status-badge.tsx` (a composition outside `ui/`, so the shadcn CLI never overwrites it; `ui/badge.tsx` stays unchanged, like KEEP-01)                               | Decisions P-14 and P-15, below the table. **Acceptance:** each tone reads correctly with icons hidden and in greyscale; long labels wrap; the badge isn't focusable; light and dark in every preset.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| NTC-01           | §11                            | `Notice` in `page-patterns.tsx`                                                                                                                                                        | Decisions P-16 to P-18, below the table. **Acceptance:** each state shows its label and receipt; pending and success can't be activated by click or keyboard; failed can be retried by the user only; focus never drops to `<body>`; keyboard and screen-reader announcement in every preset.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| (copy)           | §9 Copy                        | `ui` catalog keys (`m` plus a 12-hex SHA-256 prefix) in English and Arabic; regenerate `messages/client-sections.json`                                                                 | Run `node scripts/i18n-client-sections.mjs`, then `npm.cmd run check:i18n`. The Arabic text is a draft until its native review on the U2 PR. The toast's `Dismiss` key ships with U2-S, not here, so it is never unused.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 **Status badge (BDG-01).**
+
 - **Decision P-14, API:** `StatusBadge({ tone, icon?, children, className? })`, where `tone` is `"neutral"`, `"info"`, `"warning"`, `"success"` or `"error"`.
   - Each tone has its default Lucide icon from §10: BookOpen, LoaderCircle (not animated), TriangleAlert, CircleCheck, CircleX. `icon` overrides it.
   - It renders `Badge` with `variant="secondary"` (neutral), `variant="destructive"` (error), or a tone class using the info, warning and success semantic pairs.
@@ -349,6 +360,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
 - **Decision P-15, contrast (method P-32):** measure the neutral and error badges in the showcase in all six preset and theme combinations. In the browser check, read the badge's computed `color` and its effective background (the badge background composited over the card's computed background), compute the WCAG 2 contrast ratio, and record each ratio on the U2 PR. Re-run the same measurement at U4, because U4 changes the colours. If the error pair is below 4.5:1, use the error Notice styling instead: `bg-card text-destructive` with a destructive border.
 
 **Notice with an action (NTC-01).**
+
 - **Decision P-16, props:** `Notice` gains an optional `action?: { state: "available" | "pending" | "success" | "failed"; labels: { available: string; pending: string; success: string }; receipt?: string; onAction: () => void }`. The feature owns the state; the notice never changes it itself, never starts work by appearing, and never retries.
 - **Decision P-17, label:** keep §11's state-specific labels (for example "Checking result"). Unlike `SubmitButton`, a notice action isn't a form submit, and the label plus the receipt tell the user what is happening.
 - **Decision P-18, focus:** in the pending and success states the button uses `aria-disabled="true"` (plus `aria-busy="true"` while pending, as §11 requires) with its activation ignored, instead of the `disabled` attribute. Focus then stays on the button rather than dropping to `<body>`, and the receipt (`role="status"`) announces the change. This deviates from §11's `disabled`; it is recorded in the U5 deviation table.
@@ -402,6 +414,7 @@ until U3. Spec numbers refer to the package's implementation specifications.
   - a new confirmation replaces the previous one through the shared `confirmation` id;
   - an error toast persists until dismissed;
   - the 6000 ms and font fallbacks apply when the tokens are absent.
+
 - **Continuation.** Stop if the security review rejects. Record the alternative (UG-016), remove the toast references from DOC-01, AGT-01 and SKL-01, and continue without a toast.
 
 ### U3. Rollout by area
@@ -414,30 +427,30 @@ until U3. Spec numbers refer to the package's implementation specifications.
   4. Runs.
 - **Form inventory and leave-guard eligibility (P-31).** The leave guard applies only to forms that edit an existing saved record and save it explicitly. One-shot actions (sign-in, search, upload, checkout, grants, starting a run, adding a note) and controls that save immediately are not guarded. Every slice applies Field and `SubmitButton` to the forms that have labelled inputs or a submit action.
 
-  | Slice | Form (file) | Field | Pending | Leave guard |
-  | --- | --- | --- | --- | --- |
-  | 1 | sign-in and registration (`auth-form.tsx`) | yes | yes | no |
-  | 1 | profile (`profile-form.tsx`) | yes | yes | **yes** |
-  | 1 | appearance (`appearance-form.tsx`) | yes | yes | **yes** |
-  | 1 | style, theme and language selectors (`style-preference.tsx`, `theme-preference.tsx`, `localization-preference.tsx`) | labels only | no (immediate) | no |
-  | 1 | notification settings (`notification-settings.tsx`, saves on toggle) | labels only | no | no |
-  | 1 | file upload (`files.tsx`) | yes | yes | no |
-  | 1 | notes sample (`samples/notes/notes-panel.tsx`) | yes | yes | no |
-  | 2 | credit checkout (`credit-checkout.tsx`) | yes | yes | no |
-  | 2 | purchase simulator, two forms (`purchase-simulator.tsx`) | yes | yes | no |
-  | 2 | commerce admin search (`commerce/admin-commerce.tsx`) | yes | yes | no |
-  | 2 | commerce admin draft editors, "Save draft" (`commerce/admin-commerce.tsx`, `commerce/schema-fields.tsx`) | yes | yes | **yes** |
-  | 3 | user search (`app/admin/users/page.tsx`, GET) | yes | no | no |
-  | 3 | user role and access controls (`admin-user-controls.tsx`) | yes | yes | no |
-  | 3 | credit grants (`admin-credit-controls.tsx`) | yes | yes | no |
-  | 3 | report filters (`report-filters.tsx`, GET) | yes | no | no |
-  | 3 | diagnostic access grants (`diagnostic-access.tsx`) | yes | yes | no |
-  | 3 | AI and domain settings (`ai-resolution.tsx`, `domain-target-picker.tsx`) | yes | yes | no |
-  | 4 | run start (`runs/run-start.tsx`, with `dynamic-field.tsx`, `answerer-select.tsx`, `workflow-version-picker.tsx`) | yes | yes | no |
-  | 4 | registered run card (`runs/registered-card.tsx`) | yes | yes | no |
-  | 4 | persona editor, "Save persona" (`runs/persona-editor.tsx`) | yes | yes | **yes** |
-  | 4 | completion settings (`runs/persona-completion-editor.tsx`) | yes | yes | **yes** |
-  | 4 | run admin editors with "Save" (`runs/admin-editors.tsx`) | yes | yes | **yes** |
+  | Slice | Form (file)                                                                                                         | Field       | Pending        | Leave guard |
+  | ----- | ------------------------------------------------------------------------------------------------------------------- | ----------- | -------------- | ----------- |
+  | 1     | sign-in and registration (`auth-form.tsx`)                                                                          | yes         | yes            | no          |
+  | 1     | profile (`profile-form.tsx`)                                                                                        | yes         | yes            | **yes**     |
+  | 1     | appearance (`appearance-form.tsx`)                                                                                  | yes         | yes            | **yes**     |
+  | 1     | style, theme and language selectors (`style-preference.tsx`, `theme-preference.tsx`, `localization-preference.tsx`) | labels only | no (immediate) | no          |
+  | 1     | notification settings (`notification-settings.tsx`, saves on toggle)                                                | labels only | no             | no          |
+  | 1     | file upload (`files.tsx`)                                                                                           | yes         | yes            | no          |
+  | 1     | notes sample (`samples/notes/notes-panel.tsx`)                                                                      | yes         | yes            | no          |
+  | 2     | credit checkout (`credit-checkout.tsx`)                                                                             | yes         | yes            | no          |
+  | 2     | purchase simulator, two forms (`purchase-simulator.tsx`)                                                            | yes         | yes            | no          |
+  | 2     | commerce admin search (`commerce/admin-commerce.tsx`)                                                               | yes         | yes            | no          |
+  | 2     | commerce admin draft editors, "Save draft" (`commerce/admin-commerce.tsx`, `commerce/schema-fields.tsx`)            | yes         | yes            | **yes**     |
+  | 3     | user search (`app/admin/users/page.tsx`, GET)                                                                       | yes         | no             | no          |
+  | 3     | user role and access controls (`admin-user-controls.tsx`)                                                           | yes         | yes            | no          |
+  | 3     | credit grants (`admin-credit-controls.tsx`)                                                                         | yes         | yes            | no          |
+  | 3     | report filters (`report-filters.tsx`, GET)                                                                          | yes         | no             | no          |
+  | 3     | diagnostic access grants (`diagnostic-access.tsx`)                                                                  | yes         | yes            | no          |
+  | 3     | AI and domain settings (`ai-resolution.tsx`, `domain-target-picker.tsx`)                                            | yes         | yes            | no          |
+  | 4     | run start (`runs/run-start.tsx`, with `dynamic-field.tsx`, `answerer-select.tsx`, `workflow-version-picker.tsx`)    | yes         | yes            | no          |
+  | 4     | registered run card (`runs/registered-card.tsx`)                                                                    | yes         | yes            | no          |
+  | 4     | persona editor, "Save persona" (`runs/persona-editor.tsx`)                                                          | yes         | yes            | **yes**     |
+  | 4     | completion settings (`runs/persona-completion-editor.tsx`)                                                          | yes         | yes            | **yes**     |
+  | 4     | run admin editors with "Save" (`runs/admin-editors.tsx`)                                                            | yes         | yes            | **yes**     |
 
   A form found during a slice that isn't in this table is classified by the same rule and added here before it is changed.
 
@@ -572,6 +585,7 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
     - `tests/integration/auth.test.mjs` for `data-project` rendered by the server, no `data-style` with the flag on, and the selector hidden.
   - Document it in `docs/architecture.md#project-extensions`, `docs/template.md`, and the "Switching and persistence" and "Extension point" sections of `docs/design-system.md`.
   - Document what a project's `theme.css` may contain, following Extending Unibase: type-role values through the `-size`, `-leading`, `-weight` and `-tracking` variables (decision 5), rules that target Unibase slots such as `[data-slot=card]` rather than generic element selectors, and project-prefixed variables for anything Unibase doesn't consume.
+
 - **Type-role overrides.** Verify the decision 5 package change end to end: with the fixture project theme setting `--text-hero-size` and `--text-card-title-weight`, the computed styles change; without it, U4's values hold.
 - **Fonts (DEF-02). Decision P-23.** Unibase keeps system fonts. For a derived project: `@font-face` rules in the project-owned `src/project/theme.css`, with the font files under the project-owned `public/fonts/`. They are served from `'self'`, so the CSP doesn't change, and template-owned files such as `layout.tsx` are never edited. The theme sets `--type-heading` and `--type-body` to the new families. (The alternative, a `src/project/fonts.ts` seam using `next/font/local`, is recorded as rejected: it would need a hook in the template-owned layout.)
   - Fonts from third-party hosts are blocked by `font-src 'self'`. The upgrade notes tell projects to self-host.
@@ -611,6 +625,7 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
   - `docs/template.md` ("First steps in a new project", "Add a feature");
   - `docs/architecture.md#project-extensions`;
   - `docs/source-map.md` (the UI row).
+
 - **Agent guidance for derived projects.**
   - Add a "Derived projects" section to the `build-ui` skill (SKL-01, regenerated through `handbook:sync`): read `docs/design-system-extension.md` first; theme only through `theme.css`; tokens under `x-<id>`; compose rather than edit shared components; propose shared needs to the design package.
   - Add one pointer to the guide in the adapter's "UI and browser verification" section.
@@ -657,35 +672,35 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 
 ## Documentation and guidance
 
-| Document | Change | Checkpoint |
-| --- | --- | --- |
-| `unitale-design`: TYPE rows, spec §1 "Anatomy", package `CHANGELOG.md` | variable-backed type roles and `em` letter-spacing | P0 |
-| `docs/design-system.md` | DOC-01 §1, the "Where to change things" table, row by row as files change | U1, U2, U4 |
-| `docs/design-system.md` | DOC-01 §2, typography roles | U4 |
-| `docs/design-system.md` | DOC-01 §3, interaction rules | U2 |
-| `docs/design-system.md` | DOC-01 §4, local test loop steps 9 onward | U2, U2-S |
-| `docs/design-system.md` | DOC-01 §5, adopted package version and deviations | U5 |
-| `docs/design-system.md:10-13`, `:39` and `:88-90` | the palette descriptions, brand-values and add-a-preset rules | U4, U6 |
-| `docs/design-system.md` local sections | status badge, actionable Notice, touch tokens and rule (not in DOC-01) | U2 |
-| `docs/design-system.md` "Switching and persistence", "Extension point" | the project theme seam, and a link to the extension guide | U6 |
-| `docs/design-system-extension.md` (new) | the derived-project design guide: theme, fonts, tokens, extending components, shared needs, verification, template updates | U6 |
-| `build-ui` skill "Derived projects" section; adapter pointer | agent guidance for derived projects | U6 |
-| `docs/architecture.md:31-32` and `#project-extensions` | the preset files, typography owner and theme seam, with a link to the extension guide | U4, U6 |
-| `docs/template.md` | the theme seam, fonts and per-project colours, with links to the extension guide | U6 |
-| `AGENTS.md`, `.agents/repository-adapter.md`, `docs/source-map.md` | AGT-01 | U5 |
-| `.agents/skills/build-ui/`, `.claude/skills/build-ui/`, `skills-lock.json` | SKL-01 | U5 |
-| `CHANGELOG.md` | an `## Unreleased` entry per checkpoint, then the release | every checkpoint, U6 |
-| this plan | "Verified progress and resume" | every checkpoint |
+| Document                                                                   | Change                                                                                                                     | Checkpoint           |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `unitale-design`: TYPE rows, spec §1 "Anatomy", package `CHANGELOG.md`     | variable-backed type roles and `em` letter-spacing                                                                         | P0                   |
+| `docs/design-system.md`                                                    | DOC-01 §1, the "Where to change things" table, row by row as files change                                                  | U1, U2, U4           |
+| `docs/design-system.md`                                                    | DOC-01 §2, typography roles                                                                                                | U4                   |
+| `docs/design-system.md`                                                    | DOC-01 §3, interaction rules                                                                                               | U2                   |
+| `docs/design-system.md`                                                    | DOC-01 §4, local test loop steps 9 onward                                                                                  | U2, U2-S             |
+| `docs/design-system.md`                                                    | DOC-01 §5, adopted package version and deviations                                                                          | U5                   |
+| `docs/design-system.md:10-13`, `:39` and `:88-90`                          | the palette descriptions, brand-values and add-a-preset rules                                                              | U4, U6               |
+| `docs/design-system.md` local sections                                     | status badge, actionable Notice, touch tokens and rule (not in DOC-01)                                                     | U2                   |
+| `docs/design-system.md` "Switching and persistence", "Extension point"     | the project theme seam, and a link to the extension guide                                                                  | U6                   |
+| `docs/design-system-extension.md` (new)                                    | the derived-project design guide: theme, fonts, tokens, extending components, shared needs, verification, template updates | U6                   |
+| `build-ui` skill "Derived projects" section; adapter pointer               | agent guidance for derived projects                                                                                        | U6                   |
+| `docs/architecture.md:31-32` and `#project-extensions`                     | the preset files, typography owner and theme seam, with a link to the extension guide                                      | U4, U6               |
+| `docs/template.md`                                                         | the theme seam, fonts and per-project colours, with links to the extension guide                                           | U6                   |
+| `AGENTS.md`, `.agents/repository-adapter.md`, `docs/source-map.md`         | AGT-01                                                                                                                     | U5                   |
+| `.agents/skills/build-ui/`, `.claude/skills/build-ui/`, `skills-lock.json` | SKL-01                                                                                                                     | U5                   |
+| `CHANGELOG.md`                                                             | an `## Unreleased` entry per checkpoint, then the release                                                                  | every checkpoint, U6 |
+| this plan                                                                  | "Verified progress and resume"                                                                                             | every checkpoint     |
 
 ## Test plan summary
 
 Each row follows the [simplified remaining work](#simplified-remaining-work). Inspect the touched pages once per step.
 
-| Step | Unit and browser checks | Additional verification |
-| --- | --- | --- |
-| R1 | One unit suite including the Sonner pin and CSP hash tests. One 38-check smoke run. | Show a styled toast on the production build with no CSP error. If deferred, verify the rollout candidate. |
-| R2 | One unit suite including the foundation tests. One 38-check smoke run. | Inspect the visible foundation changes during the touched-page visits. |
-| R3 | The final gate supplies the unit suite and 38-check smoke run. New seam cases belong in `config` and `template-update` only. | Complete the final command list above, run `test:initialized-projects`, and rehearse one upgrade from `template-v0.4.0`. Stop at the issue owner's release-tag gate. |
+| Step | Unit and browser checks                                                                                                      | Additional verification                                                                                                                                              |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1   | One unit suite including the Sonner pin and CSP hash tests. One 38-check smoke run.                                          | Show a styled toast on the production build with no CSP error. If deferred, verify the rollout candidate.                                                            |
+| R2   | One unit suite including the foundation tests. One 38-check smoke run.                                                       | Inspect the visible foundation changes during the touched-page visits.                                                                                               |
+| R3   | The final gate supplies the unit suite and 38-check smoke run. New seam cases belong in `config` and `template-update` only. | Complete the final command list above, run `test:initialized-projects`, and rehearse one upgrade from `template-v0.4.0`. Stop at the issue owner's release-tag gate. |
 
 ## Verified progress and resume
 

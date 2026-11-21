@@ -5,6 +5,7 @@
 @import "../styles/tokens.css";
 @import "../styles/presets/glass.css";
 @import "../styles/design-system/tailwind-theme.css";
+@import "../project/theme.css";
 
 @custom-variant dark (&:is(.dark *));
 
