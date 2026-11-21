@@ -62,9 +62,88 @@ IDs for the target revision, take an operational backup, run indexes before
 migrations, then verify the ledger and affected flows. The runner applies all
 eligible pending migrations, including enabled module migrations.
 
-[#62](https://github.com/Uniwares-LTD/unibase/issues/62) owns the simpler
-deployment migration flow. Apply and record the currently pending staging
-migrations after that flow is ready.
+[#62](https://github.com/Uniwares-LTD/unibase/issues/62) owns reusable manual and
+deployment-integrated backup/migration workflows. Its current stage is planning
+and documentation only; see the [operation plan](features/deployment-data-operations/implementation-plan.md).
+The new flow must be implemented and verified on disposable data before a separately
+authorized Unibase staging run. Recheck serving revision and the full ledger before
+previewing that later operation. The manual host sequence for the pending staging
+migrations remains deferred.
+
+### Reusable data operations proposal
+
+The [operation plan](features/deployment-data-operations/implementation-plan.md#proposed-operator-workflows)
+specifies backup-only, migration-on-demand and deployment-integrated usage. These
+are proposed workflows, not installed commands or new Release behavior. Existing
+backup/restore commands remain documented under
+[manual recovery](#repeatable-release-and-protected-change-path).
+
+For agent-triggered deployment, the proposed flow reviews the read-only requirements
+and asks for approval before triggering Release or merging an environment promotion
+PR. Release then builds the exact immutable candidate. Required migrations stop
+activation until the exact prepared data plan is approved and verified; resume that
+same Release run/candidate afterward. Compatible backfills can follow release.
+After successful deployment with pending compatible work, the agent offers one
+approved automatic backup-and-migration
+run or the manual workflow path with exact dispatch/status instructions. A human merge
+still triggers automatic Release, with the same compatibility gates and pending-work
+summary. No pending work means no second prompt or database operation.
+Zero pending IDs do not bypass a failed verifier, unresolved data write or unsafe
+writer/health recovery. Both routine and protected activation check authoritative
+host journals and validated recovery acknowledgments as well as the ledger. A missing
+admin report alone does not block a host-verified successful operation.
+
+One combined migration approval binds the exact target, database, revision, pending
+batch and backup requirements. The executor verifies and records its backup before
+database writes. Both paths reuse the same restricted executor, runner, ledger and
+status controls. Destructive, incompatible or unclassified changes need bespoke review.
+Workflow outputs and artifacts, one capability on the existing diagnostics API and
+a compact section in the existing admin Operations page expose sanitized recorded
+outcomes and current ledger state. In-flight or unknown outcomes use workflow/host
+status. There are no new admin REST routes, status-heartbeat writes or live-progress UI.
+These are planned interfaces, not installed commands or UI. See the plan's
+[simplifications](features/deployment-data-operations/implementation-plan.md#simplifications-and-retained-gates)
+for reused checks, checkpoints and index setup.
+The planned [deployment skills](features/deployment-data-operations/implementation-plan.md#deployment-skills-and-reference-adoption)
+guide release and database operations through these same interfaces; they add no
+permission or execution path. They are not installed during this documentation stage.
+
+Infrastructure owns host execution and recovery controls; Unibase owns migration
+policy and application acceptance. No controller installation or live operation is
+needed for this documentation change. See the plan's
+[acceptance prerequisites](features/deployment-data-operations/implementation-plan.md#acceptance-and-future-execution-prerequisites)
+before future implementation or staging acceptance.
+The proposed [operator resolution procedure](features/deployment-data-operations/implementation-plan.md#operator-resolution-and-activation-evidence)
+uses a root-only inspector and checked acknowledgment after separately authorized
+recovery. It preserves the failed/unknown history, does not replay migrations or
+restart services, and cannot waive pending required IDs or failed data verification.
+The [implementation contract](features/deployment-data-operations/implementation-plan.md#implementation-contract)
+fixes the future CLI/workflow names, diagnostic status reads, checksum packaging, lock ordering,
+timeouts, skill selection and delivery checkpoints. These interfaces are specified
+for implementation readiness and are not installed yet.
+
+### Promotion review and action records
+
+Use the [promotion PR starter](templates/promotion-pr.md) for an authorized environment
+promotion. Review the intended merge result against the target tip and record full
+source/target SHAs, actual expected deployment workflow and included source PRs.
+Inspect their deployment requirements and the diff itself for missing migration,
+index, configuration or compatibility work. Refresh the review when either branch
+changes the intended result. An empty promotion needs no merge or deployment.
+
+Give before-deployment actions readable `B<number>-<slug>` labels and after-deployment
+actions `A<number>-<slug>` labels. Include owner, location, verification, failure/resume
+and source PR or `found in diff review`. Use one PR-body inventory; required actions
+need verified evidence, while optional deferral needs a reason and remains visible.
+Do not add per-action approval prompts when the reviewed operation already covers them.
+Keep linked source PR Test flows separate from deployment actions and migration state.
+
+For `main` to `_staging`/`_prod`, verify the exact Release workflow run, resulting
+serving revision/image and health; a successful unrelated later commit does not confirm
+the reviewed release. Current environment-branch pushes trigger Release without path
+filters, so a documentation-only promotion still triggers it. PR preparation alone
+does not publish, merge or deploy. A Git backup branch does not back up MongoDB/GridFS;
+retain the existing image/config rollback and separately approved data recovery paths.
 
 ### Follow-up recovery and consolidation
 

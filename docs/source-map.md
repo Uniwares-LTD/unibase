@@ -87,6 +87,19 @@ the admin boundary; public-page catalogs remain in `messages/`.
 owns integration procedures and provenance; the [repository adapter](../.agents/repository-adapter.md)
 owns local constraints and Handbook exceptions. Root [instructions](../AGENTS.md)
 own task-start routing and short decision-point reminders; this map owns navigation.
+The [reusable data operations plan](features/deployment-data-operations/implementation-plan.md)
+owns #62's proposed backup/migration contract and documentation-stage boundary;
+it describes future agent approvals, manual/deployment integration, workflow outputs,
+one authenticated diagnostic status capability and the existing admin Operations view, not installed
+functionality.
+It also specifies [deployment skills and reference adoption](features/deployment-data-operations/implementation-plan.md#deployment-skills-and-reference-adoption);
+[agent tooling](agent-tooling.md#planned-deployment-skills) owns future discovery and
+integration requirements. These deployment skills are proposed, not installed.
+The [promotion PR starter](templates/promotion-pr.md) and
+[promotion action guidance](deployment.md#promotion-review-and-action-records) keep
+labeled deployment actions separate from linked source PR Test flows.
+The plan's [implementation contract](features/deployment-data-operations/implementation-plan.md#implementation-contract)
+owns the proposed versioned interfaces and dependency-ordered implementation checkpoints.
 Dated evidence lives in Git history, not in a docs folder.
 Repository [preferences](../.agents/repository.md) own issue language and durable branches;
 [tracking metadata](../.agents/tracking.json) records this repo's selection when configured.

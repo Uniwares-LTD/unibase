@@ -76,6 +76,24 @@ After an interrupted lock, inspect its PID and remove it only after confirming n
 Codex discovery uses .agents/skills. Claude uses CLAUDE.md imports and .claude/skills.
 Markdown references install no hooks, permissions, subagents or dependencies.
 
+### Planned deployment skills
+
+The [data operations plan](features/deployment-data-operations/implementation-plan.md#deployment-skills-and-reference-adoption)
+proposes `promote-to-environment` for reviewed promotion/release orchestration and
+`operate-data` for backup, migration, manual handoff and status/recovery guidance.
+They are not installed skills or additions to the current discovery catalog.
+Reusable procedures belong in Handbook; consumer adapters and canonical deployment
+docs supply application-specific behavior. Future skill adoption must use reviewed
+metadata, explicit sync/entrypoint checks and integrity review, preserving custom
+content. The plan maps the user-supplied promotion skill and PR template to Unibase's
+branches, authority, exact-release checks and data recovery rules. Linked upstream
+docs/code remain uninspected; the supplied attachment is the adaptation baseline.
+The [implementation contract](features/deployment-data-operations/implementation-plan.md#skills-and-optional-selection)
+reuses the existing `technologySkills` selection array for the additional catalog
+skills, with Handbook-first delivery and consumer integrity reconciliation. No new
+selection schema is planned. No metadata or skill catalog
+changes are made by this documentation revision.
+
 ## Local contracts and provenance
 
 The adapter retains runtime, deployment, Windows browser, locale/CSP, DTO and performance

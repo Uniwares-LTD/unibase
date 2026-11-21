@@ -72,6 +72,19 @@ of T11-T12. Unitale T02 is accepted. Final review evidence is recorded at handof
 
 ### Base installation
 
+- [ ] Reusable backup and migration operations (#62): the
+  [implementation-ready specification](features/deployment-data-operations/implementation-plan.md)
+  defines pre-deployment review, a post-deployment automatic/manual choice, release
+  policy, shared workflow/diagnostic/admin outcomes, planned deployment skills and future
+  acceptance. The supplied promotion skill/template are adapted in the plan and
+  [promotion PR starter](templates/promotion-pr.md); no skills are installed yet.
+  Its contract fixes interfaces, exact-candidate continuation and cross-repository
+  delivery checkpoints. This stage is planning/docs only. Executable implementation,
+  disposable execution tests and a later Unibase staging run await explicit instruction.
+  The contract reuses current skill selection and diagnostics, records terminal results,
+  and defers general data-operation resume to checked operator recovery. Activation
+  requires resolved verification evidence even when no IDs remain pending. The staging manual
+  migration sequence remains deferred.
 - [ ] Guided derived-deployment initialization acceptance and restricted
   runtime-secret restoration, following the shared inventory: validate
   destination identity, preserve conflicting files, resume safely and keep

@@ -20,7 +20,18 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
-None.
+- Document proposed reusable backup and migration workflows, agent approval before
+  deployment, a post-deployment automatic/manual choice, release ordering and shared
+  workflow/diagnostic/admin outcomes. Specify deployment skills and their future Handbook
+  adoption, plus a promotion PR starter with labeled before/after actions and separate
+  test flows, adapted from the supplied reference. Finalize the proposed interfaces,
+  checksum packaging, lock ordering and implementation checkpoints.
+  Reuse existing diagnostics and skill selection, record terminal outcomes without
+  live synchronization, and keep general interrupted-operation recovery manual.
+  Specify checked root-only recovery acknowledgment and host verification gates,
+  including zero-pending batches and missing report copies.
+  This is planning and guidance only; skill installation, executable
+  workflows, APIs, UI and live migrations remain deferred.
 
 ### Upgrade notes
 

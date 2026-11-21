@@ -146,11 +146,19 @@ projects. A leased `control` lock serializes runners; applied IDs are recorded i
 `migrations` with a source checksum. Migrations must be idempotent: a failure
 records nothing and the next run retries. Disabled owners are skipped until
 enabled. A changed checksum is reported but never rerun; add a new migration
-instead. Take the operational backup first; it is the rollback. Run indexes before
+instead. Take and verify the operational backup first; database restoration is a
+separate approved recovery operation, never automatic image rollback. Run indexes before
 migrations. The lease renews while a migration runs. Provisioning's administration
 container has a 15-minute limit, so run long migrations with `npm run db:migrate`
 directly. New environments run both during provisioning; existing ones run
 `db:migrate` (or `prepare-host.py --apply --migrate`) when upgrade notes say so.
+The [reusable operations plan](features/deployment-data-operations/implementation-plan.md)
+specifies future read-only reporting, release classifications, agent-guided approvals
+and workflow reports, one diagnostic status capability and recorded admin outcomes.
+Those capabilities are proposed; this documentation does not change the runner or
+authorize pending staging migrations. Migration authors should document compatibility,
+verification and recovery requirements for review; no classification metadata or
+automated release gate is implemented yet.
 Dify orchestrator Runs extend the shared durable execution engine.
 The existing payment worker stays focused on payment reconciliation and credit
 maintenance. Quality warnings remain advisory; required behavior must still work.

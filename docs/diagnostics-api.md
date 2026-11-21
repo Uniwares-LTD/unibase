@@ -144,6 +144,17 @@ the credential, the request body or returned content.
 
 ## Capabilities
 
+The [data operations plan](features/deployment-data-operations/implementation-plan.md#workflow-outputs-apis-and-admin-status)
+proposes `data-operations.status` for read-only backup/migration ledger and recorded
+outcome queries, using existing grant authorization. The admin Operations page calls
+the same server reader directly, with no new admin REST endpoint or live-progress
+tracking. This capability is not implemented or included in the inventory below.
+Status reads will not execute backups or migrations; active or unknown operations
+are inspected through workflow/host status.
+Recorded resolution metadata may accompany an original failed/unknown outcome;
+it does not rewrite that outcome to success. Host activation uses authoritative
+journal/verification evidence, not the availability of this report copy.
+
 Call `capabilities.list` for the inputs each capability accepts.
 
 | Area | Capabilities |
