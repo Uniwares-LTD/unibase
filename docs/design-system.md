@@ -18,7 +18,7 @@ share semantic tokens and the same application behavior.
 
 | File                                  | Change here                                                                            |
 | ------------------------------------- | -------------------------------------------------------------------------------------- |
-| `src/styles/tokens.css`               | Shared typography/effect defaults, page gap and reading width                          |
+| `src/styles/tokens.css`               | Shared typography/effect defaults, page gap, reading width and touch target sizes      |
 | `src/styles/presets/classic.css`      | Complete Classic fallback palette in light/dark                                        |
 | `src/styles/presets/soft-blue.css`    | Cobalt/lavender light and dark palettes                                                |
 | `src/lib/page-cover.ts`               | Metadata observation, image URL validation and loading cleanup                         |
