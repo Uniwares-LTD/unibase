@@ -1,3 +1,4 @@
+import { AppToaster } from "@/components/toast";
 import { LocalizedValidation } from "@/components/localized-validation";
 import { getLocale, getTranslations } from "next-intl/server";
 import english from "../../messages/en.json";
@@ -84,6 +85,7 @@ export default async function RootLayout({
             >
               <BrowserRuntime preferredLocale={preferenceLocale} />
               <LocalizedValidation />
+              <AppToaster />
               <SessionBoundary>
                 <LeaveGuardProvider>
                   <AppShell

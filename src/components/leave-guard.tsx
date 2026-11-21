@@ -39,7 +39,7 @@ import {
 
 type Guard = { dirty: boolean; save?: () => Promise<SaveResult> };
 type Context = {
-  register: (guard: Guard | null) => void;
+  register: (guard: Guard) => () => void;
   request: (href: string) => boolean;
 };
 
@@ -66,7 +66,7 @@ function returnTarget(): HTMLElement | null {
 export function LeaveGuardProvider({ children }: { children: ReactNode }) {
   const translate = useTranslations("ui");
   const router = useRouter();
-  const guard = useRef<Guard | null>(null);
+  const guards = useRef(new Set<Guard>());
   const focusBack = useRef<HTMLElement | null>(null);
   const [canSave, setCanSave] = useState(false);
   const [{ state, go, seq }, dispatch] = useReducer(reduce, {
@@ -85,27 +85,37 @@ export function LeaveGuardProvider({ children }: { children: ReactNode }) {
   // A save result only applies to the dialog that started it; Keep editing invalidates it.
   const saveToken = useRef(0);
 
-  const register = useCallback((next: Guard | null) => {
-    guard.current = next;
+  const register = useCallback((guard: Guard) => {
+    guards.current.add(guard);
+    return () => {
+      guards.current.delete(guard);
+    };
   }, []);
   const request = useCallback((href: string) => {
     // A clean form is not intercepted: the caller navigates normally.
-    if (!guard.current?.dirty) return false;
+    const dirty = [...guards.current].filter((guard) => guard.dirty);
+    if (!dirty.length) return false;
     focusBack.current = returnTarget();
-    setCanSave(Boolean(guard.current.save));
+    setCanSave(dirty.every((guard) => guard.save));
     dispatch({ type: "navigate", href, dirty: true });
     return true;
   }, []);
   const value = useMemo(() => ({ register, request }), [register, request]);
 
   const save = async () => {
-    const run = guard.current?.save;
-    if (!run) return;
+    const saves = [...guards.current]
+      .filter((guard) => guard.dirty)
+      .map((guard) => guard.save);
+    if (saves.some((run) => !run)) return;
     const token = ++saveToken.current;
     dispatch({ type: "save" });
-    let result: SaveResult;
+    let result: SaveResult = "saved";
     try {
-      result = await run();
+      for (const run of saves) {
+        if (!run || token !== saveToken.current) return;
+        result = await run();
+        if (result !== "saved") break;
+      }
     } catch {
       result = "unknown";
     }
@@ -195,10 +205,7 @@ export function useLeaveGuard({
 }) {
   const context = useContext(LeaveGuardContext);
   const router = useRouter();
-  useEffect(() => {
-    context?.register({ dirty, save });
-    return () => context?.register(null);
-  }, [context, dirty, save]);
+  useEffect(() => context?.register({ dirty, save }), [context, dirty, save]);
   useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => {

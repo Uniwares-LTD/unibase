@@ -10,7 +10,7 @@ import { useFormatter, useTranslations } from "next-intl";
 
 import { useEffect, useId, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { ResultImage } from "@/components/media-fallback";
 import { z } from "zod";
 import { api, ApiError } from "@/lib/client/api";
 import { PricingDescription } from "@/components/pricing-description";
@@ -719,7 +719,8 @@ export function RunDetail({ initial }: { initial: Detail }) {
                       rel="noopener"
                       className="block rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
-                      <Image
+                      <ResultImage
+                        aspectRatio="3 / 2"
                         unoptimized
                         src={`/api/run-assets/${image.id}?size=preview`}
                         width={600}

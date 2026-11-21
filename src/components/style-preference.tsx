@@ -5,14 +5,16 @@ import { useId } from "react";
 import { useStyle } from "./style-provider";
 import { parseStylePreference } from "@/lib/appearance";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
-import { Label } from "./ui/label";
+import { FieldDescription, FieldLabel, FieldLegend, FieldSet } from "./ui/field";
 
 export function StylePreference({
   account = false,
   disabled = false,
+  onPreferenceChange,
 }: {
   account?: boolean;
   disabled?: boolean;
+  onPreferenceChange?: () => void;
 }) {
   const translate = useTranslations("ui");
   const common = useTranslations("common");
@@ -42,21 +44,24 @@ export function StylePreference({
     },
   ];
   return (
-    <fieldset className="space-y-4">
-      <legend className="text-sm font-medium">
+    <FieldSet className="space-y-4">
+      <FieldLegend className="text-sm font-medium">
         {translate("mf0702a028b19")}
-      </legend>
+      </FieldLegend>
       <RadioGroup
         name={account ? "style" : undefined}
         aria-label={translate("mf0702a028b19")}
         value={preference}
-        onValueChange={(value) => setPreference(parseStylePreference(value))}
+        onValueChange={(value) => {
+          onPreferenceChange?.();
+          setPreference(parseStylePreference(value));
+        }}
         disabled={disabled}
         className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
         aria-describedby={`${id}-help`}
       >
         {choices.map((choice) => (
-          <Label
+          <FieldLabel
             key={choice.value}
             htmlFor={`${id}-${choice.value}`}
             className="flex cursor-pointer items-start gap-3 rounded-xl border bg-card p-4 has-[[data-state=checked]]:border-primary has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring"
@@ -73,13 +78,13 @@ export function StylePreference({
                 {choice.description}
               </span>
             </span>
-          </Label>
+          </FieldLabel>
         ))}
       </RadioGroup>
-      <p id={`${id}-help`} className="text-sm text-muted-foreground">
+      <FieldDescription id={`${id}-help`} className="text-sm text-muted-foreground">
         {translate("mcda29bef33e3")}{" "}
         {account ? translate("m432aa8c5e499") : translate("mb1fc543247a5")}
-      </p>
-    </fieldset>
+      </FieldDescription>
+    </FieldSet>
   );
 }
