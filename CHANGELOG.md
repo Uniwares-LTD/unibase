@@ -20,6 +20,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Apply the shared fields, submit feedback, leave guards and media fallback in
+  the account, files, commerce, admin and Run screens. Add localized toast
+  confirmations with a production CSP allowlist for the pinned Sonner stylesheet.
+
 - Add shared design-system helpers (design-system adoption U2, #53): the shadcn
   `Field` composition, an opt-in `size="lg"` on `Input`, `Textarea` and
   `SelectTrigger`, `SubmitButton`, a leave guard for unsaved changes,

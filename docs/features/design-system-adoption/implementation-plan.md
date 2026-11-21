@@ -199,9 +199,14 @@ Note: with a VPN on, Claude subagents may be refused by the API (HTTP 403); do t
 1. `npm.cmd test` passes.
 2. With the app running (`npm.cmd run dev` and the local services), run
    `node docs/features/design-system-adoption/smoke.mjs` with `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH`
-   set: every check passes. Open the pages the step touched once.
+   set. All 38 checks must pass. Inspect each touched page once, using smoke visits where they overlap
+   and grouping signed-in pages by account role.
 3. Only R1's toast also needs a production build (`npm.cmd run build`, then `npm.cmd start`) to confirm
-   one toast shows with no CSP error.
+   one styled toast shows with no CSP error. If the toast is deferred, verify the rollout after reverting it.
+
+On the passing path, R1 through R3 take three unit-suite runs and three smoke runs in total.
+R3's final unit and smoke results also satisfy its per-step checks on the same candidate. After a
+fix or release metadata edit, rerun the checks whose inputs changed.
 
 No per-step lint, format or type check; no capture matrices, pixel comparisons, contrast recomputation,
 per-PR approvals or physical-device checks. Add a unit test only when a step adds pure logic.
@@ -674,16 +679,13 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 
 ## Test plan summary
 
-Simplified on 2026-11-21: the smoke checks under [simplified remaining work](#simplified-remaining-work)
-are the verification gate for every remaining step.
+Each row follows the [simplified remaining work](#simplified-remaining-work). Inspect the touched pages once per step.
 
-| Kind | What | When |
+| Step | Unit and browser checks | Additional verification |
 | --- | --- | --- |
-| Unit tests | `npm test` | every step |
-| Lint, format, types, docs, i18n, skills, template, build | the final gate, once | end of R3 |
-| Browser smoke | `docs/features/design-system-adoption/smoke.mjs` (public pages, every preset and theme, 1440 and 390, Arabic, no console errors) | every step |
-| Unit tests kept or added | `tests/design-helpers.test.ts` (U2), `tests/sonner-csp.test.ts` (R1), `tests/design-foundation.test.ts` (R2), seam tests in `template-update`, `initializer` and `config` (R3) | the step that adds them |
-| Template release | `test:initialized-projects`, one upgrade rehearsal | R3 |
+| R1 | One unit suite including the Sonner pin and CSP hash tests. One 38-check smoke run. | Show a styled toast on the production build with no CSP error. If deferred, verify the rollout candidate. |
+| R2 | One unit suite including the foundation tests. One 38-check smoke run. | Inspect the visible foundation changes during the touched-page visits. |
+| R3 | The final gate supplies the unit suite and 38-check smoke run. New seam cases belong in `config` and `template-update` only. | Complete the final command list above, run `test:initialized-projects`, and rehearse one upgrade from `template-v0.4.0`. Stop at the issue owner's release-tag gate. |
 
 ## Verified progress and resume
 
@@ -703,3 +705,4 @@ are the verification gate for every remaining step.
 - 2026-11-21: **plan simplified** at the issue owner's request: smoke tests only, no per-PR approval stops, remaining work in three steps (R1 toast and rollout, R2 foundation, R3 guidance, readiness and release), with the committed smoke script `smoke.mjs`. The release tag stays the one human step.
 - 2026-11-21: **plan made lightweight**: per step only `npm test` and the browser smoke script; coding rules written down instead of rerunning lint, format and type checks; one final gate at the end of R3 runs and applies them. Deferred: Lucide bump, the guide's docs-consistency test, and the seam's initializer and integration tests.
 - 2026-11-21: **U2 review applied.** A separate review found one blocker, now fixed: the coarse-pointer rules were unlayered and overrode larger Tailwind minimums on touch devices (lg fields fell to 44px). They now sit in `@layer components`, and a touch check asserts lg input at least 48px, lg textarea at least 96px and default textarea at least 64px. Also fixed: the leave guard handles each navigation once and ignores a save result after Keep editing; Save & exit uses `SubmitButton`; `beforeunload` sets `returnValue`; the Notice receipt region stays mounted; `ResultImage` resets when `src` changes. Checks: typecheck, lint, test 112/112; U2 browser checks 28/28; committed smoke script 38/38.
+- 2026-11-21: **R1 candidate verified locally.** Shared form and media controls are applied across the four rollout areas. Existing-record editors use the leave guard, which tracks each mounted editor separately. Large private downloads keep native streaming. The scoped download Notice covers bounded browser downloads and local report exports. Unit tests passed (114/114 with Git 2.43 on PATH), the public browser smoke passed (38/38), and nine admin and six member routes returned 200 in local emulator sessions. Production build and start passed. With a signed-in local profile, Keep editing retained the draft, Discard and exit left the saved value unchanged, and Save and exit persisted the new value before navigation. A profile save showed a styled Sonner 2.0.8 toast with no additional CSP event. Chromium reported one Zod eval capability probe during sign-in, before the save. No CSP directive was relaxed for that probe. Separate same-agent review checked the candidate against the R1 inventory and verification evidence. R1 PR integration is pending, then R2 starts from updated main.

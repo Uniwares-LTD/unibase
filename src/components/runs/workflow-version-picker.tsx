@@ -9,7 +9,7 @@ import {
   type WorkflowVersions,
 } from "@/lib/contracts/workflow-versions";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { FieldLabel } from "@/components/ui/field";
 import {
   Dialog,
   DialogContent,
@@ -121,7 +121,7 @@ export function WorkflowVersionPicker({
             {"Current registered version: " + currentWorkflowId}
           </p>
         )}
-        <Label htmlFor={id}>Workflow version</Label>
+        <FieldLabel htmlFor={id}>Workflow version</FieldLabel>
         <Select value={selected} onValueChange={setSelected} disabled={loading}>
           <SelectTrigger id={id} className="w-full min-w-0">
             <SelectValue placeholder="Select a version" />

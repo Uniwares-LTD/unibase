@@ -284,6 +284,17 @@ After changing a token or pattern:
    console for runtime/hydration errors. Automated checks supplement this manual
    accessibility pass; they do not establish complete accessibility conformance.
 
+
+9. In the showcase, open a confirmation. Check that a second confirmation replaces
+   it, and that the full six seconds restart after hover and keyboard focus leave.
+   Press Alt+T to focus the toast region. Check that Dismiss returns focus and that
+   dismissing the sample error leaves its inline Notice visible. In Arabic, check
+   the bottom-left position.
+10. In a served production build, sign in with a local emulator account and save
+    a profile change. Check that the confirmation is styled and the browser
+    reports no Content Security Policy violation. The production policy permits
+    only the pinned Sonner stylesheet and its empty initial style element by hash.
+
 Run affected checks separately:
 
 ```sh
