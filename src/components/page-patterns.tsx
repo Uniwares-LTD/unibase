@@ -154,7 +154,9 @@ export function EmptyState({
   return (
     <Card className="border-dashed bg-muted/30 shadow-none">
       <CardHeader className="py-8">
-        <CardTitle className="text-base">{title}</CardTitle>
+        <CardTitle className="text-card-title! leading-(--text-card-title--line-height)! font-(number:--text-card-title--font-weight)!">
+          {title}
+        </CardTitle>
         <CardDescription className="reading-copy">
           {description}
         </CardDescription>

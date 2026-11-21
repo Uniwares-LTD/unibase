@@ -41,7 +41,11 @@ function ToastMessage({
 
   useEffect(() => {
     if (transient) {
-      return scheduleToastExpiry(hovered || focused, () => sonner.dismiss(id));
+      const duration = getComputedStyle(document.documentElement)
+        .getPropertyValue("--toast-confirmation-duration");
+      return scheduleToastExpiry(hovered || focused, duration, () =>
+        sonner.dismiss(id),
+      );
     }
   }, [focused, hovered, id, transient]);
 
@@ -103,7 +107,7 @@ export function AppToaster() {
       offset={16}
       mobileOffset={16}
       containerAriaLabel={translate("m788011833a5a")}
-      style={{ fontFamily: "var(--type-body, var(--font-sans))" }}
+      style={{ fontFamily: "var(--type-body)" }}
     />
   );
 }

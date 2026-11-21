@@ -28,9 +28,11 @@ an environment's name. Internal cookie, database and deployment identifiers now 
 
 ## Design system
 
-`src/styles/tokens.css` owns shared typography/effect defaults and page/reading
-spacing; `src/styles/presets/classic.css`, `glass.css` and `soft-blue.css` supply appearance palettes. `src/app/globals.css` maps these into Tailwind and defines
-fonts, page typography, focus and motion/touch rules. `page-patterns.tsx` composes
+The vendored stylesheets in `src/styles/design-system/` supply palettes, font
+hooks and Tailwind typography roles. `src/styles/tokens.css` retains local effect,
+reading-width and touch defaults, and `src/styles/presets/glass.css` supplies
+Glass effects and reduced-transparency fallbacks. `src/app/globals.css` loads these
+and defines local semantic mappings, page typography, focus and motion/touch rules. `page-patterns.tsx` composes
 existing shadcn Alert/Card primitives into headers, notices and empty states used
 by account, credits and administrator screens. Navigation remains responsive and
 uses the existing shadcn Sheet and DropdownMenu.

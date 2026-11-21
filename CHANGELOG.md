@@ -20,6 +20,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Adopt the generated design foundation for Classic, Glass and Soft Blue.
+  Use the shared typography role for empty-state headings and the foundation
+  font and timing tokens for toasts.
+
 - Apply the shared fields, submit feedback, leave guards and media fallback in
   the account, files, commerce, admin and Run screens. Add localized toast
   confirmations with a production CSP allowlist for the pinned Sonner stylesheet.
