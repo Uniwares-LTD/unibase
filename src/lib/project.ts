@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { designStyleSchema } from "./design-styles";
 import manifest from "../../project.config.json";
 import { extensions } from "../project/extensions";
 import {
@@ -8,6 +9,7 @@ import {
   type ProjectExtension,
 } from "./extensions";
 export type { ModuleConfiguration } from "./extensions";
+import { projectLimitsSchema } from "./limits";
 
 export const coreModuleIds = [
   "credits",
@@ -37,7 +39,8 @@ export const projectSchema = z
       .min(1)
       .max(80)
       .regex(/^[^\r\n\0]+$/),
-    defaultStyle: z.enum(["classic", "glass", "soft-blue"]),
+    defaultStyle: designStyleSchema,
+    theme: z.boolean().default(false),
     modules: z
       .array(z.enum(moduleIds))
       .refine((v) => new Set(v).size === v.length),
@@ -47,6 +50,7 @@ export const projectSchema = z
       .refine((v) => new Set(v).size === v.length),
     defaultLocale: z.enum(["en", "ar"]),
     examples: z.boolean(),
+    limits: projectLimitsSchema.optional(),
     android: z
       .strictObject({
         packageName: z
@@ -92,7 +96,7 @@ const coreModuleDescriptors: Record<
   payments: {
     configuration: ["payments"],
     requires: ["credits"],
-    routes: ["/api/payments"],
+    routes: ["/api/payments", "/admin/commerce", "/api/admin/commerce"],
     workers: ["payment"],
     collections: ["purchaseOrders", "paymentInbox"],
   },

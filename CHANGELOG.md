@@ -26,6 +26,183 @@ None.
 
 None.
 
+## 0.5.0 — 2026-11-21
+
+### Changes
+
+- Allow derived projects to opt into a project-owned theme and self-hosted fonts.
+  Add the `build-ui` skill and the derived-project design guide.
+
+- Adopt the generated design foundation for Classic, Glass and Soft Blue.
+  Use the shared typography role for empty-state headings and the foundation
+  font and timing tokens for toasts.
+
+- Apply the shared fields, submit feedback, leave guards and media fallback in
+  the account, files, commerce, admin and Run screens. Add localized toast
+  confirmations with a production CSP allowlist for the pinned Sonner stylesheet.
+
+- Add shared design-system helpers (design-system adoption U2, #53): the shadcn
+  `Field` composition, an opt-in `size="lg"` on `Input`, `Textarea` and
+  `SelectTrigger`, `SubmitButton`, a leave guard for unsaved changes,
+  `MediaFallback`/`ResultImage`, `StatusBadge` and an optional `Notice` action,
+  with English and Arabic strings and showcase examples. Dialogs and alert
+  dialogs centre correctly in RTL, the sheet close button sits at the inline end,
+  directional arrows mirror in RTL, and coarse-pointer rules size icon buttons,
+  options and checkbox or radio labels. Feature screens adopt these later.
+
+- Add touch target size tokens (`--control-touch-sm` 2.75rem,
+  `--control-touch-md` 3.25rem, `--control-touch-lg` 3.75rem) in
+  `src/styles/tokens.css` for the coarse-pointer rules. Nothing consumes them
+  yet, so nothing renders differently (design-system adoption U1, #53).
+
+- Exclude Loop/Iteration child-cost aggregates from additive native node billing,
+  while retaining step records and reported node durations in existing usage.
+
+- Retain the actual Dify publication from opt-in workflow-start events before node
+  observers run, without replaying historical running state on reconnect.
+
+- Defer domain lookup until Run event handling so project extensions may import
+  AI job services during registration without a module initialization cycle.
+
+- Map Dify handled node exceptions to failed activity stages, preserving private
+  error bodies in opt-in observations instead of labelling the stage successful.
+
+- Add an optional bounded reconciliation callback to the existing AI worker for
+  accepted unresolved work after its parent terminates; no new scheduler or dispatch.
+
+- Add project-owned Run start composition and a detail control slot using the existing
+  Run DTO/poller. Prepaid Runs omit generic restart controls and use product admission.
+
+- Add opt-in application wait nodes and paused-Run resume hooks on versioned domains,
+  reusing worker scheduling and the existing uncertain-decision journal. Internal
+  waits suppress creator prompts/notifications and persona responses; application
+  provenance cannot approve human or quality decisions.
+
+- Add optional private, bounded domain node observations under the existing AI
+  worker fence, including Dify retry/exception output readback. Existing domains
+  without the hook retain metadata-only behavior; public Run events stay unchanged.
+
+- Add optional ordered native MCP image results for project tools, preserving JSON/
+  text behavior, permission checks and encoded-response limits.
+
+- Add an opt-in official Google Maven hostname fallback for Android builds,
+  preserving dependency versions and normal repository defaults.
+
+- Add English/LTR commerce administration for versioned purchase, consumption and
+  promotion catalogs, provider previews/publication/readback and audited refunds.
+- Add localized catalog purchases and subscription management, Play context guards,
+  explicit native store quotes/account binding and deferred replacement. Legacy
+  Stripe pack seeds are optional when using administrator-published catalogs.
+
+- Fix provider-catalog checkout return routes, resumable Stripe checkout recovery,
+  Play cancellation during a pending deferred change, and idempotent coupon
+  capacity release after verified unpaid termination.
+
+- Add opt-in provider catalog checkout, recurring Stripe/Play verification,
+  subscription exclusion, expiring renewal grants, refund/bonus reconciliation,
+  authenticated notifications and journalled provider publication/readback.
+
+- Add upfront consumption orders, revision entitlements, prepaid Run binding and
+  audited refunds; add versioned promotions, fenced redemption reservations and
+  idempotent verified-payment bonuses. Existing billing remains opt-in and unchanged.
+
+- Add offline Stripe/Play/TWA compatibility checks, durable administrator MCP limits,
+  namespaced private MCP extensions, versioned catalog services/product validators,
+  and per-call measurements with private redacted evidence and protected cleanup.
+- Add opt-in v1 commerce and execution-measurement contracts for immutable catalog terms, consumption orders, entitlements, subscriptions, promotions and provider evidence. Existing runtime behavior and records remain unchanged.
+
+### Upgrade notes
+
+- The former Classic and Soft Blue preset files are removed. The two
+  `src/styles/design-system/` files are generated in the design package and
+  vendor updates replace them as a pair.
+- Set `theme: true` to enable `src/project/theme.css`. Scope overrides to
+  `data-project` and use the variable-backed type roles. Keep self-hosted fonts
+  in `public/fonts/`. See the [design extension guide](docs/design-system-extension.md).
+- Merge the local `build-ui` skill, agent guidance and skill integrity updates
+  with any project guidance. Keep the exact Sonner stylesheet hashes if using
+  the shared toast, and serve project fonts from the app origin.
+- Set the product's own theme color in the manifest and offline source and
+  regenerate the offline and icon assets. See [first steps](docs/template.md#first-steps-in-a-new-project).
+  If an upgrade from 0.4.0 stops on `public/offline.html`, first resolve any
+  edits to its source in `scripts/i18n-assets.mjs`. Run
+  `node scripts/i18n-assets.mjs` to regenerate the HTML for the project's slug
+  and locale, then `git add -- public/offline.html`. Finish the merge with
+  `git commit` after resolving any other conflicts.
+
+- Newly observed container usage has unknown node-level cost/tokens; parent totals
+  remain authoritative. Existing accepted usage records are not rewritten.
+
+- Existing opt-in node observers can receive publication identity before the first
+  node result through the existing running-execution event. No data migration or
+  configuration change is required; legacy missing identities still need readback.
+
+- Server extensions needing late-result readback may opt into `reconcile(db, now)`.
+  The callback must fence its own accepted work and cannot dispatch paid actions.
+  Existing worker mode controls remain in force; no migration is required.
+
+- `src/project/run-start.tsx` and `src/project/run-detail.tsx` contain optional
+  client-safe Run UI composition points. Defaults preserve existing rendering;
+  projects can add controls without editing shared Run pages. See [adding a feature](docs/template.md#add-a-feature).
+
+- Domains may opt into fixed native `applicationWaitNodes` with `resumePaused`;
+  see [domain extensions](docs/services.md#domain-extensions-and-migration). Existing
+  workflows are unchanged. Retain accepted adapter versions when changing wait IDs.
+  No migration, provider change or new scheduler is required.
+
+- Domains needing private execution evidence may opt into `observeNode`; see
+  [domain extensions](docs/services.md#domain-extensions-and-migration). Callbacks
+  must be idempotent transactional retention only. No migration is required.
+
+- Existing MCP tools need no changes. Image-producing tools can opt into `images`
+  as documented in [MCP guidance](docs/mcp.md#native-image-results). Administrators
+  must size existing MCP result/response limits for base64 overhead before using
+  large originals; defaults are unchanged. No migration or live activation is needed.
+
+- Android consumers must regenerate and rebuild the wrapper to receive the custom
+  billing activity and Digital Goods service. Minimum Android API is now 24;
+  Billing Client 8.3.0 and Android Browser Helper billing 1.2.0 must resolve.
+  Installed-device/store acceptance remains required before enabling purchases.
+
+- Apply `core:0003-provider-billing`. Optional Play credentials and host-owned push
+  audience/email settings are documented in
+  [provider billing](docs/features/booklet-foundation/provider-billing.md).
+  No live provider or catalog is enabled by the migration.
+
+Apply `core:0002-consumption-promotions` through `npm run db:migrate`. Promotion
+definitions extend the catalog union; consumers must narrow its kind before reading
+purchase/product credits. See [orders and promotions](docs/features/booklet-foundation/orders-promotions.md).
+
+Run `npm run db:migrate` to install additive commerce/execution indexes. Existing
+settings retain prior MCP defaults; raw evidence retention defaults to 90 days.
+Private extension tools declare `runContext: true` and its input; their handlers
+bind project targets to the supplied owned Run. New project permissions use
+`extension:<module>:read|write`. See [foundation services](docs/features/booklet-foundation/services.md).
+No existing financial/Run records are migrated and no provider activation is performed.
+
+## 0.4.0 — 2026-11-03
+
+### Changes
+
+- Resumable private file uploads (`/api/files/uploads`) in 8 MiB parts on GridFS
+  or private S3, with quota reserved up front, idempotent resumption, streamed
+  verified downloads and reclamation of idle uploads. The Files page uses them for
+  non-image files over 8 MiB and shows progress.
+- New `runs.fileBytes` setting (default 20 MiB, at most 1 GiB). The maxima of
+  `filesPerAccount` and `uploadBytesPerAccount` rise to 100,000 and 1 TiB; usage
+  is counted with an aggregation instead of a 101-row read.
+- New `part` rate-limit policy (default 240 per minute) for upload parts.
+- Optional `limits` in `project.config.json`: `artifactTextChars` (default 8,000,
+  at most 100,000) and `runImages` (default 10, at most 50).
+
+### Upgrade notes
+
+- None required: defaults keep 0.3.0 behavior. To accept large files, raise
+  `fileBytes` and the account quota in administration settings. Set `part` in
+  `RATE_LIMITS_JSON` only to change its default.
+- Projects that raise `limits` also update their orchestrator templates' own
+  bounds and the destination Dify limits.
+
 ## 0.3.0 — 2026-11-03
 
 ### Changes

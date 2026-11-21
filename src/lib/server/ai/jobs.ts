@@ -27,6 +27,7 @@ import type {
   Json,
   ProviderEvent,
   ProviderExecution,
+  ProviderNodeObservation,
   UsageObservation,
 } from "./types";
 
@@ -39,6 +40,7 @@ export type BindingSnapshot = {
   fingerprint: string;
 };
 export type AiJob = {
+  consumption?: { orderId: string; workflowId: string };
   runSuccessorId?: string;
   operatorResolved?: boolean;
   run?: {
@@ -107,6 +109,7 @@ export type AiJob = {
   nextAttemptAt: Date;
   reviewAfter: Date;
   cancelRequested: boolean;
+  applicationWait?: boolean;
   failure: string | null;
   // Operator-only cause behind a generic failure code; never user-facing.
   failureDetail?: { reason: string; at: Date };
@@ -180,6 +183,7 @@ export async function createAiJob(
     | "credits"
   > & {
     pricing?: AiPricing;
+    consumption?: AiJob["consumption"];
     run?: AiJob["run"];
     responder?: AiJob["responder"];
   },
@@ -192,6 +196,18 @@ export async function createAiJob(
     request.credits < 0
   )
     throw new AppError("AI_INVALID_REQUEST", "Invalid execution request.");
+  if (
+    request.consumption &&
+    (request.credits !== 0 ||
+      request.pricing ||
+      request.responder ||
+      request.run?.answerer)
+  )
+    throw new AppError(
+      "AI_PREPAID_PRICE",
+      "Consumption executions cannot reserve or settle additional credits.",
+      409,
+    );
   if (request.pricing) {
     const pricing = aiPricingSchema.parse(request.pricing);
     if (
@@ -235,6 +251,18 @@ export async function createAiJob(
         409,
       );
     await admission?.(session);
+    if (request.consumption) {
+      const { bindConsumptionJob } = await import("../commerce/orders");
+      await bindConsumptionJob(
+        db,
+        actor.uid,
+        request.consumption.orderId,
+        request.consumption.workflowId,
+        jobId,
+        request.run?.target?.id ?? request.source?.id,
+        session,
+      );
+    }
     if (request.run?.predecessorId) {
       const predecessor = await aiJobs(db).findOne(
         { _id: request.run.predecessorId, uid: actor.uid },
@@ -367,6 +395,7 @@ export async function patchAiJob(
       | "lease"
       | "leaseUntil"
       | "nextAttemptAt"
+      | "applicationWait"
       | "charge"
     >
   >,
@@ -387,6 +416,11 @@ export async function persistAiEvent(
   job: AiJob,
   event: ProviderEvent,
   now = new Date(),
+  observeNode?: (
+    job: AiJob,
+    node: ProviderNodeObservation,
+    session: ClientSession,
+  ) => Promise<void>,
 ) {
   const session = db.client.startSession();
   try {
@@ -427,6 +461,11 @@ export async function persistAiEvent(
           );
         }
         if (!current.runId) throw conflict();
+        if (event.type === "node-observation") {
+          if (event.node.runId !== current.runId) throw conflict();
+          await observeNode?.(current, event.node, session);
+          return; // Never persist raw outputs/errors in public runEvents or usage.
+        }
         if (
           event.type === "stage" ||
           event.type === "decision" ||
@@ -434,6 +473,18 @@ export async function persistAiEvent(
           event.type === "decision-expired"
         ) {
           if (!current.run) return;
+          // Project adapters can themselves import AI jobs during registration.
+          // Resolve the registry only after module initialization, when handling an event.
+          const { domains, jobTarget } = await import("../domains");
+          const target = jobTarget(current);
+          const applicationWait =
+            event.type !== "stage" &&
+            !!(
+              target &&
+              domains
+                .get(target.adapter, target.version)
+                .applicationWaitNodes?.includes(event.nodeId)
+            );
           const eventId = fingerprint([
             job._id,
             event.type,
@@ -459,6 +510,7 @@ export async function persistAiEvent(
                     title: event.title,
                     token: event.token,
                     status: "pending",
+                    ...(applicationWait ? { applicationWait: true } : {}),
                     createdAt: now,
                   },
                 },
@@ -467,6 +519,7 @@ export async function persistAiEvent(
           }
           if (
             event.type === "decision" &&
+            !applicationWait &&
             (!current.run.answerer || current.run.takenOver)
           )
             await enqueueNotification(
@@ -507,6 +560,35 @@ export async function persistAiEvent(
                 { session, sort: { createdAt: -1 } },
               );
           }
+          if (
+            event.type !== "stage" &&
+            target &&
+            (current.applicationWait ||
+              domains.get(target.adapter, target.version).applicationWaitNodes
+                ?.length)
+          ) {
+            const pending = {
+              jobId: current._id,
+              status: { $in: ["pending", "submitting", "unknown"] },
+            };
+            const internal = await db
+              .collection("runDecisions")
+              .findOne({ ...pending, applicationWait: true }, { session });
+            const human = await db
+              .collection("runDecisions")
+              .findOne(
+                { ...pending, applicationWait: { $ne: true } },
+                { session },
+              );
+            await patchAiJob(
+              db,
+              job,
+              { applicationWait: !!internal && !human },
+              now,
+              session,
+            );
+          }
+          if (applicationWait) return; // Internal waits are not creator questions/events.
           const safe =
             event.type === "decision"
               ? { type: event.type, nodeId: event.nodeId, title: event.title }
@@ -606,6 +688,18 @@ export async function settleAiJob(
 ) {
   const saved = await aiJobs(db).findOne({ _id: job._id, uid: job.uid });
   if (!saved) throw conflict();
+  if (
+    saved.consumption &&
+    (saved.credits !== 0 ||
+      saved.reservationId ||
+      saved.pricing ||
+      saved.run?.answerer)
+  )
+    throw new AppError(
+      "AI_PREPAID_PRICE",
+      "Consumption execution contains conflicting billing state.",
+      409,
+    );
   const pricing = saved.pricing ?? {
     mode: "fixed" as const,
     credits: saved.credits,

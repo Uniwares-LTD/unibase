@@ -1,7 +1,11 @@
 import { z } from "zod";
+import { mcpLimitsSchema } from "./mcp-limits";
 import { publicConfigSchema } from "../config/public";
 import { aiPricingSchema } from "../config/ai-pricing";
 import { externalMcpMappingSchema } from "./environment-binding";
+
+/** Upper bound for one managed file; each account still has its own quota. */
+export const MAX_FILE_BYTES = 1024 * 1024 * 1024;
 
 export const creditPackSchema = z.strictObject({
   id: z.string().regex(/^[a-z0-9-]{1,64}$/),
@@ -21,6 +25,12 @@ export const creditPackSchema = z.strictObject({
 export const baseSettingsSchema = z
   .strictObject({
     public: publicConfigSchema,
+    mcp: mcpLimitsSchema.default(() => mcpLimitsSchema.parse({})),
+    execution: z
+      .strictObject({
+        rawLogRetentionDays: z.number().int().min(1).max(3650).default(90),
+      })
+      .default({ rawLogRetentionDays: 90 }),
     credits: z.strictObject({
       packs: z.array(creditPackSchema).max(50),
       holdMinutes: z.number().int().min(1).max(1440),
@@ -45,12 +55,19 @@ export const baseSettingsSchema = z
         .min(1024)
         .max(20 * 1024 * 1024)
         .default(20 * 1024 * 1024),
-      filesPerAccount: z.number().int().min(1).max(100).default(100),
+      // Managed files above uploadBytes use resumable part uploads.
+      fileBytes: z
+        .number()
+        .int()
+        .min(1024)
+        .max(MAX_FILE_BYTES)
+        .default(20 * 1024 * 1024),
+      filesPerAccount: z.number().int().min(1).max(100_000).default(100),
       uploadBytesPerAccount: z
         .number()
         .int()
         .min(1024)
-        .max(100 * 1024 * 1024)
+        .max(1024 * 1024 * 1024 * 1024)
         .default(100 * 1024 * 1024),
       imageBytes: z
         .number()

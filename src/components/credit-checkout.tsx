@@ -1,12 +1,10 @@
 "use client";
 import { useFormatter, useTranslations } from "next-intl";
 
-import { namespace } from "@/lib/project";
-import { Notice } from "./page-patterns";
-import { useActionState, useEffect, useState } from "react";
-import { paymentContext } from "@/lib/payment-context";
+import { Notice, SubmitButton } from "./page-patterns";
+import { useActionState, useState } from "react";
+import { usePaymentContext } from "@/lib/client/payment-context";
 import { checkoutCredits } from "@/app/credits/checkout-action";
-import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 export function CreditCheckout({
@@ -45,49 +43,9 @@ export function CreditCheckout({
     checkoutCredits.bind(null, uid),
     { message: "" },
   );
-  const [context, setContext] = useState<"checking" | "web" | "play">(
-    "checking",
-  );
-  useEffect(() => {
-    let active = true;
-    let markedPlay = false;
-    try {
-      markedPlay = sessionStorage.getItem(namespace("play-context")) === "yes";
-    } catch {
-      /* browser storage is optional */
-    }
-    const browser = window as Window & {
-      getDigitalGoodsService?: (provider: string) => Promise<unknown>;
-    };
-    void paymentContext({
-      referrer: document.referrer,
-      search: location.search,
-      markedPlay,
-      digitalGoods: browser.getDigitalGoodsService
-        ? () =>
-            browser.getDigitalGoodsService!("https://play.google.com/billing")
-        : undefined,
-    }).then((value) => {
-      if (!active) return;
-      if (value === "play") {
-        try {
-          sessionStorage.setItem(namespace("play-context"), "yes");
-        } catch {
-          /* retain the in-memory decision */
-        }
-      }
-      setContext(value);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-  if (context === "play")
-    return (
-      <p role="status" className="text-sm text-muted-foreground">
-        {translate("m616340fd038f")}
-      </p>
-    );
+  const [submittedPack, setSubmittedPack] = useState<string>();
+  const context = usePaymentContext();
+  if (context === "play") return null;
   return (
     <Card>
       <CardHeader>
@@ -97,14 +55,25 @@ export function CreditCheckout({
         <p className="text-sm text-muted-foreground">
           {translate("m5a12455b2151")}
         </p>
-        <form action={action} className="flex flex-wrap gap-3">
+        <form
+          action={action}
+          className="flex flex-wrap gap-3"
+          onSubmit={(event) => {
+            const submitter = event.nativeEvent.submitter;
+            setSubmittedPack(
+              submitter instanceof HTMLButtonElement
+                ? submitter.value
+                : undefined,
+            );
+          }}
+        >
           <input type="hidden" name="key" value={initialKey} />
           {packs.map((pack) => {
             const amount = price(pack.amountMinor, pack.currency);
             return (
-              <Button
+              <SubmitButton
                 key={pack.id}
-                type="submit"
+                pending={pending && submittedPack === pack.id}
                 name="packId"
                 value={pack.id}
                 disabled={pending || context !== "web"}
@@ -119,7 +88,7 @@ export function CreditCheckout({
                       label: pack.label,
                       credits: pack.credits,
                     })}
-              </Button>
+              </SubmitButton>
             );
           })}
         </form>

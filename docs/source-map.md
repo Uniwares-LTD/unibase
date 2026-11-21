@@ -6,23 +6,35 @@ Read the [repository adapter](../.agents/repository-adapter.md) for local rules,
 then use the row matching the task. Shared skills resolve at the retained Handbook
 revision; these links provide context, not additional authority.
 
-| Task | Start here | Add when applicable | Verification |
-| --- | --- | --- | --- |
-| Guidance and Handbook integration | [Agent tooling](agent-tooling.md), [handbook.json](../handbook.json) | Generated [bootstrap](../.agents/handbook.md), selected maintain-project skill | handbook:ready, handbook:entrypoints, check:skills, check:docs |
-| UI, locale or navigation | [Design system](design-system.md), [locale architecture](architecture.md#locale-and-direction) | Selected Next.js, React and Playwright skills; adapter UI checks | typecheck, lint, check:i18n, affected browser journeys |
-| Files, quotas, domains or accounting | [Service contracts](services.md) | [Server modules](../src/lib/server), accepted [plan](implementation-plan.md) | Affected behavior/boundary tests and adapter checks |
-| MCP or Dify workflows | [MCP guidance](mcp.md) | [Environment binding](../src/lib/server/runs/environment-binding.ts), [templates](../src/lib/server/runs/templates/README.md) | Affected accounts/MCP tests; typecheck/build for runtime changes |
-| Diagnostics | [Diagnostics API](diagnostics-api.md) | [Diagnostic server](../src/lib/server/diagnostics), service read-only boundaries | Affected diagnostics tests and inventories |
-| Deployment or provider activation | [Deployment guidance](deployment.md#choose-an-operation) | Infrastructure owner guidance/inventory linked there; adapter operational boundaries | Impact classification and affected deployment checks; live actions need separate authorization |
-| Add a project feature | [Using the template](template.md#add-a-feature), [project extensions](architecture.md#project-extensions) | [Notes sample](../src/samples/README.md), [project registries](../src/project) | typecheck, lint, check:samples, affected tests, build |
-| Data migration | [Migrations](architecture.md#extension-conventions) | [Core migrations](../src/lib/server/core-migrations.ts), server extension `migrations` | Disposable-database tests; db:migrate locally |
-| Template updates or releases | [Using the template](template.md#receive-template-updates), [changelog](../CHANGELOG.md) | [Update command](../scripts/template-update.mjs), [initializer](../scripts/project-initializer.ts) | check:template, test:initializer, test:initialized-projects |
-| New documentation or templates | [Canonical documents](#documentation) | Selected maintain-docs skill and [local starters](templates) | check:docs; opt-in template replacement |
+| Task                                 | Start here                                                                                                                                           | Add when applicable                                                                                                           | Verification                                                                                   |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Guidance and Handbook integration    | [Agent tooling](agent-tooling.md), [handbook.json](../handbook.json)                                                                                 | Generated [bootstrap](../.agents/handbook.md), selected maintain-project skill                                                | handbook:ready, handbook:entrypoints, check:skills, check:docs                                 |
+| UI, locale or navigation             | [Design system](design-system.md), [derived-project design](design-system-extension.md), [locale architecture](architecture.md#locale-and-direction) | Local `build-ui` skill; selected Next.js, React and Playwright skills; adapter UI checks                                      | typecheck, lint, check:i18n, build, affected browser journeys; production CSP check for toasts |
+| Files, quotas, domains or accounting | [Service contracts](services.md)                                                                                                                     | [Server modules](../src/lib/server), accepted [plan](implementation-plan.md)                                                  | Affected behavior/boundary tests and adapter checks                                            |
+| MCP or Dify workflows                | [MCP guidance](mcp.md)                                                                                                                               | [Environment binding](../src/lib/server/runs/environment-binding.ts), [templates](../src/lib/server/runs/templates/README.md) | Affected accounts/MCP tests; typecheck/build for runtime changes                               |
+| Diagnostics                          | [Diagnostics API](diagnostics-api.md)                                                                                                                | [Diagnostic server](../src/lib/server/diagnostics), service read-only boundaries                                              | Affected diagnostics tests and inventories                                                     |
+| Deployment or provider activation    | [Deployment guidance](deployment.md#choose-an-operation)                                                                                             | Infrastructure owner guidance/inventory linked there; adapter operational boundaries                                          | Impact classification and affected deployment checks; live actions need separate authorization |
+| Add a project feature                | [Using the template](template.md#add-a-feature), [project extensions](architecture.md#project-extensions)                                            | [Notes sample](../src/samples/README.md), [project registries](../src/project)                                                | typecheck, lint, check:samples, affected tests, build                                          |
+| Data migration                       | [Migrations](architecture.md#extension-conventions)                                                                                                  | [Core migrations](../src/lib/server/core-migrations.ts), server extension `migrations`                                        | Disposable-database tests; db:migrate locally                                                  |
+| Template updates or releases         | [Using the template](template.md#receive-template-updates), [changelog](../CHANGELOG.md)                                                             | [Update command](../scripts/template-update.mjs), [initializer](../scripts/project-initializer.ts)                            | check:template, test:initializer, test:initialized-projects                                    |
+| New documentation or templates       | [Canonical documents](#documentation)                                                                                                                | Selected maintain-docs skill and [local starters](templates)                                                                  | check:docs; opt-in template replacement                                                        |
 
 Command definitions and proportional selection remain in [package.json](../package.json)
 and the adapter; the table does not require unrelated suites for every task.
 
 ## Components
+
+- [Consumption orders and promotions](features/booklet-foundation/orders-promotions.md)
+  describe prepaid Run binding, revision allocations, refunds and verified coupon benefits.
+  Implementations: [orders](../src/lib/server/commerce/orders.ts),
+  [promotions](../src/lib/server/commerce/promotions.ts); verify with `test:commerce`.
+
+- [Foundation services](features/booklet-foundation/services.md) own T03?T06 commerce catalogs,
+  private execution evidence and MCP settings. [Billing compatibility](features/booklet-foundation/billing-compatibility.md)
+  owns offline provider/Android bridge evidence. Server implementations are in
+  [commerce](../src/lib/server/commerce/catalogs.ts) and [execution](../src/lib/server/execution/measurements.ts).
+
+- [Commerce contracts](../src/lib/contracts/commerce.ts) and [execution measurements](../src/lib/contracts/execution-measurements.ts) define opt-in v1 foundation DTOs. Reusable persistence and catalogs are described in [foundation services](features/booklet-foundation/services.md); [contract tests](../tests/commerce-contracts.test.ts) cover validation boundaries.
 
 - Runs module (planned sample): [environment binding](../src/lib/server/runs/environment-binding.ts) owns Dify app
   ownership, managed MCP setup, endpoint identity, graph binding and destination
@@ -32,6 +44,8 @@ and the adapter; the table does not require unrelated suites for every task.
 
 - [Application routes](../src/app) own layouts, pages, Server Actions and HTTP entrypoints.
 - [UI](../src/components) and [design system](design-system.md) own reusable primitives and interaction.
+  The [design-system adoption plan](features/design-system-adoption/implementation-plan.md) and its
+  [delta ledger](features/design-system-adoption/delta-ledger.md) track adopting the design handoff package (issue #53).
 - [Server modules](../src/lib/server) own authorization, persistence, provider adapters and workers;
   [service contracts](services.md) define ownership, quotas and transaction boundaries.
 - Runs module, story-panel sample: [image renewal](../src/lib/server/runs/image-renewal.ts) verifies original
@@ -39,6 +53,10 @@ and the adapter; the table does not require unrelated suites for every task.
   [Media retention](../src/lib/server/runs/media.ts) stages owned bytes before settlement.
 - [Project extensions](../src/project) are project-owned registrations of features and
   samples; core reads them through [the contract](../src/lib/extensions.ts).
+  [Run start composition](../src/project/run-start.tsx) and
+  [Run detail controls](../src/project/run-detail.tsx) stay inside existing Run pages.
+  [Domain hooks](services.md#domain-extensions-and-migration) own private observations
+  and non-paid application waits through the existing worker.
 - [Samples](../src/samples/README.md) are removable reference features declared in
   [samples.json](../samples.json); [the samples script](../scripts/samples.mjs) checks and removes them.
 - [Configuration](../project.config.json) owns project identity/modules; [pure parsers](../src/lib/config)
@@ -121,3 +139,20 @@ Deployment changes require configuration ownership classification and operator-i
 The [host release script](../scripts/deploy/vps.sh) delegates disk protection and image maintenance to Infrastructure's installed controller. [The initializer](../scripts/project-initializer.ts) generates a project-specific retention enrollment proposal, never host authorization.
 
 Dated evidence lives in Git history and pull requests, not in current documents.
+
+[Provider billing](features/booklet-foundation/provider-billing.md) owns the catalog
+purchase API, verified Stripe/Play adapters, subscription exclusion, renewal lots,
+provider-action journals and notification/worker reconciliation. Sources live in
+`src/lib/server/commerce/billing*.ts`, `*-billing.ts`, `provider-*.ts` and
+`google-auth.ts`; offline checks are `npm run test:provider-billing`.
+
+Commerce administration lives in `src/lib/server/commerce/admin.ts`,
+`src/app/admin/commerce` and `src/components/commerce`. Public purchase DTOs are
+`src/lib/contracts/purchase-client.ts`; the browser/native boundary is
+`src/lib/client/play-billing.ts` and `android/billing/CatalogPaymentActivity.java`.
+The [provider billing guide](features/booklet-foundation/provider-billing.md) owns
+setup and recovery. `npm run test:commerce-ui` verifies service and fake-client paths;
+`scripts/android-generate.ts` owns copying the native activity into generated output.
+`android/google-maven.init.gradle` is the opt-in official Google Maven hostname
+fallback; [native build prerequisites](features/booklet-foundation/provider-billing.md#native-build-prerequisites)
+own its invocation and limitations.

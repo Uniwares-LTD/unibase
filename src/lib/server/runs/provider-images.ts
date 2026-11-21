@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { AppError } from "@/lib/auth-policy";
 import { readProviderBytes } from "../ai/dify";
+import { limits } from "@/lib/limits";
 
 const fileSchema = z.object({
   type: z.literal("image"),
@@ -25,7 +26,11 @@ export function providerImages(outputs: Record<string, unknown> | null) {
     cards: z.array(z.unknown()),
     images: z.array(z.unknown()),
   }).parse(result);
-  return z.array(fileSchema).min(1).max(10).parse(outputs.unibase_images);
+  return z
+    .array(fileSchema)
+    .min(1)
+    .max(limits.runImages)
+    .parse(outputs.unibase_images);
 }
 
 export async function downloadProviderImage(

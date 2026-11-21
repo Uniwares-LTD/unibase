@@ -90,9 +90,9 @@ token integration, **not** an OAuth authorization server or an end-user consent
 flow. Clients must support custom authorization headers. A service credential
 does not establish an application's end-user identity.
 
-Request bodies and serialized MCP responses are bounded to 64 KiB. Tool output is
+Request bodies and serialized MCP responses default to 64 KiB. Tool output is
 limited to just under 32 KiB because the response includes structured content and
-a JSON text fallback. Execution times out after 10 seconds. Handlers must honor
+a JSON text fallback. Execution defaults to a 10-second timeout. Administrators can change these durable limits in Application settings; see [foundation configuration](features/booklet-foundation/services.md#mcp-configuration-and-extensions). Handlers must honor
 the supplied AbortSignal: the timeout ends the response but cannot preempt
 synchronous CPU loops or undo side effects in an uncooperative handler.
 
@@ -122,6 +122,32 @@ The example document is bundled server data, not a real venue or user record.
 It intentionally contains information a workflow should fetch rather than infer.
 These tools change no data and charge no credits. MCP results include
 `structuredContent` and a text block containing the same JSON object.
+
+## Native image results
+
+Project tools can optionally define `images(result)` on `RegisteredTool`. It is a
+synchronous projection of bytes already fetched and authorized by `run`; do not
+perform more I/O there. Return ordered `{ data: Uint8Array, mimeType }` values.
+PNG, JPEG, WebP, GIF and AVIF MIME types are supported. The transport preserves the
+bytes without resizing or re-encoding and emits standard MCP image content blocks
+following the existing JSON text fallback. `structuredContent` still contains only
+the parsed `output` object. Keep binary carriers out of that schema, for example
+with a stripping `z.object(...)` output schema. Never expose raw bytes/base64 in
+public JSON fields, credentials, arbitrary fetch URLs or private Run capabilities.
+
+Tools retain responsibility for ownership, original integrity and ordered metadata
+that identifies each image. This transport does not fetch URLs or authorize assets.
+Empty/unsupported image payloads fail with the existing sanitized tool error. The
+sum of JSON text bytes and serialized image blocks must fit `toolResultBytes`;
+base64 overhead counts. The complete serialized response, including duplicate
+structured JSON and protocol overhead, must also fit `responseBytes`. Defaults are
+unchanged and intentionally too small for most generated originals; configure both
+limits for the intended bounded payload before activation. Do not increase them
+without considering the existing 16 MiB tool / 32 MiB response maxima.
+
+Local tests use the official MCP client to prove byte identity/order and limits.
+They do not establish a particular Dify deployment's conversion to native files;
+verify that end to end in the target environment before relying on it.
 
 ## Connect Dify and extend the test workflow
 

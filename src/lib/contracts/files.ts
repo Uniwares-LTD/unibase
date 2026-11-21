@@ -12,3 +12,15 @@ export const filePageSchema = z.object({
   next: z.string().nullable(),
   usage: z.object({ count: z.number(), bytes: z.number() }),
 });
+export const uploadStartSchema = z.strictObject({
+  key: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  mime: z.string().min(1).max(100),
+  bytes: z.number().int().positive().safe(),
+});
+export const uploadStatusSchema = z.object({
+  file: privateFileSchema,
+  partBytes: z.number(),
+  count: z.number(),
+  received: z.array(z.number()),
+});

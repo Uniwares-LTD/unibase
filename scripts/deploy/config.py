@@ -41,7 +41,7 @@ def validate_mcp(env, catalog):
         permissions = client["permissions"]
         token = env.get(client["tokenEnv"], "")
         if (not isinstance(permissions, list) or not permissions or
-                any(p not in catalog["mcpPermissions"] for p in permissions) or
+                any(not isinstance(p, str) or (p not in catalog["mcpPermissions"] and not re.fullmatch(r"extension:[a-z][a-z0-9-]{1,39}:(read|write)", p)) for p in permissions) or
                 not re.fullmatch(r"[A-Za-z0-9_-]{43,256}", token) or
                 client["id"] in ids or token in tokens):
             raise ValueError("Invalid MCP client configuration")
@@ -122,6 +122,7 @@ def validate(root, target, runtime_file=None):
         type(v) is not int or not 1 <= v <= 100000 for k, v in limits.items()):
         raise ValueError("Invalid request limits")
 
+    # Deployment allowlist mirrors src/lib/design-styles.ts.
     if env.get("APP_STYLE", "classic") not in ("classic", "glass", "soft-blue"):
         raise ValueError("Invalid APP_STYLE")
     if env.get("ASSET_STORE", "mongo") not in ("mongo", "s3"):

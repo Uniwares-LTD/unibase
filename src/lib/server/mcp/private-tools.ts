@@ -5,6 +5,7 @@ import { database } from "../mongo";
 import { authorizedRun } from "../runs/capabilities";
 import { artifactOperation, ownedArtifact } from "../runs/artifacts";
 import { artifactDraftSchema } from "@/lib/contracts/artifacts";
+import { limits } from "@/lib/limits";
 export const privateToolPermissions: Record<string, string> = {
   get_run_context_v1: "run:read",
   read_artifact_v1: "artifact:read",
@@ -51,7 +52,7 @@ export const privateTools: readonly RegisteredTool[] = [
       artifactId: z.string(),
       title: z.string(),
       revision: z.number().int(),
-      draftText: z.string().max(8000),
+      draftText: z.string().max(limits.artifactTextChars),
     }),
     async run(input, context) {
       const db = database();

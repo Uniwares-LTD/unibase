@@ -5,11 +5,21 @@ import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { z } from "zod";
 import { api, ApiError } from "@/lib/client/api";
-import { filePageSchema, privateFileSchema } from "@/lib/contracts/files";
-import { EmptyState, Notice, PageHeader } from "@/components/page-patterns";
+import { sessionRequestSignal } from "@/lib/client/session-lifecycle";
+import {
+  filePageSchema,
+  privateFileSchema,
+  uploadStatusSchema,
+} from "@/lib/contracts/files";
+import {
+  EmptyState,
+  Notice,
+  PageHeader,
+  SubmitButton,
+} from "@/components/page-patterns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, FieldLabel } from "@/components/ui/field";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +39,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+// Larger non-image files use resumable part uploads, so they can exceed the
+// single-request limit and continue after an interrupted part.
+const RESUMABLE_BYTES = 8 * 1024 * 1024;
 export function Files({
   initial,
 }: {
@@ -38,6 +51,10 @@ export function Files({
   const bytes = useBytes();
 
   const uploadKey = useRef<string | null>(null);
+  // Resumable uploads reuse their key for the same file while the page is open,
+  // so pressing Upload again continues from the stored parts.
+  const resumableKeys = useRef(new Map<string, string>());
+  const [progress, setProgress] = useState<number | null>(null);
   const [page, setPage] = useState(initial),
     [paged, setPaged] = useState(false),
     [busy, setBusy] = useState(false),
@@ -53,6 +70,72 @@ export function Files({
     } finally {
       setBusy(false);
     }
+  }
+  async function download(file: z.infer<typeof privateFileSchema>) {
+    setError("");
+    const session = sessionRequestSignal();
+    try {
+      const response = await fetch(`/api/files/${file.id}/content`, {
+        signal: AbortSignal.any([session, AbortSignal.timeout(60_000)]),
+      });
+      if (!response.ok) throw new Error("Download request failed");
+      const data = await response.blob();
+      session.throwIfAborted();
+      if (data.size !== file.bytes) throw new Error("Incomplete download");
+      const url = URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      if (!session.aborted) setError(translate("m5fc277959f9a"));
+    }
+  }
+  async function resumableUpload(file: File) {
+    const identity = [file.name, file.size, file.lastModified].join(":");
+    const key = resumableKeys.current.get(identity) ?? crypto.randomUUID();
+    resumableKeys.current.set(identity, key);
+    try {
+      await uploadParts(file, key);
+      resumableKeys.current.delete(identity);
+    } catch (error) {
+      // A removed or conflicting upload cannot resume; the next attempt starts over.
+      if (
+        error instanceof ApiError &&
+        ["FILE_NOT_FOUND", "UPLOAD_CLOSED", "IDEMPOTENCY_CONFLICT"].includes(
+          error.code,
+        )
+      )
+        resumableKeys.current.delete(identity);
+      throw error;
+    }
+  }
+  async function uploadParts(file: File, key: string) {
+    let status = await api("/api/files/uploads", uploadStatusSchema, {
+      method: "POST",
+      body: { key, name: file.name, mime: file.type, bytes: file.size },
+    });
+    const id = status.file.id,
+      received = new Set(status.received);
+    setProgress(Math.floor((received.size / status.count) * 100));
+    for (let n = 0; n < status.count; n++) {
+      if (received.has(n)) continue;
+      status = await api(
+        `/api/files/uploads/${id}/parts/${n}`,
+        uploadStatusSchema,
+        {
+          method: "PUT",
+          body: file.slice(n * status.partBytes, (n + 1) * status.partBytes),
+          timeoutMs: 60000,
+        },
+      );
+      setProgress(Math.floor((status.received.length / status.count) * 100));
+    }
+    await api(`/api/files/uploads/${id}/complete`, privateFileSchema, {
+      method: "POST",
+      timeoutMs: 120000,
+    });
   }
   async function refresh(cursor?: string) {
     setPage(
@@ -76,6 +159,7 @@ export function Files({
         onSubmit={(e) => {
           e.preventDefault();
           const form = new FormData(e.currentTarget);
+          const file = form.get("file");
           form.set(
             "key",
             uploadKey.current ?? (uploadKey.current = crypto.randomUUID()),
@@ -83,40 +167,54 @@ export function Files({
           setUploading(true);
           void perform(async () => {
             try {
-              await api("/api/files", privateFileSchema, {
-                method: "POST",
-                body: form,
-                timeoutMs: 60000,
-              });
+              if (
+                file instanceof File &&
+                file.size > RESUMABLE_BYTES &&
+                !file.type.startsWith("image/")
+              )
+                await resumableUpload(file);
+              else
+                await api("/api/files", privateFileSchema, {
+                  method: "POST",
+                  body: form,
+                  timeoutMs: 60000,
+                });
               uploadKey.current = null;
               await refresh();
             } finally {
               setUploading(false);
+              setProgress(null);
             }
           });
         }}
         className="space-y-3"
       >
-        <Label htmlFor="private-file">{translate("m6d684ec42aa9")}</Label>
-        <div className="flex flex-wrap gap-3">
-          <Input
-            id="private-file"
-            name="file"
-            type="file"
-            className="max-w-md"
-            onChange={() => {
-              uploadKey.current = null;
-            }}
-            required
-            disabled={busy}
-            accept=".txt,.pdf,.png,.jpg,.jpeg,.webp,.mp3,.wav,.mp4"
-          />
-          <Button disabled={busy}>
-            {uploading
-              ? translate("m7cdfb59cd1d3")
-              : translate("m865e89de78d9")}
-          </Button>
-        </div>
+        <Field>
+          <FieldLabel htmlFor="private-file">
+            {translate("m6d684ec42aa9")}
+          </FieldLabel>
+          <div className="flex flex-wrap gap-3">
+            <Input
+              id="private-file"
+              name="file"
+              type="file"
+              className="max-w-md"
+              onChange={() => {
+                uploadKey.current = null;
+              }}
+              required
+              disabled={busy}
+              accept=".txt,.pdf,.png,.jpg,.jpeg,.webp,.mp3,.wav,.mp4"
+            />
+            <SubmitButton pending={uploading} disabled={busy}>
+              {uploading
+                ? progress === null
+                  ? translate("m7cdfb59cd1d3")
+                  : translate("ma505610c7e5b", { percent: progress })
+                : translate("m865e89de78d9")}
+            </SubmitButton>
+          </div>
+        </Field>
       </form>
       {error && <Notice tone="error" title={error} />}
       {page.rows.length ? (
@@ -149,19 +247,31 @@ export function Files({
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-2">
-                    {file.state === "ready" && (
-                      <Button asChild size="sm" variant="outline">
-                        <a href={`/api/files/${file.id}/content`} download>
+                    {file.state === "ready" &&
+                      (file.bytes <= RESUMABLE_BYTES ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void download(file)}
+                        >
                           {translate("md6eafe823591")}
-                        </a>
-                      </Button>
-                    )}
+                        </Button>
+                      ) : (
+                        <Button asChild size="sm" variant="outline">
+                          <a href={`/api/files/${file.id}/content`} download>
+                            {translate("md6eafe823591")}
+                          </a>
+                        </Button>
+                      ))}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={busy || file.state !== "ready"}
+                          disabled={
+                            busy ||
+                            (file.state !== "ready" && file.state !== "staging")
+                          }
                         >
                           {translate("me2d0a54968ea")}
                         </Button>
@@ -189,6 +299,7 @@ export function Files({
                                   { method: "DELETE" },
                                 );
                                 uploadKey.current = null;
+                                resumableKeys.current.clear();
                                 await refresh();
                               })
                             }

@@ -153,9 +153,10 @@ async function append(
       "Credit accounting is temporarily unavailable.",
       503,
     );
+  const ledgerId = randomUUID();
   await ctx.db.collection<LedgerEntry>("creditLedger").insertOne(
     {
-      _id: randomUUID(),
+      _id: ledgerId,
       uid: w._id,
       sequence: w.sequence,
       kind,
@@ -172,6 +173,7 @@ async function append(
     },
     { session: ctx.session },
   );
+  return ledgerId;
 }
 
 async function releaseHold(
@@ -231,7 +233,7 @@ async function expireLots(ctx: Context) {
     if (!expired) continue; // A valid hold can commit after the grant expires.
     await lots(ctx.db).updateOne(
       { _id: lot._id },
-      { $inc: { remaining: -expired } },
+      { $inc: { remaining: -expired, expiredCredits: expired } },
       { session: ctx.session },
     );
     ctx.wallet.balance -= expired;
@@ -530,9 +532,9 @@ async function grant(ctx: Context, input: Grant) {
   if (expiresAt && expiresAt <= ctx.now)
     throw bad("Grant expiry must be in the future.");
   if (
-    input.source === "purchase" &&
+    input.source !== "promotion" &&
     (await lots(ctx.db).findOne(
-      { source: "purchase", reference: input.reference },
+      { source: input.source, reference: input.reference },
       { session: ctx.session },
     ))
   )
@@ -544,8 +546,8 @@ async function grant(ctx: Context, input: Grant) {
   const debtPaid = Math.min(input.amount, ctx.wallet.debt);
   const lot: CreditLot = {
     _id:
-      input.source === "purchase"
-        ? hash(["purchase", input.reference])
+      input.source !== "promotion"
+        ? hash([input.source, input.reference])
         : randomUUID(),
     uid: ctx.wallet._id,
     source: input.source,
@@ -566,9 +568,11 @@ async function grant(ctx: Context, input: Grant) {
 function validateGrant(input: Grant) {
   quantity(input.amount);
   identifier(input.reference, 256);
-  if (!["promotion", "purchase"].includes(input.source))
+  if (!["promotion", "purchase", "subscription"].includes(input.source))
     throw bad("Unknown credit source.");
   if (input.expiresAt) date(input.expiresAt);
+  if (input.source === "subscription" && !input.expiresAt)
+    throw bad("Subscription grants require an explicit expiry.");
   if (input.source === "purchase" && input.expiresAt != null)
     throw bad("Purchased credits cannot expire.");
 }
@@ -620,7 +624,7 @@ export async function adjustCredits(
     reason?: string;
     expiresAt?: Date | null;
   },
-  options: Pick<MutationOptions, "now"> = {},
+  options: Pick<MutationOptions, "now" | "persist"> = {},
 ) {
   quantity(input.amount);
   const explanation = reason(input.reason);
@@ -677,6 +681,38 @@ export async function adjustCredits(
       return result;
     },
     { ...options, admin, reason: explanation },
+  );
+}
+
+// Trusted product services use this for upfront charges, with atomic domain persistence.
+// Zero supports included/free revision requests without creating a debit.
+export async function spendCredits(
+  db: Db,
+  actor: CreditActor,
+  key: string,
+  amount: number,
+  reference: string,
+  options: Pick<MutationOptions, "now"> & {
+    persist: NonNullable<MutationOptions["persist"]>;
+  },
+) {
+  quantity(amount, true);
+  identifier(reference);
+  return transaction(
+    db,
+    actor.uid,
+    key,
+    ["spend", amount, reference],
+    async (ctx) => {
+      if (!amount) return view(ctx.wallet);
+      requireFunds(ctx.wallet, amount);
+      if (await consumeAvailable(ctx, amount))
+        throw bad("Credit lot balance is inconsistent.");
+      ctx.wallet.balance -= amount;
+      const ledgerId = await append(ctx, "deduction", -amount, 0, reference);
+      return { ...view(ctx.wallet), ledgerId };
+    },
+    { ...options, actor },
   );
 }
 
@@ -927,7 +963,9 @@ export async function reversePurchase(
   key: string,
   reference: string,
   targetReversed: number,
-  options: Pick<MutationOptions, "now" | "actor" | "persist"> = {},
+  options: Pick<MutationOptions, "now" | "actor" | "persist"> & {
+    source?: CreditLot["source"];
+  } = {},
 ) {
   identifier(reference, 256);
   quantity(targetReversed, true);
@@ -935,10 +973,19 @@ export async function reversePurchase(
     db,
     uid,
     key,
-    ["reversal", reference, targetReversed],
+    [
+      "reversal",
+      reference,
+      targetReversed,
+      ...(options.source ? [options.source] : []),
+    ],
     async (ctx) => {
       const purchase = await lots(db).findOne(
-        { uid, source: "purchase", reference },
+        {
+          uid,
+          source: options.source ?? { $in: ["purchase", "subscription"] },
+          reference,
+        },
         { session: ctx.session },
       );
       if (!purchase)
@@ -949,7 +996,12 @@ export async function reversePurchase(
         );
       if (targetReversed > purchase.originalCredits)
         throw bad("Reversal exceeds the original purchase.");
-      const delta = targetReversed - purchase.reversedCredits;
+      // Expired unused credits have already left the wallet. Revoking them must
+      // not charge the customer again. Historical purchase lots have no expiry.
+      const expired = purchase.expiredCredits ?? 0;
+      const applied =
+        purchase.appliedReversedCredits ?? purchase.reversedCredits;
+      let delta = Math.max(0, targetReversed - expired) - applied;
       if (delta > 0) {
         // Only holds backed by the reversed lot need cancellation if that lot can
         // cover the reversal. If other funds/debt are needed, cancel all wallet holds.
@@ -965,6 +1017,14 @@ export async function reversePurchase(
         for await (const hold of active)
           await releaseHold(ctx, hold, "cancelled");
         await expireLots(ctx);
+        const settled = await lots(db).findOne(
+          { _id: purchase._id },
+          { session: ctx.session },
+        );
+        const expiredAfterRelease = settled?.expiredCredits ?? 0;
+        delta = Math.max(0, targetReversed - expiredAfterRelease) - applied;
+      }
+      if (delta > 0) {
         const debt = await consumeAvailable(ctx, delta, purchase._id);
         ctx.wallet.balance -= delta;
         ctx.wallet.debt += debt;
@@ -980,10 +1040,16 @@ export async function reversePurchase(
         ctx.wallet.debt -= debtPaid;
         ctx.wallet.balance += restored;
         await append(ctx, "purchase-restoration", restored, 0, purchase._id);
+        await expireLots(ctx);
       }
       await lots(db).updateOne(
         { _id: purchase._id },
-        { $set: { reversedCredits: targetReversed } },
+        {
+          $set: {
+            reversedCredits: targetReversed,
+            appliedReversedCredits: applied + delta,
+          },
+        },
         { session: ctx.session },
       );
       if (delta !== 0)
@@ -1015,6 +1081,14 @@ export async function createCreditIndexes(db: Db) {
       unique: true,
       partialFilterExpression: { source: "purchase" },
       name: "unique_credited_purchase",
+    },
+  );
+  await lots(db).createIndex(
+    { source: 1, reference: 1 },
+    {
+      unique: true,
+      partialFilterExpression: { source: "subscription" },
+      name: "unique_subscription_grant",
     },
   );
   await lots(db).createIndex({ uid: 1, expiresAt: 1, createdAt: 1 });

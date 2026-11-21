@@ -1,4 +1,9 @@
 import {
+  billingProviders,
+  processBilling,
+} from "../src/lib/server/commerce/billing-runtime";
+import { cleanupEvidence } from "../src/lib/server/execution/measurements";
+import {
   processOneNotification,
   pruneNotifications,
 } from "../src/lib/server/notifications";
@@ -57,6 +62,7 @@ async function main() {
     connectTimeoutMS: 5000,
   });
   const db = client.db(databaseConfig.database);
+  const providers = billingProviders(db);
   const heartbeat = workerHeartbeat(db, "payment");
   const observe = async (status: number, started: number) => {
     const record = runtimeRecord("payment-maintenance", {
@@ -79,7 +85,15 @@ async function main() {
       let cycleState: "ok" | "error" = "ok";
       try {
         await readSettings(db);
+        try {
+          worked = (await processBilling(db, providers)) || worked;
+        } catch {
+          cycleState = "error";
+          await observe(503, started);
+          if (process.argv.includes("--once")) process.exitCode = 1;
+        }
         await pruneNotifications(db);
+        worked = (await cleanupEvidence(db)) > 0 || worked;
         worked = (await processOneFileDeletion(db)) || worked;
         for (let n = 0; n < 10; n++) {
           if (!(await processOneNotification(db))) break;

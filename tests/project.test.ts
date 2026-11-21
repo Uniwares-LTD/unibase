@@ -7,6 +7,7 @@ import {
   moduleForPath,
 } from "../src/lib/project";
 import { rateConfig } from "../src/lib/config/rate-limits";
+import { limits } from "../src/lib/limits";
 test("project manifests validate identities, dependencies and locale choices", () => {
   assert.equal(namespace("session"), `${project.slug}-session`);
   assert.equal(moduleForPath("/api/runs/example/uploads"), "runs");
@@ -15,6 +16,9 @@ test("project manifests validate identities, dependencies and locale choices", (
     { defaultLocale: "fa" },
     { modules: ["payments"] },
     { locales: ["ar"], defaultLocale: "en" },
+    { limits: { runImages: 0 } },
+    { limits: { artifactTextChars: 1_000_000 } },
+    { limits: { unknown: 1 } },
   ])
     assert.equal(
       projectSchema.safeParse({ ...project, ...changes }).success,
@@ -25,9 +29,13 @@ test("project manifests validate identities, dependencies and locale choices", (
       ...project,
       slug: "another-app",
       examples: false,
+      limits: { artifactTextChars: 40_000, runImages: 24 },
     }).success,
     true,
   );
+  // The template manifest keeps the default content limits.
+  assert.deepEqual(limits, { artifactTextChars: 8000, runImages: 10 });
+  assert.equal(moduleForPath("/api/files/uploads/example/parts/0"), "files");
 });
 test("Redis is required outside local mode and policies are bounded", () => {
   assert.equal(rateConfig({ APP_ENV: "local" }).url, null);

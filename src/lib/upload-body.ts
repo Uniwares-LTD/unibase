@@ -82,21 +82,47 @@ export async function readMultipart(
   }
 }
 
-export async function readText(request: Request, limit = 20000) {
+/** Read a bounded raw body, failing on overflow, disconnect or the deadline. */
+export async function readBytes(
+  request: Request,
+  limit: number,
+  deadlineMs?: number,
+) {
   // Bound even chunked requests rather than trusting Content-Length.
   const reader = request.body?.getReader();
   if (!reader) throw new AppError("INVALID_INPUT", "Request body is required.");
+  let expired = false;
+  const timer =
+    deadlineMs === undefined
+      ? undefined
+      : setTimeout(() => {
+          expired = true;
+          void reader.cancel().catch(() => undefined);
+        }, deadlineMs);
   let total = 0;
   const chunks: Uint8Array[] = [];
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.length;
-    if (total > limit) {
-      await reader.cancel();
-      throw new AppError("INVALID_INPUT", "Request is too large.", 413);
+  try {
+    while (true) {
+      const { done, value } = await reader.read().catch(() => {
+        throw new AppError("INVALID_INPUT", "Upload interrupted.", 400);
+      });
+      if (done) break;
+      total += value.length;
+      if (total > limit) {
+        await reader.cancel().catch(() => undefined);
+        throw new AppError("INVALID_INPUT", "Request is too large.", 413);
+      }
+      chunks.push(value);
     }
-    chunks.push(value);
+  } finally {
+    clearTimeout(timer);
   }
-  return Buffer.concat(chunks).toString("utf8");
+  if (expired) throw new AppError("UPLOAD_TIMEOUT", "Upload timed out.", 408);
+  if (deadlineMs !== undefined && request.signal.aborted)
+    throw new AppError("INVALID_INPUT", "Upload interrupted.", 400);
+  return Buffer.concat(chunks);
+}
+
+export async function readText(request: Request, limit = 20000) {
+  return (await readBytes(request, limit)).toString("utf8");
 }

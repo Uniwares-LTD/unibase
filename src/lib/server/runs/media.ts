@@ -6,6 +6,7 @@ import { AppError } from "@/lib/auth-policy";
 import { parseAssetConfig } from "@/lib/config/assets";
 import { parseResult } from "@/lib/contracts/runs";
 import { cardRegistry } from "@/lib/runs/cards";
+import { limits } from "@/lib/limits";
 import { validatedImage } from "./image";
 import { s3ObjectStore, type ObjectReference } from "./object-store";
 import { aiJobs, fingerprint, type AiJob } from "../ai/jobs";
@@ -54,7 +55,7 @@ export async function prepareResult(
     (job.binding.mode !== "live" || result.outcome !== "success")
   )
     throw new AppError("INVALID_RESULT", "Unexpected generated image output.");
-  if (result.images.length + files.length > 10)
+  if (result.images.length + files.length > limits.runImages)
     throw new AppError("INVALID_RESULT", "Too many generated images.");
   const images = [
     ...result.images.map((image) => ({ ...image, file: null })),

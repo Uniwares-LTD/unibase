@@ -1,14 +1,14 @@
 import { endpoint } from "@/lib/server/http";
 import { requireSession } from "@/lib/server/session";
 import { database } from "@/lib/server/mongo";
-import { fileBytes } from "@/lib/server/private-files";
+import { fileContent } from "@/lib/server/private-files";
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   return endpoint(request, async () => {
     const actor = await requireSession();
-    const { file, bytes } = await fileBytes(
+    const { file, body } = await fileContent(
       database(),
       actor.uid,
       (await context.params).id,
@@ -17,10 +17,10 @@ export async function GET(
       /['()*]/g,
       (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
     );
-    return new Response(new Uint8Array(bytes), {
+    return new Response(body, {
       headers: {
         "Content-Type": file.mime,
-        "Content-Length": String(bytes.length),
+        "Content-Length": String(file.bytes),
         "Content-Disposition": `${file.mime === "image/png" ? "inline" : "attachment"}; filename="download"; filename*=UTF-8''${name}`,
         "X-Content-Type-Options": "nosniff",
         "Cache-Control": "private, no-store",
