@@ -77,14 +77,18 @@ function PersonaForm({
           ? e.message
           : "Could not confirm the save. Reload before retrying.",
       );
-      return e instanceof ApiError && e.code !== "INVALID_RESPONSE" ? "failed" : "unknown";
+      return e instanceof ApiError && e.code !== "INVALID_RESPONSE"
+        ? "failed"
+        : "unknown";
     } finally {
       setBusy(false);
       onBusyChange(false);
     }
   }
   useLeaveGuard({
-    dirty: initial.revision > 0 && (JSON.stringify(fields) !== baseline || Boolean(reason)),
+    dirty:
+      initial.revision > 0 &&
+      (JSON.stringify(fields) !== baseline || Boolean(reason)),
     save,
   });
   return (
@@ -162,7 +166,9 @@ function PersonaForm({
           setFields({ ...fields, maxCalls: Number(e.target.value) })
         }
       />
-      <FieldLabel htmlFor={`${prefix}-reason`}>Change reason (optional)</FieldLabel>
+      <FieldLabel htmlFor={`${prefix}-reason`}>
+        Change reason (optional)
+      </FieldLabel>
       <Input
         id={`${prefix}-reason`}
         value={reason}

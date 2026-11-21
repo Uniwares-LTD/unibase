@@ -61,7 +61,9 @@ export function CreditCheckout({
           onSubmit={(event) => {
             const submitter = event.nativeEvent.submitter;
             setSubmittedPack(
-              submitter instanceof HTMLButtonElement ? submitter.value : undefined,
+              submitter instanceof HTMLButtonElement
+                ? submitter.value
+                : undefined,
             );
           }}
         >

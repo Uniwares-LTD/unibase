@@ -220,7 +220,10 @@ export function AdminCleanup({ defaultDays }: { defaultDays: number }) {
             Download report
           </Button>
           {downloadFailed && (
-            <Notice tone="error" title="Download failed. Try downloading the report again." />
+            <Notice
+              tone="error"
+              title="Download failed. Try downloading the report again."
+            />
           )}
           {report.state === "preview" && (
             <>

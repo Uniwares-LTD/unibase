@@ -59,6 +59,11 @@ The server-only reader explicitly selects APP_NAME, APP_STYLE, APP_ENV, and APP_
 
 The Next.js instrumentation hook checks application, database, authentication and payment configuration at startup. The command-line validator loads Next.js environment files and uses the same pure parsers. `src/lib/config/database.ts` validates MONGODB_URI/MONGODB_DATABASE independently of Firebase; `src/lib/server/database-config.ts` reads only those private settings, and `mongo.ts` reuses the connection pool. Index setup uses the database parser directly; bootstrap and maintenance validate their required database/auth settings separately. Local development defaults to demo Firebase authentication and loopback MongoDB. The authentication form receives only the Firebase browser allowlist (project ID, app ID, public API key, same-origin auth domain, and local emulator URL); database configuration and Admin credentials stay server-only.
 
+## Project extensions
+
+For a derived application's palette, typography and self-hosted fonts, start
+with the [design extension guide](design-system-extension.md).
+
 ## Extension conventions
 
 ### Project extensions
@@ -844,7 +849,6 @@ and its Terraform writes the complete route list. The application verifies its o
 route; it does not install a route controller or use Booklet's deployment workflow.
 The [ownership follow-ups](deployment.md#shared-ownership-follow-ups) require an
 explicit migration before authority changes.
-
 
 ## Operational documentation ownership
 

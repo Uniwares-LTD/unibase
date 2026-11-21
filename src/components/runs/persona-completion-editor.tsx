@@ -70,13 +70,16 @@ export function CompletionEditor({
           ? error.message
           : "Could not confirm the save. Reload before retrying.",
       );
-      return error instanceof ApiError && error.code !== "INVALID_RESPONSE" ? "failed" : "unknown";
+      return error instanceof ApiError && error.code !== "INVALID_RESPONSE"
+        ? "failed"
+        : "unknown";
     } finally {
       setBusy(false);
     }
   }
   useLeaveGuard({
-    dirty: JSON.stringify(settings) !== JSON.stringify(baseline) || Boolean(reason),
+    dirty:
+      JSON.stringify(settings) !== JSON.stringify(baseline) || Boolean(reason),
     save,
   });
 

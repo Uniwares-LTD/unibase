@@ -17,7 +17,6 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { LoaderCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogCancel,

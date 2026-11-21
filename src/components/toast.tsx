@@ -41,8 +41,9 @@ function ToastMessage({
 
   useEffect(() => {
     if (transient) {
-      const duration = getComputedStyle(document.documentElement)
-        .getPropertyValue("--toast-confirmation-duration");
+      const duration = getComputedStyle(
+        document.documentElement,
+      ).getPropertyValue("--toast-confirmation-duration");
       return scheduleToastExpiry(hovered || focused, duration, () =>
         sonner.dismiss(id),
       );
@@ -56,9 +57,13 @@ function ToastMessage({
       onPointerLeave={() => setHovered(false)}
       onFocus={() => setFocused(true)}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
+        if (!event.currentTarget.contains(event.relatedTarget))
+          setFocused(false);
       }}
-      className={cn("flex w-full items-center gap-3 rounded-lg border p-3", style)}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-lg border p-3",
+        style,
+      )}
     >
       <Icon className="size-5 shrink-0" aria-hidden="true" />
       <p className="min-w-0 flex-1 break-words text-sm">{text}</p>
@@ -67,7 +72,8 @@ function ToastMessage({
         size="sm"
         onClick={() => {
           sonner.dismiss(id);
-          if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+          if (opener instanceof HTMLElement && opener.isConnected)
+            opener.focus();
         }}
       >
         {translate("m48845bff334a")}
@@ -83,7 +89,9 @@ function show(kind: Kind, text: string) {
   const key = ++sequence;
   const transient = kind === "confirm" || kind === "info";
   return sonner.custom(
-    (id) => <ToastMessage key={key} id={id} kind={kind} text={text} opener={opener} />,
+    (id) => (
+      <ToastMessage key={key} id={id} kind={kind} text={text} opener={opener} />
+    ),
     { id: transient ? "confirmation" : undefined, duration: Infinity },
   );
 }

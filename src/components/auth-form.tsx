@@ -221,7 +221,9 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
           </h2>
           <form onSubmit={submit} className="space-y-4">
             <Field>
-              <FieldLabel htmlFor="email">{translate("m969ccbd3cf63")}</FieldLabel>
+              <FieldLabel htmlFor="email">
+                {translate("m969ccbd3cf63")}
+              </FieldLabel>
               <Input
                 id="email"
                 name="email"
@@ -234,7 +236,9 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
             </Field>
             {mode !== "reset" && (
               <Field>
-                <FieldLabel htmlFor="password">{translate("me7cf3ef4f17c")}</FieldLabel>
+                <FieldLabel htmlFor="password">
+                  {translate("me7cf3ef4f17c")}
+                </FieldLabel>
                 <Input
                   id="password"
                   aria-describedby={

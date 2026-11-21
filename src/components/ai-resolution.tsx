@@ -86,9 +86,9 @@ export function AiResolution({
                   Accept this result and charge the user?
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  This settles the calculated charge from the user&apos;s reserved
-                  credits and closes the review. It is recorded in the audit
-                  log.
+                  This settles the calculated charge from the user&apos;s
+                  reserved credits and closes the review. It is recorded in the
+                  audit log.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

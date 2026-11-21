@@ -1,3 +1,4 @@
+import { project } from "@/lib/project";
 import { AppToaster } from "@/components/toast";
 import { LocalizedValidation } from "@/components/localized-validation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -25,7 +26,7 @@ import { publicSettings } from "@/lib/server/settings";
 import "./globals.css";
 
 export const viewport: Viewport = {
-  themeColor: "#98492f",
+  themeColor: "#c2410c",
   width: "device-width",
   initialScale: 1,
 };
@@ -68,7 +69,12 @@ export default async function RootLayout({
     <html
       lang={locale}
       dir={locale === "ar" ? "rtl" : "ltr"}
-      data-style={resolveStyle(preference, publicConfig.defaultStyle)}
+      data-project={project.theme ? project.slug : undefined}
+      data-style={
+        project.theme
+          ? undefined
+          : resolveStyle(preference, publicConfig.defaultStyle)
+      }
       suppressHydrationWarning
     >
       <body className="min-h-svh font-sans antialiased">
@@ -82,6 +88,7 @@ export default async function RootLayout({
             <StyleProvider
               initialPreference={preference}
               defaultStyle={publicConfig.defaultStyle}
+              projectTheme={project.theme ? project.slug : null}
             >
               <BrowserRuntime preferredLocale={preferenceLocale} />
               <LocalizedValidation />

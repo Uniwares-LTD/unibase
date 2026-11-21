@@ -66,7 +66,9 @@ export function NotesPanel({ initial }: { initial: Note[] }) {
             }}
           >
             <Field>
-              <FieldLabel htmlFor="note-title">{translate("m7e8cd2056da7")}</FieldLabel>
+              <FieldLabel htmlFor="note-title">
+                {translate("m7e8cd2056da7")}
+              </FieldLabel>
               <Input
                 id="note-title"
                 required
@@ -76,7 +78,9 @@ export function NotesPanel({ initial }: { initial: Note[] }) {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="note-body">{translate("md8da2c49df39")}</FieldLabel>
+              <FieldLabel htmlFor="note-body">
+                {translate("md8da2c49df39")}
+              </FieldLabel>
               <Textarea
                 id="note-body"
                 maxLength={5000}

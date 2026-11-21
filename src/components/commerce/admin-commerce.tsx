@@ -74,7 +74,9 @@ export function AdminCommerce({ initial }: { initial: View }) {
           : "Request failed. Retry the same action to reconcile its outcome.",
       );
       if (committed) return "saved";
-      return error instanceof ApiError && error.code !== "INVALID_RESPONSE" ? "failed" : "unknown";
+      return error instanceof ApiError && error.code !== "INVALID_RESPONSE"
+        ? "failed"
+        : "unknown";
     } finally {
       setBusy(false);
     }
@@ -119,7 +121,8 @@ export function AdminCommerce({ initial }: { initial: View }) {
   );
   const canSave = draft?.kind !== "consumption" || Boolean(productType);
   function saveDraft(): Promise<SaveResult> {
-    if (!canSave || !draftForm.current?.checkValidity()) return Promise.resolve("failed");
+    if (!canSave || !draftForm.current?.checkValidity())
+      return Promise.resolve("failed");
     return run(
       { action: "save", definition, expectedRevision: expected },
       (result) => {
@@ -130,7 +133,10 @@ export function AdminCommerce({ initial }: { initial: View }) {
     );
   }
   useLeaveGuard({
-    dirty: expected > 0 && definition !== null && JSON.stringify(definition) !== baseline,
+    dirty:
+      expected > 0 &&
+      definition !== null &&
+      JSON.stringify(definition) !== baseline,
     save: saveDraft,
   });
   return (

@@ -348,7 +348,9 @@ export function DiagnosticAccess({
                   once. If you lose it, revoke this grant and create another.
                 </DialogDescription>
               </DialogHeader>
-              <FieldLabel htmlFor={`${id}-access`}>Diagnostic access details</FieldLabel>
+              <FieldLabel htmlFor={`${id}-access`}>
+                Diagnostic access details
+              </FieldLabel>
               <div className="flex items-start gap-2">
                 <Textarea
                   ref={copyInput}

@@ -3,6 +3,8 @@ import { DateLabel } from "@/components/localized-value";
 
 import { AdminStateLabel as StateLabel } from "@/components/admin-state-label";
 
+import { designStyleSchema } from "@/lib/design-styles";
+import { project } from "@/lib/project";
 import { adminFieldLabel } from "@/lib/admin-labels";
 import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -34,7 +36,7 @@ function errorMessage(e: unknown) {
       : "Could not confirm the request.";
 }
 const modes: Record<string, string[]> = {
-  defaultStyle: ["classic", "glass", "soft-blue"],
+  defaultStyle: designStyleSchema.options,
   failureCharging: ["success-only", "verified-usage"],
   mode: ["fixed", "tokens", "provider-cost", "hybrid"],
   basis: ["total", "split"],
@@ -76,6 +78,7 @@ export function SettingsField({
   const id = useId();
   const [invalid, setInvalid] = useState(false);
   const label = adminFieldLabel(name);
+  const projectControlsStyle = name === "defaultStyle" && project.theme;
   if (Array.isArray(value))
     return (
       <Field className="space-y-2">
@@ -180,8 +183,17 @@ export function SettingsField({
         <>
           <FieldLabel htmlFor={id}>{label}</FieldLabel>
           {modes[name] ? (
-            <Select value={String(value)} onValueChange={onChange}>
-              <SelectTrigger id={id}>
+            <Select
+              value={String(value)}
+              onValueChange={onChange}
+              disabled={projectControlsStyle}
+            >
+              <SelectTrigger
+                id={id}
+                aria-describedby={
+                  projectControlsStyle ? `${id}-theme` : undefined
+                }
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -209,6 +221,11 @@ export function SettingsField({
                 )
               }
             />
+          )}
+          {projectControlsStyle && (
+            <p id={`${id}-theme`} className="text-sm text-muted-foreground">
+              This project uses its own theme. Preset selection is disabled.
+            </p>
           )}
         </>
       )}
@@ -246,13 +263,16 @@ export function BaseSettingsEditor({
       return "saved";
     } catch (e) {
       setMessage({ tone: "error", text: errorMessage(e) });
-      return e instanceof ApiError && e.code !== "INVALID_RESPONSE" ? "failed" : "unknown";
+      return e instanceof ApiError && e.code !== "INVALID_RESPONSE"
+        ? "failed"
+        : "unknown";
     } finally {
       setBusy(false);
     }
   }
   useLeaveGuard({
-    dirty: JSON.stringify(settings) !== JSON.stringify(baseline) || Boolean(reason),
+    dirty:
+      JSON.stringify(settings) !== JSON.stringify(baseline) || Boolean(reason),
     save,
   });
 
@@ -271,15 +291,15 @@ export function BaseSettingsEditor({
           value={settings}
           onChange={(value) => setSettings(value as typeof settings)}
         />
-        <FieldLabel htmlFor="settings-reason">Change reason (optional)</FieldLabel>
+        <FieldLabel htmlFor="settings-reason">
+          Change reason (optional)
+        </FieldLabel>
         <Input
           id="settings-reason"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
-        <SubmitButton pending={busy}>
-          Save settings
-        </SubmitButton>
+        <SubmitButton pending={busy}>Save settings</SubmitButton>
       </form>
       {message && <Notice tone={message.tone} title={message.text} />}
       <Card>

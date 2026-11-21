@@ -54,7 +54,9 @@ export function AdminCreditControls({
           <input type="hidden" name="key" value={key} />
           <input type="hidden" name="confirmed" value="yes" />
           <FieldSet className="space-y-2">
-            <FieldLegend className="text-sm font-medium">Adjustment</FieldLegend>
+            <FieldLegend className="text-sm font-medium">
+              Adjustment
+            </FieldLegend>
             <RadioGroup
               name="direction"
               value={direction}
@@ -86,7 +88,9 @@ export function AdminCreditControls({
             />
           </Field>
           <FieldSet className="space-y-2">
-            <FieldLegend className="text-sm font-medium">Grant expiry</FieldLegend>
+            <FieldLegend className="text-sm font-medium">
+              Grant expiry
+            </FieldLegend>
             <RadioGroup
               name="expiry"
               value={expiry}

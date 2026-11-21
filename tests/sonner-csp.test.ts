@@ -36,7 +36,10 @@ test("production allowlists the exact injected styles of pinned Sonner", (t) => 
   assert.match(stylePolicy("/") ?? "", /'nonce-[^']+'/);
   for (const hash of hashes) assert.ok(stylePolicy("/")?.includes(hash));
   assert.ok(!stylePolicy("/")?.includes("unsafe-inline"));
-  assert.equal(stylePolicy("/__/auth/handler"), "style-src 'self' 'unsafe-inline'");
+  assert.equal(
+    stylePolicy("/__/auth/handler"),
+    "style-src 'self' 'unsafe-inline'",
+  );
 
   Reflect.set(process.env, "NODE_ENV", "development");
   assert.equal(stylePolicy("/"), "style-src 'self' 'unsafe-inline'");
