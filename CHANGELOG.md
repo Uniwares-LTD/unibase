@@ -20,6 +20,19 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+None.
+
+### Upgrade notes
+
+None.
+
+## 0.5.0 — 2026-11-21
+
+### Changes
+
+- Allow derived projects to opt into a project-owned theme and self-hosted fonts.
+  Add the `build-ui` skill and the derived-project design guide.
+
 - Adopt the generated design foundation for Classic, Glass and Soft Blue.
   Use the shared typography role for empty-state headings and the foundation
   font and timing tokens for toasts.
@@ -99,6 +112,18 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 - Add opt-in v1 commerce and execution-measurement contracts for immutable catalog terms, consumption orders, entitlements, subscriptions, promotions and provider evidence. Existing runtime behavior and records remain unchanged.
 
 ### Upgrade notes
+
+- The former Classic and Soft Blue preset files are removed. The two
+  `src/styles/design-system/` files are generated in the design package and
+  vendor updates replace them as a pair.
+- Set `theme: true` to enable `src/project/theme.css`. Scope overrides to
+  `data-project` and use the variable-backed type roles. Keep self-hosted fonts
+  in `public/fonts/`. See the [design extension guide](docs/design-system-extension.md).
+- Merge the local `build-ui` skill, agent guidance and skill integrity updates
+  with any project guidance. Keep the exact Sonner stylesheet hashes if using
+  the shared toast, and serve project fonts from the app origin.
+- Set the product's own theme color in the manifest and offline source and
+  regenerate the offline and icon assets. See [first steps](docs/template.md#first-steps-in-a-new-project).
 
 - Newly observed container usage has unknown node-level cost/tokens; parent totals
   remain authoritative. Existing accepted usage records are not rewritten.
