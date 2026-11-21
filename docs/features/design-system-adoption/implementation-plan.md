@@ -126,7 +126,7 @@ Every decision this plan relies on. They are approved together at the start gate
 
 | Gate | When | Who | Met when |
 | --- | --- | --- | --- |
-| **Start gate** | after P0, before U0 | team (a named reviewer) and the issue owner | P0 is merged. The package acceptance record names the accepted revision (P0's merge or later), accepting reviewer, maintenance owner and date. The engineering handoff review is held and recorded as a comment on unitale-mockup#7 (the issue need not be closed). This plan is approved, which approves its checkpoint order and every decision in the decision register; a changed decision is recorded under "Verified progress" before the checkpoint it affects. |
+| **Start gate** | after P0, before U0 | issue owner | The issue owner approves this plan (with its decision register) and the accepted package revision, in a comment on #53. **Met 2026-11-21:** approved by the issue owner; accepted package revision `6d86be7` (P0 merge). The package's own acceptance record and the engineering handoff review are no longer required to start; the package acceptance record may be filled later by its owner. |
 | **Release gate** | end of U6 | repository owner | Authorization to tag `template-v<version>`. |
 
 **PR approval rule.** Low-risk PRs merge with normal review. A PR containing `visible`, `security` or `configuration` rows merges only with explicit approval from a Unibase maintainer on that PR. This covers:
@@ -187,7 +187,7 @@ Apply them in this fixed order (P-30): P0, U0, U1, U2, U2-S, U3, U4, U5, U6. Eac
 
 ### P0. Design-package type-role change (in `unitale-design`)
 
-The only checkpoint outside Unibase. It makes decision 5 real, so the start gate can accept a revision that contains it.
+The only checkpoint outside Unibase. It makes decision 5 real, so the start gate can approve a revision that contains it.
 
 - **Requirements.** This plan approved by the issue owner (the rest of the start gate comes after P0).
 - **Owner.** The design-package owner. An agent may implement it with session authorization for that repository.
@@ -205,7 +205,7 @@ The only checkpoint outside Unibase. It makes decision 5 real, so the start gate
   - Without a project theme, every role computes exactly as before: the browser and adoption checks pass unchanged.
   - With a fixture rule setting `--text-hero-size`, the `text-hero` utility changes size.
   - The PR merges in `unitale-design` with a merge commit.
-- **Continuation.** The start gate then records that merged revision as the accepted one.
+- **Continuation.** The start gate then approves that merged revision as the accepted one.
 
 ### U0. Gate and baseline capture
 
@@ -624,3 +624,4 @@ This checkpoint makes Unibase ready for any derived project to build its UI on. 
 - 2026-11-21: unattended-readiness gaps closed: P0 checkpoint for the design-package change, local run and sign-in procedure, U3 form inventory (P-31), badge contrast method (P-32) and exact upgrade-rehearsal commands (P-33).
 - 2026-11-21: final revision before implementation: P0 added to the test and docs tables; the start gate is placed after P0. Plan state: ready for implementation once the start gate is met.
 - 2026-11-21: **P0 done.** Merged in `unitale-design` as `6d86be7bffc2c8aa0e506489bfc05f8cea05f623` (PR #13): type roles are variable-backed with Unibase fallbacks, generated letter-spacing is `em`, and generated project themes write each role under its Unibase key too (`field`). Package checks: tokens, contrast (102/102 and 26/26), adoption (143 rows), handoff (753 links), browser 71/71 with the compiled-Tailwind fixture. Two separate reviews; the second was clean. **Next: start gate (human)** — record `6d86be7` or later as the accepted revision with reviewer, maintenance owner and date; record the engineering handoff review on unitale-mockup#7; approve this plan. U0 starts after that.
+- 2026-11-21: **start gate simplified and met.** The issue owner approved the plan and the package in session; accepted package revision `6d86be7`. The gate now needs only the issue owner's approval on #53. U0 starts.
