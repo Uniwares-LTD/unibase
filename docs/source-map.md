@@ -45,6 +45,8 @@ and the adapter; the table does not require unrelated suites for every task.
 
 - [Application routes](../src/app) own layouts, pages, Server Actions and HTTP entrypoints.
 - [UI](../src/components) and [design system](design-system.md) own reusable primitives and interaction.
+  The [design-system adoption plan](features/design-system-adoption/implementation-plan.md) and its
+  [delta ledger](features/design-system-adoption/delta-ledger.md) track adopting the design handoff package (issue #53).
 - [Server modules](../src/lib/server) own authorization, persistence, provider adapters and workers;
   [service contracts](services.md) define ownership, quotas and transaction boundaries.
 - Runs module, story-panel sample: [image renewal](../src/lib/server/runs/image-renewal.ts) verifies original
