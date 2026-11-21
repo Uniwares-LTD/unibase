@@ -20,9 +20,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
-- Add touch target size tokens (`--control-touch-sm` 2.75rem, `--control-touch-md` 3.25rem,
-  `--control-touch-lg` 3.75rem) in `src/styles/tokens.css` for the coarse-pointer rules. Nothing
-  consumes them yet, so nothing renders differently (design-system adoption U1, #53).
+- Add touch target size tokens (`--control-touch-sm` 2.75rem,
+  `--control-touch-md` 3.25rem, `--control-touch-lg` 3.75rem) in
+  `src/styles/tokens.css` for the coarse-pointer rules. Nothing consumes them
+  yet, so nothing renders differently (design-system adoption U1, #53).
 
 - Exclude Loop/Iteration child-cost aggregates from additive native node billing,
   while retaining step records and reported node durations in existing usage.
