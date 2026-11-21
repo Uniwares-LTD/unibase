@@ -18,6 +18,15 @@ forward-only migrations, removable samples and history-preserving derived
 projects. The staging installation runs the current `main`; see
 [current staging release](deployment.md#current-staging-release).
 
+## Local Google popup sign-in
+
+Accepted standalone change: [local popup plan](features/local-google-popup/implementation-plan.md).
+Local real-Firebase uses the hosted popup helper with the existing session exchange;
+local emulator/staging/production redirect behavior is preserved. Automated verification
+and two final read-only reviews precede scoped publication and exact Unitale adoption.
+Real-account acceptance is a final manual gate; no deployment/provider changes or
+Booklet checkpoint 10 implementation are included.
+
 ## Open work
 
 ### Booklet product foundation
