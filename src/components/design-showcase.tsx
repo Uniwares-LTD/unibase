@@ -28,6 +28,7 @@ import {
 import { ThemePreference } from "./theme-preference";
 import { StylePreference } from "./style-preference";
 import { EmptyState, Notice } from "./page-patterns";
+import { HelperShowcase } from "./helper-showcase";
 import { CreditSummary } from "./credit-summary";
 
 const sampleWallet = {
@@ -302,6 +303,7 @@ export function DesignShowcase() {
           </Card>
         </div>
       </section>
+      <HelperShowcase />
     </div>
   );
 }

@@ -20,6 +20,15 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Add shared design-system helpers (design-system adoption U2, #53): the shadcn
+  `Field` composition, an opt-in `size="lg"` on `Input`, `Textarea` and
+  `SelectTrigger`, `SubmitButton`, a leave guard for unsaved changes,
+  `MediaFallback`/`ResultImage`, `StatusBadge` and an optional `Notice` action,
+  with English and Arabic strings and showcase examples. Dialogs and alert
+  dialogs centre correctly in RTL, the sheet close button sits at the inline end,
+  directional arrows mirror in RTL, and coarse-pointer rules size icon buttons,
+  options and checkbox or radio labels. Feature screens adopt these later.
+
 - Add touch target size tokens (`--control-touch-sm` 2.75rem,
   `--control-touch-md` 3.25rem, `--control-touch-lg` 3.75rem) in
   `src/styles/tokens.css` for the coarse-pointer rules. Nothing consumes them
