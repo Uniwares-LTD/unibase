@@ -161,6 +161,11 @@ commit `c18d8b13f002afaefa8e567606f85438ca23c555`, tree
 [Unibase PR #64](https://github.com/Uniwares-LTD/unibase/pull/64) as
 `899785b93b7f6d0ebe02c62dbdd3ac80f27fe6a5`.
 
+The initial Unitale adoption below targeted its existing issue branch. Later imports
+follow the [integration-first procedure](../../template.md#receive-template-updates),
+with project integration preceding propagation to active issue branches. The initial
+issue PR remains historical implementation/acceptance evidence.
+
 Unitale consumed that exact merge through `template:update`, preserving project
 identity, Booklet code/hooks/model, existing setup work and private configuration.
 [Unitale PR #14](https://github.com/Uniwares-LTD/unitale/pull/14) merged adoption commit
