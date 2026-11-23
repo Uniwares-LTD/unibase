@@ -93,7 +93,7 @@ it describes future agent approvals, manual/deployment integration, workflow out
 one authenticated diagnostic status capability and the existing admin Operations view, not installed
 functionality.
 It also specifies [deployment skills and reference adoption](features/deployment-data-operations/implementation-plan.md#deployment-skills-and-reference-adoption);
-[agent tooling](agent-tooling.md#planned-deployment-skills) owns future discovery and
+[agent tooling](agent-tooling.md#optional-deployment-skills) owns future discovery and
 integration requirements. These deployment skills are proposed, not installed.
 The [promotion PR starter](templates/promotion-pr.md) and
 [promotion action guidance](deployment.md#promotion-review-and-action-records) keep
@@ -169,3 +169,22 @@ setup and recovery. `npm run test:commerce-ui` verifies service and fake-client 
 `android/google-maven.init.gradle` is the opt-in official Google Maven hostname
 fallback; [native build prerequisites](features/booklet-foundation/provider-billing.md#native-build-prerequisites)
 own its invocation and limitations.
+
+Migration declarations and the renewable lease live in
+[src/lib/server/migrations.ts](../src/lib/server/migrations.ts); pure reporting is in
+[migration-report.ts](../src/lib/server/migration-report.ts), read-only invariants in
+[migration-verifiers.ts](../src/lib/server/migration-verifiers.ts), and exact approved
+identity validation in [approved-migrations.ts](../src/lib/server/approved-migrations.ts).
+[scripts/build-migrations.mjs](../scripts/build-migrations.mjs) embeds source checksums
+and emits the ignored runtime manifest/runner pair during worker builds. The
+[packaging test](../tests/migration-packaging.test.mjs) covers source parity and tamper
+rejection. Docker-based deployment tests explicitly skip when Docker is unavailable;
+a skip does not establish Linux dispatcher integration coverage.
+
+[data-operations.ts](../src/lib/server/data-operations.ts) is the shared read-only server
+model for the diagnostic capability and existing admin Operations panel. Its strict DTO
+is [contracts/data-operations.ts](../src/lib/contracts/data-operations.ts).
+[The workflow adapter](../scripts/deploy/data-operation-workflow.py) calls the existing
+CLI; Release uses the same exact-candidate report and original-run candidate retention.
+Optional deployment/data skills are selected through handbook.json's technologySkills;
+shared bodies stay in Handbook, while deployment.md owns application runbooks.

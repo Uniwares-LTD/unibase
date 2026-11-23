@@ -72,38 +72,16 @@ of T11-T12. Unitale T02 is accepted. Final review evidence is recorded at handof
 
 ### Base installation
 
-- [ ] Reusable backup and migration operations (#62): the
-  [implementation-ready specification](features/deployment-data-operations/implementation-plan.md)
-  defines pre-deployment review, a post-deployment automatic/manual choice, release
-  policy, shared workflow/diagnostic/admin outcomes, planned deployment skills and future
-  acceptance. The supplied promotion skill/template are adapted in the plan and
-  [promotion PR starter](templates/promotion-pr.md); no skills are installed yet.
-  Its contract fixes interfaces, exact-candidate continuation and cross-repository
-  delivery checkpoints. This stage is planning/docs only. Executable implementation,
-  disposable execution tests and a later Unibase staging run await explicit instruction.
-  The contract reuses current skill selection and diagnostics, records terminal results,
-  and defers general data-operation resume to checked operator recovery. Activation
-  requires resolved verification evidence even when no IDs remain pending. The staging manual
-  migration sequence remains deferred.
-- [ ] Guided derived-deployment initialization acceptance and restricted
-  runtime-secret restoration, following the shared inventory: validate
-  destination identity, preserve conflicting files, resume safely and keep
-  secrets out of logs and artifacts.
-- [ ] Shared gateway: preserve the Firebase helper, trusted headers and streaming.
-- [ ] Shared non-Dify Redis: allocate logical databases and adapt validation and
-  readiness.
-- [ ] App-hosted AI, events and maintenance endpoints and timers: retain leases,
-  retries, accounting and notification duplicate prevention before removing
-  workers.
-- [ ] Production compatibility preserving retained snapshots, then a separately
-  authorized production activation.
-- [ ] Minimum manual backup and restore workflows, protected off-host storage and
-  a disposable MongoDB/GridFS recovery rehearsal before relying on recovery.
-- [ ] Image and configuration rollback rehearsal when a genuine compatible
-  predecessor exists. Back up before destructive operations; never restore a
-  database automatically on failure.
-- [ ] Diagnostics follow-up: run the Redis limiter test against a disposable Redis
-  and verify grant revocation in a browser with Redis.
+- [ ] Reusable backup and migration operations (#62): local implementation spans
+  Unibase, Infrastructure and Handbook on task branches; see the
+  [checkpoint evidence and contract](features/deployment-data-operations/implementation-plan.md).
+  Manifest/status and checksum-preserving packaging, approved backup/migration,
+  checked root recovery acknowledgment, exact-candidate Release gates/continuation,
+  diagnostic/admin reads and optional shared skills are implemented. Final integrated
+  verification/reviews are in progress. Publication, compatible controller/app-control
+  installation, workflow pin/claim acceptance, recovery rehearsal and separately
+  authorized staging acceptance remain gates. Production and the deferred manual
+  host migration sequence remain inactive.
 
 ## Decisions in force
 

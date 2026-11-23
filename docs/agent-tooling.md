@@ -1,6 +1,7 @@
 # Agent tooling
 
-Handbook owns eight workflow and four selected technology/UI skills. Canonical local
+Handbook supplies eight core workflow skills, four selected technology/UI skills and
+two optional deployment/data skills. Canonical local
 .agents/skills entrypoints read shared procedures at the task revision. Claude's thin
 .claude/skills references route to them; CLAUDE.md imports @AGENTS.md. Project facts and
 adaptations remain in the [adapter](../.agents/repository-adapter.md) and
@@ -76,23 +77,21 @@ After an interrupted lock, inspect its PID and remove it only after confirming n
 Codex discovery uses .agents/skills. Claude uses CLAUDE.md imports and .claude/skills.
 Markdown references install no hooks, permissions, subagents or dependencies.
 
-### Planned deployment skills
+### Optional deployment skills
 
-The [data operations plan](features/deployment-data-operations/implementation-plan.md#deployment-skills-and-reference-adoption)
-proposes `promote-to-environment` for reviewed promotion/release orchestration and
-`operate-data` for backup, migration, manual handoff and status/recovery guidance.
-They are not installed skills or additions to the current discovery catalog.
-Reusable procedures belong in Handbook; consumer adapters and canonical deployment
-docs supply application-specific behavior. Future skill adoption must use reviewed
-metadata, explicit sync/entrypoint checks and integrity review, preserving custom
-content. The plan maps the user-supplied promotion skill and PR template to Unibase's
-branches, authority, exact-release checks and data recovery rules. Linked upstream
-docs/code remain uninspected; the supplied attachment is the adaptation baseline.
-The [implementation contract](features/deployment-data-operations/implementation-plan.md#skills-and-optional-selection)
-reuses the existing `technologySkills` selection array for the additional catalog
-skills, with Handbook-first delivery and consumer integrity reconciliation. No new
-selection schema is planned. No metadata or skill catalog
-changes are made by this documentation revision.
+`promote-to-environment` routes reviewed promotion/release orchestration;
+`operate-data` routes backup, migration, manual handoff and status/recovery through
+the same supported clients. Both are selected through the legacy `technologySkills`
+array in handbook.json; no workflowSkills field or default-core expansion is added.
+Reusable procedures and the promotion starter live in Handbook. Application-specific
+identities, permissions and operating boundaries remain in the adapter/runbooks.
+
+Refresh metadata through explicit sync, preserve local build-ui and custom suffixes,
+review integrity/provenance and check entrypoints/readiness. Publication of shared
+changes precedes consumer regeneration from the reviewed committed revision; local
+candidate wrappers alone do not establish published guidance or installed capability.
+The [reference mapping](features/deployment-data-operations/implementation-plan.md#deployment-skills-and-reference-adoption)
+records the supplied attachment and excludes uninspected upstream material.
 
 ## Local contracts and provenance
 

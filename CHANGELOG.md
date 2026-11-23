@@ -20,6 +20,13 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Add credential-free migration manifests, read-only full-ledger status,
+  release classifications and read-only verifiers. Package the migration runner
+  with preserved source checksums and runner/manifest integrity checks. Share the
+  renewable lease across protected backup preparation and migration execution.
+  Add approved host execution, root-only recovery acknowledgment, release gates,
+  diagnostic/admin status and optional shared deployment skills.
+
 - Document proposed reusable backup and migration workflows, agent approval before
   deployment, a post-deployment automatic/manual choice, release ordering and shared
   workflow/diagnostic/admin outcomes. Specify deployment skills and their future Handbook
@@ -30,12 +37,15 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
   live synchronization, and keep general interrupted-operation recovery manual.
   Specify checked root-only recovery acknowledgment and host verification gates,
   including zero-pending batches and missing report copies.
-  This is planning and guidance only; skill installation, executable
-  workflows, APIs, UI and live migrations remain deferred.
+  These planning decisions are now implemented locally; publication, installation
+  and live migration acceptance remain separate gates.
 
 ### Upgrade notes
 
-None.
+Publish reviewed Handbook and regenerate consumer references, then publish compatible
+Infrastructure/application artifacts and update immutable executor/source pins. Install
+the approved controller and app-control data-operations-v1 capability before enabling
+new release clients. Validate approval claims and target restore recovery separately.
 
 ## 0.5.0 — 2026-11-21
 

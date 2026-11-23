@@ -2,16 +2,13 @@
 
 ## Contract and decisions
 
-[Issue #62](https://github.com/Uniwares-LTD/unibase/issues/62) defines the eventual
-operational outcome. The current stage is **planning and documentation only**.
-Implementation, executable workflow changes, disposable execution tests, controller
-installation, backup execution, migrations and staging rehearsal require a later
-explicit instruction. Completion of this document does not authorize those stages.
-Status: ready for implementation once explicitly authorized. The
-[implementation contract](#implementation-contract) fixes interfaces, packaging,
-locking, release continuation and delivery checkpoints; it controls where earlier
-workflow descriptions leave a detail implicit. Installation and live acceptance
-remain separate authorization gates, not unresolved design choices.
+[Issue #62](https://github.com/Uniwares-LTD/unibase/issues/62) defines the operational
+outcome. The current session authorizes complete local implementation and disposable
+verification across Unibase, Infrastructure and Handbook. Publication, controller
+installation, deployment and live databases remain unauthorized. The accepted design
+below was written during the preceding documentation stage; its contract controls the
+implementation. [Progress](#implementation-progress-2026-11-21) records current evidence
+and remaining operational gates.
 
 The goal is a reusable operator path for backup-only work, migrations on demand,
 and migrations required by deployment. Unibase staging is a later acceptance case,
@@ -84,7 +81,7 @@ which IDs are pending on staging or retroactively invalidate the serving release
 
 ## Proposed operator workflows
 
-No executable commands or workflows are installed by this stage. The proposed names
+The original documentation stage installed no executable commands or workflows. Names
 and interfaces are fixed in the implementation contract below. Extend the existing
 `deploy:ops`/Infrastructure plan, apply and status interfaces rather than creating a
 second approval engine or migration runner. Both operator invocation and deployment
@@ -132,7 +129,7 @@ The proposed verification contract includes retrieving the exact snapshot,
 checking application/environment/database metadata and archive hash, and recording
 the verification result. A disposable restore rehearsal is required before claiming
 that target's recovery is accepted; repository checks alone are not restore evidence.
-This stronger contract is proposed, not a claim about current backup verification.
+The local executor implements this contract; target recovery acceptance still requires rehearsal.
 
 ### Migration on demand
 
@@ -265,7 +262,7 @@ still have pending migrations. Do not expose credentials, raw logs or backup loc
   using its existing administrator authorization; add no admin REST endpoints.
   Scope all reads to the configured
   application/environment; support latest operation and lookup by exact operation ID.
-  Proposed behavior is fixed below; this doc installs no new capability.
+  Behavior is fixed below; local implementation is recorded in the progress section.
 - Add a compact backup/migration section to the existing `/admin/operations` page.
   Reuse its English/LTR primitives, status table and refresh behavior. Show pending
   work, latest recorded outcome, backup result, applied/remaining IDs, observation time and
@@ -751,15 +748,76 @@ change is included. Finally, obtain the separate Unibase staging-run authorizati
 recheck readiness/serving revision/full ledger, and execute the reviewed flow. Record
 backup, operation, ledger, health and affected-flow evidence. Production stays inactive.
 
+## Implementation progress 2026-11-21
+
+All four checkpoints are implemented on local task branches across Unibase,
+Infrastructure and Handbook. Publication, controller installation, deployments and
+live databases remain unauthorized. The retained Handbook task revision is
+`c1b6166437ba729b59723a7dd4066c78e2f15185`.
+
+- Catalog/packaging: pure full-ledger reports, six classified declarations, preserved
+  source checksums, bundled integrity checks, exact-batch validation and one lease
+  across backup and migration. Disposable MongoDB tests cover read-only preflight,
+  real packaged handshakes, verifier failure and inspected partial-write retry.
+- Approved executor/recovery: fixed backup/migrate/verify checkpoints, retrieved
+  encrypted archive hash/identity checks, bounded process cleanup, authoritative host
+  evidence and root-only state-bound acknowledgment. New-capability approvals use
+  the existing expected configuration hash to bind protected configuration and
+  controller bytes as well as public configuration; no secrets enter reports.
+- Release/status: exact retained candidate gating and rerun continuation, manual
+  report/prepare/status workflow, paged diagnostics and the existing admin view.
+  A complete ledger alone never establishes verified operational completion.
+- Shared workflows/docs: optional promote-to-environment and operate-data skills,
+  one promotion action inventory, consumer routing, integrity and canonical runbooks.
+  Scenario review covers plan-only, unchanged approval reuse, manual/declined work,
+  deployment failure, target-only commits, changed heads and exact-run confirmation.
+
+Verification evidence: the full application unit suite passed all 119 tests using
+a portable Git 2.47.1 runtime in the ignored cache (system Git 2.27 lacks fixture
+`init -b` support; repository sources were not changed for that prerequisite).
+Focused MongoDB migration/status/diagnostics suites passed
+31 tests with one optional Redis skip; affected commerce/billing/foundation suites
+passed 44 tests; packaged integrity passed. Handbook validation passed all 75 tests.
+Infrastructure passed 64 tests with four
+skips, and Python CLI/contract parity checks passed. Production build and typecheck
+passed. Browser checks covered admin/member access, Arabic public preference with
+English/LTR admin, empty/pending/completed/failed/unknown/no-final-report states,
+manual/keyboard refresh, workflow links, three styles, light/dark and mobile/desktop.
+Served-document CSP checks accepted the correct nonce and blocked a missing nonce;
+public navigation retained its nonce and restored Arabic/RTL. Enlarged text exposed
+pre-existing overflow in older page controls; the new refresh control was corrected
+and passed its mobile/doubled-text bounds check. Lint, environment, docs/i18n,
+skills/integration readiness, Actionlint and ShellCheck passed.
+
+Two final, separate same-agent read-only review passes checked the cross-repository
+contract, newly added files, approval and recovery boundaries, release continuation,
+read-model authorization, shared skills and evidence. No additional in-scope blockers
+remained. These are separate review passes, not independent-agent reviews.
+
+The user explicitly permits Docker tests to skip when Docker is unavailable. This
+machine has no Docker runtime: Linux dispatcher integration and the authored real
+restic/MongoDB/GridFS archive-restore fixture are unexecuted, not restore evidence.
+An isolated target restore rehearsal remains a required operational gate. Optional
+Redis coverage also remains skipped without its test URL.
+
+Consumer wrappers were generated from a frozen, reviewed working Handbook candidate,
+not a published revision. Publish reviewed Handbook first and regenerate/review both
+consumers from its actual committed SHA. Publish compatible Infrastructure source,
+update reusable executor and source checkout pins, and validate the actual OIDC
+executor identity without changing enrolled actors. Separately authorize/install the
+controller and app-control capability before enabling application clients. Verify
+recovery configuration and isolated restore, then separately authorize fresh staging
+readback and the exact operation. Production remains inactive.
+
 ## Acceptance and future execution prerequisites
 
-The current documentation stage is complete when the current/proposed distinction,
+The original documentation stage was complete when the current/proposed distinction,
 ownership, workflows, failure handling, source-map links and future verification
 requirements are consistent and pass documentation checks and a separate read-only
 review. It does not complete #62's operational acceptance.
 
-Before future executable work, explicitly authorize implementation and recheck the
-then-current source against this contract. Reuse the runner, ledger, approval and
+Implementation is now authorized and present locally. Before subsequent operational
+work, recheck the then-current source against this contract. Reuse the runner, ledger, approval and
 recovery controls; no new runtime dependency or external service is planned.
 Compatible controller installation and any publication or deployment remain separately
 authorized operations. An actual conflict with newer code requires a bounded plan
@@ -768,7 +826,7 @@ The supplied attachment is the reference baseline for this adaptation. Further
 repository comparison is optional until additional source is provided; it must not
 be presented as verified evidence for code or assets that were not inspected.
 
-Future acceptance scenarios, to run only after implementation is authorized:
+Acceptance scenarios (local coverage above; live acceptance remains separately gated):
 
 - Preflight leaves database collections, indexes and lease state unchanged; reports
   full ledger, module eligibility, checksum drift and each release classification.
@@ -828,5 +886,5 @@ After implementation is explicitly authorized:
 6. Stop for publication/installation authorization, then separately authorize and
    rehearse Unibase staging after fresh serving-revision/full-ledger readback.
 
-The present task delivers this specification and documentation only; none of these
-implementation or live-operation steps is started by finalizing the plan.
+The original documentation stage delivered the specification only. Local implementation
+is now authorized; publication, installation and live-operation steps remain separate gates.
