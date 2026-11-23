@@ -1,5 +1,5 @@
 FROM node:24.16.0-bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends python3 curl gnupg util-linux shellcheck restic && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 curl gnupg util-linux shellcheck restic && rm -rf /var/lib/apt/lists/*
 # Disposable recovery rehearsal tools, following MongoDB's Debian 12 repository.
 # https://www.mongodb.com/docs/v8.0/tutorial/install-mongodb-on-debian/
 RUN curl -fsSL https://pgp.mongodb.com/server-8.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb-server-8.0.gpg
