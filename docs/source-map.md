@@ -75,6 +75,12 @@ and the adapter; the table does not require unrelated suites for every task.
   MongoDB verifiers and per-issuer issuance fences; Redis owns only shared counters.
   The [diagnostics API](diagnostics-api.md) owns one-time credential delivery and rollout.
 
+- [Local Google popup plan](features/local-google-popup/implementation-plan.md) owns
+  the bounded local auth change and verification; [README](../README.md#local-google-popup-sign-in)
+  owns launch and acceptance instructions. The shared pure policy is
+  `src/lib/config/google-sign-in.ts`; the existing auth form and session endpoint
+  retain their ownership.
+
 ## Documentation
 
 Administration uses English source copy and `src/lib/admin-labels.ts` for data labels.
