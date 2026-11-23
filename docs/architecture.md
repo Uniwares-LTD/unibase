@@ -152,11 +152,33 @@ projects. A leased `control` lock serializes runners; applied IDs are recorded i
 `migrations` with a source checksum. Migrations must be idempotent: a failure
 records nothing and the next run retries. Disabled owners are skipped until
 enabled. A changed checksum is reported but never rerun; add a new migration
-instead. Take the operational backup first; it is the rollback. Run indexes before
+instead. Take and verify the operational backup first; database restoration is a
+separate approved recovery operation, never automatic image rollback. Run indexes before
 migrations. The lease renews while a migration runs. Provisioning's administration
 container has a 15-minute limit, so run long migrations with `npm run db:migrate`
-directly. New environments run both during provisioning; existing ones run
-`db:migrate` (or `prepare-host.py --apply --migrate`) when upgrade notes say so.
+directly for local/disposable work. New environments retain provisioning setup;
+existing deployed databases use the approved data-operation flow below. The no-flag
+command remains available for local/legacy compatibility and grants no live authority.
+Migration declarations now carry optional `releasePhase` and read-only `verify(db)`
+metadata. The six current declarations classify commerce indexes before release
+and compatible metadata/image backfills after release. Missing classification or
+verification blocks the protected runner. Released migration bodies and checksums
+remain unchanged.
+
+`npm run db:migrate -- --manifest` emits credential-free declaration metadata without
+loading environment files or connecting to MongoDB. `npm run db:migrate -- --status --json`
+reads the full ledger and reports disabled owners, pending IDs, checksum drift,
+unknown history and candidate eligibility without acquiring a lease or writing.
+The worker build also emits `dist/migration-runner.cjs` and
+`dist/migration-manifest.json`. Packaging embeds source/tsx checksums before
+esbuild transforms functions; the packaged command verifies its manifest and runner
+bytes. Never supply replacement checksums or rewrite released ledger records.
+
+The [reusable operations plan](features/deployment-data-operations/implementation-plan.md)
+records the implemented protected host executor, release gates, recovery acknowledgment,
+workflow/diagnostics/admin reporting and shared skills. Publication, installed
+capabilities and live acceptance are separate: the reporting command grants no
+authorization for live data changes.
 Dify orchestrator Runs extend the shared durable execution engine.
 The existing payment worker stays focused on payment reconciliation and credit
 maintenance. Quality warnings remain advisory; required behavior must still work.
