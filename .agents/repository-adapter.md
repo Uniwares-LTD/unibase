@@ -35,6 +35,11 @@ Read the generated [bootstrap](handbook.md) for shared guidance access and
   [CHANGELOG.md](../CHANGELOG.md), with upgrade notes when projects must act.
   Projects never edit `CHANGELOG.md` or `template.json`; `npm run template:update`
   owns them.
+- Derived-project template imports follow [the integration-first route](../docs/template.md#receive-template-updates):
+  import on a clean branch from the project's integration branch, merge the scoped
+  PR there, then merge integration into active issue branches. Current checkout
+  location alone does not select the import destination. An exception needs explicit
+  user approval.
 - Tagging a template release (`template-v<version>`) is publication and needs
   explicit authorization.
 
@@ -197,3 +202,8 @@ Keep reusable procedures in Handbook and application adaptations here. After
 skill metadata/routing edits explicitly sync and check entrypoints, retaining
 custom content and reviewing hashes before refresh. Templates remain project-owned
 copies, updated only by explicit per-file selection.
+
+For promotions use the selected promote-to-environment skill with deployment.md's
+source/target and operator rules. For data-operation work use operate-data with that
+runbook and Infrastructure's root-only recovery boundary. These optional skills use
+the existing technologySkills selection and grant no publication or live authority.

@@ -34,9 +34,11 @@ share semantic tokens and the same application behavior.
 | `src/components/leave-guard.tsx`              | Unsaved-changes guard for in-app navigation                                            |
 | `src/components/media-fallback.tsx`           | Fallback for absent or broken images                                                   |
 | `src/lib/design-helpers.ts`                   | Pure, unit-tested logic behind the shared helpers                                      |
+| `src/lib/utils.ts`                            | `cn` class merging with the typography roles registered                                |
 | `src/components/helper-showcase.tsx`          | Synthetic examples of the shared helpers in the showcase                               |
 | `src/components/ui`                           | Installed shadcn primitives; use the shadcn CLI for additional primitives              |
-| `src/components/app-shell.tsx`                | Desktop/mobile navigation, account menu and skip link                                  |
+| `src/components/app-shell.tsx`                | Desktop/mobile navigation, account menu, skip link and the focused frame               |
+| `src/components/theme-toggle.tsx`             | Compact light/dark toggle used by the focused frame                                    |
 | `src/components/design-showcase.tsx`          | Synthetic interactive examples and static feature preview                              |
 | `src/app/design-system/page.tsx`              | Development-only route guard                                                           |
 | `src/proxy.ts`                                | Showcase-only production 404 before page streaming starts                              |
@@ -61,6 +63,13 @@ title, section title, card title, reading, field, body, supporting, label and
 caption. Apply the approved role as a `text-*` utility. For example,
 `text-card-title` pairs 20px text with a 26px line height at weight 600.
 `font-heading` and `font-sans` use the preset's heading and body font hooks.
+
+`cn` (`src/lib/utils.ts`, the shadcn `utils` alias) registers the 12 roles as font
+sizes. A role passed in a primitive's `className` therefore replaces the primitive's
+own size and line height; for example `<CardTitle className="text-card-title">`.
+Import `cn` from `@/lib/utils`, never from the `cn` package; a unit test enforces
+this. A primitive's own weight class (such as `font-medium`) still applies; add a
+weight utility when the role's weight matters.
 
 ## Switching and persistence
 
@@ -249,6 +258,11 @@ Fields have an opt-in `size="lg"` (48px minimum height, 16px text) on `Input`, `
 - Paginated lists render "Newest" next to "Older …" once a cursor is active,
   after the list and its empty state.
 - Destructive or paid actions confirm in an `AlertDialog` that states the change.
+- Immersive task pages (for example a conversation) may opt into the **focused frame**
+  through an extension's `focusedRoutes`. It keeps only Back and `ThemeToggle`, a
+  2.75rem icon button whose name describes the next mode ("Switch to dark theme").
+  The page then owns its own `h1`, and the skip link and main landmark are retained.
+  See [project extensions](architecture.md#project-extensions).
 
 These are presentation conventions. The feature preview does not add models,
 schemas, persistence, approval operations, generation or Dify integration.

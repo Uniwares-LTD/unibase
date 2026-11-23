@@ -78,7 +78,8 @@ Extend through the registries instead of editing core lists. The
 1. Contract and storage: zod schemas and owned persistence that filters by the
    caller's `uid`.
 2. Registration: a `defineExtension` entry in `src/project/extensions.ts` (module,
-   routes, collections, links, admin sections) and a `defineServerExtension` entry
+   routes, collections, links, admin sections, optional focused-frame routes) and a
+   `defineServerExtension` entry
    in `src/project/server.ts` (MCP tools, domain adapters, indexes, migrations).
    See [project extensions](architecture.md#project-extensions).
 3. Routes under `src/app`: Route Handlers use `endpoint()` (module gating, CSRF,
@@ -87,6 +88,11 @@ Extend through the registries instead of editing core lists. The
    `t("m…")` calls; administration copy stays in English source.
 5. Data changes: a migration with ID `<module>:<NNNN>-<name>`, run by
    `npm run db:migrate`; see [migrations](architecture.md#extension-conventions).
+   Document its release ordering, retained-image compatibility, verification and
+   failure/resume behavior. The [reusable data operations plan](features/deployment-data-operations/implementation-plan.md)
+   describes proposed manual and deployment integration; it adds no executable
+   workflow yet. Future adoption uses the destination project's own identities and
+   recovery configuration, not parent database or host bindings.
 6. Tests, then `npm run typecheck`, `npm run lint`, the affected test suites and
    `npm run build`.
 
@@ -101,12 +107,20 @@ Runs omit generic restart controls; their product admission owns continuation.
 
 ## Receive template updates
 
-With a clean working tree run `npm run template:update -- <version>`. It merges the
-release, keeps files the project deliberately deleted, keeps the project's version
-of its own installation files when they conflict (clean template changes to them
-still apply), reapplies removed samples and prints the upgrade notes. Other
-conflicts stop with the merge open. Never edit `template.json` or `CHANGELOG.md`
-by hand in a project; they describe the template release it last merged.
+Create a clean import branch from the project's current integration branch, as
+recorded in its repository preferences. Run `npm run template:update -- <version|exact-ref>`
+there, review the scoped adoption and merge its PR into that integration branch with
+a normal merge commit. Keep active feature implementation out of the import PR.
+Then merge the updated integration branch normally into active issue branches.
+Record the exact upstream revision and preserve both project and template history.
+A feature-only import route requires an explicit user-approved exception.
+
+The update command keeps files the project deliberately deleted, keeps the project's
+version of its installation files when they conflict (clean template changes to them
+still apply), reapplies removed samples and prints upgrade notes. Other conflicts
+stop with the merge open. Resolve them and verify project identity, configuration,
+extension hooks and private bindings before committing. Never edit `template.json`
+or `CHANGELOG.md` by hand in a project; the update command owns their imported identity.
 
 ## Release the template
 

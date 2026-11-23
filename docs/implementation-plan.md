@@ -18,6 +18,16 @@ forward-only migrations, removable samples and history-preserving derived
 projects. The staging installation runs the current `main`; see
 [current staging release](deployment.md#current-staging-release).
 
+## Local Google popup sign-in
+
+Implemented and merged in [PR #64](https://github.com/Uniwares-LTD/unibase/pull/64).
+Local real-Firebase uses the hosted popup helper with the existing session exchange;
+emulator/staging/production retain redirect behavior. The
+[local popup plan](features/local-google-popup/implementation-plan.md) records verified
+checks/reviews and exact Unitale consumption through its PR #14. Real Google sign-in
+and the Unitale session were accepted by the user on 2026-11-21. No deployment/provider
+change or Booklet checkpoint 10 implementation is included.
+
 ## Open work
 
 ### Booklet product foundation
@@ -72,25 +82,16 @@ of T11-T12. Unitale T02 is accepted. Final review evidence is recorded at handof
 
 ### Base installation
 
-- [ ] Guided derived-deployment initialization acceptance and restricted
-  runtime-secret restoration, following the shared inventory: validate
-  destination identity, preserve conflicting files, resume safely and keep
-  secrets out of logs and artifacts.
-- [ ] Shared gateway: preserve the Firebase helper, trusted headers and streaming.
-- [ ] Shared non-Dify Redis: allocate logical databases and adapt validation and
-  readiness.
-- [ ] App-hosted AI, events and maintenance endpoints and timers: retain leases,
-  retries, accounting and notification duplicate prevention before removing
-  workers.
-- [ ] Production compatibility preserving retained snapshots, then a separately
-  authorized production activation.
-- [ ] Minimum manual backup and restore workflows, protected off-host storage and
-  a disposable MongoDB/GridFS recovery rehearsal before relying on recovery.
-- [ ] Image and configuration rollback rehearsal when a genuine compatible
-  predecessor exists. Back up before destructive operations; never restore a
-  database automatically on failure.
-- [ ] Diagnostics follow-up: run the Redis limiter test against a disposable Redis
-  and verify grant revocation in a browser with Redis.
+- [ ] Reusable backup and migration operations (#62): local implementation spans
+  Unibase, Infrastructure and Handbook on task branches; see the
+  [checkpoint evidence and contract](features/deployment-data-operations/implementation-plan.md).
+  Manifest/status and checksum-preserving packaging, approved backup/migration,
+  checked root recovery acknowledgment, exact-candidate Release gates/continuation,
+  diagnostic/admin reads and optional shared skills are implemented. Final integrated
+  verification/reviews are in progress. Publication, compatible controller/app-control
+  installation, workflow pin/claim acceptance, recovery rehearsal and separately
+  authorized staging acceptance remain gates. Production and the deferred manual
+  host migration sequence remain inactive.
 
 ## Decisions in force
 

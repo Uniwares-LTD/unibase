@@ -20,11 +20,45 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
-None.
+- Register the 12 typography roles with `cn` (`src/lib/utils.ts`), and make the
+  installed primitives import it instead of the bare `cn` package. A role such as
+  `text-card-title` passed to `CardTitle` or `Button` now replaces their own size
+  instead of silently losing to it. Projects that pass roles to primitives will see
+  the intended sizes. Import `cn` from `@/lib/utils`.
+
+- Add an optional focused page frame. An extension lists `focusedRoutes` inside
+  its own module routes. Those pages render without the sidebar, browsing header
+  or account menu, keeping only Back, the new `ThemeToggle`, the skip link and
+  the main landmark. Registration rejects focused routes outside the module's
+  pages or under `/api`.
+
+- Add credential-free migration manifests, read-only full-ledger status,
+  release classifications and read-only verifiers. Package the migration runner
+  with preserved source checksums and runner/manifest integrity checks. Share the
+  renewable lease across protected backup preparation and migration execution.
+  Add approved host execution, root-only recovery acknowledgment, release gates,
+  diagnostic/admin status and optional shared deployment skills.
+
+- Document proposed reusable backup and migration workflows, agent approval before
+  deployment, a post-deployment automatic/manual choice, release ordering and shared
+  workflow/diagnostic/admin outcomes. Specify deployment skills and their future Handbook
+  adoption, plus a promotion PR starter with labeled before/after actions and separate
+  test flows, adapted from the supplied reference. Finalize the proposed interfaces,
+  checksum packaging, lock ordering and implementation checkpoints.
+  Reuse existing diagnostics and skill selection, record terminal outcomes without
+  live synchronization, and keep general interrupted-operation recovery manual.
+  Specify checked root-only recovery acknowledgment and host verification gates,
+  including zero-pending batches and missing report copies.
+  These planning decisions are now implemented locally; publication, installation
+  and live migration acceptance remain separate gates.
+- Local real-Firebase Google sign-in uses the hosted popup helper and existing session exchange; emulator and hosted environments retain redirect sign-in. Only the exact local Firebase helper origin is added to the frame policy.
 
 ### Upgrade notes
 
-None.
+Publish reviewed Handbook and regenerate consumer references, then publish compatible
+Infrastructure/application artifacts and update immutable executor/source pins. Install
+the approved controller and app-control data-operations-v1 capability before enabling
+new release clients. Validate approval claims and target restore recovery separately.
 
 ## 0.5.0 — 2026-11-21
 

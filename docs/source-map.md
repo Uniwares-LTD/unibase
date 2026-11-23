@@ -15,7 +15,7 @@ revision; these links provide context, not additional authority.
 | Diagnostics                          | [Diagnostics API](diagnostics-api.md)                                                                                                                | [Diagnostic server](../src/lib/server/diagnostics), service read-only boundaries                                              | Affected diagnostics tests and inventories                                                     |
 | Deployment or provider activation    | [Deployment guidance](deployment.md#choose-an-operation)                                                                                             | Infrastructure owner guidance/inventory linked there; adapter operational boundaries                                          | Impact classification and affected deployment checks; live actions need separate authorization |
 | Add a project feature                | [Using the template](template.md#add-a-feature), [project extensions](architecture.md#project-extensions)                                            | [Notes sample](../src/samples/README.md), [project registries](../src/project)                                                | typecheck, lint, check:samples, affected tests, build                                          |
-| Data migration                       | [Migrations](architecture.md#extension-conventions)                                                                                                  | [Core migrations](../src/lib/server/core-migrations.ts), server extension `migrations`                                        | Disposable-database tests; db:migrate locally                                                  |
+| Data migration                       | [Migrations](architecture.md#extension-conventions)                                                                                                  | [Core migrations](../src/lib/server/core-migrations.ts), server extension `migrations`                                        | Disposable-database tests; [staging operator flow](deployment.md#database-migrations-on-existing-staging) |
 | Template updates or releases         | [Using the template](template.md#receive-template-updates), [changelog](../CHANGELOG.md)                                                             | [Update command](../scripts/template-update.mjs), [initializer](../scripts/project-initializer.ts)                            | check:template, test:initializer, test:initialized-projects                                    |
 | New documentation or templates       | [Canonical documents](#documentation)                                                                                                                | Selected maintain-docs skill and [local starters](templates)                                                                  | check:docs; opt-in template replacement                                                        |
 
@@ -45,7 +45,7 @@ and the adapter; the table does not require unrelated suites for every task.
 - [Application routes](../src/app) own layouts, pages, Server Actions and HTTP entrypoints.
 - [UI](../src/components) and [design system](design-system.md) own reusable primitives and interaction.
   The [design-system adoption plan](features/design-system-adoption/implementation-plan.md) and its
-  [delta ledger](features/design-system-adoption/delta-ledger.md) track adopting the design handoff package (issue #53).
+  [delta ledger](features/design-system-adoption/delta-ledger.md) record the completed Unibase design handoff adoption (issue #53).
 - [Server modules](../src/lib/server) own authorization, persistence, provider adapters and workers;
   [service contracts](services.md) define ownership, quotas and transaction boundaries.
 - Runs module, story-panel sample: [image renewal](../src/lib/server/runs/image-renewal.ts) verifies original
@@ -75,6 +75,12 @@ and the adapter; the table does not require unrelated suites for every task.
   MongoDB verifiers and per-issuer issuance fences; Redis owns only shared counters.
   The [diagnostics API](diagnostics-api.md) owns one-time credential delivery and rollout.
 
+- [Local Google popup plan](features/local-google-popup/implementation-plan.md) owns
+  the bounded local auth change and verification; [README](../README.md#local-google-popup-sign-in)
+  owns launch and acceptance instructions. The shared pure policy is
+  `src/lib/config/google-sign-in.ts`; the existing auth form and session endpoint
+  retain their ownership.
+
 ## Documentation
 
 Administration uses English source copy and `src/lib/admin-labels.ts` for data labels.
@@ -87,6 +93,19 @@ the admin boundary; public-page catalogs remain in `messages/`.
 owns integration procedures and provenance; the [repository adapter](../.agents/repository-adapter.md)
 owns local constraints and Handbook exceptions. Root [instructions](../AGENTS.md)
 own task-start routing and short decision-point reminders; this map owns navigation.
+The [reusable data operations plan](features/deployment-data-operations/implementation-plan.md)
+owns #62's proposed backup/migration contract and documentation-stage boundary;
+it describes future agent approvals, manual/deployment integration, workflow outputs,
+one authenticated diagnostic status capability and the existing admin Operations view, not installed
+functionality.
+It also specifies [deployment skills and reference adoption](features/deployment-data-operations/implementation-plan.md#deployment-skills-and-reference-adoption);
+[agent tooling](agent-tooling.md#optional-deployment-skills) owns future discovery and
+integration requirements. These deployment skills are proposed, not installed.
+The [promotion PR starter](templates/promotion-pr.md) and
+[promotion action guidance](deployment.md#promotion-review-and-action-records) keep
+labeled deployment actions separate from linked source PR Test flows.
+The plan's [implementation contract](features/deployment-data-operations/implementation-plan.md#implementation-contract)
+owns the proposed versioned interfaces and dependency-ordered implementation checkpoints.
 Dated evidence lives in Git history, not in a docs folder.
 Repository [preferences](../.agents/repository.md) own issue language and durable branches;
 [tracking metadata](../.agents/tracking.json) records this repo's selection when configured.
@@ -156,3 +175,22 @@ setup and recovery. `npm run test:commerce-ui` verifies service and fake-client 
 `android/google-maven.init.gradle` is the opt-in official Google Maven hostname
 fallback; [native build prerequisites](features/booklet-foundation/provider-billing.md#native-build-prerequisites)
 own its invocation and limitations.
+
+Migration declarations and the renewable lease live in
+[src/lib/server/migrations.ts](../src/lib/server/migrations.ts); pure reporting is in
+[migration-report.ts](../src/lib/server/migration-report.ts), read-only invariants in
+[migration-verifiers.ts](../src/lib/server/migration-verifiers.ts), and exact approved
+identity validation in [approved-migrations.ts](../src/lib/server/approved-migrations.ts).
+[scripts/build-migrations.mjs](../scripts/build-migrations.mjs) embeds source checksums
+and emits the ignored runtime manifest/runner pair during worker builds. The
+[packaging test](../tests/migration-packaging.test.mjs) covers source parity and tamper
+rejection. Docker-based deployment tests explicitly skip when Docker is unavailable;
+a skip does not establish Linux dispatcher integration coverage.
+
+[data-operations.ts](../src/lib/server/data-operations.ts) is the shared read-only server
+model for the diagnostic capability and existing admin Operations panel. Its strict DTO
+is [contracts/data-operations.ts](../src/lib/contracts/data-operations.ts).
+[The workflow adapter](../scripts/deploy/data-operation-workflow.py) calls the existing
+CLI; Release uses the same exact-candidate report and original-run candidate retention.
+Optional deployment/data skills are selected through handbook.json's technologySkills;
+shared bodies stay in Handbook, while deployment.md owns application runbooks.
