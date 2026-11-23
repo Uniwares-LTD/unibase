@@ -78,7 +78,8 @@ Extend through the registries instead of editing core lists. The
 1. Contract and storage: zod schemas and owned persistence that filters by the
    caller's `uid`.
 2. Registration: a `defineExtension` entry in `src/project/extensions.ts` (module,
-   routes, collections, links, admin sections) and a `defineServerExtension` entry
+   routes, collections, links, admin sections, optional focused-frame routes) and a
+   `defineServerExtension` entry
    in `src/project/server.ts` (MCP tools, domain adapters, indexes, migrations).
    See [project extensions](architecture.md#project-extensions).
 3. Routes under `src/app`: Route Handlers use `endpoint()` (module gating, CSRF,

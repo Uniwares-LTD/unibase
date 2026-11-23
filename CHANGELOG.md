@@ -20,6 +20,12 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Add an optional focused page frame. An extension lists `focusedRoutes` inside
+  its own module routes. Those pages render without the sidebar, browsing header
+  or account menu, keeping only Back, the new `ThemeToggle`, the skip link and
+  the main landmark. Registration rejects focused routes outside the module's
+  pages or under `/api`.
+
 - Add credential-free migration manifests, read-only full-ledger status,
   release classifications and read-only verifiers. Package the migration runner
   with preserved source checksums and runner/manifest integrity checks. Share the
