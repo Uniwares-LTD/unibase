@@ -24,7 +24,7 @@ class DataRecoveryIntegration(unittest.TestCase):
    uri='mongodb://127.0.0.1:'+str(port)
    process=subprocess.Popen(['mongod','--bind_ip','127.0.0.1','--port',str(port),'--dbpath',str(database),'--logpath',str(root/'mongo.log')],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
    helper=r'''
-const {MongoClient,GridFSBucket}=require('/repo/node_modules/mongodb');
+const {MongoClient,GridFSBucket}=require('/test-tools/node_modules/mongodb');
 (async()=>{
 const input=JSON.parse(require('fs').readFileSync(0,'utf8'));const client=new MongoClient(input.uri,{serverSelectionTimeoutMS:10000});
 try{const db=client.db(input.database);const bucket=new GridFSBucket(db);

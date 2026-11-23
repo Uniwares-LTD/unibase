@@ -4,8 +4,10 @@
 
 [Issue #62](https://github.com/Uniwares-LTD/unibase/issues/62) defines the operational
 outcome. The current session authorizes complete local implementation and disposable
-verification across Unibase, Infrastructure and Handbook. Publication, controller
-installation, deployment and live databases remain unauthorized. The accepted design
+verification across Unibase, Infrastructure and Handbook. The later session also
+authorizes publication/merge and operational setup (controller, executor trust and
+isolated restore). Deployment and live migration require their concrete reviewed
+action/plan. The accepted design
 below was written during the preceding documentation stage; its contract controls the
 implementation. [Progress](#implementation-progress-2026-11-21) records current evidence
 and remaining operational gates.
@@ -751,8 +753,9 @@ backup, operation, ledger, health and affected-flow evidence. Production stays i
 ## Implementation progress 2026-11-21
 
 All four checkpoints are implemented on local task branches across Unibase,
-Infrastructure and Handbook. Publication, controller installation, deployments and
-live databases remain unauthorized. The retained Handbook task revision is
+Infrastructure and Handbook. Publication and merge, plus controller installation/trust validation and isolated
+restore setup, were authorized subsequently. Deployment and live migration still
+require their concrete reviewed action/plan. The retained Handbook task revision is
 `c1b6166437ba729b59723a7dd4066c78e2f15185`.
 
 - Catalog/packaging: pure full-ledger reports, six classified declarations, preserved
@@ -800,14 +803,34 @@ restic/MongoDB/GridFS archive-restore fixture are unexecuted, not restore eviden
 An isolated target restore rehearsal remains a required operational gate. Optional
 Redis coverage also remains skipped without its test URL.
 
-Consumer wrappers were generated from a frozen, reviewed working Handbook candidate,
-not a published revision. Publish reviewed Handbook first and regenerate/review both
-consumers from its actual committed SHA. Publish compatible Infrastructure source,
-update reusable executor and source checkout pins, and validate the actual OIDC
-executor identity without changing enrolled actors. Separately authorize/install the
-controller and app-control capability before enabling application clients. Verify
-recovery configuration and isolated restore, then separately authorize fresh staging
-readback and the exact operation. Production remains inactive.
+### Publication and operational resume - 2026-11-23
+
+Handbook PR #22 merged as `3c2b30c071e6eb35dcbcdf4646ff1fd56d5cebd2`.
+Both consumers were regenerated/checked against that immutable published snapshot;
+the task guidance baseline above remains retained. Infrastructure PR #8 merged as
+`8798603fa551ec7331a0c96c8f93e9a928b6e6b6`. Infrastructure PR #9 pins the executor checkout to that source and merged as
+`149b02c261e2a41799b8a94e9cb3c9738d16787e`. PR #10 pins the caller and trust
+example to that executor and merged as `13c7bda0828fc1bd6c148fe42cfaf19a87d656dd`.
+Enrolled actors are unchanged; actual installed trust still needs operator readback.
+
+Unibase implementation is preserved in the isolated `unibase-62-publish` worktree.
+Newer main changes (Google popup and template-import policy) were integrated;
+both changelog entries and all unrelated source changes were retained. Unit checks
+passed 121 tests before the additional mirror-test split. Cross-repository fixture
+comparison now compares JSON values across line endings; standalone checkouts always
+validate the strict DTO and explicitly skip only absent optional mirror parity.
+The Docker recovery fixture installs its pinned MongoDB driver inside its disposable
+image rather than relying on workstation node_modules.
+
+Read-only SSH succeeded using the documented existing operator key. The dispatcher
+checksum still matches the dated inventory:
+`4404fb361f9e99c43c58061202ed8fed16caa5d705fb0c52b48d08a1ac26731a`.
+`sudo -n` requires a password. No installation, trust update, writer interruption,
+backup or live data change has been executed. Continue repository publication while
+preparing a concrete checksum-bound batch for an interactive root operator. Never
+request the sudo password or private key in chat. Root setup must preserve enrolled
+actors and existing recovery configuration, then verify actual OIDC claims and an
+isolated restore before separately approved staging migration. Production stays inactive.
 
 ## Acceptance and future execution prerequisites
 

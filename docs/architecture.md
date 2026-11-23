@@ -175,10 +175,10 @@ esbuild transforms functions; the packaged command verifies its manifest and run
 bytes. Never supply replacement checksums or rewrite released ledger records.
 
 The [reusable operations plan](features/deployment-data-operations/implementation-plan.md)
-owns the remaining protected host executor, release gates, recovery acknowledgment,
-workflow/diagnostics/admin reporting and shared skills. These integrations remain
-under implementation; the reporting command alone is not a host activation gate
-or authorization for live data changes.
+records the implemented protected host executor, release gates, recovery acknowledgment,
+workflow/diagnostics/admin reporting and shared skills. Publication, installed
+capabilities and live acceptance are separate: the reporting command grants no
+authorization for live data changes.
 Dify orchestrator Runs extend the shared durable execution engine.
 The existing payment worker stays focused on payment reconciliation and credit
 maintenance. Quality warnings remain advisory; required behavior must still work.
