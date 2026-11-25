@@ -8,10 +8,11 @@ import unittest
 from pathlib import Path
 from test_config import fixture
 
-ROOT = Path("/opt/unibase")
-CONFIG = Path("/etc/unibase")
-STATE = Path("/var/lib/unibase")
 REPO = Path(__file__).resolve().parents[2]
+SLUG = json.loads((REPO / 'project.config.json').read_text())['slug']
+ROOT = Path('/opt') / SLUG
+CONFIG = Path('/etc') / SLUG
+STATE = Path('/var/lib') / SLUG
 SCRIPT = REPO / "scripts/deploy/vps.sh"
 PUBLIC = json.loads((REPO / 'deploy/environments/staging.json').read_text())
 IMAGE = PUBLIC['deployment']['imageRepository'] or 'ghcr.io/test/unibase'
@@ -24,6 +25,16 @@ class HostTests(unittest.TestCase):
         assert not ROOT.exists() and not CONFIG.exists() and not STATE.exists()
         cls.bin = Path("/tmp/unibase-mock-bin")
         cls.bin.mkdir()
+        # Model the controller-owned data gate only inside this disposable host.
+        # The real application gate remains required and fails closed.
+        gate = cls.bin / 'data-operation-gate.py'
+        gate.write_text('''import os,sys
+project,environment,image,commit=sys.argv[1:]
+assert project==os.environ['DEPLOY_TEST_PROJECT']
+assert environment in ('staging','production')
+assert image.endswith('@sha256:'+'b'*64) and len(commit)==40
+sys.exit(3 if os.environ.get('FAIL_DATA_GATE')=='1' else 0)
+''')
         maintenance = Path('/usr/local/sbin/uniwares-image-maintenance')
         assert not maintenance.exists()
         Path('/var/lib/uniwares-infrastructure').mkdir(exist_ok=True)
@@ -53,7 +64,7 @@ print(json.dumps({'status':'completed'}))
         policy = Path('/etc/uniwares-infrastructure/image-retention.json')
         policy.parent.mkdir(exist_ok=True)
         policy.write_text(json.dumps({'version':1,'keepReleases':3,'keepDays':14,'minimumFreeGiB':20,
-            'targetFreeGiB':30,'warnUsedPercent':80,'projects':{'unibase':{'imageRepository':IMAGE,
+            'targetFreeGiB':30,'warnUsedPercent':80,'projects':{SLUG:{'imageRepository':IMAGE,
                 'environments':{'staging':'staging','prod':'production'},'automatic':False}}}))
         mocks = {
             "docker": '''#!/usr/bin/env python3
@@ -75,7 +86,8 @@ if args[:2]==['buildx','build']:
     sys.exit(0)
 if args==['compose','version']: print('Docker Compose version v2.35.0'); sys.exit(0)
 project=args[args.index('--project-name')+1]
-if project not in ('unibase-staging','unibase-production'): sys.exit(99)
+slug=os.environ['DEPLOY_TEST_PROJECT']
+if project not in (slug+'-staging',slug+'-production'): sys.exit(99)
 env=Path(args[args.index('--env-file')+1])
 if 'exec' in args:
     if 'worker-healthcheck.cjs' not in args: sys.exit(99)
@@ -100,8 +112,10 @@ url=sys.argv[-1]
 if url.startswith('https://github.com/cloudflare/cloudflared/releases/'):
     Path(sys.argv[sys.argv.index('--output')+1]).write_text('#!/bin/sh\\nexit 0\\n')
     sys.exit(0)
-target='staging' if ('35101' in url or 'staging.' in url) else 'production'
-active=Path('/tmp/active-unibase-'+target)
+slug=os.environ['DEPLOY_TEST_PROJECT']
+installed=json.loads((Path('/etc')/slug/'config.json').read_text())
+target='staging' if (':'+str(installed['staging']['port'])+'/' in url or 'staging.' in url) else 'production'
+active=Path('/tmp/active-'+slug+'-'+target)
 if not active.exists(): sys.exit(22)
 env=dict(x.split('=',1) for x in active.read_text().splitlines())
 commit=env['RELEASE_COMMIT']
@@ -166,8 +180,9 @@ runpy.run_path(filename,run_name='__main__')
         (cls.bin / "dispatch.py").write_text("""import hashlib,importlib.util,json,os,subprocess,sys
 from pathlib import Path
 r=json.load(sys.stdin)
+slug=os.environ['DEPLOY_TEST_PROJECT']
 if r['action']=='capabilities':
-    print(json.dumps({'version':2,'capabilities':['operation-lock-v1','image-retention-v1']})); sys.exit(0)
+    print(json.dumps({'version':2,'capabilities':['operation-lock-v1','image-retention-v1','data-operations-v1']})); sys.exit(0)
 if os.environ.get('LEGACY_DISPATCHER')=='1':
     print('legacy private failure'); sys.exit(1)
 config=json.loads(Path('/repo/deploy/environments/staging.json').read_text())
@@ -176,24 +191,39 @@ if os.environ.get('MISMATCH_CONFIG')=='1' or (os.environ.get('CHANGE_AFTER_PREFL
     config['runtime']['MCP_CLIENTS_JSON']='[]'
 digest=hashlib.sha256(json.dumps(config,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 with open('/tmp/dispatch-actions','a') as f: f.write(r['action']+'\\n')
+# This suite mocks data evidence, just as it mocks Docker and provider calls.
+if r['action']=='migrations':
+    assert set(r)=={'version','project','environment','action','configurationHash','requiredCapabilities','image','commit'}
+    assert r['project']==slug and r['environment']=='staging' and r['version']==2
+    assert r['requiredCapabilities']==['data-operations-v1']
+    assert r['configurationHash']==digest
+    print(json.dumps(dict(version=1,sourceCommit=r['commit'],image=r['image'],activationDecision='proceed')))
+    sys.exit(0)
 real=Path('/infrastructure/scripts/deploy-dispatch.py')
 if real.exists():
     spec=importlib.util.spec_from_file_location('dispatcher',real)
     d=importlib.util.module_from_spec(spec); spec.loader.exec_module(d)
     root=Path('/tmp/dispatcher-fixture'); registry=root/'registry'; registry.mkdir(parents=True,exist_ok=True)
-    source=root/'control'/'unibase'/('b'*64); (source/'deploy/environments').mkdir(parents=True,exist_ok=True)
+    source=root/'control'/slug/('b'*64); (source/'deploy/environments').mkdir(parents=True,exist_ok=True)
     (source/'deploy/environments/staging.json').write_text(json.dumps(config))
     (source/'deploy/contract.json').write_text(Path('/repo/deploy/contract.json').read_text())
-    (source/'project.config.json').write_text('{"slug":"unibase"}')
+    (source/'project.config.json').write_text(json.dumps({'slug':slug}))
     (source/'scripts/deploy').mkdir(parents=True,exist_ok=True)
     (source/'scripts/deploy/vps.sh').write_text('#!/bin/bash\\nexec bash /repo/scripts/deploy/vps.sh "$@"\\n')
-    (registry/'unibase.json').write_text(json.dumps({'revision':'b'*64}))
+    (registry/(slug+'.json')).write_text(json.dumps({'revision':'b'*64}))
     d.REGISTRY=registry; d.CONTROL=root/'control'
     d.trusted=lambda path: None  # Temporary fixture ownership; protocol/hash validation stays real.
     d.ENV=dict(os.environ)  # Keep the disposable container's mocked provider executables.
+    # Retain real dispatch/lock handling while isolating its external data gate.
+    popen=d.subprocess.Popen
+    def host_process(*args,**kwargs):
+        if 'UNIWARES_DATA_GATE' in kwargs.get('env',{}):
+            kwargs['env']['UNIWARES_DATA_GATE']=os.environ['UNIWARES_DATA_GATE']
+        return popen(*args,**kwargs)
+    d.subprocess.Popen=host_process
     sys.exit(d.handle(r))
 assert set(r)=={'version','project','environment','action','configurationHash','requiredCapabilities'} | ({'image','commit'} if r['action']=='deploy' else set())
-assert r['version']==2 and r['environment']=='staging' and r['project']=='unibase'
+assert r['version']==2 and r['environment']=='staging' and r['project']==slug
 compatible=r['configurationHash']==digest
 if r['action']=='preflight' or not compatible:
     print(json.dumps(dict(version=r['version'],code='COMPATIBLE' if compatible else 'CONFIGURATION_MISMATCH',compatible=compatible,installedRevision='b'*64,installedConfigurationHash=digest,requestedConfigurationHash=r['configurationHash'])))
@@ -201,7 +231,8 @@ if r['action']=='preflight' or not compatible:
 assert r['action']=='deploy'
 sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging','--apply',r['image'],r['commit']]).returncode)
 """)
-        cls.env = dict(os.environ, PATH=f"{cls.bin}:" + os.environ["PATH"])
+        cls.env = dict(os.environ, PATH=f"{cls.bin}:" + os.environ["PATH"], DEPLOY_TEST_PROJECT=SLUG,
+                       UNIWARES_DATA_GATE=str(gate))
         # Preview must not create directories or contact Docker.
         result = subprocess.run(["bash", SCRIPT, "setup", "staging"], env=cls.env, capture_output=True)
         assert result.returncode == 0 and not ROOT.exists()
@@ -223,11 +254,18 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
                 (ROOT / target / link).unlink(missing_ok=True)
             shutil.rmtree(ROOT / target / "releases")
             (ROOT / target / "releases").mkdir()
-            Path("/tmp/active-unibase-" + target).unlink(missing_ok=True)
+            Path(f"/tmp/active-{SLUG}-" + target).unlink(missing_ok=True)
         installed=fixture(CONFIG)
+        for target in ('staging', 'production'):
+            public=json.loads((REPO / f'deploy/environments/{target}.json').read_text())
+            item=installed[target]
+            for key,value in {'origin':public['runtime']['APP_ORIGIN'],
+                              'firebaseProject':public['google']['projectId'],
+                              'mongoDatabase':public['runtime']['MONGODB_DATABASE'],
+                              'mongoUser':public['atlas']['mongoUser'],
+                              **{k:public['deployment'][k] for k in ('port','ingressSubnet','redisImage','nginxImage')}}.items():
+                if value is not None: item[key]=value
         item=installed['staging']
-        for key,value in {'origin':PUBLIC['runtime']['APP_ORIGIN'],'firebaseProject':PUBLIC['google']['projectId'],**{k:PUBLIC['deployment'][k] for k in ('ingressSubnet','redisImage','nginxImage')}}.items():
-            if value is not None: item[key]=value
         installed['imageRepository']=IMAGE
         (CONFIG/'config.json').write_text(json.dumps(installed))
         runtime=CONFIG/'staging/runtime.env'
@@ -252,6 +290,16 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
         Path("/tmp/hold-up-started").unlink(missing_ok=True)
         Path('/tmp/pulled-commit').unlink(missing_ok=True)
         Path('/tmp/maintenance-operations').write_text('')
+
+    def test_missing_or_blocked_data_gate_never_replaces_existing_release(self):
+        previous = self.release('a'*40)
+        for extra in ({'UNIWARES_DATA_GATE': ''}, {'FAIL_DATA_GATE': '1'}):
+            with self.subTest(extra=extra):
+                Path('/tmp/docker-operations').write_text('')
+                result = self.run_host('deploy', commit='b'*40, **extra)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual((ROOT/'staging/current').resolve(), previous)
+                self.assertNotIn('"up"', Path('/tmp/docker-operations').read_text())
 
     def test_disk_failure_before_pull_keeps_services_untouched(self):
         result = self.run_host('deploy', commit='a'*40, FAIL_DISK='1')
@@ -289,7 +337,7 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
         self.assertIn("result=restored", failed.stdout)
         self.assertEqual((ROOT / "staging/current").resolve(), previous)
         self.assertEqual((previous / "runtime.env").read_bytes(), snapshot)
-        self.assertIn("a" * 40, Path("/tmp/active-unibase-staging").read_text())
+        self.assertIn("a" * 40, Path(f"/tmp/active-{SLUG}-staging").read_text())
 
     def test_external_https_failure_also_restores(self):
         previous = self.release("a" * 40)
@@ -332,7 +380,7 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
         result = self.run_host("deploy", commit="b" * 40, FAIL_COMMIT="b" * 40)
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse((ROOT / "staging/current").exists())
-        self.assertFalse(Path("/tmp/active-unibase-staging").exists())
+        self.assertFalse(Path(f"/tmp/active-{SLUG}-staging").exists())
 
     def test_staging_operations_never_touch_production_or_poc(self):
         result = self.run_host("deploy", target="production", commit="c" * 40)
@@ -342,7 +390,7 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
         Path("/tmp/docker-operations").write_text("")
         self.release("a" * 40)
         operations = Path("/tmp/docker-operations").read_text()
-        self.assertNotIn("unibase-production", operations)
+        self.assertNotIn(f"{SLUG}-production", operations)
         self.assertNotIn("kids-booklet", operations)
         self.assertEqual((production / "compose.env").read_bytes(), snapshot)
         (ROOT / "staging/previous").symlink_to(production)
@@ -389,7 +437,8 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
     def test_commit_changed_during_build_never_deploys(self):
         result = self.run_release(STALE_AFTER_BUILD="1")
         self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(Path("/tmp/dispatch-actions").read_text(), "preflight\n")
+        self.assertEqual(Path("/tmp/dispatch-actions").read_text(), "preflight\nmigrations\n")
+        self.assertFalse((ROOT / "staging/current").exists())
 
     def test_private_package_is_rejected_without_changing_visibility(self):
         result = self.run_release(MOCK_VISIBILITY="private")

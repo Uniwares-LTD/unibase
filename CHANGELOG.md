@@ -20,6 +20,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Prevent clean-checkout migration-test hangs, bound each advisory validation check,
+  and update deployment fixtures for the required data-activation protocol.
+  Refresh advisory formatting and stabilize generated client-message order.
+
 - Publish the immutable candidate in a separate job so a targeted release retry
   after verified migrations can reuse the original image. Rerun only the
   `release` job when continuing a blocked release.
