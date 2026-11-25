@@ -106,10 +106,9 @@ const rules = [
     ["typecheck", "check:i18n", "test", "manual:ui"],
   ],
   [
-    /^src\/(?:project|lib)\/|^tests\/accounts\/|^src\/app\/(?:api|account|admin|credits|runs)\//,
+    /^src\/(?:project|lib)\/|^src\/app\/(?:api|account|admin|credits|runs)\//,
     ["typecheck", "test", "test:accounts"],
   ],
-  [/^tests\/[^/]+\.test\.ts$/, ["test", "typecheck"]],
 ];
 export function select(files, present = () => true) {
   const selected = new Map();
@@ -119,6 +118,14 @@ export function select(files, present = () => true) {
   }
   for (const path of files) {
     let matched = false;
+    if (/^tests\/(?:accounts\/)?[^/]+\.test\.ts$/.test(path)) {
+      const suite = path.startsWith("tests/accounts/")
+        ? "test:accounts"
+        : "test";
+      add(present(path) ? suite + ":files" : suite, path);
+      add("typecheck", path);
+      matched = true;
+    }
     if (/\.(md|mdx)$/.test(path)) {
       add("check:docs", path);
       matched = true;
@@ -132,6 +139,7 @@ export function select(files, present = () => true) {
     for (const [pattern, names] of rules)
       if (
         pattern.test(path) &&
+        !(extra.length && path.startsWith("src/project/")) &&
         !(path.startsWith("src/") && /\.(css|md|mdx)$/.test(path))
       ) {
         for (const name of names) add(name, path);
@@ -150,6 +158,8 @@ export function select(files, present = () => true) {
   // Keep file-oriented checks scoped even when semantic checks need broad coverage.
   selected.delete("lint");
   selected.delete("format:check");
+  for (const suite of ["test", "test:accounts"])
+    if (selected.has(suite)) selected.delete(suite + ":files");
   return [...selected].map(([name, paths]) => ({ name, paths: [...paths] }));
 }
 

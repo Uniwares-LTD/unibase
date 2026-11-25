@@ -118,6 +118,18 @@ function stopTree(child) {
   }
 }
 function commands(check) {
+  if (check.name === "test:files" || check.name === "test:accounts:files")
+    return [
+      [
+        ...(check.name === "test:accounts:files"
+          ? ["--conditions=react-server"]
+          : []),
+        "--import",
+        "tsx",
+        "--test",
+        ...check.paths,
+      ],
+    ];
   if (check.name === "format:files" || check.name === "lint:files") {
     const format = check.name === "format:files";
     const bin = format ? "prettier/bin/prettier.cjs" : "eslint/bin/eslint.js";
@@ -144,7 +156,8 @@ function commands(check) {
 }
 async function run(check, args) {
   const env = { ...process.env };
-  const account = check.name === "test:accounts";
+  const account =
+    check.name === "test:accounts" || check.name === "test:accounts:files";
   const progress = path.join(dir, "account-files");
   if (account) {
     mkdirSync(progress, { recursive: true });
@@ -188,7 +201,11 @@ async function run(check, args) {
   const progressTimer = account ? setInterval(announceFiles, 500) : null;
   function reportOutstanding() {
     if (account && existsSync("tests/accounts")) {
-      const outstanding = readdirSync("tests/accounts").filter(
+      const files =
+        check.name === "test:accounts:files"
+          ? check.paths.map((file) => path.basename(file))
+          : readdirSync("tests/accounts");
+      const outstanding = files.filter(
         (f) =>
           f.endsWith(".test.ts") &&
           (!existsSync(path.join(progress, f)) ||

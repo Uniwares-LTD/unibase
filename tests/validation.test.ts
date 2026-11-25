@@ -102,6 +102,12 @@ test("behavior coverage follows paths and conservative boundaries", () => {
     ["tests/deploy/test_vps.py", "test:deployment", "test:accounts"],
     ["package-lock.json", "test:accounts", ""],
     ["new-boundary.data", "test:accounts", ""],
+    [
+      "tests/accounts/migration-report.test.ts",
+      "test:accounts:files",
+      "test:accounts",
+    ],
+    ["tests/validation.test.ts", "test:files", "test"],
   ]) {
     assert.ok(names([file]).includes(expected), file);
     assert.ok(!names([file]).includes(absent), file);
