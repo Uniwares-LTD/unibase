@@ -20,6 +20,7 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Add CI cancellation and tiered job timeouts to bound obsolete or stalled runs.
 - Deployment tests now exercise the candidate migration report and host activation gate in the disposable Linux fixture.
 
 - Publish the immutable candidate in a separate job so a targeted release retry
