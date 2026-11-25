@@ -20,12 +20,7 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
-- Build the migration protocol fixture before starting its disposable database and
-  register cleanup immediately, preventing clean-checkout account tests from hanging.
-
-- Bound advisory validation checks to five minutes, terminate stalled process trees,
-  stream progress and retain each completed result. Add CI cancellation and tiered
-  job timeouts so obsolete or stalled runs cannot consume six hours.
+- Add CI cancellation and tiered job timeouts to bound obsolete or stalled runs.
 
 - Publish the immutable candidate in a separate job so a targeted release retry
   after verified migrations can reuse the original image. Rerun only the
