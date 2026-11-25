@@ -30,9 +30,7 @@ export function ThemeToggle() {
       className="size-(--control-touch-sm)"
       disabled={!hydrated}
       onClick={() => setTheme(dark ? "light" : "dark")}
-      aria-label={
-        dark ? translate("m2f740f4cf688") : translate("m8abe9e0ba6b6")
-      }
+      aria-label={dark ? translate("m2f740f4cf688") : translate("m8abe9e0ba6b6")}
     >
       {dark ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
     </Button>

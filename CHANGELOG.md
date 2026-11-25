@@ -20,6 +20,16 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Test that a missing activation gate leaves the current release running. Release
+  shell tests now require Bash 4 or later, matching the shell script they exercise.
+
+- Run advisory quality checks locally for the PR diff and attach their report.
+  Manual full validation remains available. Deployment-relevant PRs retain the
+  disposable Linux check on repositories where the workflow is enabled.
+
+- Add CI cancellation and tiered job timeouts to bound obsolete or stalled runs.
+- Deployment tests now exercise the candidate migration report and host activation gate in the disposable Linux fixture.
+
 - Publish the immutable candidate in a separate job so a targeted release retry
   after verified migrations can reuse the original image. Rerun only the
   `release` job when continuing a blocked release.
@@ -56,10 +66,6 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
   These planning decisions are now implemented locally; publication, installation
   and live migration acceptance remain separate gates.
 - Local real-Firebase Google sign-in uses the hosted popup helper and existing session exchange; emulator and hosted environments retain redirect sign-in. Only the exact local Firebase helper origin is added to the frame policy.
-
-- Prevent clean-checkout migration-test hangs, bound each advisory validation check,
-  and update deployment fixtures for the required data-activation protocol.
-  Refresh advisory formatting and stabilize generated client-message order.
 
 ### Upgrade notes
 

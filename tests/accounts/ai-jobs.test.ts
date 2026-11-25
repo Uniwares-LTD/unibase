@@ -414,10 +414,7 @@ test("durable AI jobs, credit boundaries and recovery", async (t) => {
         const provider: WorkflowProvider = {
           async start(_input, observe) {
             await observe({ type: "identity", runId, taskId });
-            await observe({
-              type: "execution",
-              execution: { ...execution, status: "running", outputs: null },
-            });
+            await observe({ type: "execution", execution: { ...execution, status: "running", outputs: null } });
             await observe({
               type: "node-observation",
               node: nodeObservation(runId, {
