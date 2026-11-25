@@ -206,7 +206,11 @@ if real.exists():
     (source/'deploy/contract.json').write_text(Path('/repo/deploy/contract.json').read_text())
     (source/'project.config.json').write_text('{"slug":"unibase"}')
     (source/'scripts/deploy').mkdir(parents=True,exist_ok=True)
-    (source/'scripts/deploy/vps.sh').write_text('#!/bin/bash\\nexport UNIWARES_DATA_GATE=/tmp/unibase-mock-bin/data-operation-gate.py\\nexec bash /repo/scripts/deploy/vps.sh "$@"\\n')
+    # Verify that the dispatcher supplied its gate before substituting the fixture.
+    (source/'scripts/deploy/vps.sh').write_text(
+        '#!/bin/bash\\n[[ "$UNIWARES_DATA_GATE" == /infrastructure/scripts/data-operation-gate.py ]] || exit 2\\n'
+        'export UNIWARES_DATA_GATE=/tmp/unibase-mock-bin/data-operation-gate.py\\n'
+        'exec bash /repo/scripts/deploy/vps.sh "$@"\\n')
     (registry/'unibase.json').write_text(json.dumps({'revision':'b'*64}))
     d.REGISTRY=registry; d.CONTROL=root/'control'
     d.trusted=lambda path: None  # Temporary fixture ownership; protocol/hash validation stays real.
@@ -421,6 +425,7 @@ sys.exit(subprocess.run(['bash','/repo/scripts/deploy/vps.sh','deploy','staging'
     def test_commit_changed_during_build_never_deploys(self):
         result = self.run_release(STALE_AFTER_BUILD="1")
         self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Release commit is no longer branch head", result.stderr)
         self.assertEqual(Path("/tmp/dispatch-actions").read_text(), "preflight\nmigrations\n")
         self.assertFalse((ROOT / "staging/current").exists())
 
