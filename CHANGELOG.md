@@ -20,10 +20,6 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
-- Prevent clean-checkout migration-test hangs, bound each advisory validation check,
-  and update deployment fixtures for the required data-activation protocol.
-  Refresh advisory formatting and stabilize generated client-message order.
-
 - Publish the immutable candidate in a separate job so a targeted release retry
   after verified migrations can reuse the original image. Rerun only the
   `release` job when continuing a blocked release.
@@ -60,6 +56,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
   These planning decisions are now implemented locally; publication, installation
   and live migration acceptance remain separate gates.
 - Local real-Firebase Google sign-in uses the hosted popup helper and existing session exchange; emulator and hosted environments retain redirect sign-in. Only the exact local Firebase helper origin is added to the frame policy.
+
+- Prevent clean-checkout migration-test hangs, bound each advisory validation check,
+  and update deployment fixtures for the required data-activation protocol.
+  Refresh advisory formatting and stabilize generated client-message order.
 
 ### Upgrade notes
 
