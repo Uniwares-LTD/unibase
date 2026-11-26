@@ -20,6 +20,9 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Adopt Handbook dc22bea: the AGENTS.md session-contract block keeps blank lines
+  inside its markers, so Prettier leaves it unchanged.
+
 - Adopt Handbook 127dfa4: AGENTS.md now carries the Handbook session contract (start
   reads, skill routing, reply headings, authority), Claude startup routing injects the
   full communication guide by default, and `handbook:check` lists every start read.
