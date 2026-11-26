@@ -20,6 +20,10 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Adopt Handbook 127dfa4: AGENTS.md now carries the Handbook session contract (start
+  reads, skill routing, reply headings, authority), Claude startup routing injects the
+  full communication guide by default, and `handbook:check` lists every start read.
+
 - Test that a missing activation gate leaves the current release running. Release
   shell tests now require Bash 4 or later, matching the shell script they exercise.
 
@@ -73,6 +77,10 @@ Publish reviewed Handbook and regenerate consumer references, then publish compa
 Infrastructure/application artifacts and update immutable executor/source pins. Install
 the approved controller and app-control data-operations-v1 capability before enabling
 new release clients. Validate approval claims and target restore recovery separately.
+
+Handbook sync: after merging, derived projects run `npm run handbook:sync` from a
+reviewed Handbook snapshot at or after 127dfa4. Set `agentsSessionContract` or
+`claudeSessionStartRouting` to `false` in `handbook.json` to opt out.
 
 ## 0.5.0 — 2026-11-21
 
