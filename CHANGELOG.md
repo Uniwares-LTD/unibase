@@ -30,6 +30,8 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 - Show Sign in and Create an account as tabs on the account form, with full-width
   actions and a Continue with Google button that uses Google's standard "G" logo
   and its required light and dark button colours.
+  The password field has a Show password button (eye icon, on the end side in
+  both directions) that keeps the typed text and reports its state with aria-pressed.
 
 - Test that a missing activation gate leaves the current release running. Release
   shell tests now require Bash 4 or later, matching the shell script they exercise.

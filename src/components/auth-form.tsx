@@ -1,5 +1,6 @@
 "use client";
 import { useTranslations } from "next-intl";
+import { Eye, EyeOff } from "lucide-react";
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -78,6 +79,7 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
 
   const [mode, setMode] = useState<"login" | "register" | "reset">("login");
   const [pending, setPending] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const [initializedAuth, setInitializedAuth] = useState<Auth | null>(null);
   const busy = useRef(true);
   const [notice, setNotice] = useState("");
@@ -335,21 +337,43 @@ export function AuthForm({ config }: { config: FirebaseBrowserConfig }) {
                 <FieldLabel htmlFor="password">
                   {translate("me7cf3ef4f17c")}
                 </FieldLabel>
-                <Input
-                  id="password"
-                  aria-describedby={
-                    mode === "register" ? "password-description" : undefined
-                  }
-                  name="password"
-                  type="password"
-                  autoComplete={
-                    mode === "register" ? "new-password" : "current-password"
-                  }
-                  minLength={mode === "register" ? 12 : 1}
-                  maxLength={128}
-                  required
-                  disabled={pending}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    aria-describedby={
+                      mode === "register" ? "password-description" : undefined
+                    }
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete={
+                      mode === "register" ? "new-password" : "current-password"
+                    }
+                    minLength={mode === "register" ? 12 : 1}
+                    maxLength={128}
+                    required
+                    disabled={pending}
+                    className="pe-9 pointer-coarse:pe-12"
+                  />
+                  {/* One stable name plus aria-pressed, so screen readers hear
+                      "Show password, pressed" rather than a label that flips. */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute end-0 top-0 text-muted-foreground"
+                    aria-label={translate("m6aeaa6a53d09")}
+                    aria-controls="password"
+                    aria-pressed={showPassword}
+                    disabled={pending}
+                    onClick={() => setShowPassword((shown) => !shown)}
+                  >
+                    {showPassword ? (
+                      <EyeOff aria-hidden="true" />
+                    ) : (
+                      <Eye aria-hidden="true" />
+                    )}
+                  </Button>
+                </div>
                 {mode === "register" && (
                   <FieldDescription id="password-description">
                     {translate("m618b57689fc1")}
