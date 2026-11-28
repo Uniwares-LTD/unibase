@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { moduleEnabled, moduleForPath } from "./lib/project";
-import { localFirebaseAuthDomain } from "./lib/config/google-sign-in";
+import { firebasePopupAuthDomain } from "./lib/config/google-sign-in";
 
 // Sonner 2.0.8 inserts an empty style element before filling it with this stylesheet.
 export const sonnerStyleHashes = [
@@ -32,8 +32,7 @@ export function proxy(request: NextRequest) {
     emulatorPort > 0 && emulatorPort <= 65535
       ? ` http://127.0.0.1:${emulatorPort} http://localhost:${emulatorPort}`
       : "";
-  const popupDomain = localFirebaseAuthDomain(
-    process.env.APP_ENV,
+  const popupDomain = firebasePopupAuthDomain(
     process.env.AUTH_MODE,
     process.env.FIREBASE_PROJECT_ID,
   );
