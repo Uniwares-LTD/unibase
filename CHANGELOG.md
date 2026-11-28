@@ -20,6 +20,13 @@ release needs no action. Keep unreleased work under `## Unreleased` until releas
 
 ### Changes
 
+- Adopt Handbook dc22bea: the AGENTS.md session-contract block keeps blank lines
+  inside its markers, so Prettier leaves it unchanged.
+
+- Adopt Handbook 127dfa4: AGENTS.md now carries the Handbook session contract (start
+  reads, skill routing, reply headings, authority), Claude startup routing injects the
+  full communication guide by default, and `handbook:check` lists every start read.
+
 - Show Sign in and Create an account as tabs on the account form, with full-width
   actions and a Continue with Google button that uses Google's standard "G" logo
   and its required light and dark button colours.
@@ -77,6 +84,10 @@ Publish reviewed Handbook and regenerate consumer references, then publish compa
 Infrastructure/application artifacts and update immutable executor/source pins. Install
 the approved controller and app-control data-operations-v1 capability before enabling
 new release clients. Validate approval claims and target restore recovery separately.
+
+Handbook sync: after merging, derived projects run `npm run handbook:sync` from a
+reviewed Handbook snapshot at or after 127dfa4. Set `agentsSessionContract` or
+`claudeSessionStartRouting` to `false` in `handbook.json` to opt out.
 
 ## 0.5.0 — 2026-11-21
 
