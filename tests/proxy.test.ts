@@ -93,8 +93,21 @@ test("hosted Firebase frame admission is exact and restricted to real Firebase",
         policy(),
         /; frame-src 'self' https:\/\/accounts\.google\.com https:\/\/popup-fixture\.firebaseapp\.com;/,
       );
+      const deployed = policy();
+      // Unset AUTH_MODE defaults to real Firebase outside local, as in auth config.
+      delete process.env.AUTH_MODE;
+      assert.equal(policy(), deployed);
       process.env.AUTH_MODE = "emulator";
-      assert.doesNotMatch(policy(), /firebaseapp\.com/);
+      const emulatorPolicy = policy();
+      assert.doesNotMatch(emulatorPolicy, /firebaseapp\.com/);
+      // Only the exact frame source differs between deployed emulator and Firebase.
+      assert.equal(
+        deployed,
+        emulatorPolicy.replace(
+          /(frame-src[^;]*)/,
+          "$1 https://popup-fixture.firebaseapp.com",
+        ),
+      );
       process.env.AUTH_MODE = "firebase";
     }
     delete process.env.APP_ENV;

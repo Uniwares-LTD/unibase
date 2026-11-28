@@ -32,10 +32,19 @@ export function proxy(request: NextRequest) {
     emulatorPort > 0 && emulatorPort <= 65535
       ? ` http://127.0.0.1:${emulatorPort} http://localhost:${emulatorPort}`
       : "";
-  const popupDomain = firebasePopupAuthDomain(
-    process.env.AUTH_MODE,
-    process.env.FIREBASE_PROJECT_ID,
-  );
+  // Match the auth config default: unset AUTH_MODE is real Firebase outside
+  // local. An invalid implicit project ID adds no frame source; startup
+  // configuration validation rejects it separately.
+  const authMode = process.env.AUTH_MODE ?? (local ? "emulator" : "firebase");
+  let popupDomain: string | null = null;
+  try {
+    popupDomain = firebasePopupAuthDomain(
+      authMode,
+      process.env.FIREBASE_PROJECT_ID,
+    );
+  } catch (error) {
+    if (process.env.AUTH_MODE) throw error;
+  }
   const dev = process.env.NODE_ENV === "development";
   const helper = path.startsWith("/__/auth/");
   const csp = [

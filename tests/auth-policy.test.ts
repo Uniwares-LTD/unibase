@@ -113,6 +113,13 @@ test("real Firebase selects hosted popup auth in every environment; emulators re
     );
     assert.equal(config.public.googleSignInMethod, "popup");
     assert.equal(config.public.authDomain, "popup-fixture.firebaseapp.com");
+    const unset: Record<string, string> = { ...realFirebase };
+    delete unset.AUTH_MODE;
+    assert.equal(
+      parseAuthConfig(unset, environment, "https://app.example:8443").public
+        .googleSignInMethod,
+      "popup",
+    );
   }
   assert.throws(() =>
     parseAuthConfig(
