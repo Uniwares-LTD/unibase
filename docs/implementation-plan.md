@@ -21,8 +21,8 @@ projects. The staging installation runs the current `main`; see
 ## Local Google popup sign-in
 
 Implemented and merged in [PR #64](https://github.com/Uniwares-LTD/unibase/pull/64).
-Local real-Firebase uses the hosted popup helper with the existing session exchange;
-emulator/staging/production retain redirect behavior. The
+Real Firebase (local, staging and production since 2026-11-28) uses the hosted popup
+helper with the existing session exchange; only the Auth Emulator retains redirect. The
 [local popup plan](features/local-google-popup/implementation-plan.md) records verified
 checks/reviews and exact Unitale consumption through its PR #14. Real Google sign-in
 and the Unitale session were accepted by the user on 2026-11-21. No deployment/provider
